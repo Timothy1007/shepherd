@@ -6,3 +6,16 @@
 .game-board{min-height:420px;position:relative}.opponent-cards{display:flex;justify-content:center;padding-top:25px}.opponent-cards img{width:58px;aspect-ratio:815/1110;object-fit:contain;margin:0 -10px;transform:rotate(-8deg)}.opponent-cards img:last-child{transform:rotate(8deg)}.played-cards{display:flex;justify-content:center;align-items:center;padding:40px 0 20px;position:relative}.played-cards img{width:105px;aspect-ratio:815/1110;object-fit:contain;box-shadow:0 5px 20px #0005;border-radius:5px;transform:rotate(-9deg)}.played-cards img+img{transform:rotate(8deg);margin-left:-35px}.played-cards span{position:absolute;bottom:-12px;font-size:13px;color:#c0ccb9}
 #card-dialog{color:var(--ink);background:rgba(12,23,26,.78);border:1px solid #ffffff30;border-radius:18px;width:min(950px,calc(100vw - 32px));max-height:calc(100dvh - 40px);padding:36px;box-shadow:0 20px 70px #0005;overflow:auto}#card-dialog::backdrop{background:rgba(0,0,0,.28)}#card-dialog .focus-layout{margin:0;gap:36px}#card-dialog .details{background:none}#card-dialog .stage-card{width:min(100%,330px)}.close-dialog{position:absolute;right:10px;top:8px;border:0;background:transparent;color:white;font-size:28px;width:38px;height:38px;line-height:1}.table .focus-layout{display:none}.details h2{font-family:system-ui,sans-serif;font-size:28px}.hand-card .card img{object-fit:contain}.card.original{border-radius:5px}#card-dialog .ratio-note{color:#ccd4cf}#card-dialog .effect{color:#fff}.hand-card[aria-pressed=true]{outline:2px solid var(--accent)}
 @media(max-width:650px){.game-board{min-height:330px}.opponent-cards{padding-top:16px}.played-cards{padding-top:27px}.played-cards img{width:88px}#card-dialog{padding:38px 15px 22px;width:calc(100vw - 20px)}#card-dialog .focus-layout{gap:16px}.details h2{font-size:22px}#card-dialog .effect{font-size:15px}.ratio-note{display:none}}@media(max-width:380px){#card-dialog .focus-layout{grid-template-columns:1fr}#card-dialog .stage-card{width:190px}#card-dialog .details{padding-top:12px}}
+/* Detail typography and a tighter, hand-held fan. */
+.details{font-family:'Microsoft JhengHei','PingFang TC','Noto Sans TC',system-ui,sans-serif}
+.details h2{font-family:inherit;font-weight:800;letter-spacing:.045em;line-height:1.4}
+#card-dialog .effect{font-weight:600;letter-spacing:.035em;line-height:1.95}
+.details .tags,.details .section-label{font-weight:600}
+.details .price{font-weight:700}
+.hand-card{margin-left:-48px;transform-origin:50% 145%}
+.hand-card:first-child{margin-left:0}
+.hand-card:hover,.hand-card:focus-visible{transform:translateY(-28px) rotate(0);z-index:20}
+.hand-card[aria-pressed=true]{transform:translateY(-24px) rotate(0)}
+@media(min-width:1450px){.hand-card{margin-left:-55px}}
+@media(max-width:1000px){.hand{justify-content:center}.hand-card{margin-left:-52px;--tilt:var(--fan-tilt)!important;--arc:var(--fan-arc)!important}}
+@media(max-width:650px){.hand{justify-content:flex-start;padding-top:34px;padding-bottom:30px}.hand-card{flex-basis:125px;margin-left:-72px}.hand-card:hover,.hand-card:focus-visible{z-index:30}.details h2{font-weight:800}#card-dialog .effect{font-size:16px}}
