@@ -1,0 +1,50 @@
+export const RESOURCE_TYPES = Object.freeze(['sheep', 'food', 'money']);
+export const CARD_DEFINITIONS = Object.freeze(
+  ['sheep', 'food', 'money', 'grace'].flatMap((type) =>
+    Array.from({ length: 9 }, (_, index) => Object.freeze({
+      definitionId: `${type}-${index + 1}`,
+      kind: 'resource',
+      type,
+      number: index + 1,
+      copies: type === 'grace' ? 1 : 3,
+    })),
+  ),
+);
+
+export const DEFINITION_BY_ID = new Map(CARD_DEFINITIONS.map((definition) => [definition.definitionId, definition]));
+
+export function createResourceDeck() {
+  const cards = [];
+  for (const definition of CARD_DEFINITIONS) {
+    for (let copy = 1; copy <= definition.copies; copy += 1) {
+      cards.push({ instanceId: `${definition.definitionId}#${copy}`, definitionId: definition.definitionId });
+    }
+  }
+  return cards;
+}
+
+export function getDefinition(card) {
+  const definition = DEFINITION_BY_ID.get(card?.definitionId);
+  if (!definition) throw new Error(`Unknown card definition: ${card?.definitionId}`);
+  return definition;
+}
+
+export function effectiveType(card, declaredType = card?.declaredType) {
+  const definition = getDefinition(card);
+  return definition.type === 'grace' ? declaredType : definition.type;
+}
+
+export function beats(challenger, current) {
+  return (challenger === 'sheep' && current === 'food')
+    || (challenger === 'food' && current === 'money')
+    || (challenger === 'money' && current === 'sheep');
+}
+
+export function isLegalResourcePlay(card, currentResource, declaredType) {
+  const definition = getDefinition(card);
+  const type = definition.type === 'grace' ? declaredType : definition.type;
+  if (!RESOURCE_TYPES.includes(type)) return false;
+  if (!currentResource) return true;
+  if (type === currentResource.type) return definition.number >= currentResource.number;
+  return beats(type, currentResource.type);
+}

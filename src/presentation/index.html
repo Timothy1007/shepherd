@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>牧羊人：荒野之歌 — Recovery Alpha 0.1.1</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header><div><h1>牧羊人：荒野之歌</h1><p>Recovery Alpha 0.1.1 — 純物資七輪基線</p></div><button id="restart">開始／重新開始</button></header>
+  <main>
+    <section class="status" id="status"></section>
+    <section><h2>玩家</h2><div class="players" id="players"></div></section>
+    <section><div class="section-title"><h2>你的手牌</h2><span id="instruction"></span></div><div class="hand" id="hand"></div><div class="actions" id="actions"></div></section>
+    <section class="log"><h2>輪末紀錄</h2><p id="round-result">尚未結算</p></section>
+  </main>
+  <dialog id="card-dialog"><button class="close" aria-label="關閉">×</button><div id="card-detail"></div></dialog>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
