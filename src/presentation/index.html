@@ -3,19 +3,44 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>牧羊人：荒野之歌 — Recovery Alpha 0.1.1</title>
+  <title>牧羊人：荒野之歌 — 爭局 Prototype 0.1</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header><div><h1>牧羊人：荒野之歌</h1><p>Recovery Alpha 0.1.1 — 純物資七輪基線</p></div><button id="restart">開始／重新開始</button></header>
-  <main>
-    <section class="status" id="status"></section>
-    <section class="table-zone"><h2>目前出牌</h2><div id="table-card" class="table-card"><span>等待本輪第一張物資牌</span></div></section>
-    <section><h2>玩家</h2><div class="players" id="players"></div></section>
-    <section><div class="section-title"><h2>你的手牌</h2><span id="instruction"></span></div><div class="hand" id="hand"></div><div class="actions" id="actions"></div></section>
-    <section class="log"><h2>輪末紀錄</h2><p id="round-result">尚未結算</p></section>
+  <main class="dispute-shell">
+    <div class="world-layer" aria-hidden="true"><div class="horizon"></div><div class="ruins ruins-left"></div><div class="ruins ruins-right"></div><div class="ash"></div></div>
+
+    <header class="hud-top">
+      <div class="event-copy"><span class="eyebrow">荒野爭局 · PROTOTYPE 0.1</span><h1>牧羊人：荒野之歌</h1><p id="instruction">等待爭局開始</p></div>
+      <div class="round-hud"><div id="round-display">第 1 / 7 輪</div><button id="restart">重新開始</button></div>
+    </header>
+
+    <section id="status" class="status-strip" aria-label="爭局狀態"></section>
+
+    <section class="arena" aria-label="爭局場域">
+      <div id="seat-top" class="seat seat-top"></div>
+      <div id="seat-left" class="seat seat-left"></div>
+      <div id="seat-right" class="seat seat-right"></div>
+
+      <div class="ground-plane" aria-hidden="true"><div class="sigil"></div></div>
+      <div class="ember-core" aria-hidden="true"><i></i><i></i><i></i><span>低溫火種</span></div>
+
+      <div class="center-play">
+        <span class="center-label">當前物資</span>
+        <div id="table-card" class="table-card"><span>等待本輪第一張物資牌</span></div>
+        <div id="apostle-display" class="apostle-display">使徒 · 尚無</div>
+      </div>
+
+      <div id="round-result" class="round-result">尚未結算</div>
+    </section>
+
+    <section class="human-zone">
+      <div id="seat-human" class="human-meta"></div>
+      <div id="hand" class="hand" aria-label="你的手牌"></div>
+      <div id="selection-actions" class="selection-actions"></div>
+      <div id="actions" class="actions"></div>
+    </section>
   </main>
-  <dialog id="card-dialog"><button class="close" aria-label="關閉">×</button><div id="card-detail"></div></dialog>
   <script type="module" src="app.js"></script>
 </body>
 </html>
