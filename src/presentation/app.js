@@ -12,7 +12,7 @@ let gracePending = null;
 let lastPlayedId = null;
 
 const LONG_PRESS_MS = 480;
-const DRAG_THRESHOLD = 7;
+const DRAG_THRESHOLD = 6;
 
 function actionsForCard(card) {
   return actions.filter((action) => action.type === 'playResource' && action.instanceId === card.instanceId);
@@ -81,7 +81,6 @@ function openGraceChoice(card) {
       <span class="choice-label">${names[type]}</span>
       <span class="choice-card grace-born-preview">
         <img src="assets/cards/${type}-${definition.number}.png" alt="${names[type]} ${definition.number}">
-        <i>恩典</i>
       </span>
       <small>${action ? '可化為此物資' : '目前無法如此化形'}</small>`;
     if (action) button.addEventListener('click', () => {
@@ -125,15 +124,10 @@ function rejectCard(instanceId, message = '目前無法打出') {
 
 function dropZoneHit(x, y, startY) {
   const rect = $('#drop-zone').getBoundingClientRect();
-  const padded = {
-    left: rect.left - 70,
-    right: rect.right + 70,
-    top: rect.top - 80,
-    bottom: rect.bottom + 80,
-  };
-  const direct = x >= padded.left && x <= padded.right && y >= padded.top && y <= padded.bottom;
-  const fling = y < startY - 120 && x > innerWidth * .28 && x < innerWidth * .72;
-  return direct || fling;
+  const direct = x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+  const broadCenter = x > innerWidth * .16 && x < innerWidth * .84 && y > innerHeight * .15 && y < innerHeight * .69;
+  const fling = y < startY - 70 && x > innerWidth * .18 && x < innerWidth * .82;
+  return direct || broadCenter || fling;
 }
 
 function stopLongPress() {
@@ -142,21 +136,22 @@ function stopLongPress() {
 
 function beginPointer(card, button, event) {
   if (event.button !== undefined && event.button !== 0) return;
-  const point = event.touches?.[0] ?? event;
+  event.preventDefault();
   const rect = button.getBoundingClientRect();
   drag = {
     card,
     button,
     pointerId: event.pointerId,
-    startX: point.clientX,
-    startY: point.clientY,
-    x: point.clientX,
-    y: point.clientY,
+    startX: event.clientX,
+    startY: event.clientY,
+    x: event.clientX,
+    y: event.clientY,
     dragging: false,
     longPressed: false,
     ghost: null,
-    offsetX: point.clientX - rect.left,
-    offsetY: point.clientY - rect.top,
+    originRect: rect,
+    offsetX: event.clientX - rect.left,
+    offsetY: event.clientY - rect.top,
   };
   drag.longPressTimer = setTimeout(() => {
     if (!drag || drag.dragging) return;
@@ -165,37 +160,62 @@ function beginPointer(card, button, event) {
     button.classList.add('inspecting');
     if (navigator.vibrate) navigator.vibrate(18);
   }, LONG_PRESS_MS);
-  button.setPointerCapture?.(event.pointerId);
+}
+
+function startDragging() {
+  if (!drag || drag.dragging || drag.longPressed) return;
+  drag.dragging = true;
+  selectedInstanceId = drag.card.instanceId;
+  drag.button.classList.add('drag-source');
+  const ghost = drag.button.cloneNode(true);
+  ghost.className = `drag-ghost ${actionsForCard(drag.card).length ? 'drag-valid' : 'drag-invalid'}`;
+  ghost.style.width = `${drag.originRect.width}px`;
+  ghost.style.height = `${drag.originRect.height}px`;
+  ghost.style.left = `${drag.originRect.left}px`;
+  ghost.style.top = `${drag.originRect.top}px`;
+  document.body.append(ghost);
+  drag.ghost = ghost;
 }
 
 function movePointer(event) {
   if (!drag) return;
-  const point = event.touches?.[0] ?? event;
-  drag.x = point.clientX;
-  drag.y = point.clientY;
+  if (drag.pointerId != null && event.pointerId != null && event.pointerId !== drag.pointerId) return;
+  event.preventDefault();
+  drag.x = event.clientX;
+  drag.y = event.clientY;
   const distance = Math.hypot(drag.x - drag.startX, drag.y - drag.startY);
   if (!drag.dragging && distance > DRAG_THRESHOLD) {
     stopLongPress();
-    if (drag.longPressed) return;
-    drag.dragging = true;
-    selectedInstanceId = drag.card.instanceId;
-    drag.button.classList.add('drag-source');
-    const ghost = drag.button.cloneNode(true);
-    ghost.className = 'drag-ghost';
-    ghost.style.width = `${drag.button.getBoundingClientRect().width}px`;
-    ghost.style.height = `${drag.button.getBoundingClientRect().height}px`;
-    document.body.append(ghost);
-    drag.ghost = ghost;
+    startDragging();
   }
-  if (!drag.dragging || !drag.ghost) return;
+  if (!drag?.dragging || !drag.ghost) return;
   drag.ghost.style.left = `${drag.x - drag.offsetX}px`;
   drag.ghost.style.top = `${drag.y - drag.offsetY}px`;
   const over = dropZoneHit(drag.x, drag.y, drag.startY);
   $('#drop-zone').classList.toggle('accepting', over);
 }
 
-function endPointer(event) {
+function animateGhost(ghost, fromRect, toRect, options = {}) {
+  if (!ghost) return Promise.resolve();
+  const fromLeft = Number.parseFloat(ghost.style.left) || fromRect.left;
+  const fromTop = Number.parseFloat(ghost.style.top) || fromRect.top;
+  const toLeft = toRect.left + (toRect.width - fromRect.width) / 2;
+  const toTop = toRect.top + (toRect.height - fromRect.height) / 2;
+  const animation = ghost.animate([
+    { left: `${fromLeft}px`, top: `${fromTop}px`, transform: 'rotate(-2deg) scale(1.1)', opacity: 1 },
+    { left: `${toLeft}px`, top: `${toTop}px`, transform: options.reject ? 'rotate(1deg) scale(.96)' : 'rotate(3deg) scale(.76)', opacity: options.reject ? 1 : .08 },
+  ], {
+    duration: options.reject ? 260 : 160,
+    easing: options.reject ? 'cubic-bezier(.22,1.35,.36,1)' : 'cubic-bezier(.2,.8,.2,1)',
+    fill: 'forwards',
+  });
+  return animation.finished.catch(() => {}).then(() => ghost.remove());
+}
+
+async function endPointer(event) {
   if (!drag) return;
+  if (drag.pointerId != null && event?.pointerId != null && event.pointerId !== drag.pointerId) return;
+  event?.preventDefault?.();
   stopLongPress();
   const finished = drag;
   drag = null;
@@ -204,17 +224,26 @@ function endPointer(event) {
 
   if (finished.dragging && finished.ghost) {
     const shouldDrop = dropZoneHit(finished.x, finished.y, finished.startY);
-    finished.ghost.classList.add(shouldDrop ? 'drop-release' : 'return-release');
-    setTimeout(() => finished.ghost.remove(), 180);
-    if (shouldDrop) playOrChoose(finished.card);
-    else {
+    if (!shouldDrop) {
+      await animateGhost(finished.ghost, finished.originRect, finished.originRect, { reject: true });
       selectedInstanceId = null;
       if (currentState) {
         renderHand(currentState);
         renderSelectionActions(currentState);
       }
+      return;
     }
-    event?.preventDefault?.();
+
+    const playable = actionsForCard(finished.card);
+    if (!playable.length) {
+      await animateGhost(finished.ghost, finished.originRect, finished.originRect, { reject: true });
+      rejectCard(finished.card.instanceId, '局勢拒絕了這張牌');
+      return;
+    }
+
+    const target = $('#drop-zone').getBoundingClientRect();
+    await animateGhost(finished.ghost, finished.originRect, target);
+    playOrChoose(finished.card);
     return;
   }
 
@@ -233,12 +262,9 @@ function cardButton(card, state) {
   button.className = `card ${actionable ? 'legal' : 'illegal'} ${selectedInstanceId === card.instanceId ? 'selected' : ''}`;
   const statusText = actionable ? '可出牌' : (ruleLegal && !humanTurn ? '等待你的回合' : '目前不可出');
   button.setAttribute('aria-label', `${names[definition.type]} ${definition.number}，${statusText}`);
-  button.innerHTML = `<img class="card-art" src="${definition.image}" alt="${names[definition.type]} ${definition.number}"><span class="card-fallback"><span class="number">${definition.number}</span><span class="type">${names[definition.type]}</span></span><small>${statusText}</small>`;
+  button.innerHTML = `<img class="card-art" draggable="false" src="${definition.image}" alt="${names[definition.type]} ${definition.number}"><span class="card-fallback"><span class="number">${definition.number}</span><span class="type">${names[definition.type]}</span></span><small>${statusText}</small>`;
   button.querySelector('.card-art').addEventListener('error', () => button.classList.add('image-missing'), { once: true });
   button.addEventListener('pointerdown', (event) => beginPointer(card, button, event));
-  button.addEventListener('pointermove', movePointer);
-  button.addEventListener('pointerup', endPointer);
-  button.addEventListener('pointercancel', endPointer);
   return button;
 }
 
@@ -294,7 +320,7 @@ function renderCurrentCard(state) {
   const effectiveType = definition.type === 'grace' ? currentPlayed.declaredType : definition.type;
   const graceBorn = definition.type === 'grace' && effectiveType;
   const image = transformedImage(definition, effectiveType);
-  tableCard.innerHTML = `<span class="table-card-visual"><img src="${image}" alt="目前出牌：${names[effectiveType]} ${definition.number}">${graceBorn ? '<i class="grace-mark">恩典</i>' : ''}</span><span>${names[effectiveType]} ${definition.number}</span>`;
+  tableCard.innerHTML = `<span class="table-card-visual"><img src="${image}" alt="目前出牌：${names[effectiveType]} ${definition.number}"></span><span>${names[effectiveType]} ${definition.number}</span>`;
   tableCard.classList.add('has-card');
   tableCard.classList.toggle('grace-born', graceBorn);
   if (currentPlayed.instanceId !== lastPlayedId) {
@@ -341,7 +367,7 @@ function render(state, nextActions, nextToken) {
   if (state.gameOver) $('#instruction').textContent = `爭局結束 · 勝者 ${state.winner.join('、')}`;
   else if (redrawAction && state.currentPlayer === human.playerId) $('#instruction').textContent = '沒有可出的物資。你本輪仍有一次重新整備手牌的機會。';
   else if (endAction && state.currentPlayer === human.playerId) $('#instruction').textContent = '重整後仍沒有可出的物資。你將退出本輪爭局。';
-  else if (state.currentPlayer === human.playerId) $('#instruction').textContent = '輪到你。短按拿牌、長按查看、拖向中央出牌。';
+  else if (state.currentPlayer === human.playerId) $('#instruction').textContent = '輪到你。短按拿牌、長按查看、直接把牌拖向中央。';
   else $('#instruction').textContent = `等待 ${state.currentPlayer} 行動…`;
   $('#actions').replaceChildren();
   if (!state.gameOver && state.currentPlayer === human.playerId) renderHumanActions(state);
@@ -372,6 +398,10 @@ function renderHumanActions() {
   };
   actionButton(labels[automatic.type], automatic, automatic.type === 'redraw');
 }
+
+window.addEventListener('pointermove', movePointer, { passive: false });
+window.addEventListener('pointerup', endPointer, { passive: false });
+window.addEventListener('pointercancel', endPointer, { passive: false });
 
 window.addEventListener('keydown', (event) => {
   if (event.key !== 'Escape') return;
