@@ -1,5 +1,4 @@
 const resultEl = document.querySelector('#round-result');
-const roundDisplay = document.querySelector('#round-display');
 const pile = document.querySelector('.tabletop-pile');
 const instruction = document.querySelector('#instruction');
 const restartButton = document.querySelector('#restart');
@@ -12,7 +11,6 @@ const seatByPlayer = {
 };
 
 let resolvedRound = null;
-let lastRoundLabel = roundDisplay?.textContent || '';
 
 function center(rect) {
   return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
@@ -46,17 +44,15 @@ function createEmber(from, to, index, total) {
 }
 
 function animateResolution(round, apostle, reward) {
-  if (!pile || resolvedRound === round) return;
+  if (!pile || !apostle || resolvedRound === round) return;
   resolvedRound = round;
+  clearResolutionVisuals();
 
   const target = document.querySelector(seatByPlayer[apostle]);
   const sourceRect = pile.getBoundingClientRect();
   const targetRect = target?.getBoundingClientRect();
   if (!sourceRect.width || !sourceRect.height || !targetRect?.width) return;
 
-  pile.style.opacity = '';
-  pile.classList.remove('round-burning');
-  void pile.offsetWidth;
   pile.classList.add('round-burning');
 
   const from = center(sourceRect);
@@ -88,17 +84,7 @@ if (resultEl) {
   readResult();
 }
 
-if (roundDisplay) {
-  new MutationObserver(() => {
-    const next = roundDisplay.textContent || '';
-    if (next === lastRoundLabel) return;
-    lastRoundLabel = next;
-    clearResolutionVisuals();
-  }).observe(roundDisplay, { childList: true, characterData: true, subtree: true });
-}
-
 restartButton?.addEventListener('click', () => {
   resolvedRound = null;
-  lastRoundLabel = '第 1 / 7 輪';
   clearResolutionVisuals();
 });
