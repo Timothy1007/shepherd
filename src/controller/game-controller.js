@@ -1,8 +1,9 @@
-import { createGame, executeNormalAction, getNormalActions } from '../game/game.js';
+import { advanceToNextRound, createGame, executeNormalAction, getNormalActions } from '../game/game.js';
 
 const defaultSetTimer = (callback, delay) => setTimeout(callback, delay);
 const defaultClearTimer = (timer) => clearTimeout(timer);
 const AI_HOUSEKEEPING_DELAY = 140;
+const ROUND_TRANSITION_DELAY = 1700;
 
 export class GameController {
   constructor({ render = () => {}, setTimer = defaultSetTimer, clearTimer = defaultClearTimer, delay = () => 1400 } = {}) {
@@ -60,14 +61,32 @@ export class GameController {
     }, delay);
   }
 
+  scheduleNextRound(token) {
+    this.timer = this.setTimer(() => {
+      this.timer = null;
+      if (token.generation !== this.generation || token.actionToken !== this.actionToken) return;
+      const result = advanceToNextRound(this.state);
+      if (!result.ok) {
+        this.render(this.state, [], this.snapshot());
+        return;
+      }
+      this.state = result.state;
+      this.actionToken += 1;
+      this.prepare();
+    }, ROUND_TRANSITION_DELAY);
+  }
+
   prepare() {
     const available = getNormalActions(this.state);
     this.render(this.state, available, this.snapshot());
     this.cancelTimer();
     if (!this.state || this.state.gameOver) return;
 
-    // Empty-hand exits are mechanical bookkeeping and should never look like the
-    // match has frozen while the last eligible player is being resolved.
+    if (this.state.phase === 'roundEnd') {
+      this.scheduleNextRound(this.snapshot());
+      return;
+    }
+
     if (available.length === 1 && available[0].type === 'endEmptyHand') {
       const token = this.snapshot();
       this.schedule(available[0], token, 0);
@@ -91,8 +110,6 @@ export class GameController {
 
     const actions = getNormalActions(this.state);
     if (!actions.length) {
-      // This should be unreachable for an active player. Render once instead of
-      // entering a loop; a future debug pass can surface the invalid state.
       this.render(this.state, actions, this.snapshot());
       return;
     }
