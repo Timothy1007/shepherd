@@ -204,27 +204,39 @@ function settleRoundMutable(state) {
     apostle: state.currentApostle,
     reward: apostle ? state.playedArea.length : 0,
   };
+  state.currentPlayer = null;
+
   if (state.round === MAX_ROUNDS) {
     const highest = Math.max(...state.players.map((player) => player.fire));
     state.winner = state.players.filter((player) => player.fire === highest).map((player) => player.playerId);
     state.gameOver = true;
     state.phase = 'gameOver';
-    state.currentPlayer = null;
     return state;
   }
-  state.deck.push(
-    ...state.players.flatMap((player) => player.hand),
-    ...state.playedArea,
-    ...state.discardPile,
-    ...state.removedForRound,
-  );
-  state.playedArea = [];
-  state.discardPile = [];
-  state.removedForRound = [];
-  const previousStart = playerIndex(state, state.startingPlayer);
-  const nextStart = (previousStart + state.startingPlayerDirection + state.players.length) % state.players.length;
-  prepareRound(state, nextStart);
+
+  // Keep the completed round intact for a short presentation phase. The controller
+  // advances only after the round-resolution animation has had time to play.
+  state.phase = 'roundEnd';
   return state;
+}
+
+export function advanceToNextRound(state) {
+  if (!state || state.gameOver) return { ok: false, reason: 'Game is already over.', state };
+  if (state.phase !== 'roundEnd') return { ok: false, reason: 'Round is not waiting for advancement.', state };
+  const next = clone(state);
+  next.deck.push(
+    ...next.players.flatMap((player) => player.hand),
+    ...next.playedArea,
+    ...next.discardPile,
+    ...next.removedForRound,
+  );
+  next.playedArea = [];
+  next.discardPile = [];
+  next.removedForRound = [];
+  const previousStart = playerIndex(next, next.startingPlayer);
+  const nextStart = (previousStart + next.startingPlayerDirection + next.players.length) % next.players.length;
+  prepareRound(next, nextStart);
+  return { ok: true, state: next };
 }
 
 export function executeNormalAction(state, action) {
