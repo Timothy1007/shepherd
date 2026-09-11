@@ -1,9 +1,8 @@
-import { advanceToNextRound, createGame, executeNormalAction, getNormalActions } from '../game/game.js';
+import { createGame, executeNormalAction, getNormalActions } from '../game/game.js';
 
 const defaultSetTimer = (callback, delay) => setTimeout(callback, delay);
 const defaultClearTimer = (timer) => clearTimeout(timer);
 const AI_HOUSEKEEPING_DELAY = 140;
-const ROUND_TRANSITION_DELAY = 1700;
 
 export class GameController {
   constructor({ render = () => {}, setTimer = defaultSetTimer, clearTimer = defaultClearTimer, delay = () => 1400 } = {}) {
@@ -15,11 +14,10 @@ export class GameController {
     this.generation = 0;
     this.actionToken = 0;
     this.aiTimer = null;
-    this.roundTimer = null;
   }
 
   start(seed) {
-    this.cancelAllTimers();
+    this.cancelAiTimer();
     this.generation += 1;
     this.actionToken += 1;
     this.state = createGame({ seed });
@@ -34,16 +32,6 @@ export class GameController {
   cancelAiTimer() {
     if (this.aiTimer !== null) this.clearTimer(this.aiTimer);
     this.aiTimer = null;
-  }
-
-  cancelRoundTimer() {
-    if (this.roundTimer !== null) this.clearTimer(this.roundTimer);
-    this.roundTimer = null;
-  }
-
-  cancelAllTimers() {
-    this.cancelAiTimer();
-    this.cancelRoundTimer();
   }
 
   snapshot() {
@@ -73,42 +61,12 @@ export class GameController {
     }, delay);
   }
 
-  scheduleNextRound(token) {
-    if (this.roundTimer !== null) return;
-    this.roundTimer = this.setTimer(() => {
-      this.roundTimer = null;
-      if (token.generation !== this.generation || token.actionToken !== this.actionToken) return;
-      if (!this.state || this.state.phase !== 'roundEnd' || this.state.gameOver) return;
-      const result = advanceToNextRound(this.state);
-      if (!result.ok) {
-        this.render(this.state, [], this.snapshot());
-        return;
-      }
-      this.state = result.state;
-      this.actionToken += 1;
-      this.prepare();
-    }, ROUND_TRANSITION_DELAY);
-  }
-
   prepare() {
     if (!this.state) return;
-
     const available = getNormalActions(this.state);
     this.render(this.state, available, this.snapshot());
     this.cancelAiTimer();
-
-    if (this.state.gameOver) {
-      this.cancelRoundTimer();
-      return;
-    }
-
-    if (this.state.phase === 'roundEnd') {
-      this.scheduleNextRound(this.snapshot());
-      return;
-    }
-
-    // Any active playing state invalidates a stale round-transition timer.
-    this.cancelRoundTimer();
+    if (this.state.gameOver) return;
 
     if (available.length === 1 && available[0].type === 'endEmptyHand') {
       this.scheduleAi(available[0], this.snapshot(), 0);
@@ -123,7 +81,7 @@ export class GameController {
   }
 
   runAiTurn(token) {
-    if (!this.state || this.state.gameOver || this.state.phase !== 'playing') return;
+    if (!this.state || this.state.gameOver) return;
     if (token.generation !== this.generation || token.actionToken !== this.actionToken) return;
 
     const player = this.state.players.find((candidate) => candidate.playerId === this.state.currentPlayer);
