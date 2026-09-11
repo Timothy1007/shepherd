@@ -1,5 +1,9 @@
 function decorateStats(root = document) {
   root.querySelectorAll('.stats').forEach((el) => {
+    // app.js rewrites .stats on each render. Only decorate plain-text stats once;
+    // do not rewrite our own decorated markup, otherwise MutationObserver loops forever.
+    if (el.querySelector('.stat-item')) return;
+
     const text = el.textContent || '';
     const fire = text.match(/🔥\s*(\d+)/)?.[1] ?? '0';
     const hand = text.match(/手牌\s*(\d+)/)?.[1] ?? '0';
@@ -8,7 +12,16 @@ function decorateStats(root = document) {
   });
 }
 
-const observer = new MutationObserver(() => decorateStats());
-observer.observe(document.documentElement, { subtree: true, childList: true, characterData: false });
+let scheduled = false;
+const observer = new MutationObserver(() => {
+  if (scheduled) return;
+  scheduled = true;
+  queueMicrotask(() => {
+    scheduled = false;
+    decorateStats();
+  });
+});
+
+observer.observe(document.documentElement, { subtree: true, childList: true });
 window.addEventListener('DOMContentLoaded', () => decorateStats());
-setTimeout(() => decorateStats(), 0);
+queueMicrotask(() => decorateStats());
