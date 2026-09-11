@@ -1,96 +1,103 @@
-/* Prototype 0.3 camera pass: the whole arena, not only the cards, is staged from Player 1's seated viewpoint. */
+/* Prototype 0.4 camera pass — one shared tabletop plane viewed from Player 1. */
 .arena{
-  inset:112px 0 150px!important;
-  perspective:980px!important;
-  perspective-origin:50% 88%!important;
+  inset:106px 0 142px!important;
+  perspective:1050px!important;
+  perspective-origin:50% 20%!important;
+  transform-style:preserve-3d!important;
+  overflow:visible!important;
 }
 
-/* Pull the world horizon upward so the table occupies most of the view. */
-.horizon{top:20%!important;height:18%!important}
-.ruins{top:12%!important;height:22%!important;opacity:.34!important}
+/* Keep only a thin strip of world above the table; the camera is looking down. */
+.horizon{top:12%!important;height:15%!important}
+.ruins{top:7%!important;height:18%!important;opacity:.28!important}
 
-/* A real table plane: narrow far edge, very wide near edge. */
+/* This is now a real CSS 3D plane, not a fake trapezoid. */
 .ground-plane{
-  left:4%!important;
-  right:4%!important;
-  top:17%!important;
-  bottom:-34%!important;
-  transform:none!important;
-  transform-origin:center bottom!important;
-  clip-path:polygon(30% 0,70% 0,98% 100%,2% 100%)!important;
-  border-radius:7% 7% 18% 18%!important;
+  left:50%!important;
+  right:auto!important;
+  top:4%!important;
+  bottom:auto!important;
+  width:118vw!important;
+  height:106vh!important;
+  border-radius:4%!important;
+  clip-path:none!important;
+  transform-origin:50% 100%!important;
+  transform:translateX(-50%) translateY(-7%) rotateX(58deg) translateZ(-110px)!important;
   background:
-    radial-gradient(ellipse at 50% 36%,#34352c 0 10%,#20251f 34%,#121714 72%)!important;
-  box-shadow:inset 0 24px 80px #0008,inset 0 -55px 100px #000a,0 -12px 40px #8f60351c!important;
+    radial-gradient(ellipse at 50% 43%,#38392f 0 12%,#252a23 37%,#151a17 72%,#0b0f0d 100%)!important;
+  box-shadow:inset 0 34px 85px #0007,inset 0 -80px 130px #000a,0 -16px 48px #8f60351c!important;
 }
 .ground-plane:after{
   content:"";
   position:absolute;
   inset:0;
-  background:linear-gradient(180deg,#ffffff08,transparent 24%,#0004 100%);
+  background:linear-gradient(180deg,#ffffff08,transparent 20%,#0005 100%);
   pointer-events:none;
 }
 
-/* Seats follow the table perimeter and depth. */
-.seat{width:220px!important;min-width:0!important}
+/* Seats are upright billboards anchored around the receding table. */
+.seat{width:230px!important;min-width:0!important;z-index:22!important}
 .seat-top{
   left:50%!important;
-  top:10%!important;
-  transform:translateX(-50%) scale(.80)!important;
+  top:5%!important;
+  transform:translateX(-50%) scale(.76)!important;
   text-align:center!important;
 }
 .seat-left{
-  left:5.2%!important;
-  top:47%!important;
-  transform:translateY(-50%) scale(.96)!important;
+  left:4.5%!important;
+  top:39%!important;
+  transform:translateY(-50%) scale(.92)!important;
   transform-origin:left center!important;
   text-align:left!important;
 }
 .seat-right{
-  right:5.2%!important;
-  top:47%!important;
-  transform:translateY(-50%) scale(.96)!important;
+  right:4.5%!important;
+  top:39%!important;
+  transform:translateY(-50%) scale(.92)!important;
   transform-origin:right center!important;
   text-align:right!important;
 }
-
-/* Keep each player's identity and resources on one vertical axis. */
 .seat .name,.human-meta .name{display:block!important;width:100%!important}
-.seat .stats,.human-meta .stats{width:100%!important;margin-top:7px!important}
+.seat .stats,.human-meta .stats{width:100%!important;margin-top:7px!important;display:flex!important}
 .seat-left .stats,.human-meta .stats{justify-content:flex-start!important}
 .seat-top .stats{justify-content:center!important}
 .seat-right .stats{justify-content:flex-end!important}
 
-/* Player 1 is closest to camera, anchored at the near table edge. */
+/* Human identity stays in the near foreground. */
 .human-meta{
   left:24px!important;
   bottom:24px!important;
-  width:230px!important;
+  width:240px!important;
   text-align:left!important;
 }
 
-/* Main play area sits on the table, well below the far opponent. */
+/* Meta is a HUD billboard; cards themselves live on the tilted table plane. */
 .center-meta{
   position:absolute!important;
-  z-index:12!important;
+  z-index:30!important;
   left:50%!important;
-  top:29%!important;
+  top:23%!important;
   transform:translateX(-50%)!important;
-  width:280px!important;
+  width:310px!important;
   text-align:center!important;
   pointer-events:none!important;
 }
 .center-meta .center-label{display:block!important;margin:0 0 4px!important}
 .center-meta .apostle-display{margin:0!important}
+
 .center-play{
+  position:absolute!important;
+  z-index:15!important;
   left:50%!important;
-  top:58%!important;
-  width:470px!important;
-  height:260px!important;
+  top:57%!important;
+  width:480px!important;
+  height:300px!important;
   min-width:0!important;
   min-height:0!important;
   padding:0!important;
-  transform:translate(-50%,-50%)!important;
+  transform-origin:50% 50%!important;
+  transform:translate(-50%,-50%) rotateX(58deg) translateZ(3px)!important;
+  transform-style:preserve-3d!important;
   display:flex!important;
   align-items:center!important;
   justify-content:center!important;
@@ -98,46 +105,53 @@
   box-shadow:none!important;
 }
 
-/* Play pile lies on the same table plane. */
+/* Pile no longer gets a second X tilt; it inherits the table plane tilt. */
 .tabletop-pile{
   position:absolute!important;
   left:50%!important;
-  top:50%!important;
-  width:250px!important;
-  height:180px!important;
+  top:53%!important;
+  width:270px!important;
+  height:190px!important;
   margin:0!important;
   transform:translate(-50%,-50%)!important;
-  perspective:850px!important;
+  transform-style:preserve-3d!important;
+  perspective:none!important;
 }
 .table-card.pile-source-hidden + .tabletop-pile{margin-top:0!important}
 .tabletop-pile .pile-card{
-  width:156px!important;
-  transform:translate(calc(-50% + var(--pile-x)),calc(-50% + var(--pile-y))) perspective(760px) rotateX(61deg) rotateZ(var(--pile-r)) translateZ(calc(var(--pile-depth) * 2px))!important;
+  width:158px!important;
+  transform:translate(calc(-50% + var(--pile-x)),calc(-50% + var(--pile-y))) rotateZ(var(--pile-r)) translateZ(calc(var(--pile-depth) * 2px))!important;
+  filter:drop-shadow(0 14px 9px #0009)!important;
 }
-.tabletop-pile .pile-card img{width:156px!important}
+.tabletop-pile .pile-card img{width:158px!important;box-shadow:0 4px 8px #0008!important}
+@keyframes pileDrop{
+  0%{transform:translate(calc(-50% + var(--pile-x)),calc(-50% + var(--pile-y) - 90px)) rotateZ(calc(var(--pile-r) + 10deg)) translateZ(80px) scale(1.08);opacity:.18}
+  72%{transform:translate(calc(-50% + var(--pile-x)),calc(-50% + var(--pile-y) + 5px)) rotateZ(var(--pile-r)) translateZ(calc(var(--pile-depth) * 2px)) scale(.97);opacity:1}
+  100%{transform:translate(calc(-50% + var(--pile-x)),calc(-50% + var(--pile-y))) rotateZ(var(--pile-r)) translateZ(calc(var(--pile-depth) * 2px));opacity:1}
+}
 
+/* Instruction belongs to the near edge, not the far opponent. */
 .drag-instruction{
   position:absolute!important;
   left:50%!important;
-  bottom:8%!important;
+  bottom:5%!important;
   transform:translateX(-50%)!important;
-  z-index:14!important;
+  z-index:31!important;
   font-size:11px!important;
   letter-spacing:.08em!important;
   color:#a9a18f!important;
-  opacity:.58!important;
+  opacity:.52!important;
   pointer-events:none!important;
   white-space:nowrap!important;
 }
 
-/* Low-temperature fire is informational, not an effect. */
 .blue-flame{filter:none!important;box-shadow:none!important}
 .blue-flame:before,.blue-flame:after{box-shadow:none!important}
 
 @media(max-height:760px){
-  .ground-plane{top:19%!important;bottom:-40%!important}
-  .center-meta{top:30%!important}
-  .center-play{top:59%!important}
-  .drag-instruction{bottom:6%!important}
-  .seat-top{top:9%!important}
+  .ground-plane{top:5%!important;height:112vh!important;transform:translateX(-50%) translateY(-9%) rotateX(60deg) translateZ(-125px)!important}
+  .center-meta{top:22%!important}
+  .center-play{top:56%!important}
+  .seat-top{top:4%!important}
+  .drag-instruction{bottom:3%!important}
 }
