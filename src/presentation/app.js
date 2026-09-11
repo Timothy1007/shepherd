@@ -5,34 +5,240 @@ const names = { sheep: '群羊', food: '糧食', money: '金錢', grace: '恩典
 const $ = (selector) => document.querySelector(selector);
 let actions = [];
 let token = null;
+let currentState = null;
 let selectedInstanceId = null;
+let drag = null;
+let gracePending = null;
+let lastPlayedId = null;
+
+const LONG_PRESS_MS = 480;
+const DRAG_THRESHOLD = 7;
 
 function actionsForCard(card) {
   return actions.filter((action) => action.type === 'playResource' && action.instanceId === card.instanceId);
 }
 
-function cardButton(card, state) {
+function transformedImage(definition, declaredType) {
+  if (definition.type !== 'grace' || !declaredType) return definition.image;
+  return `assets/cards/${declaredType}-${definition.number}.png`;
+}
+
+function cardStatus(card, state) {
   const definition = getDefinition(card);
   const possible = definition.type === 'grace' ? RESOURCE_TYPES : [definition.type];
   const ruleLegal = possible.some((type) => isLegalResourcePlay(card, state.currentResource, type));
   const playableActions = actionsForCard(card);
-  const actionable = playableActions.length > 0;
   const human = state.players[0];
   const humanTurn = state.currentPlayer === human.playerId;
+  return { definition, ruleLegal, playableActions, humanTurn, actionable: playableActions.length > 0 };
+}
+
+function showToast(message, tone = '') {
+  const toast = $('#toast');
+  toast.textContent = message;
+  toast.className = `toast show ${tone}`;
+  clearTimeout(showToast.timer);
+  showToast.timer = setTimeout(() => { toast.className = 'toast'; }, 1400);
+}
+
+function showDetail(card) {
+  const definition = getDefinition(card);
+  const playable = actionsForCard(card);
+  const legalText = playable.length ? '目前可進入爭局。' : '目前不能打出，但你仍可查看它。';
+  $('#detail-content').innerHTML = `
+    <img class="detail-card-art" src="${definition.image}" alt="${names[definition.type]} ${definition.number}">
+    <div class="detail-copy">
+      <span class="eyebrow">${names[definition.type]}</span>
+      <h2>${names[definition.type]} ${definition.number}</h2>
+      <p>${legalText}</p>
+      <p class="detail-note">目前 Prototype 僅有物資牌。未來神蹟、災難、呼召與祝福的完整效果文字都會在這裡顯示。</p>
+    </div>`;
+  $('#detail-overlay').hidden = false;
+}
+
+function hideDetail() {
+  $('#detail-overlay').hidden = true;
+}
+
+function closeGraceChoice() {
+  gracePending = null;
+  $('#grace-overlay').hidden = true;
+}
+
+function openGraceChoice(card) {
+  const definition = getDefinition(card);
+  const playable = actionsForCard(card);
+  gracePending = { card, playable };
+  const host = $('#grace-choices');
+  host.replaceChildren();
+
+  for (const type of RESOURCE_TYPES) {
+    const action = playable.find((candidate) => candidate.declaredType === type);
+    const button = document.createElement('button');
+    button.className = `grace-choice ${action ? 'legal-choice' : 'illegal-choice'}`;
+    button.disabled = !action;
+    button.innerHTML = `
+      <span class="choice-label">${names[type]}</span>
+      <span class="choice-card grace-born-preview">
+        <img src="assets/cards/${type}-${definition.number}.png" alt="${names[type]} ${definition.number}">
+        <i>恩典</i>
+      </span>
+      <small>${action ? '可化為此物資' : '目前無法如此化形'}</small>`;
+    if (action) button.addEventListener('click', () => {
+      closeGraceChoice();
+      selectedInstanceId = null;
+      controller.act(action, token);
+    });
+    host.append(button);
+  }
+  $('#grace-overlay').hidden = false;
+}
+
+function playOrChoose(card) {
+  const playable = actionsForCard(card);
+  const definition = getDefinition(card);
+  if (!playable.length) {
+    rejectCard(card.instanceId, '這張牌現在無法進入爭局');
+    return;
+  }
+  if (definition.type === 'grace') {
+    openGraceChoice(card);
+    return;
+  }
+  selectedInstanceId = null;
+  controller.act(playable[0], token);
+}
+
+function rejectCard(instanceId, message = '目前無法打出') {
+  const el = document.querySelector(`[data-card-id="${CSS.escape(instanceId)}"]`);
+  if (el) {
+    el.classList.remove('reject');
+    void el.offsetWidth;
+    el.classList.add('reject');
+    setTimeout(() => el.classList.remove('reject'), 520);
+  }
+  $('#drop-zone').classList.remove('accepting');
+  $('#drop-zone').classList.add('rejecting');
+  setTimeout(() => $('#drop-zone').classList.remove('rejecting'), 420);
+  showToast(message, 'warning');
+}
+
+function dropZoneHit(x, y, startY) {
+  const rect = $('#drop-zone').getBoundingClientRect();
+  const padded = {
+    left: rect.left - 70,
+    right: rect.right + 70,
+    top: rect.top - 80,
+    bottom: rect.bottom + 80,
+  };
+  const direct = x >= padded.left && x <= padded.right && y >= padded.top && y <= padded.bottom;
+  const fling = y < startY - 120 && x > innerWidth * .28 && x < innerWidth * .72;
+  return direct || fling;
+}
+
+function stopLongPress() {
+  if (drag?.longPressTimer) clearTimeout(drag.longPressTimer);
+}
+
+function beginPointer(card, button, event) {
+  if (event.button !== undefined && event.button !== 0) return;
+  const point = event.touches?.[0] ?? event;
+  const rect = button.getBoundingClientRect();
+  drag = {
+    card,
+    button,
+    pointerId: event.pointerId,
+    startX: point.clientX,
+    startY: point.clientY,
+    x: point.clientX,
+    y: point.clientY,
+    dragging: false,
+    longPressed: false,
+    ghost: null,
+    offsetX: point.clientX - rect.left,
+    offsetY: point.clientY - rect.top,
+  };
+  drag.longPressTimer = setTimeout(() => {
+    if (!drag || drag.dragging) return;
+    drag.longPressed = true;
+    showDetail(card);
+    button.classList.add('inspecting');
+    if (navigator.vibrate) navigator.vibrate(18);
+  }, LONG_PRESS_MS);
+  button.setPointerCapture?.(event.pointerId);
+}
+
+function movePointer(event) {
+  if (!drag) return;
+  const point = event.touches?.[0] ?? event;
+  drag.x = point.clientX;
+  drag.y = point.clientY;
+  const distance = Math.hypot(drag.x - drag.startX, drag.y - drag.startY);
+  if (!drag.dragging && distance > DRAG_THRESHOLD) {
+    stopLongPress();
+    if (drag.longPressed) return;
+    drag.dragging = true;
+    selectedInstanceId = drag.card.instanceId;
+    drag.button.classList.add('drag-source');
+    const ghost = drag.button.cloneNode(true);
+    ghost.className = 'drag-ghost';
+    ghost.style.width = `${drag.button.getBoundingClientRect().width}px`;
+    ghost.style.height = `${drag.button.getBoundingClientRect().height}px`;
+    document.body.append(ghost);
+    drag.ghost = ghost;
+  }
+  if (!drag.dragging || !drag.ghost) return;
+  drag.ghost.style.left = `${drag.x - drag.offsetX}px`;
+  drag.ghost.style.top = `${drag.y - drag.offsetY}px`;
+  const over = dropZoneHit(drag.x, drag.y, drag.startY);
+  $('#drop-zone').classList.toggle('accepting', over);
+}
+
+function endPointer(event) {
+  if (!drag) return;
+  stopLongPress();
+  const finished = drag;
+  drag = null;
+  finished.button.classList.remove('drag-source', 'inspecting');
+  $('#drop-zone').classList.remove('accepting');
+
+  if (finished.dragging && finished.ghost) {
+    const shouldDrop = dropZoneHit(finished.x, finished.y, finished.startY);
+    finished.ghost.classList.add(shouldDrop ? 'drop-release' : 'return-release');
+    setTimeout(() => finished.ghost.remove(), 180);
+    if (shouldDrop) playOrChoose(finished.card);
+    else {
+      selectedInstanceId = null;
+      if (currentState) {
+        renderHand(currentState);
+        renderSelectionActions(currentState);
+      }
+    }
+    event?.preventDefault?.();
+    return;
+  }
+
+  if (finished.longPressed) return;
+  selectedInstanceId = selectedInstanceId === finished.card.instanceId ? null : finished.card.instanceId;
+  if (currentState) {
+    renderHand(currentState);
+    renderSelectionActions(currentState);
+  }
+}
+
+function cardButton(card, state) {
+  const { definition, ruleLegal, humanTurn, actionable } = cardStatus(card, state);
   const button = document.createElement('button');
+  button.dataset.cardId = card.instanceId;
   button.className = `card ${actionable ? 'legal' : 'illegal'} ${selectedInstanceId === card.instanceId ? 'selected' : ''}`;
   const statusText = actionable ? '可出牌' : (ruleLegal && !humanTurn ? '等待你的回合' : '目前不可出');
   button.setAttribute('aria-label', `${names[definition.type]} ${definition.number}，${statusText}`);
   button.innerHTML = `<img class="card-art" src="${definition.image}" alt="${names[definition.type]} ${definition.number}"><span class="card-fallback"><span class="number">${definition.number}</span><span class="type">${names[definition.type]}</span></span><small>${statusText}</small>`;
   button.querySelector('.card-art').addEventListener('error', () => button.classList.add('image-missing'), { once: true });
-  button.addEventListener('click', () => {
-    selectedInstanceId = selectedInstanceId === card.instanceId ? null : card.instanceId;
-    renderHand(state);
-    renderSelectionActions(state);
-  });
-  button.addEventListener('dblclick', () => {
-    if (playableActions.length === 1) controller.act(playableActions[0], token);
-  });
+  button.addEventListener('pointerdown', (event) => beginPointer(card, button, event));
+  button.addEventListener('pointermove', movePointer);
+  button.addEventListener('pointerup', endPointer);
+  button.addEventListener('pointercancel', endPointer);
   return button;
 }
 
@@ -55,19 +261,17 @@ function renderSelectionActions(state) {
     button.textContent = state.currentPlayer === state.players[0].playerId ? '目前不可打出' : '等待你的回合';
     button.disabled = true;
     host.append(button);
-    return;
-  }
-  for (const action of playable) {
+  } else {
     const button = document.createElement('button');
     button.className = 'primary';
-    const suffix = definition.type === 'grace' ? ` · 作為${names[action.declaredType]}` : '';
-    button.textContent = `打出 ${names[definition.type]} ${definition.number}${suffix}`;
-    button.addEventListener('click', () => {
-      selectedInstanceId = null;
-      controller.act(action, token);
-    });
+    button.textContent = definition.type === 'grace' ? '選擇恩典化形' : `打出 ${names[definition.type]} ${definition.number}`;
+    button.addEventListener('click', () => playOrChoose(card));
     host.append(button);
   }
+  const inspect = document.createElement('button');
+  inspect.textContent = '查看卡牌';
+  inspect.addEventListener('click', () => showDetail(card));
+  host.append(inspect);
   const cancel = document.createElement('button');
   cancel.textContent = '放回手牌';
   cancel.addEventListener('click', () => {
@@ -83,12 +287,22 @@ function renderCurrentCard(state) {
   const tableCard = $('#table-card');
   if (!currentPlayed) {
     tableCard.innerHTML = '<span>等待本輪第一張物資牌</span>';
-    tableCard.classList.remove('has-card');
+    tableCard.classList.remove('has-card', 'grace-born');
     return;
   }
   const definition = getDefinition(currentPlayed);
-  tableCard.innerHTML = `<img src="${definition.image}" alt="目前出牌：${names[definition.type]} ${definition.number}"><span>${names[definition.type]} ${definition.number}</span>`;
+  const effectiveType = definition.type === 'grace' ? currentPlayed.declaredType : definition.type;
+  const graceBorn = definition.type === 'grace' && effectiveType;
+  const image = transformedImage(definition, effectiveType);
+  tableCard.innerHTML = `<span class="table-card-visual"><img src="${image}" alt="目前出牌：${names[effectiveType]} ${definition.number}">${graceBorn ? '<i class="grace-mark">恩典</i>' : ''}</span><span>${names[effectiveType]} ${definition.number}</span>`;
   tableCard.classList.add('has-card');
+  tableCard.classList.toggle('grace-born', graceBorn);
+  if (currentPlayed.instanceId !== lastPlayedId) {
+    lastPlayedId = currentPlayed.instanceId;
+    tableCard.classList.remove('impact');
+    void tableCard.offsetWidth;
+    tableCard.classList.add('impact');
+  }
 }
 
 function playerMarkup(player) {
@@ -110,6 +324,7 @@ function renderSeats(state) {
 }
 
 function render(state, nextActions, nextToken) {
+  currentState = state;
   actions = nextActions;
   token = nextToken;
   const human = state.players[0];
@@ -121,41 +336,65 @@ function render(state, nextActions, nextToken) {
   renderSeats(state);
   renderHand(state);
   renderSelectionActions(state);
-  $('#instruction').textContent = state.gameOver ? `爭局結束 · 勝者 ${state.winner.join('、')}` : state.currentPlayer === human.playerId ? '輪到你。選擇一張牌，將它拿起。' : `等待 ${state.currentPlayer} 行動…`;
+  const redrawAction = nextActions.find((action) => action.type === 'redraw');
+  const endAction = nextActions.find((action) => action.type === 'endParticipation');
+  if (state.gameOver) $('#instruction').textContent = `爭局結束 · 勝者 ${state.winner.join('、')}`;
+  else if (redrawAction && state.currentPlayer === human.playerId) $('#instruction').textContent = '沒有可出的物資。你本輪仍有一次重新整備手牌的機會。';
+  else if (endAction && state.currentPlayer === human.playerId) $('#instruction').textContent = '重整後仍沒有可出的物資。你將退出本輪爭局。';
+  else if (state.currentPlayer === human.playerId) $('#instruction').textContent = '輪到你。短按拿牌、長按查看、拖向中央出牌。';
+  else $('#instruction').textContent = `等待 ${state.currentPlayer} 行動…`;
   $('#actions').replaceChildren();
   if (!state.gameOver && state.currentPlayer === human.playerId) renderHumanActions(state);
   $('#round-result').textContent = state.lastRoundResult ? `第 ${state.lastRoundResult.round} 輪 · 使徒 ${state.lastRoundResult.apostle ?? '無'} · +${state.lastRoundResult.reward} 火種` : '火種仍在等待新的使徒';
 }
 
-function actionButton(label, action) {
+function actionButton(label, action, emphasized = false) {
   const button = document.createElement('button');
   button.textContent = label;
+  if (emphasized) button.classList.add('primary-action');
   button.addEventListener('click', () => {
     selectedInstanceId = null;
-    controller.act(action, token);
+    if (action.type === 'redraw') {
+      $('#hand').classList.add('redealing');
+      setTimeout(() => controller.act(action, token), 230);
+    } else controller.act(action, token);
   });
   $('#actions').append(button);
 }
 
 function renderHumanActions() {
   const automatic = actions.find((action) => action.type !== 'playResource');
-  if (automatic) actionButton({ redraw: '重洗手牌', endParticipation: '結束本輪參與', endEmptyHand: '空手：結束參與' }[automatic.type], automatic);
+  if (!automatic) return;
+  const labels = {
+    redraw: '重新整備手牌',
+    endParticipation: '退出本輪爭局',
+    endEmptyHand: '空手：結束參與',
+  };
+  actionButton(labels[automatic.type], automatic, automatic.type === 'redraw');
 }
 
 window.addEventListener('keydown', (event) => {
-  if (event.key === 'Escape' && selectedInstanceId) {
+  if (event.key !== 'Escape') return;
+  if (!$('#grace-overlay').hidden) return closeGraceChoice();
+  if (!$('#detail-overlay').hidden) return hideDetail();
+  if (selectedInstanceId && currentState) {
     selectedInstanceId = null;
-    const state = controller.getState?.();
-    if (state) {
-      renderHand(state);
-      renderSelectionActions(state);
-    }
+    renderHand(currentState);
+    renderSelectionActions(currentState);
   }
+});
+
+document.querySelectorAll('[data-close="detail"]').forEach((element) => element.addEventListener('click', hideDetail));
+$('#grace-cancel').addEventListener('click', () => {
+  closeGraceChoice();
+  if (currentState) renderSelectionActions(currentState);
 });
 
 const controller = new GameController({ render, delay: aiDelay });
 $('#restart').addEventListener('click', () => {
   selectedInstanceId = null;
+  closeGraceChoice();
+  hideDetail();
   controller.restart($('#restart').dataset.seed = `${Date.now()}`);
 });
 controller.start('recovery-preview');
