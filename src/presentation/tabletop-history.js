@@ -8,6 +8,7 @@ if (tableCard && centerPlay) {
   centerPlay.insertBefore(pile, tableCard.nextSibling);
 
   const snapshots = [];
+  let playSequence = 0;
   const rotations = [-8, 5, -3, 7, -5, 4];
   const offsets = [
     [-26, 12],
@@ -18,6 +19,16 @@ if (tableCard && centerPlay) {
     [8, -6],
   ];
 
+  function renderPile() {
+    pile.replaceChildren(...snapshots.map((item, i) => {
+      const node = item.cloneNode(true);
+      node.style.setProperty('--pile-depth', String(i));
+      node.classList.toggle('pile-latest', i === snapshots.length - 1);
+      return node;
+    }));
+    pile.classList.toggle('has-cards', snapshots.length > 0);
+  }
+
   function captureCurrentCard() {
     const visual = tableCard.querySelector('.table-card-visual');
     const image = visual?.querySelector('img');
@@ -25,24 +36,23 @@ if (tableCard && centerPlay) {
 
     const clone = visual.cloneNode(true);
     clone.classList.add('pile-card');
-    const index = snapshots.length;
-    const [x, y] = offsets[index % offsets.length];
+
+    // Use a lifetime play sequence instead of snapshots.length. Once the visible
+    // pile reached three cards, snapshots.length stayed at 3 forever, which made
+    // every later play reuse the same offset/rotation and visually collapse into
+    // one stack. Cycling by sequence keeps the latest three visibly scattered.
+    const slot = playSequence % offsets.length;
+    const [x, y] = offsets[slot];
     clone.style.setProperty('--pile-x', `${x}px`);
     clone.style.setProperty('--pile-y', `${y}px`);
-    clone.style.setProperty('--pile-r', `${rotations[index % rotations.length]}deg`);
+    clone.style.setProperty('--pile-r', `${rotations[slot]}deg`);
+    playSequence += 1;
 
     snapshots.push(clone);
     while (snapshots.length > 3) snapshots.shift();
-
-    pile.replaceChildren(...snapshots.map((item, i) => {
-      const node = item.cloneNode(true);
-      node.style.setProperty('--pile-depth', String(i));
-      node.classList.toggle('pile-latest', i === snapshots.length - 1);
-      return node;
-    }));
+    renderPile();
 
     tableCard.classList.add('pile-source-hidden');
-    pile.classList.add('has-cards');
   }
 
   const observer = new MutationObserver((records) => {
@@ -55,10 +65,10 @@ if (tableCard && centerPlay) {
       }
     }
 
+    // Round changes clear the table source, so clear old-round history too.
     if (!tableCard.querySelector('.table-card-visual')) {
       snapshots.length = 0;
-      pile.replaceChildren();
-      pile.classList.remove('has-cards');
+      renderPile();
       tableCard.classList.remove('pile-source-hidden');
     }
   });
