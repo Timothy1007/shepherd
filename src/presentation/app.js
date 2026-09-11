@@ -12,15 +12,30 @@ function cardButton(card, state) {
   const legal = possible.some((type) => isLegalResourcePlay(card, state.currentResource, type));
   const button = document.createElement('button');
   button.className = `card ${legal ? 'legal' : 'illegal'}`;
-  button.innerHTML = `<span class="number">${definition.number}</span><span class="type">${names[definition.type]}</span><small>${legal ? '可出牌' : '目前不可出'}</small>`;
+  button.setAttribute('aria-label', `${names[definition.type]} ${definition.number}，${legal ? '可出牌' : '目前不可出'}`);
+  button.innerHTML = `<img class="card-art" src="${definition.image}" alt="${names[definition.type]} ${definition.number}"><span class="card-fallback"><span class="number">${definition.number}</span><span class="type">${names[definition.type]}</span></span><small>${legal ? '可出牌' : '目前不可出'}</small>`;
+  button.querySelector('.card-art').addEventListener('error', () => button.classList.add('image-missing'), { once: true });
   button.addEventListener('click', () => showCard(card, legal));
   return button;
 }
 
 function showCard(card, legal) {
   const definition = getDefinition(card);
-  $('#card-detail').innerHTML = `<h2>${names[definition.type]} ${definition.number}</h2><p>實體牌：${card.instanceId}</p><p>${legal ? '此牌目前至少有一種合法打法。' : '此牌目前不可打出，但仍可查看。'}</p>`;
+  $('#card-detail').innerHTML = `<img class="detail-art" src="${definition.image}" alt="${names[definition.type]} ${definition.number}"><h2>${names[definition.type]} ${definition.number}</h2><p>實體牌：${card.instanceId}</p><p>${legal ? '此牌目前至少有一種合法打法。' : '此牌目前不可打出，但仍可查看。'}</p>`;
   $('#card-dialog').showModal();
+}
+
+function renderCurrentCard(state) {
+  const currentPlayed = state.playedArea.at(-1);
+  const tableCard = $('#table-card');
+  if (!currentPlayed) {
+    tableCard.innerHTML = '<span>等待本輪第一張物資牌</span>';
+    tableCard.classList.remove('has-card');
+    return;
+  }
+  const definition = getDefinition(currentPlayed);
+  tableCard.innerHTML = `<img src="${definition.image}" alt="目前出牌：${names[definition.type]} ${definition.number}"><span>${names[definition.type]} ${definition.number}</span>`;
+  tableCard.classList.add('has-card');
 }
 
 function render(state, nextActions, nextToken) {
@@ -28,6 +43,7 @@ function render(state, nextActions, nextToken) {
   token = nextToken;
   const resource = state.currentResource ? `${names[state.currentResource.type]} ${state.currentResource.number}` : '自由出牌';
   $('#status').innerHTML = `<span>輪次 <strong>${state.round}/7</strong></span><span>牌庫 <strong>${state.deck.length}</strong></span><span>棄牌 <strong>${state.discardPile.length}</strong></span><span>已出牌 <strong>${state.playedArea.length}</strong></span><span>目前物資 <strong>${resource}</strong></span><span>使徒 <strong>${state.currentApostle ?? '尚無'}</strong></span>`;
+  renderCurrentCard(state);
   $('#players').replaceChildren(...state.players.map((player) => {
     const element = document.createElement('article');
     element.className = `player ${state.currentPlayer === player.playerId ? 'current' : ''} ${player.hasNormalAction ? '' : 'inactive'}`;
