@@ -26,15 +26,16 @@
       <div id="seat-left" class="seat seat-left"></div>
       <div id="seat-right" class="seat seat-right"></div>
 
-      <div class="ground-plane" aria-hidden="true"><div class="sigil"></div></div>
+      <div class="ground-plane">
+        <div class="board-surface" aria-hidden="true"></div>
+        <div id="drop-zone" class="center-play">
+          <div id="table-card" class="table-card"><span>等待本輪第一張物資牌</span></div>
+        </div>
+      </div>
 
       <div class="center-meta" aria-live="polite">
         <span class="center-label">當前物資</span>
         <div id="apostle-display" class="apostle-display">使徒 · 尚無</div>
-      </div>
-
-      <div id="drop-zone" class="center-play">
-        <div id="table-card" class="table-card"><span>等待本輪第一張物資牌</span></div>
       </div>
 
       <div class="drag-instruction">拖曳或甩出卡牌至桌面中央</div>
