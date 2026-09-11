@@ -2,6 +2,7 @@ import { createGame, executeNormalAction, getNormalActions } from '../game/game.
 
 const defaultSetTimer = (callback, delay) => setTimeout(callback, delay);
 const defaultClearTimer = (timer) => clearTimeout(timer);
+const AI_HOUSEKEEPING_DELAY = 140;
 
 export class GameController {
   constructor({ render = () => {}, setTimer = defaultSetTimer, clearTimer = defaultClearTimer, delay = () => 1400 } = {}) {
@@ -50,21 +51,26 @@ export class GameController {
     return { ok: true, state: this.state };
   }
 
+  schedule(action, token, delay) {
+    this.timer = this.setTimer(() => {
+      this.timer = null;
+      if (token.generation !== this.generation || token.actionToken !== this.actionToken) return;
+      if (action) this.act(action, token);
+      else this.runAiTurn(token);
+    }, delay);
+  }
+
   prepare() {
     const available = getNormalActions(this.state);
     this.render(this.state, available, this.snapshot());
     this.cancelTimer();
     if (!this.state || this.state.gameOver) return;
 
-    // Resolve empty hands automatically, but only one state transition per call.
-    // This avoids deep synchronous action chains around round settlement / game over.
+    // Empty-hand exits are mechanical bookkeeping and should never look like the
+    // match has frozen while the last eligible player is being resolved.
     if (available.length === 1 && available[0].type === 'endEmptyHand') {
       const token = this.snapshot();
-      this.timer = this.setTimer(() => {
-        this.timer = null;
-        if (token.generation !== this.generation || token.actionToken !== this.actionToken) return;
-        this.act(available[0], token);
-      }, 0);
+      this.schedule(available[0], token, 0);
       return;
     }
 
@@ -72,11 +78,8 @@ export class GameController {
     if (player?.type !== 'ai') return;
 
     const token = this.snapshot();
-    this.timer = this.setTimer(() => {
-      this.timer = null;
-      if (token.generation !== this.generation || token.actionToken !== this.actionToken) return;
-      this.runAiTurn(token);
-    }, this.delay());
+    const automatic = available.length === 1 && ['redraw', 'endParticipation'].includes(available[0].type);
+    this.schedule(null, token, automatic ? AI_HOUSEKEEPING_DELAY : this.delay());
   }
 
   runAiTurn(token) {
@@ -88,13 +91,12 @@ export class GameController {
 
     const actions = getNormalActions(this.state);
     if (!actions.length) {
-      // Never spin synchronously if the state reaches an unexpected no-action AI state.
+      // This should be unreachable for an active player. Render once instead of
+      // entering a loop; a future debug pass can surface the invalid state.
       this.render(this.state, actions, this.snapshot());
       return;
     }
 
-    // Execute exactly ONE AI action per timer tick. In particular, redraw no longer
-    // loops synchronously inside one callback; prepare() schedules the next step.
     const result = executeNormalAction(this.state, actions[0]);
     if (!result.ok) {
       this.render(this.state, actions, this.snapshot());
