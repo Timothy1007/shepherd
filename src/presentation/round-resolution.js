@@ -2,6 +2,7 @@ const resultEl = document.querySelector('#round-result');
 const roundDisplay = document.querySelector('#round-display');
 const pile = document.querySelector('.tabletop-pile');
 const instruction = document.querySelector('#instruction');
+const restartButton = document.querySelector('#restart');
 
 const seatByPlayer = {
   'player-1': '#seat-human',
@@ -15,6 +16,12 @@ let lastRoundLabel = roundDisplay?.textContent || '';
 
 function center(rect) {
   return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+}
+
+function clearResolutionVisuals() {
+  document.querySelectorAll('.round-ember,.round-resolution-label').forEach((node) => node.remove());
+  pile?.classList.remove('round-burning');
+  if (pile) pile.style.opacity = '';
 }
 
 function createEmber(from, to, index, total) {
@@ -65,7 +72,7 @@ function animateResolution(round, apostle, reward) {
 
   if (instruction) instruction.textContent = `第 ${round} 輪結算 · 火種歸於 ${apostle}`;
   setTimeout(() => {
-    pile.style.opacity = '0';
+    if (resolvedRound === round && pile) pile.style.opacity = '0';
   }, 920);
 }
 
@@ -86,7 +93,12 @@ if (roundDisplay) {
     const next = roundDisplay.textContent || '';
     if (next === lastRoundLabel) return;
     lastRoundLabel = next;
-    pile?.classList.remove('round-burning');
-    if (pile) pile.style.opacity = '';
+    clearResolutionVisuals();
   }).observe(roundDisplay, { childList: true, characterData: true, subtree: true });
 }
+
+restartButton?.addEventListener('click', () => {
+  resolvedRound = null;
+  lastRoundLabel = '第 1 / 7 輪';
+  clearResolutionVisuals();
+});
