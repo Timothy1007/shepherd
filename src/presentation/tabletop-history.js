@@ -8,14 +8,14 @@ if (tableCard && centerPlay) {
   centerPlay.insertBefore(pile, tableCard.nextSibling);
 
   const snapshots = [];
-  const rotations = [-7, 4, -2, 6, -4, 3];
+  const rotations = [-8, 5, -3, 7, -5, 4];
   const offsets = [
-    [-14, 5],
-    [12, 8],
-    [-5, -2],
-    [9, 2],
-    [-10, 7],
-    [4, -5],
+    [-26, 12],
+    [18, 7],
+    [-6, -4],
+    [24, 10],
+    [-20, 5],
+    [8, -6],
   ];
 
   function captureCurrentCard() {
