@@ -55,12 +55,22 @@ export class GameController {
     this.render(this.state, available, this.snapshot());
     this.cancelTimer();
     if (!this.state || this.state.gameOver) return;
+
+    // Resolve empty hands automatically, but only one state transition per call.
+    // This avoids deep synchronous action chains around round settlement / game over.
     if (available.length === 1 && available[0].type === 'endEmptyHand') {
-      this.act(available[0], this.snapshot());
+      const token = this.snapshot();
+      this.timer = this.setTimer(() => {
+        this.timer = null;
+        if (token.generation !== this.generation || token.actionToken !== this.actionToken) return;
+        this.act(available[0], token);
+      }, 0);
       return;
     }
+
     const player = this.state.players.find((candidate) => candidate.playerId === this.state.currentPlayer);
     if (player?.type !== 'ai') return;
+
     const token = this.snapshot();
     this.timer = this.setTimer(() => {
       this.timer = null;
@@ -70,23 +80,30 @@ export class GameController {
   }
 
   runAiTurn(token) {
-    while (token.generation === this.generation && token.actionToken === this.actionToken) {
-      const player = this.state.players.find((candidate) => candidate.playerId === this.state.currentPlayer);
-      if (player?.type !== 'ai' || this.state.gameOver) return;
-      const actions = getNormalActions(this.state);
-      if (!actions.length) return;
-      const wasRedraw = actions[0].type === 'redraw';
-      const result = executeNormalAction(this.state, actions[0]);
-      if (!result.ok) return;
-      this.state = result.state;
-      this.actionToken += 1;
-      token = this.snapshot();
-      if (!wasRedraw) {
-        this.prepare();
-        return;
-      }
-      this.render(this.state, getNormalActions(this.state), token);
+    if (!this.state || this.state.gameOver) return;
+    if (token.generation !== this.generation || token.actionToken !== this.actionToken) return;
+
+    const player = this.state.players.find((candidate) => candidate.playerId === this.state.currentPlayer);
+    if (player?.type !== 'ai') return;
+
+    const actions = getNormalActions(this.state);
+    if (!actions.length) {
+      // Never spin synchronously if the state reaches an unexpected no-action AI state.
+      this.render(this.state, actions, this.snapshot());
+      return;
     }
+
+    // Execute exactly ONE AI action per timer tick. In particular, redraw no longer
+    // loops synchronously inside one callback; prepare() schedules the next step.
+    const result = executeNormalAction(this.state, actions[0]);
+    if (!result.ok) {
+      this.render(this.state, actions, this.snapshot());
+      return;
+    }
+
+    this.state = result.state;
+    this.actionToken += 1;
+    this.prepare();
   }
 }
 
