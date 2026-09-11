@@ -1,0 +1,15 @@
+.tabletop-pile .pile-card{opacity:1!important}.tabletop-pile .pile-card.pile-latest{opacity:1!important}
+
+.tabletop-pile.round-burning{pointer-events:none}
+.tabletop-pile.round-burning .pile-card{animation:roundCardBurn .9s ease-in forwards!important}
+.tabletop-pile.round-burning .pile-card:nth-child(2){animation-delay:.05s!important}
+.tabletop-pile.round-burning .pile-card:nth-child(1){animation-delay:.10s!important}
+@keyframes roundCardBurn{
+  0%{opacity:1;filter:brightness(1) sepia(0) drop-shadow(0 10px 8px #0008);transform:translate(calc(-50% + var(--pile-x)),calc(-50% + var(--pile-y))) rotateZ(var(--pile-r)) translateZ(calc(var(--pile-depth) * 5px)) scale(1)}
+  42%{opacity:1;filter:brightness(1.8) sepia(.45) saturate(1.7) drop-shadow(0 0 18px #e28d37aa);transform:translate(calc(-50% + var(--pile-x)),calc(-50% + var(--pile-y) - 5px)) rotateZ(var(--pile-r)) translateZ(calc(var(--pile-depth) * 5px)) scale(1.025)}
+  100%{opacity:0;filter:brightness(2.2) sepia(1) saturate(2) blur(1.5px) drop-shadow(0 0 26px #f2a33bbb);transform:translate(calc(-50% + var(--pile-x)),calc(-50% + var(--pile-y) - 34px)) rotateZ(calc(var(--pile-r) + 3deg)) translateZ(calc(var(--pile-depth) * 5px)) scale(.88)}
+}
+
+.round-ember{position:fixed;z-index:9998;width:9px;height:14px;border-radius:70% 35% 65% 45%;background:radial-gradient(circle at 55% 68%,#fff2b0 0 18%,#f5b33f 28%,#d76a24 66%,transparent 72%);box-shadow:0 0 7px #f5bd55,0 0 16px #e27b31aa;pointer-events:none;transform-origin:center bottom}
+.round-resolution-label{position:fixed;left:50%;top:24%;z-index:9997;transform:translate(-50%,-50%);padding:9px 16px;border-radius:999px;background:#0d1411d9;border:1px solid #caa96755;color:#f2ddb0;font-weight:800;letter-spacing:.08em;box-shadow:0 10px 30px #0008;pointer-events:none;animation:roundLabel 1.45s ease forwards}
+@keyframes roundLabel{0%{opacity:0;transform:translate(-50%,-40%) scale(.94)}15%,72%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-62%) scale(.98)}}
