@@ -1,157 +1,74 @@
-/* Prototype 0.4 camera pass — one shared tabletop plane viewed from Player 1. */
+/* Prototype 0.5 camera pass — keep the world stable and align every tabletop element to one seated-view plane. */
 .arena{
-  inset:106px 0 142px!important;
-  perspective:1050px!important;
-  perspective-origin:50% 20%!important;
+  inset:112px 0 150px!important;
+  perspective:1120px!important;
+  perspective-origin:50% 8%!important;
   transform-style:preserve-3d!important;
   overflow:visible!important;
 }
 
-/* Keep only a thin strip of world above the table; the camera is looking down. */
-.horizon{top:12%!important;height:15%!important}
-.ruins{top:7%!important;height:18%!important;opacity:.28!important}
+/* Restore the environment framing; camera work should not drag the whole world around. */
+.horizon{top:29%!important;height:22%!important}
+.ruins{top:18%!important;height:28%!important;opacity:.38!important}
 
-/* This is now a real CSS 3D plane, not a fake trapezoid. */
+/* Table begins beneath the far player and opens toward Player 1. */
 .ground-plane{
   left:50%!important;
   right:auto!important;
-  top:4%!important;
+  top:24%!important;
   bottom:auto!important;
-  width:118vw!important;
-  height:106vh!important;
-  border-radius:4%!important;
+  width:116vw!important;
+  height:86vh!important;
+  border-radius:6%!important;
   clip-path:none!important;
-  transform-origin:50% 100%!important;
-  transform:translateX(-50%) translateY(-7%) rotateX(58deg) translateZ(-110px)!important;
-  background:
-    radial-gradient(ellipse at 50% 43%,#38392f 0 12%,#252a23 37%,#151a17 72%,#0b0f0d 100%)!important;
-  box-shadow:inset 0 34px 85px #0007,inset 0 -80px 130px #000a,0 -16px 48px #8f60351c!important;
+  transform-origin:50% 0!important;
+  transform:translateX(-50%) rotateX(63deg)!important;
+  background:radial-gradient(ellipse at 50% 38%,#36372f 0 12%,#232821 40%,#121713 76%,#090d0b 100%)!important;
+  box-shadow:inset 0 24px 74px #0007,inset 0 -95px 140px #000b,0 -10px 44px #8f603518!important;
 }
-.ground-plane:after{
-  content:"";
-  position:absolute;
-  inset:0;
-  background:linear-gradient(180deg,#ffffff08,transparent 20%,#0005 100%);
-  pointer-events:none;
-}
+.ground-plane:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,#ffffff08,transparent 20%,#0005 100%);pointer-events:none}
 
-/* Seats are upright billboards anchored around the receding table. */
-.seat{width:230px!important;min-width:0!important;z-index:22!important}
-.seat-top{
-  left:50%!important;
-  top:5%!important;
-  transform:translateX(-50%) scale(.76)!important;
-  text-align:center!important;
-}
-.seat-left{
-  left:4.5%!important;
-  top:39%!important;
-  transform:translateY(-50%) scale(.92)!important;
-  transform-origin:left center!important;
-  text-align:left!important;
-}
-.seat-right{
-  right:4.5%!important;
-  top:39%!important;
-  transform:translateY(-50%) scale(.92)!important;
-  transform-origin:right center!important;
-  text-align:right!important;
-}
+/* Opponents stay upright, visually anchored to the perimeter rather than tilted with the table. */
+.seat{width:230px!important;min-width:0!important;z-index:24!important}
+.seat-top{left:50%!important;top:3%!important;transform:translateX(-50%) scale(.78)!important;text-align:center!important}
+.seat-left{left:4.5%!important;top:40%!important;transform:translateY(-50%) scale(.94)!important;transform-origin:left center!important;text-align:left!important}
+.seat-right{right:4.5%!important;top:40%!important;transform:translateY(-50%) scale(.94)!important;transform-origin:right center!important;text-align:right!important}
 .seat .name,.human-meta .name{display:block!important;width:100%!important}
-.seat .stats,.human-meta .stats{width:100%!important;margin-top:7px!important;display:flex!important}
+.seat .stats,.human-meta .stats{display:flex!important;width:100%!important;margin-top:7px!important}
 .seat-left .stats,.human-meta .stats{justify-content:flex-start!important}
 .seat-top .stats{justify-content:center!important}
 .seat-right .stats{justify-content:flex-end!important}
+.human-meta{left:24px!important;bottom:24px!important;width:240px!important;text-align:left!important}
 
-/* Human identity stays in the near foreground. */
-.human-meta{
-  left:24px!important;
-  bottom:24px!important;
-  width:240px!important;
-  text-align:left!important;
-}
+/* Readable HUD floats above the actual play surface. */
+.center-meta{position:absolute!important;z-index:30!important;left:50%!important;top:22%!important;transform:translateX(-50%)!important;width:310px!important;text-align:center!important;pointer-events:none!important}
+.center-meta .center-label{display:block!important;margin:0 0 4px!important}.center-meta .apostle-display{margin:0!important}
 
-/* Meta is a HUD billboard; cards themselves live on the tilted table plane. */
-.center-meta{
-  position:absolute!important;
-  z-index:30!important;
-  left:50%!important;
-  top:23%!important;
-  transform:translateX(-50%)!important;
-  width:310px!important;
-  text-align:center!important;
-  pointer-events:none!important;
-}
-.center-meta .center-label{display:block!important;margin:0 0 4px!important}
-.center-meta .apostle-display{margin:0!important}
-
+/* This is the physical landing area. It uses the SAME X tilt as the table and is placed over its visible middle. */
 .center-play{
   position:absolute!important;
-  z-index:15!important;
+  z-index:18!important;
   left:50%!important;
-  top:57%!important;
-  width:480px!important;
-  height:300px!important;
-  min-width:0!important;
-  min-height:0!important;
-  padding:0!important;
-  transform-origin:50% 50%!important;
-  transform:translate(-50%,-50%) rotateX(58deg) translateZ(3px)!important;
+  top:59%!important;
+  width:500px!important;
+  height:290px!important;
+  min-width:0!important;min-height:0!important;padding:0!important;
+  transform-origin:50% 0!important;
+  transform:translate(-50%,-50%) rotateX(63deg)!important;
   transform-style:preserve-3d!important;
-  display:flex!important;
-  align-items:center!important;
-  justify-content:center!important;
-  background:transparent!important;
-  box-shadow:none!important;
+  display:flex!important;align-items:center!important;justify-content:center!important;
+  background:transparent!important;box-shadow:none!important;
 }
 
-/* Pile no longer gets a second X tilt; it inherits the table plane tilt. */
-.tabletop-pile{
-  position:absolute!important;
-  left:50%!important;
-  top:53%!important;
-  width:270px!important;
-  height:190px!important;
-  margin:0!important;
-  transform:translate(-50%,-50%)!important;
-  transform-style:preserve-3d!important;
-  perspective:none!important;
-}
+/* The pile is one physical stack, not a row. Each previous card peeks out from under the newest. */
+.tabletop-pile{position:absolute!important;left:50%!important;top:50%!important;width:310px!important;height:220px!important;margin:0!important;transform:translate(-50%,-50%)!important;transform-style:preserve-3d!important;perspective:none!important;pointer-events:none!important}
 .table-card.pile-source-hidden + .tabletop-pile{margin-top:0!important}
-.tabletop-pile .pile-card{
-  width:158px!important;
-  transform:translate(calc(-50% + var(--pile-x)),calc(-50% + var(--pile-y))) rotateZ(var(--pile-r)) translateZ(calc(var(--pile-depth) * 2px))!important;
-  filter:drop-shadow(0 14px 9px #0009)!important;
-}
-.tabletop-pile .pile-card img{width:158px!important;box-shadow:0 4px 8px #0008!important}
-@keyframes pileDrop{
-  0%{transform:translate(calc(-50% + var(--pile-x)),calc(-50% + var(--pile-y) - 90px)) rotateZ(calc(var(--pile-r) + 10deg)) translateZ(80px) scale(1.08);opacity:.18}
-  72%{transform:translate(calc(-50% + var(--pile-x)),calc(-50% + var(--pile-y) + 5px)) rotateZ(var(--pile-r)) translateZ(calc(var(--pile-depth) * 2px)) scale(.97);opacity:1}
-  100%{transform:translate(calc(-50% + var(--pile-x)),calc(-50% + var(--pile-y))) rotateZ(var(--pile-r)) translateZ(calc(var(--pile-depth) * 2px));opacity:1}
-}
+.tabletop-pile .pile-card{position:absolute!important;left:50%!important;top:50%!important;width:160px!important;transform-origin:center center!important;transform:translate(calc(-50% + var(--pile-x)),calc(-50% + var(--pile-y))) rotateZ(var(--pile-r)) translateZ(calc(var(--pile-depth) * 3px))!important;filter:drop-shadow(0 13px 8px #0009)!important;opacity:.9!important}
+.tabletop-pile .pile-card img{display:block!important;width:160px!important;max-height:220px!important;object-fit:contain!important;box-shadow:0 4px 8px #0008!important}
+.tabletop-pile .pile-card.pile-latest{opacity:1!important;z-index:3!important;animation:pileDrop .36s cubic-bezier(.17,.84,.28,1.15)!important}
+@keyframes pileDrop{0%{transform:translate(calc(-50% + var(--pile-x)),calc(-50% + var(--pile-y) - 80px)) rotateZ(calc(var(--pile-r) + 9deg)) translateZ(70px) scale(1.06);opacity:.2}72%{transform:translate(calc(-50% + var(--pile-x)),calc(-50% + var(--pile-y) + 4px)) rotateZ(var(--pile-r)) translateZ(calc(var(--pile-depth) * 3px)) scale(.98);opacity:1}100%{transform:translate(calc(-50% + var(--pile-x)),calc(-50% + var(--pile-y))) rotateZ(var(--pile-r)) translateZ(calc(var(--pile-depth) * 3px));opacity:1}}
 
-/* Instruction belongs to the near edge, not the far opponent. */
-.drag-instruction{
-  position:absolute!important;
-  left:50%!important;
-  bottom:5%!important;
-  transform:translateX(-50%)!important;
-  z-index:31!important;
-  font-size:11px!important;
-  letter-spacing:.08em!important;
-  color:#a9a18f!important;
-  opacity:.52!important;
-  pointer-events:none!important;
-  white-space:nowrap!important;
-}
+.drag-instruction{position:absolute!important;left:50%!important;bottom:6%!important;transform:translateX(-50%)!important;z-index:31!important;font-size:11px!important;letter-spacing:.08em!important;color:#a9a18f!important;opacity:.5!important;pointer-events:none!important;white-space:nowrap!important}
+.blue-flame{filter:none!important;box-shadow:none!important}.blue-flame:before,.blue-flame:after{box-shadow:none!important}
 
-.blue-flame{filter:none!important;box-shadow:none!important}
-.blue-flame:before,.blue-flame:after{box-shadow:none!important}
-
-@media(max-height:760px){
-  .ground-plane{top:5%!important;height:112vh!important;transform:translateX(-50%) translateY(-9%) rotateX(60deg) translateZ(-125px)!important}
-  .center-meta{top:22%!important}
-  .center-play{top:56%!important}
-  .seat-top{top:4%!important}
-  .drag-instruction{bottom:3%!important}
-}
+@media(max-height:760px){.ground-plane{top:25%!important;height:92vh!important;transform:translateX(-50%) rotateX(64deg)!important}.center-meta{top:21%!important}.center-play{top:58%!important;transform:translate(-50%,-50%) rotateX(64deg)!important}.seat-top{top:2%!important}.drag-instruction{bottom:4%!important}}
