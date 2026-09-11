@@ -21,7 +21,25 @@ function cardButton(card, state) {
 
 function showCard(card, legal) {
   const definition = getDefinition(card);
-  $('#card-detail').innerHTML = `<img class="detail-art" src="${definition.image}" alt="${names[definition.type]} ${definition.number}"><h2>${names[definition.type]} ${definition.number}</h2><p>實體牌：${card.instanceId}</p><p>${legal ? '此牌目前至少有一種合法打法。' : '此牌目前不可打出，但仍可查看。'}</p>`;
+  const playableActions = actions.filter((action) => action.type === 'playResource' && action.instanceId === card.instanceId);
+  $('#card-detail').innerHTML = `<img class="detail-art" src="${definition.image}" alt="${names[definition.type]} ${definition.number}"><h2>${names[definition.type]} ${definition.number}</h2><p>實體牌：${card.instanceId}</p><p>${legal ? '此牌目前至少有一種合法打法。' : '此牌目前不可打出，但仍可查看。'}</p><div class="detail-actions" id="detail-actions"></div>`;
+  const detailActions = $('#detail-actions');
+  for (const action of playableActions) {
+    const button = document.createElement('button');
+    const suffix = definition.type === 'grace' ? `作為${names[action.declaredType]}` : '';
+    button.textContent = `出牌${suffix ? `：${suffix}` : ''}`;
+    button.addEventListener('click', () => {
+      $('#card-dialog').close();
+      controller.act(action, token);
+    });
+    detailActions.append(button);
+  }
+  if (!playableActions.length) {
+    const note = document.createElement('span');
+    note.className = 'detail-action-note';
+    note.textContent = legal ? '目前不是你的出牌時機。' : '此牌目前不可出。';
+    detailActions.append(note);
+  }
   $('#card-dialog').showModal();
 }
 
