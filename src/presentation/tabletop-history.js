@@ -9,15 +9,9 @@ if (tableCard && centerPlay) {
 
   const snapshots = [];
   let playSequence = 0;
+  let waitingForNextRoundFirstCard = false;
   const rotations = [-8, 5, -3, 7, -5, 4];
-  const offsets = [
-    [-26, 12],
-    [18, 7],
-    [-6, -4],
-    [24, 10],
-    [-20, 5],
-    [8, -6],
-  ];
+  const offsets = [[-26,12],[18,7],[-6,-4],[24,10],[-20,5],[8,-6]];
 
   function renderPile() {
     pile.replaceChildren(...snapshots.map((item, i) => {
@@ -34,13 +28,13 @@ if (tableCard && centerPlay) {
     const image = visual?.querySelector('img');
     if (!visual || !image) return;
 
+    if (waitingForNextRoundFirstCard) {
+      snapshots.length = 0;
+      waitingForNextRoundFirstCard = false;
+    }
+
     const clone = visual.cloneNode(true);
     clone.classList.add('pile-card');
-
-    // Use a lifetime play sequence instead of snapshots.length. Once the visible
-    // pile reached three cards, snapshots.length stayed at 3 forever, which made
-    // every later play reuse the same offset/rotation and visually collapse into
-    // one stack. Cycling by sequence keeps the latest three visibly scattered.
     const slot = playSequence % offsets.length;
     const [x, y] = offsets[slot];
     clone.style.setProperty('--pile-x', `${x}px`);
@@ -51,7 +45,6 @@ if (tableCard && centerPlay) {
     snapshots.push(clone);
     while (snapshots.length > 3) snapshots.shift();
     renderPile();
-
     tableCard.classList.add('pile-source-hidden');
   }
 
@@ -65,10 +58,11 @@ if (tableCard && centerPlay) {
       }
     }
 
-    // Round changes clear the table source, so clear old-round history too.
+    // When a new round starts the source card becomes empty immediately. Keep the
+    // old pile on screen so the resolution animation can burn it away. The pile is
+    // cleared only when the first card of the next round is actually played.
     if (!tableCard.querySelector('.table-card-visual')) {
-      snapshots.length = 0;
-      renderPile();
+      waitingForNextRoundFirstCard = true;
       tableCard.classList.remove('pile-source-hidden');
     }
   });
