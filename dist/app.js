@@ -6,23 +6,35 @@ const $ = (selector) => document.querySelector(selector);
 let actions = [];
 let token = null;
 
+function actionsForCard(card) {
+  return actions.filter((action) => action.type === 'playResource' && action.instanceId === card.instanceId);
+}
+
 function cardButton(card, state) {
   const definition = getDefinition(card);
   const possible = definition.type === 'grace' ? RESOURCE_TYPES : [definition.type];
-  const legal = possible.some((type) => isLegalResourcePlay(card, state.currentResource, type));
+  const ruleLegal = possible.some((type) => isLegalResourcePlay(card, state.currentResource, type));
+  const playableActions = actionsForCard(card);
+  const actionable = playableActions.length > 0;
+  const human = state.players[0];
+  const humanTurn = state.currentPlayer === human.playerId;
   const button = document.createElement('button');
-  button.className = `card ${legal ? 'legal' : 'illegal'}`;
-  button.setAttribute('aria-label', `${names[definition.type]} ${definition.number}，${legal ? '可出牌' : '目前不可出'}`);
-  button.innerHTML = `<img class="card-art" src="${definition.image}" alt="${names[definition.type]} ${definition.number}"><span class="card-fallback"><span class="number">${definition.number}</span><span class="type">${names[definition.type]}</span></span><small>${legal ? '可出牌' : '目前不可出'}</small>`;
+  button.className = `card ${actionable ? 'legal' : 'illegal'}`;
+  const statusText = actionable ? '可出牌' : (ruleLegal && !humanTurn ? '等待你的回合' : '目前不可出');
+  button.setAttribute('aria-label', `${names[definition.type]} ${definition.number}，${statusText}`);
+  button.innerHTML = `<img class="card-art" src="${definition.image}" alt="${names[definition.type]} ${definition.number}"><span class="card-fallback"><span class="number">${definition.number}</span><span class="type">${names[definition.type]}</span></span><small>${statusText}</small>`;
   button.querySelector('.card-art').addEventListener('error', () => button.classList.add('image-missing'), { once: true });
-  button.addEventListener('click', () => showCard(card, legal));
+  button.addEventListener('click', () => showCard(card, { ruleLegal, humanTurn }));
   return button;
 }
 
-function showCard(card, legal) {
+function showCard(card, { ruleLegal, humanTurn }) {
   const definition = getDefinition(card);
-  const playableActions = actions.filter((action) => action.type === 'playResource' && action.instanceId === card.instanceId);
-  $('#card-detail').innerHTML = `<img class="detail-art" src="${definition.image}" alt="${names[definition.type]} ${definition.number}"><h2>${names[definition.type]} ${definition.number}</h2><p>實體牌：${card.instanceId}</p><p>${legal ? '此牌目前至少有一種合法打法。' : '此牌目前不可打出，但仍可查看。'}</p><div class="detail-actions" id="detail-actions"></div>`;
+  const playableActions = actionsForCard(card);
+  const statusText = playableActions.length
+    ? '此牌目前可以打出。'
+    : (ruleLegal && !humanTurn ? '牌型合法，但目前不是你的回合。' : '此牌目前不可打出，但仍可查看。');
+  $('#card-detail').innerHTML = `<img class="detail-art" src="${definition.image}" alt="${names[definition.type]} ${definition.number}"><h2>${names[definition.type]} ${definition.number}</h2><p>實體牌：${card.instanceId}</p><p>${statusText}</p><div class="detail-actions" id="detail-actions"></div>`;
   const detailActions = $('#detail-actions');
   for (const action of playableActions) {
     const button = document.createElement('button');
@@ -37,7 +49,7 @@ function showCard(card, legal) {
   if (!playableActions.length) {
     const note = document.createElement('span');
     note.className = 'detail-action-note';
-    note.textContent = legal ? '目前不是你的出牌時機。' : '此牌目前不可出。';
+    note.textContent = ruleLegal && !humanTurn ? '請等待輪到 Player 1。' : '此牌目前不可出。';
     detailActions.append(note);
   }
   $('#card-dialog').showModal();
@@ -70,7 +82,7 @@ function render(state, nextActions, nextToken) {
   }));
   const human = state.players[0];
   $('#hand').replaceChildren(...human.hand.map((card) => cardButton(card, state)));
-  $('#instruction').textContent = state.gameOver ? `勝者：${state.winner.join('、')}` : state.currentPlayer === human.playerId ? '輪到你' : '等待 AI 行動…';
+  $('#instruction').textContent = state.gameOver ? `勝者：${state.winner.join('、')}` : state.currentPlayer === human.playerId ? '輪到你' : `等待 ${state.currentPlayer} 行動…`;
   $('#actions').replaceChildren();
   if (!state.gameOver && state.currentPlayer === human.playerId) renderHumanActions(state);
   $('#round-result').textContent = state.lastRoundResult ? `第 ${state.lastRoundResult.round} 輪：使徒 ${state.lastRoundResult.apostle ?? '無'}，獲得 ${state.lastRoundResult.reward} 火種。` : '尚未結算';
