@@ -1,38 +1,128 @@
-/* Prototype 0.5 camera pass — keep the world stable and align every tabletop element to one seated-view plane. */
+/* Reference-camera rebuild: a raised battlefield board viewed from a high three-quarter angle. */
 .arena{
-  inset:112px 0 150px!important;
-  perspective:1120px!important;
-  perspective-origin:50% 8%!important;
+  inset:104px 0 138px!important;
+  perspective:1400px!important;
+  perspective-origin:50% 0%!important;
   transform-style:preserve-3d!important;
   overflow:visible!important;
 }
 
-/* Restore the environment framing; camera work should not drag the whole world around. */
-.horizon{top:29%!important;height:22%!important}
-.ruins{top:18%!important;height:28%!important;opacity:.38!important}
+/* Keep the wasteland as scenery, not as the playing plane. */
+.horizon{top:31%!important;height:20%!important}
+.ruins{top:18%!important;height:28%!important;opacity:.30!important}
 
-/* Table begins beneath the far player and opens toward Player 1. */
+/* Raised board: large, centered, with a clear far edge and near edge, like the reference screenshots. */
 .ground-plane{
+  position:absolute!important;
   left:50%!important;
-  right:auto!important;
-  top:24%!important;
-  bottom:auto!important;
-  width:116vw!important;
-  height:86vh!important;
-  border-radius:6%!important;
+  top:13%!important;
+  width:min(82vw,1260px)!important;
+  height:70vh!important;
+  transform-origin:50% 50%!important;
+  transform:translateX(-50%) rotateX(57deg)!important;
+  transform-style:preserve-3d!important;
+  border-radius:38px!important;
   clip-path:none!important;
-  transform-origin:50% 0!important;
-  transform:translateX(-50%) rotateX(63deg)!important;
-  background:radial-gradient(ellipse at 50% 38%,#36372f 0 12%,#232821 40%,#121713 76%,#090d0b 100%)!important;
-  box-shadow:inset 0 24px 74px #0007,inset 0 -95px 140px #000b,0 -10px 44px #8f603518!important;
+  background:linear-gradient(180deg,#34392f 0%,#2a3028 46%,#1a211c 100%)!important;
+  box-shadow:0 34px 70px #000a,inset 0 0 0 2px #9f8b5840,inset 0 0 0 12px #0d120f55,inset 0 -28px 70px #0005!important;
+  overflow:visible!important;
+  z-index:8!important;
 }
-.ground-plane:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,#ffffff08,transparent 20%,#0005 100%);pointer-events:none}
 
-/* Opponents stay upright, visually anchored to the perimeter rather than tilted with the table. */
-.seat{width:230px!important;min-width:0!important;z-index:24!important}
-.seat-top{left:50%!important;top:3%!important;transform:translateX(-50%) scale(.78)!important;text-align:center!important}
-.seat-left{left:4.5%!important;top:40%!important;transform:translateY(-50%) scale(.94)!important;transform-origin:left center!important;text-align:left!important}
-.seat-right{right:4.5%!important;top:40%!important;transform:translateY(-50%) scale(.94)!important;transform-origin:right center!important;text-align:right!important}
+/* subtle inset field line and surface texture */
+.board-surface{
+  position:absolute;
+  inset:5.5%;
+  border-radius:28px;
+  border:2px solid #c1ab6a36;
+  background:
+    linear-gradient(90deg,transparent 49.7%,#d8c99210 50%,transparent 50.3%),
+    linear-gradient(0deg,transparent 49.7%,#d8c9920a 50%,transparent 50.3%),
+    radial-gradient(circle at 50% 48%,#ffffff08 0 2%,transparent 2.4%),
+    repeating-linear-gradient(135deg,#ffffff025 0 1px,transparent 1px 22px);
+  box-shadow:inset 0 0 55px #0004;
+  pointer-events:none;
+}
+
+/* the actual play zone is physically inside the board, so it inherits the same plane automatically */
+.center-play{
+  position:absolute!important;
+  left:50%!important;
+  top:52%!important;
+  width:42%!important;
+  height:38%!important;
+  min-width:0!important;
+  min-height:0!important;
+  padding:0!important;
+  transform:translate(-50%,-50%)!important;
+  transform-style:preserve-3d!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+
+/* One natural pile in the middle of the battlefield. */
+.tabletop-pile{
+  position:absolute!important;
+  left:50%!important;
+  top:50%!important;
+  width:270px!important;
+  height:200px!important;
+  margin:0!important;
+  transform:translate(-50%,-50%)!important;
+  transform-style:preserve-3d!important;
+  perspective:none!important;
+  pointer-events:none!important;
+}
+.table-card.pile-source-hidden + .tabletop-pile{margin-top:0!important}
+.tabletop-pile .pile-card{
+  position:absolute!important;
+  left:50%!important;
+  top:50%!important;
+  width:152px!important;
+  transform-origin:center center!important;
+  transform:translate(calc(-50% + var(--pile-x)),calc(-50% + var(--pile-y))) rotateZ(var(--pile-r)) translateZ(calc(var(--pile-depth) * 5px))!important;
+  filter:drop-shadow(0 10px 8px #0008)!important;
+  opacity:.90!important;
+}
+.tabletop-pile .pile-card img{
+  display:block!important;
+  width:152px!important;
+  max-height:214px!important;
+  object-fit:contain!important;
+  box-shadow:0 3px 8px #0007!important;
+}
+.tabletop-pile .pile-card.pile-latest{opacity:1!important;z-index:4!important;animation:pileDrop .38s cubic-bezier(.17,.84,.28,1.15)!important}
+@keyframes pileDrop{
+  0%{transform:translate(calc(-50% + var(--pile-x)),calc(-50% + var(--pile-y) - 76px)) rotateZ(calc(var(--pile-r) + 9deg)) translateZ(95px) scale(1.06);opacity:.18}
+  75%{transform:translate(calc(-50% + var(--pile-x)),calc(-50% + var(--pile-y) + 4px)) rotateZ(var(--pile-r)) translateZ(calc(var(--pile-depth) * 5px)) scale(.98);opacity:1}
+  100%{transform:translate(calc(-50% + var(--pile-x)),calc(-50% + var(--pile-y))) rotateZ(var(--pile-r)) translateZ(calc(var(--pile-depth) * 5px));opacity:1}
+}
+
+/* Players are HUD billboards anchored around the board perimeter. */
+.seat{width:230px!important;min-width:0!important;z-index:28!important}
+.seat-top{
+  left:50%!important;
+  top:2%!important;
+  transform:translateX(-50%) scale(.82)!important;
+  text-align:center!important;
+}
+.seat-left{
+  left:3.4%!important;
+  top:47%!important;
+  transform:translateY(-50%) scale(.95)!important;
+  transform-origin:left center!important;
+  text-align:left!important;
+}
+.seat-right{
+  right:3.4%!important;
+  top:47%!important;
+  transform:translateY(-50%) scale(.95)!important;
+  transform-origin:right center!important;
+  text-align:right!important;
+}
 .seat .name,.human-meta .name{display:block!important;width:100%!important}
 .seat .stats,.human-meta .stats{display:flex!important;width:100%!important;margin-top:7px!important}
 .seat-left .stats,.human-meta .stats{justify-content:flex-start!important}
@@ -40,35 +130,36 @@
 .seat-right .stats{justify-content:flex-end!important}
 .human-meta{left:24px!important;bottom:24px!important;width:240px!important;text-align:left!important}
 
-/* Readable HUD floats above the actual play surface. */
-.center-meta{position:absolute!important;z-index:30!important;left:50%!important;top:22%!important;transform:translateX(-50%)!important;width:310px!important;text-align:center!important;pointer-events:none!important}
-.center-meta .center-label{display:block!important;margin:0 0 4px!important}.center-meta .apostle-display{margin:0!important}
-
-/* This is the physical landing area. It uses the SAME X tilt as the table and is placed over its visible middle. */
-.center-play{
+/* Keep battle information readable and above the board, like a combat HUD. */
+.center-meta{
   position:absolute!important;
-  z-index:18!important;
+  z-index:34!important;
   left:50%!important;
-  top:59%!important;
-  width:500px!important;
-  height:290px!important;
-  min-width:0!important;min-height:0!important;padding:0!important;
-  transform-origin:50% 0!important;
-  transform:translate(-50%,-50%) rotateX(63deg)!important;
-  transform-style:preserve-3d!important;
-  display:flex!important;align-items:center!important;justify-content:center!important;
-  background:transparent!important;box-shadow:none!important;
+  top:19%!important;
+  transform:translateX(-50%)!important;
+  width:320px!important;
+  text-align:center!important;
+  pointer-events:none!important;
 }
-
-/* The pile is one physical stack, not a row. Each previous card peeks out from under the newest. */
-.tabletop-pile{position:absolute!important;left:50%!important;top:50%!important;width:310px!important;height:220px!important;margin:0!important;transform:translate(-50%,-50%)!important;transform-style:preserve-3d!important;perspective:none!important;pointer-events:none!important}
-.table-card.pile-source-hidden + .tabletop-pile{margin-top:0!important}
-.tabletop-pile .pile-card{position:absolute!important;left:50%!important;top:50%!important;width:160px!important;transform-origin:center center!important;transform:translate(calc(-50% + var(--pile-x)),calc(-50% + var(--pile-y))) rotateZ(var(--pile-r)) translateZ(calc(var(--pile-depth) * 3px))!important;filter:drop-shadow(0 13px 8px #0009)!important;opacity:.9!important}
-.tabletop-pile .pile-card img{display:block!important;width:160px!important;max-height:220px!important;object-fit:contain!important;box-shadow:0 4px 8px #0008!important}
-.tabletop-pile .pile-card.pile-latest{opacity:1!important;z-index:3!important;animation:pileDrop .36s cubic-bezier(.17,.84,.28,1.15)!important}
-@keyframes pileDrop{0%{transform:translate(calc(-50% + var(--pile-x)),calc(-50% + var(--pile-y) - 80px)) rotateZ(calc(var(--pile-r) + 9deg)) translateZ(70px) scale(1.06);opacity:.2}72%{transform:translate(calc(-50% + var(--pile-x)),calc(-50% + var(--pile-y) + 4px)) rotateZ(var(--pile-r)) translateZ(calc(var(--pile-depth) * 3px)) scale(.98);opacity:1}100%{transform:translate(calc(-50% + var(--pile-x)),calc(-50% + var(--pile-y))) rotateZ(var(--pile-r)) translateZ(calc(var(--pile-depth) * 3px));opacity:1}}
-
-.drag-instruction{position:absolute!important;left:50%!important;bottom:6%!important;transform:translateX(-50%)!important;z-index:31!important;font-size:11px!important;letter-spacing:.08em!important;color:#a9a18f!important;opacity:.5!important;pointer-events:none!important;white-space:nowrap!important}
+.center-meta .center-label{display:block!important;margin:0 0 4px!important}.center-meta .apostle-display{margin:0!important}
+.drag-instruction{
+  position:absolute!important;
+  left:50%!important;
+  bottom:4.5%!important;
+  transform:translateX(-50%)!important;
+  z-index:34!important;
+  font-size:11px!important;
+  letter-spacing:.08em!important;
+  color:#a9a18f!important;
+  opacity:.48!important;
+  pointer-events:none!important;
+  white-space:nowrap!important;
+}
 .blue-flame{filter:none!important;box-shadow:none!important}.blue-flame:before,.blue-flame:after{box-shadow:none!important}
 
-@media(max-height:760px){.ground-plane{top:25%!important;height:92vh!important;transform:translateX(-50%) rotateX(64deg)!important}.center-meta{top:21%!important}.center-play{top:58%!important;transform:translate(-50%,-50%) rotateX(64deg)!important}.seat-top{top:2%!important}.drag-instruction{bottom:4%!important}}
+@media(max-height:760px){
+  .ground-plane{top:12%!important;height:74vh!important;width:min(84vw,1180px)!important;transform:translateX(-50%) rotateX(59deg)!important}
+  .center-meta{top:18%!important}
+  .seat-top{top:1%!important}
+  .drag-instruction{bottom:3%!important}
+}
