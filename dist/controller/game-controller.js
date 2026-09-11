@@ -1,7 +1,10 @@
 import { createGame, executeNormalAction, getNormalActions } from '../game/game.js';
 
+const defaultSetTimer = (callback, delay) => setTimeout(callback, delay);
+const defaultClearTimer = (timer) => clearTimeout(timer);
+
 export class GameController {
-  constructor({ render = () => {}, setTimer = setTimeout, clearTimer = clearTimeout, delay = () => 1400 } = {}) {
+  constructor({ render = () => {}, setTimer = defaultSetTimer, clearTimer = defaultClearTimer, delay = () => 1400 } = {}) {
     this.render = render;
     this.setTimer = setTimer;
     this.clearTimer = clearTimer;
