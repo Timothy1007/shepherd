@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { advanceToNextRound, createGame, executeNormalAction, getNormalActions, listCardLocations, settleRound } from '../src/game/game.js';
-import { DEFINITION_BY_ID } from '../src/game/cards.js';
+import { createGame, executeNormalAction, getNormalActions, listCardLocations, settleRound } from '../src/game/game.js';
+import { DEFINITION_BY_ID, getDefinition } from '../src/game/cards.js';
 
 function take(state, definitionId, source = state.deck) {
   let card;
@@ -22,13 +22,6 @@ function putHand(state, playerIndex, definitions) {
 
 function act(state, action) {
   const result = executeNormalAction(state, action);
-  assert.equal(result.ok, true, result.reason);
-  return result.state;
-}
-
-function advanceRound(state) {
-  assert.equal(state.phase, 'roundEnd');
-  const result = advanceToNextRound(state);
   assert.equal(result.ok, true, result.reason);
   return result.state;
 }
@@ -147,16 +140,12 @@ test('empty hand exposes endEmptyHand without redraw', () => {
   assert.equal(state.players[0].hasNormalAction, false);
 });
 
-test('ending with one eligible player enters roundEnd before starting next round', () => {
+test('ending with one eligible player immediately settles and starts next round', () => {
   let state = createGame({ seed: 11 });
   putHand(state, 0, []);
   state.players[2].hasNormalAction = false;
   state.players[3].hasNormalAction = false;
   state = act(state, getNormalActions(state)[0]);
-  assert.equal(state.round, 1);
-  assert.equal(state.phase, 'roundEnd');
-  assert.equal(state.currentPlayer, null);
-  state = advanceRound(state);
   assert.equal(state.round, 2);
   assert.equal(state.phase, 'playing');
 });
@@ -182,7 +171,6 @@ test('round reward counts every playedArea card', () => {
   assert.equal(result.ok, true);
   assert.equal(result.state.players[1].fire, 4);
   assert.equal(result.state.lastRoundResult.reward, 4);
-  assert.equal(result.state.phase, 'roundEnd');
 });
 
 test('losing streak increments, resets for apostle, and caps at three', () => {
@@ -197,24 +185,22 @@ test('losing streak increments, resets for apostle, and caps at three', () => {
   assert.equal(next.players[1].startingHandBonus, 3);
 });
 
-test('next round deals seven through ten cards from losing streak after roundEnd', () => {
+test('next round deals seven through ten cards from losing streak', () => {
   const state = createGame({ seed: 15 });
   state.players.forEach((player, index) => {
     player.losingStreak = index;
     player.startingHandBonus = index;
     player.hasNormalAction = index === 0;
   });
-  const ended = settleRound(state).state;
-  const next = advanceRound(ended);
+  const next = settleRound(state).state;
   assert.deepEqual(next.players.map((player) => player.hand.length), [8, 9, 10, 10]);
 });
 
-test('starting player rotates counterclockwise independently after roundEnd', () => {
+test('starting player rotates counterclockwise independently each round', () => {
   const state = createGame({ seed: 16 });
   const previousIndex = state.players.findIndex((player) => player.playerId === state.startingPlayer);
   state.players.forEach((player, index) => { player.hasNormalAction = index === 0; });
-  const ended = settleRound(state).state;
-  const next = advanceRound(ended);
+  const next = settleRound(state).state;
   const expected = state.players[(previousIndex - 1 + 4) % 4].playerId;
   assert.equal(next.startingPlayer, expected);
   assert.equal(next.direction, -1);
@@ -233,11 +219,10 @@ test('seventh round ends without creating round eight and permits tied winners',
   assert.deepEqual(next.winner, ['player-1', 'player-2']);
 });
 
-test('card location invariant is preserved through actions and round transitions', () => {
+test('card location invariant is preserved through actions', () => {
   let state = createGame({ seed: 18 });
   for (let index = 0; index < 30 && !state.gameOver; index += 1) {
-    if (state.phase === 'roundEnd') state = advanceRound(state);
-    else state = act(state, getNormalActions(state)[0]);
+    state = act(state, getNormalActions(state)[0]);
     const locations = listCardLocations(state);
     assert.equal(locations.length, 90);
     assert.equal(new Set(locations).size, 90);
