@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>牧羊人：荒野之歌 — 爭局 Prototype 0.1</title>
+  <title>牧羊人：荒野之歌 — 爭局 Prototype 0.2</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -11,7 +11,7 @@
     <div class="world-layer" aria-hidden="true"><div class="horizon"></div><div class="ruins ruins-left"></div><div class="ruins ruins-right"></div><div class="ash"></div></div>
 
     <header class="hud-top">
-      <div class="event-copy"><span class="eyebrow">荒野爭局 · PROTOTYPE 0.1</span><h1>牧羊人：荒野之歌</h1><p id="instruction">等待爭局開始</p></div>
+      <div class="event-copy"><span class="eyebrow">荒野爭局 · PROTOTYPE 0.2</span><h1>牧羊人：荒野之歌</h1><p id="instruction">等待爭局開始</p></div>
       <div class="round-hud"><div id="round-display">第 1 / 7 輪</div><button id="restart">重新開始</button></div>
     </header>
 
@@ -25,10 +25,11 @@
       <div class="ground-plane" aria-hidden="true"><div class="sigil"></div></div>
       <div class="ember-core" aria-hidden="true"><i></i><i></i><i></i><span>低溫火種</span></div>
 
-      <div class="center-play">
+      <div id="drop-zone" class="center-play">
         <span class="center-label">當前物資</span>
         <div id="table-card" class="table-card"><span>等待本輪第一張物資牌</span></div>
         <div id="apostle-display" class="apostle-display">使徒 · 尚無</div>
+        <div class="drop-hint">將牌甩向此處</div>
       </div>
 
       <div id="round-result" class="round-result">尚未結算</div>
@@ -40,6 +41,27 @@
       <div id="selection-actions" class="selection-actions"></div>
       <div id="actions" class="actions"></div>
     </section>
+
+    <div id="detail-overlay" class="overlay" hidden>
+      <div class="overlay-backdrop" data-close="detail"></div>
+      <article class="detail-panel" role="dialog" aria-modal="true" aria-label="卡牌詳細資訊">
+        <button class="overlay-close" data-close="detail" aria-label="關閉">×</button>
+        <div id="detail-content"></div>
+      </article>
+    </div>
+
+    <div id="grace-overlay" class="overlay" hidden>
+      <div class="overlay-backdrop"></div>
+      <article class="grace-panel" role="dialog" aria-modal="true" aria-labelledby="grace-title">
+        <span class="eyebrow">恩典 · 化為物資</span>
+        <h2 id="grace-title">你要使這份恩典化為——</h2>
+        <p>選擇後，恩典將以該物資的卡面與規則真正進入爭局。</p>
+        <div id="grace-choices" class="grace-choices"></div>
+        <button id="grace-cancel" class="grace-cancel">放回手牌</button>
+      </article>
+    </div>
+
+    <div id="toast" class="toast" aria-live="polite"></div>
   </main>
   <script type="module" src="app.js"></script>
 </body>
