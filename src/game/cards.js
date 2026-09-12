@@ -23,6 +23,15 @@ export const MIRACLE_DEFINITIONS = Object.freeze([
     copies: 1,
   }),
   Object.freeze({
+    definitionId: 'miracle-02',
+    kind: 'miracle',
+    name: '行曠野之路',
+    tags: Object.freeze(['新生']),
+    text: '將此牌置於你的效果區。你下一張成功打出的物資牌數字+3，且可超過原本的數字上限。成功打出物資牌後，你棄置此牌',
+    image: 'assets/miracles/miracle-02.png',
+    copies: 1,
+  }),
+  Object.freeze({
     definitionId: 'miracle-05',
     kind: 'miracle',
     name: '如風吹來',
