@@ -1,7 +1,4 @@
 const resultEl = document.querySelector('#round-result');
-const pile = document.querySelector('.tabletop-pile');
-const instruction = document.querySelector('#instruction');
-const restartButton = document.querySelector('#restart');
 
 const seatByPlayer = {
   'player-1': '#seat-human',
@@ -10,16 +7,25 @@ const seatByPlayer = {
   'player-4': '#seat-right',
 };
 
-let resolvedRound = null;
+let lastAnimatedRound = null;
+let activeOverlay = null;
 
 function center(rect) {
   return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
 }
 
-function clearResolutionVisuals() {
+function cleanup() {
+  activeOverlay?.remove();
+  activeOverlay = null;
   document.querySelectorAll('.round-ember,.round-resolution-label').forEach((node) => node.remove());
-  pile?.classList.remove('round-burning');
-  if (pile) pile.style.opacity = '';
+}
+
+function readRoundResult(expectedRound) {
+  const match = resultEl?.textContent?.match(/第\s*(\d+)\s*輪\s*·\s*使徒\s*([^·]+?)\s*·\s*\+(\d+)\s*火種/);
+  if (!match) return null;
+  const round = Number(match[1]);
+  if (round !== expectedRound) return null;
+  return { round, apostle: match[2].trim(), reward: Number(match[3]) };
 }
 
 function createEmber(from, to, index, total) {
@@ -29,62 +35,70 @@ function createEmber(from, to, index, total) {
   ember.style.top = `${from.y}px`;
   document.body.append(ember);
 
-  const dx = to.x - from.x + (index % 2 ? 10 : -10);
+  const dx = to.x - from.x + (index % 2 ? 12 : -12);
   const dy = to.y - from.y + ((index % 3) - 1) * 8;
-  const arcX = dx * .48 + ((index % 2) ? 34 : -34);
-  const arcY = dy * .42 - 70 - index * 2;
-  const delay = index * 46;
+  const arcX = dx * .48 + (index % 2 ? 34 : -34);
+  const arcY = dy * .42 - 72 - index * 2;
   const animation = ember.animate([
-    { transform: 'translate(0,0) scale(.7) rotate(0deg)', opacity: 0 },
-    { offset: .14, transform: 'translate(0,-12px) scale(1.15) rotate(8deg)', opacity: 1 },
-    { offset: .56, transform: `translate(${arcX}px,${arcY}px) scale(.95) rotate(-9deg)`, opacity: 1 },
-    { transform: `translate(${dx}px,${dy}px) scale(.35) rotate(14deg)`, opacity: 0 },
-  ], { duration: 820, delay, easing: 'cubic-bezier(.25,.7,.25,1)', fill: 'forwards' });
+    { transform: 'translate(0,0) scale(.7)', opacity: 0 },
+    { offset: .14, transform: 'translate(0,-12px) scale(1.15)', opacity: 1 },
+    { offset: .56, transform: `translate(${arcX}px,${arcY}px) scale(.95)`, opacity: 1 },
+    { transform: `translate(${dx}px,${dy}px) scale(.35)`, opacity: 0 },
+  ], {
+    duration: 820,
+    delay: index * 46,
+    easing: 'cubic-bezier(.25,.7,.25,1)',
+    fill: 'forwards',
+  });
   animation.finished.catch(() => {}).then(() => ember.remove());
 }
 
-function animateResolution(round, apostle, reward) {
-  if (!pile || !apostle || resolvedRound === round) return;
-  resolvedRound = round;
-  clearResolutionVisuals();
+function animateSnapshot({ round, rect, pile }) {
+  const result = readRoundResult(round);
+  if (!result || !result.apostle || result.apostle === '無' || lastAnimatedRound === round) return;
 
-  const target = document.querySelector(seatByPlayer[apostle]);
-  const sourceRect = pile.getBoundingClientRect();
+  const target = document.querySelector(seatByPlayer[result.apostle]);
   const targetRect = target?.getBoundingClientRect();
-  if (!sourceRect.width || !sourceRect.height || !targetRect?.width) return;
+  if (!targetRect?.width || !rect?.width || !pile) return;
 
-  pile.classList.add('round-burning');
+  lastAnimatedRound = round;
+  cleanup();
 
-  const from = center(sourceRect);
+  const overlay = document.createElement('div');
+  overlay.className = 'round-resolution-pile round-burning';
+  overlay.style.left = `${rect.left}px`;
+  overlay.style.top = `${rect.top}px`;
+  overlay.style.width = `${rect.width}px`;
+  overlay.style.height = `${rect.height}px`;
+  overlay.append(...Array.from(pile.children).map((child) => child.cloneNode(true)));
+  document.body.append(overlay);
+  activeOverlay = overlay;
+
+  const from = center(rect);
   const to = center(targetRect);
-  const count = Math.max(5, Math.min(11, Math.ceil(reward / 2)));
-  for (let i = 0; i < count; i += 1) createEmber(from, to, i, count);
+  const count = Math.max(5, Math.min(11, Math.ceil(result.reward / 2)));
+  for (let index = 0; index < count; index += 1) createEmber(from, to, index, count);
 
   const label = document.createElement('div');
   label.className = 'round-resolution-label';
-  label.textContent = `使徒 ${apostle} · +${reward} 火種`;
+  label.textContent = `使徒 ${result.apostle} · +${result.reward} 火種`;
   document.body.append(label);
   setTimeout(() => label.remove(), 1500);
-
-  if (instruction) instruction.textContent = `第 ${round} 輪結算 · 火種歸於 ${apostle}`;
   setTimeout(() => {
-    if (resolvedRound === round && pile) pile.style.opacity = '0';
-  }, 920);
+    if (activeOverlay === overlay) {
+      overlay.remove();
+      activeOverlay = null;
+    }
+  }, 1150);
 }
 
-function readResult() {
-  if (!resultEl) return;
-  const match = resultEl.textContent.match(/第\s*(\d+)\s*輪\s*·\s*使徒\s*([^·]+?)\s*·\s*\+(\d+)\s*火種/);
-  if (!match) return;
-  animateResolution(Number(match[1]), match[2].trim(), Number(match[3]));
-}
-
-if (resultEl) {
-  new MutationObserver(readResult).observe(resultEl, { childList: true, characterData: true, subtree: true });
-  readResult();
-}
-
-restartButton?.addEventListener('click', () => {
-  resolvedRound = null;
-  clearResolutionVisuals();
+window.addEventListener('shepherd:round-pile-snapshot', (event) => {
+  try {
+    animateSnapshot(event.detail ?? {});
+  } catch (error) {
+    console.error('[Shepherd] round resolution visual failed; gameplay is unaffected.', error);
+    cleanup();
+  }
 });
+
+window.addEventListener('beforeunload', cleanup, { once: true });
