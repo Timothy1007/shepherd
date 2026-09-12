@@ -106,19 +106,31 @@ export class GameController {
     if (!this.state) return;
     let available = getNormalActions(this.state);
 
-    this.safeRender(available);
     this.cancelTimer();
-    if (this.state.gameOver) return;
+    if (this.state.gameOver) {
+      this.safeRender(available);
+      return;
+    }
+
+    // These are bookkeeping states, not player decisions. In particular,
+    // endParticipation must never surface as a button: once a player has already
+    // used the one redraw and still cannot play, they immediately leave the round.
+    if (available.length === 1 && ['endEmptyHand', 'endParticipation'].includes(available[0].type)) {
+      const result = executeNormalAction(this.state, available[0]);
+      if (result.ok) {
+        this.state = result.state;
+        this.actionToken += 1;
+        this.prepare();
+        return;
+      }
+    }
+
+    this.safeRender(available);
 
     if (!available.length && this.recoverStalledState(available)) {
       available = getNormalActions(this.state);
       this.safeRender(available);
       if (this.state.gameOver) return;
-    }
-
-    if (available.length === 1 && available[0].type === 'endEmptyHand') {
-      this.act(available[0], this.snapshot());
-      return;
     }
 
     const player = this.state.players.find((candidate) => candidate.playerId === this.state.currentPlayer);
