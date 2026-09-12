@@ -110,6 +110,10 @@ test('presentation render failure does not prevent AI scheduling', () => {
     delay: () => 0,
   });
   controller.start('recovery-preview');
+  // Adding cards to the shared deck can legitimately change the deterministic
+  // starting roll for a seed, so force this controller test into a known AI turn.
+  controller.state.currentPlayer = 'player-2';
+  controller.prepare();
   assert.ok(controller.lastRenderError instanceof Error);
   assert.equal(typeof callbacks.at(-1), 'function');
   const before = controller.state.currentPlayer;
