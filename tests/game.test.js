@@ -196,7 +196,7 @@ test('round reward counts every playedArea card', () => {
   assert.equal(result.state.lastRoundResult.reward, 4);
 });
 
-test('losing streak increments, resets for apostle, and caps at three', () => {
+test('losing streak increments, resets for apostle, and caps at two', () => {
   const state = createGame({ seed: 14 });
   state.currentApostle = 'player-1';
   state.players[0].losingStreak = 2;
@@ -204,11 +204,11 @@ test('losing streak increments, resets for apostle, and caps at three', () => {
   state.players.forEach((player, index) => { player.hasNormalAction = index === 0; });
   const next = settleRound(state).state;
   assert.equal(next.players[0].losingStreak, 0);
-  assert.equal(next.players[1].losingStreak, 3);
-  assert.equal(next.players[1].startingHandBonus, 3);
+  assert.equal(next.players[1].losingStreak, 2);
+  assert.equal(next.players[1].startingHandBonus, 2);
 });
 
-test('next round deals seven through ten cards from losing streak', () => {
+test('next round deals at most nine cards from losing streak', () => {
   const state = createGame({ seed: 15 });
   state.players.forEach((player, index) => {
     player.losingStreak = index;
@@ -216,7 +216,7 @@ test('next round deals seven through ten cards from losing streak', () => {
     player.hasNormalAction = index === 0;
   });
   const next = settleRound(state).state;
-  assert.deepEqual(next.players.map((player) => player.hand.length), [8, 9, 10, 10]);
+  assert.deepEqual(next.players.map((player) => player.hand.length), [8, 9, 9, 9]);
 });
 
 test('starting player rotates counterclockwise independently each round', () => {
