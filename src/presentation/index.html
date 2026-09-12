@@ -4,37 +4,23 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>牧羊人：荒野之歌 — 爭局 Prototype 0.2</title>
-  <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="interaction-fix.css">
-  <link rel="stylesheet" href="hierarchy-polish.css">
-  <link rel="stylesheet" href="tabletop-history.css">
-  <link rel="stylesheet" href="camera-perspective.css">
-  <link rel="stylesheet" href="round-resolution.css">
-  <link rel="stylesheet" href="resource-deck.css">
+  <link rel="stylesheet" href="style.css"><link rel="stylesheet" href="interaction-fix.css"><link rel="stylesheet" href="hierarchy-polish.css"><link rel="stylesheet" href="tabletop-history.css"><link rel="stylesheet" href="camera-perspective.css"><link rel="stylesheet" href="round-resolution.css"><link rel="stylesheet" href="resource-deck.css">
 </head>
 <body>
   <main class="dispute-shell">
     <div class="world-layer" aria-hidden="true"><div class="horizon"></div><div class="ruins ruins-left"></div><div class="ruins ruins-right"></div><div class="ash"></div></div>
-    <header class="hud-top">
-      <div class="event-copy"><span class="eyebrow">荒野爭局 · PROTOTYPE 0.2</span><h1>牧羊人：荒野之歌</h1><p id="instruction">等待爭局開始</p></div>
-      <div class="round-hud"><div id="round-display">第 1 / 7 輪</div><a id="restart" href="./?restart=1">重新開始</a></div>
-    </header>
+    <header class="hud-top"><div class="event-copy"><span class="eyebrow">荒野爭局 · PROTOTYPE 0.2</span><h1>牧羊人：荒野之歌</h1><p id="instruction">等待爭局開始</p></div><div class="round-hud"><div id="round-display">第 1 / 7 輪</div><a id="restart" href="./?restart=1">重新開始</a></div></header>
     <section id="status" class="status-strip" aria-label="爭局狀態"></section>
     <section class="arena" aria-label="爭局場域">
       <div id="seat-top" class="seat seat-top"></div><div id="seat-left" class="seat seat-left"></div><div id="seat-right" class="seat seat-right"></div>
-      <div class="ground-plane">
-        <div class="board-surface" aria-hidden="true"></div>
-        <div id="resource-deck" class="resource-deck" aria-label="物資牌庫，剩餘 0 張"><div class="deck-shadow" aria-hidden="true"></div><div class="deck-stack" aria-hidden="true"><span></span><span></span><span></span><span class="deck-top"></span></div><div class="deck-count"><span>物資牌庫</span><strong id="resource-deck-count">0</strong></div></div>
-        <div id="drop-zone" class="center-play"><div id="table-card" class="table-card"><span>等待本輪第一張物資牌</span></div></div>
-      </div>
-      <div class="center-meta" aria-live="polite"><span class="center-label">當前物資</span><div id="apostle-display" class="apostle-display">使徒 · 尚無</div></div>
-      <div class="drag-instruction">拖曳或甩出卡牌至桌面中央</div><div id="round-result" class="round-result">尚未結算</div>
+      <div class="ground-plane"><div class="board-surface" aria-hidden="true"></div><div id="resource-deck" class="resource-deck" aria-label="物資牌庫，剩餘 0 張"><div class="deck-shadow" aria-hidden="true"></div><div class="deck-stack" aria-hidden="true"><span></span><span></span><span></span><span class="deck-top"></span></div><div class="deck-count"><span>物資牌庫</span><strong id="resource-deck-count">0</strong></div></div><div id="drop-zone" class="center-play"><div id="table-card" class="table-card"><span>等待本輪第一張物資牌</span></div></div></div>
+      <div class="center-meta" aria-live="polite"><span class="center-label">當前物資</span><div id="apostle-display" class="apostle-display">使徒 · 尚無</div></div><div class="drag-instruction">拖曳或甩出卡牌至桌面中央</div><div id="round-result" class="round-result">尚未結算</div>
     </section>
     <section class="human-zone"><div id="seat-human" class="human-meta"></div><div id="hand" class="hand" aria-label="你的手牌"></div><div id="selection-actions" class="selection-actions"></div><div id="actions" class="actions"></div></section>
     <div id="detail-overlay" class="overlay" hidden><div class="overlay-backdrop" data-close="detail"></div><article class="detail-panel" role="dialog" aria-modal="true" aria-label="卡牌詳細資訊"><button class="overlay-close" data-close="detail" aria-label="關閉">×</button><div id="detail-content"></div></article></div>
     <div id="grace-overlay" class="overlay" hidden><div class="overlay-backdrop"></div><article class="grace-panel" role="dialog" aria-modal="true" aria-labelledby="grace-title"><span class="eyebrow">恩典 · 化為物資</span><h2 id="grace-title">你要使這份恩典化為——</h2><p>選擇後，恩典將以該物資的卡面與規則真正進入爭局。</p><div id="grace-choices" class="grace-choices"></div><button id="grace-cancel" class="grace-cancel">放回手牌</button></article></div>
     <div id="debug-state" aria-live="polite" style="position:fixed;left:8px;top:8px;z-index:20000;font:11px/1.35 monospace;color:#d8d1bf;background:#050807cc;padding:6px 8px;border-radius:6px;pointer-events:none"></div><div id="toast" class="toast" aria-live="polite"></div>
   </main>
-  <script src="interaction-guard.js"></script><script type="module" src="app.js"></script><script type="module" src="tabletop-history.js"></script><script type="module" src="round-resolution.js"></script>
+  <script src="interaction-guard.js"></script><script type="module" src="app.js"></script><script type="module" src="tabletop-history.js"></script><script type="module" src="round-resolution.js"></script><script type="module" src="resource-deck.js"></script>
 </body>
 </html>
