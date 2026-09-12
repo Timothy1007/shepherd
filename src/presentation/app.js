@@ -1,7 +1,7 @@
 import { GameController, aiDelay } from '../controller/game-controller.js';
 import { getDefinition, isLegalResourcePlay, RESOURCE_TYPES } from '../game/cards.js';
 
-const names = { sheep: '群羊', food: '糧食', money: '金錢', grace: '恩典' };
+const names = { sheep: '群羊', food: '糧食', money: '金錢', grace: '恩典', miracle: '神蹟', disaster: '災難' };
 const $ = (selector) => document.querySelector(selector);
 let actions = [];
 let token = null;
@@ -15,21 +15,29 @@ const LONG_PRESS_MS = 480;
 const DRAG_THRESHOLD = 6;
 
 function actionsForCard(card) {
-  return actions.filter((action) => action.type === 'playResource' && action.instanceId === card.instanceId);
+  return actions.filter((action) => ['playResource', 'playMiracle'].includes(action.type) && action.instanceId === card.instanceId);
+}
+
+function definitionTitle(definition) {
+  if (definition.kind === 'miracle' || definition.kind === 'disaster') return definition.name;
+  return `${names[definition.type]} ${definition.number}`;
 }
 
 function transformedImage(definition, declaredType) {
-  if (definition.type !== 'grace' || !declaredType) return definition.image;
+  if (definition.kind !== 'resource' || definition.type !== 'grace' || !declaredType) return definition.image;
   return `assets/cards/${declaredType}-${definition.number}.png`;
 }
 
 function cardStatus(card, state) {
   const definition = getDefinition(card);
-  const possible = definition.type === 'grace' ? RESOURCE_TYPES : [definition.type];
-  const ruleLegal = possible.some((type) => isLegalResourcePlay(card, state.currentResource, type));
   const playableActions = actionsForCard(card);
   const human = state.players[0];
   const humanTurn = state.currentPlayer === human.playerId;
+  if (definition.kind === 'miracle') {
+    return { definition, ruleLegal: true, playableActions, humanTurn, actionable: playableActions.length > 0 };
+  }
+  const possible = definition.type === 'grace' ? RESOURCE_TYPES : [definition.type];
+  const ruleLegal = possible.some((type) => isLegalResourcePlay(card, state.currentResource, type));
   return { definition, ruleLegal, playableActions, humanTurn, actionable: playableActions.length > 0 };
 }
 
@@ -45,13 +53,16 @@ function showDetail(card) {
   const definition = getDefinition(card);
   const playable = actionsForCard(card);
   const legalText = playable.length ? '目前可進入爭局。' : '目前不能打出，但你仍可查看它。';
+  const title = definitionTitle(definition);
+  const kindLabel = definition.kind === 'resource' ? names[definition.type] : names[definition.kind];
+  const effectText = definition.text ?? '物資牌依目前物資與克制規則判定。';
   $('#detail-content').innerHTML = `
-    <img class="detail-card-art" src="${definition.image}" alt="${names[definition.type]} ${definition.number}">
+    <img class="detail-card-art" src="${definition.image}" alt="${title}">
     <div class="detail-copy">
-      <span class="eyebrow">${names[definition.type]}</span>
-      <h2>${names[definition.type]} ${definition.number}</h2>
+      <span class="eyebrow">${kindLabel}</span>
+      <h2>${title}</h2>
       <p>${legalText}</p>
-      <p class="detail-note">目前 Prototype 僅有物資牌。未來神蹟、災難、呼召與祝福的完整效果文字都會在這裡顯示。</p>
+      <p class="detail-note">${effectText}</p>
     </div>`;
   $('#detail-overlay').hidden = false;
 }
@@ -100,7 +111,7 @@ function playOrChoose(card) {
     rejectCard(card.instanceId, '這張牌現在無法進入爭局');
     return;
   }
-  if (definition.type === 'grace') {
+  if (definition.kind === 'resource' && definition.type === 'grace') {
     openGraceChoice(card);
     return;
   }
@@ -260,9 +271,12 @@ function cardButton(card, state) {
   const button = document.createElement('button');
   button.dataset.cardId = card.instanceId;
   button.className = `card ${actionable ? 'legal' : 'illegal'} ${selectedInstanceId === card.instanceId ? 'selected' : ''}`;
-  const statusText = actionable ? '可出牌' : (ruleLegal && !humanTurn ? '等待你的回合' : '目前不可出');
-  button.setAttribute('aria-label', `${names[definition.type]} ${definition.number}，${statusText}`);
-  button.innerHTML = `<img class="card-art" draggable="false" src="${definition.image}" alt="${names[definition.type]} ${definition.number}"><span class="card-fallback"><span class="number">${definition.number}</span><span class="type">${names[definition.type]}</span></span><small>${statusText}</small>`;
+  const statusText = actionable ? '可出牌' : (ruleLegal && !humanTurn ? '等待你的行動' : '目前不可出');
+  const title = definitionTitle(definition);
+  const fallbackMain = definition.kind === 'resource' ? definition.number : '✦';
+  const fallbackType = definition.kind === 'resource' ? names[definition.type] : names[definition.kind];
+  button.setAttribute('aria-label', `${title}，${statusText}`);
+  button.innerHTML = `<img class="card-art" draggable="false" src="${definition.image}" alt="${title}"><span class="card-fallback"><span class="number">${fallbackMain}</span><span class="type">${fallbackType}</span></span><small>${statusText}</small>`;
   button.querySelector('.card-art').addEventListener('error', () => button.classList.add('image-missing'), { once: true });
   button.addEventListener('pointerdown', (event) => beginPointer(card, button, event));
   return button;
@@ -284,13 +298,14 @@ function renderSelectionActions(state) {
   const playable = actionsForCard(card);
   if (!playable.length) {
     const button = document.createElement('button');
-    button.textContent = state.currentPlayer === state.players[0].playerId ? '目前不可打出' : '等待你的回合';
+    button.textContent = state.currentPlayer === state.players[0].playerId ? '目前不可打出' : '等待你的行動';
     button.disabled = true;
     host.append(button);
   } else {
     const button = document.createElement('button');
     button.className = 'primary';
-    button.textContent = definition.type === 'grace' ? '選擇恩典化形' : `打出 ${names[definition.type]} ${definition.number}`;
+    if (definition.kind === 'miracle') button.textContent = `打出神蹟 · ${definition.name}`;
+    else button.textContent = definition.type === 'grace' ? '選擇恩典化形' : `打出 ${names[definition.type]} ${definition.number}`;
     button.addEventListener('click', () => playOrChoose(card));
     host.append(button);
   }
@@ -312,17 +327,24 @@ function renderCurrentCard(state) {
   const currentPlayed = state.playedArea.at(-1);
   const tableCard = $('#table-card');
   if (!currentPlayed) {
-    tableCard.innerHTML = '<span>等待本輪第一張物資牌</span>';
+    tableCard.innerHTML = '<span>等待本輪第一張牌</span>';
     tableCard.classList.remove('has-card', 'grace-born');
     return;
   }
   const definition = getDefinition(currentPlayed);
-  const effectiveType = definition.type === 'grace' ? currentPlayed.declaredType : definition.type;
-  const graceBorn = definition.type === 'grace' && effectiveType;
-  const image = transformedImage(definition, effectiveType);
-  tableCard.innerHTML = `<span class="table-card-visual"><img src="${image}" alt="目前出牌：${names[effectiveType]} ${definition.number}"></span><span>${names[effectiveType]} ${definition.number}</span>`;
-  tableCard.classList.add('has-card');
-  tableCard.classList.toggle('grace-born', graceBorn);
+  if (definition.kind === 'miracle' || definition.kind === 'disaster') {
+    const title = definitionTitle(definition);
+    tableCard.innerHTML = `<span class="table-card-visual"><img src="${definition.image}" alt="目前出牌：${title}"></span><span>${title}</span>`;
+    tableCard.classList.add('has-card');
+    tableCard.classList.remove('grace-born');
+  } else {
+    const effectiveType = definition.type === 'grace' ? currentPlayed.declaredType : definition.type;
+    const graceBorn = definition.type === 'grace' && effectiveType;
+    const image = transformedImage(definition, effectiveType);
+    tableCard.innerHTML = `<span class="table-card-visual"><img src="${image}" alt="目前出牌：${names[effectiveType]} ${definition.number}"></span><span>${names[effectiveType]} ${definition.number}</span>`;
+    tableCard.classList.add('has-card');
+    tableCard.classList.toggle('grace-born', graceBorn);
+  }
   if (currentPlayed.instanceId !== lastPlayedId) {
     lastPlayedId = currentPlayed.instanceId;
     tableCard.classList.remove('impact');
@@ -365,8 +387,8 @@ function render(state, nextActions, nextToken) {
   const redrawAction = nextActions.find((action) => action.type === 'redraw');
   const endAction = nextActions.find((action) => action.type === 'endParticipation');
   if (state.gameOver) $('#instruction').textContent = `爭局結束 · 勝者 ${state.winner.join('、')}`;
-  else if (redrawAction && state.currentPlayer === human.playerId) $('#instruction').textContent = '沒有可出的物資。你本輪仍有一次重新整備手牌的機會。';
-  else if (endAction && state.currentPlayer === human.playerId) $('#instruction').textContent = '重整後仍沒有可出的物資。你將退出本輪爭局。';
+  else if (redrawAction && state.currentPlayer === human.playerId) $('#instruction').textContent = '沒有可出的牌。你本輪仍有一次重新整備手牌的機會。';
+  else if (endAction && state.currentPlayer === human.playerId) $('#instruction').textContent = '重整後仍沒有可出的牌。你將退出本輪爭局。';
   else if (state.currentPlayer === human.playerId) $('#instruction').textContent = '輪到你。短按拿牌、長按查看、直接把牌拖向中央。';
   else $('#instruction').textContent = `等待 ${state.currentPlayer} 行動…`;
   $('#actions').replaceChildren();
@@ -389,7 +411,7 @@ function actionButton(label, action, emphasized = false) {
 }
 
 function renderHumanActions() {
-  const automatic = actions.find((action) => action.type !== 'playResource');
+  const automatic = actions.find((action) => !['playResource', 'playMiracle'].includes(action.type));
   if (!automatic) return;
   const labels = {
     redraw: '重新整備手牌',
