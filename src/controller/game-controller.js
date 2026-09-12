@@ -1,7 +1,10 @@
 import { createGame, executeNormalAction, getNormalActions } from '../game/game.js';
 
+const defaultSetTimer = (callback, delay) => globalThis.setTimeout(callback, delay);
+const defaultClearTimer = (timer) => globalThis.clearTimeout(timer);
+
 export class GameController {
-  constructor({ render = () => {}, setTimer = setTimeout, clearTimer = clearTimeout, delay = () => 1400 } = {}) {
+  constructor({ render = () => {}, setTimer = defaultSetTimer, clearTimer = defaultClearTimer, delay = () => 1400 } = {}) {
     this.render = render;
     this.setTimer = setTimer;
     this.clearTimer = clearTimer;
@@ -54,7 +57,8 @@ export class GameController {
     this.cancelTimer();
     if (this.state.gameOver) return;
 
-    // Empty-hand exit is bookkeeping, not a visible player decision.
+    // Empty hand is pure bookkeeping. Resolve it immediately so the turn cannot
+    // visually stall on a player who has no cards left.
     if (available.length === 1 && available[0].type === 'endEmptyHand') {
       this.act(available[0], this.snapshot());
       return;
@@ -63,42 +67,53 @@ export class GameController {
     const player = this.state.players.find((candidate) => candidate.playerId === this.state.currentPlayer);
     if (player?.type !== 'ai') return;
 
-    const token = this.snapshot();
+    const generation = this.generation;
+    const playerId = player.playerId;
     this.timer = this.setTimer(() => {
       this.timer = null;
-      if (token.generation !== this.generation || token.actionToken !== this.actionToken) return;
-      this.runAiTurn(token);
+      if (generation !== this.generation) return;
+      if (!this.state || this.state.gameOver || this.state.currentPlayer !== playerId) return;
+      this.runAiTurn(generation, playerId);
     }, this.delay());
   }
 
-  runAiTurn(token) {
-    // Keep the original proven behavior: an AI redraw and the immediately-following
-    // play/exit resolve in one AI turn. This prevents the game from being left in a
-    // redraw-complete / endParticipation waiting state after another player exits.
-    while (token.generation === this.generation && token.actionToken === this.actionToken) {
+  runAiTurn(generation, playerId) {
+    // One visible AI turn may contain a redraw followed immediately by either a
+    // legal play or endParticipation. Keep that chain inside the same callback so
+    // there is no timer gap where the game can appear frozen.
+    for (let step = 0; step < 8; step += 1) {
+      if (generation !== this.generation || !this.state || this.state.gameOver) return;
       const player = this.state.players.find((candidate) => candidate.playerId === this.state.currentPlayer);
-      if (player?.type !== 'ai' || this.state.gameOver) return;
+      if (player?.type !== 'ai' || player.playerId !== playerId) return;
 
       const actions = getNormalActions(this.state);
-      if (!actions.length) return;
+      if (!actions.length) {
+        this.render(this.state, actions, this.snapshot());
+        return;
+      }
 
-      const wasRedraw = actions[0].type === 'redraw';
-      const result = executeNormalAction(this.state, actions[0]);
-      if (!result.ok) return;
+      const action = actions[0];
+      const result = executeNormalAction(this.state, action);
+      if (!result.ok) {
+        this.render(this.state, actions, this.snapshot());
+        return;
+      }
 
       this.state = result.state;
       this.actionToken += 1;
-      token = this.snapshot();
 
-      if (!wasRedraw) {
+      // Redraw keeps the same player on turn and must immediately resolve into a
+      // play or withdrawal. Any other action ends this visible AI turn.
+      if (action.type !== 'redraw') {
         this.prepare();
         return;
       }
 
-      // A redraw keeps the same player's turn. Re-render the new hand, then loop
-      // immediately so that either a legal play or endParticipation is resolved.
-      this.render(this.state, getNormalActions(this.state), token);
+      this.render(this.state, getNormalActions(this.state), this.snapshot());
     }
+
+    // Safety fallback: never spin forever if future rules add more bookkeeping.
+    this.prepare();
   }
 }
 
