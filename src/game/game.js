@@ -120,6 +120,8 @@ export function getNormalActions(state) {
   if (plays.length) return plays;
   if (player.hand.length === 0) return [{ type: 'endEmptyHand', playerId: player.playerId }];
   if (!player.hasRedrawnThisRound) return [{ type: 'redraw', playerId: player.playerId }];
+  // This is a defensive fallback only. In normal play redrawMutable automatically
+  // removes a player when the one allowed redraw still produces no legal card.
   return [{ type: 'endParticipation', playerId: player.playerId }];
 }
 
@@ -171,7 +173,8 @@ function playResourceMutable(state, action) {
 }
 
 function redrawMutable(state, action) {
-  const player = state.players[playerIndex(state, action.playerId)];
+  const index = playerIndex(state, action.playerId);
+  const player = state.players[index];
   if (!player.hand.length) return { error: 'An empty hand cannot redraw.' };
   if (player.hasRedrawnThisRound) return { error: 'Player already redrew this round.' };
   const count = player.hand.length;
@@ -179,6 +182,16 @@ function redrawMutable(state, action) {
   player.hand = [];
   player.hasRedrawnThisRound = true;
   player.hand.push(...drawWithDiscardRecycle(state, count));
+
+  // Each player gets exactly one redraw per round. If that redraw still produces
+  // no legal play, leave the round immediately instead of exposing a redundant
+  // "end participation" confirmation button. This also removes an intermediate
+  // state that previously looked like a deadlock in the presentation layer.
+  if (!legalPlayActions(state, player).length) {
+    player.hasNormalAction = false;
+    return { state: advanceOrSettle(state, index) };
+  }
+
   return { state };
 }
 
