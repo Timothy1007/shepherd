@@ -6,7 +6,7 @@ import { createResourceDeck } from '../src/game/cards.js';
 
 const expectedCardCount = createResourceDeck().length;
 
-for (const seed of ['alpha', 'bravo', 'charlie', 'delta', 'echo']) {
+for (const seed of ['alpha', 'bravo', 'charlie', 'delta', 'echo', 'recovery-preview']) {
   test(`complete seven-round simulation: ${seed}`, () => {
     const { state, actions } = simulate(seed);
     assert.equal(state.gameOver, true);
