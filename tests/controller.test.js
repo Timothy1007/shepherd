@@ -36,3 +36,46 @@ test('restart invalidates an old AI timer', () => {
   oldCallback();
   assert.deepEqual(controller.state, expected);
 });
+
+test('AI turn schedules and executes from a prepared state', () => {
+  const callbacks = [];
+  const controller = new GameController({
+    setTimer(callback) { callbacks.push(callback); return callbacks.length; },
+    clearTimer() {},
+    delay: () => 0,
+  });
+  controller.start(5);
+  controller.state.currentPlayer = 'player-2';
+  const beforeHand = controller.state.players[1].hand.length;
+  controller.prepare();
+  const callback = callbacks.at(-1);
+  assert.equal(typeof callback, 'function');
+  callback();
+  assert.ok(controller.state.players[1].hand.length <= beforeHand);
+  assert.notEqual(controller.state.currentPlayer, null);
+});
+
+test('AI redraw resolves immediately into play or withdrawal without timer gap', () => {
+  const callbacks = [];
+  const controller = new GameController({
+    setTimer(callback) { callbacks.push(callback); return callbacks.length; },
+    clearTimer() {},
+    delay: () => 0,
+  });
+  controller.start(6);
+  const ai = controller.state.players[1];
+  controller.state.currentPlayer = ai.playerId;
+  controller.state.currentResource = { type: 'sheep', number: 9 };
+  ai.hasRedrawnThisRound = false;
+  // Force a hand that cannot beat sheep 9 by filtering to low sheep cards.
+  ai.hand = ai.hand.filter((card) => card.definitionId.startsWith('sheep-') && Number(card.definitionId.split('-')[1]) < 9).slice(0, 1);
+  if (!ai.hand.length) {
+    const source = controller.state.deck.findIndex((card) => card.definitionId === 'sheep-1');
+    ai.hand = [controller.state.deck.splice(source, 1)[0]];
+  }
+  controller.prepare();
+  const callback = callbacks.at(-1);
+  assert.equal(typeof callback, 'function');
+  callback();
+  assert.ok(controller.state.currentPlayer !== ai.playerId || ai.hasRedrawnThisRound || controller.state.round > 1);
+});
