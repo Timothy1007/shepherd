@@ -26,12 +26,14 @@ function act(state, action) {
   return result.state;
 }
 
-test('new game deals seven cards to every player, guarantees 回轉歸向 to human, and preserves 91 locations', () => {
+test('new game deals seven cards to every player, guarantees alpha miracles to human, and preserves every registered card', () => {
   const state = createGame({ seed: 1 });
+  const expectedTotal = Object.keys(state.cardRegistry).length;
   assert.deepEqual(state.players.map((player) => player.hand.length), [7, 7, 7, 7]);
   assert.ok(state.players[0].hand.some((card) => card.definitionId === 'miracle-01'));
-  assert.equal(listCardLocations(state).length, 91);
-  assert.equal(new Set(listCardLocations(state)).size, 91);
+  assert.ok(state.players[0].hand.some((card) => card.definitionId === 'miracle-05'));
+  assert.equal(listCardLocations(state).length, expectedTotal);
+  assert.equal(new Set(listCardLocations(state)).size, expectedTotal);
 });
 
 test('same seed reproduces rolls, deck, hands, and RNG state', () => {
@@ -242,11 +244,12 @@ test('seventh round ends without creating round eight and permits tied winners',
 
 test('card location invariant is preserved through actions', () => {
   let state = createGame({ seed: 18 });
+  const expectedTotal = Object.keys(state.cardRegistry).length;
   for (let index = 0; index < 30 && !state.gameOver; index += 1) {
     state = act(state, getNormalActions(state)[0]);
     const locations = listCardLocations(state);
-    assert.equal(locations.length, 91);
-    assert.equal(new Set(locations).size, 91);
+    assert.equal(locations.length, expectedTotal);
+    assert.equal(new Set(locations).size, expectedTotal);
     assert.ok(locations.every((id) => state.cardRegistry[id]));
   }
 });
