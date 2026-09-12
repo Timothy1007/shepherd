@@ -1,4 +1,4 @@
-import { createGame, executeNormalAction, getNormalActions } from '../game/game.js';
+import { createGame, executeNormalAction, getNormalActions, settleRound } from '../game/game.js';
 
 const defaultSetTimer = (callback, delay) => globalThis.setTimeout(callback, delay);
 const defaultClearTimer = (timer) => globalThis.clearTimeout(timer);
@@ -14,6 +14,7 @@ export class GameController {
     this.actionToken = 0;
     this.timer = null;
     this.lastRenderError = null;
+    this.recovering = false;
   }
 
   start(seed) {
@@ -38,7 +39,18 @@ export class GameController {
     return { generation: this.generation, actionToken: this.actionToken };
   }
 
+  updateDebug(available) {
+    const documentRef = globalThis.document;
+    if (!documentRef || !this.state) return;
+    const host = documentRef.querySelector('#debug-state');
+    if (!host) return;
+    const current = this.state.players.find((player) => player.playerId === this.state.currentPlayer);
+    const eligible = this.state.players.filter((player) => player.hasNormalAction).map((player) => player.playerId).join(',') || 'none';
+    host.textContent = `R${this.state.round} ${this.state.phase} | turn=${this.state.currentPlayer ?? 'none'} | actions=${available.map((action) => action.type).join(',') || 'none'} | eligible=${eligible} | redraw=${current?.hasRedrawnThisRound ?? '-'} | hand=${current?.hand.length ?? '-'}`;
+  }
+
   safeRender(available = getNormalActions(this.state)) {
+    this.updateDebug(available);
     try {
       this.render(this.state, available, this.snapshot());
       this.lastRenderError = null;
@@ -63,20 +75,47 @@ export class GameController {
     return { ok: true, state: this.state };
   }
 
+  recoverStalledState(available) {
+    if (this.recovering || !this.state || this.state.gameOver || available.length) return false;
+    this.recovering = true;
+    try {
+      const eligible = this.state.players.filter((player) => player.hasNormalAction);
+      if (eligible.length <= 1) {
+        const result = settleRound(this.state);
+        if (result.ok) {
+          this.state = result.state;
+          this.actionToken += 1;
+          return true;
+        }
+      }
+
+      const current = this.state.players.find((player) => player.playerId === this.state.currentPlayer);
+      if ((!current || !current.hasNormalAction) && eligible.length > 0) {
+        this.state = structuredClone(this.state);
+        this.state.currentPlayer = eligible[0].playerId;
+        this.actionToken += 1;
+        return true;
+      }
+      return false;
+    } finally {
+      this.recovering = false;
+    }
+  }
+
   prepare() {
     if (!this.state) return;
-    const available = getNormalActions(this.state);
+    let available = getNormalActions(this.state);
 
-    // Rendering must never own the game loop. A visual-layer exception previously
-    // prevented the code below from scheduling the next AI action, which looked
-    // exactly like a frozen match and also made restart appear broken.
     this.safeRender(available);
-
     this.cancelTimer();
     if (this.state.gameOver) return;
 
-    // Empty hand is pure bookkeeping. Resolve it immediately so the turn cannot
-    // visually stall on a player who has no cards left.
+    if (!available.length && this.recoverStalledState(available)) {
+      available = getNormalActions(this.state);
+      this.safeRender(available);
+      if (this.state.gameOver) return;
+    }
+
     if (available.length === 1 && available[0].type === 'endEmptyHand') {
       this.act(available[0], this.snapshot());
       return;
@@ -96,9 +135,6 @@ export class GameController {
   }
 
   runAiTurn(generation, playerId) {
-    // One visible AI turn may contain a redraw followed immediately by either a
-    // legal play or endParticipation. Keep that chain inside the same callback so
-    // there is no timer gap where the game can appear frozen.
     for (let step = 0; step < 8; step += 1) {
       if (generation !== this.generation || !this.state || this.state.gameOver) return;
       const player = this.state.players.find((candidate) => candidate.playerId === this.state.currentPlayer);
@@ -106,6 +142,10 @@ export class GameController {
 
       const actions = getNormalActions(this.state);
       if (!actions.length) {
+        if (this.recoverStalledState(actions)) {
+          this.prepare();
+          return;
+        }
         this.safeRender(actions);
         return;
       }
@@ -120,8 +160,6 @@ export class GameController {
       this.state = result.state;
       this.actionToken += 1;
 
-      // Redraw keeps the same player on turn and must immediately resolve into a
-      // play or withdrawal. Any other action ends this visible AI turn.
       if (action.type !== 'redraw') {
         this.prepare();
         return;
@@ -130,7 +168,6 @@ export class GameController {
       this.safeRender(getNormalActions(this.state));
     }
 
-    // Safety fallback: never spin forever if future rules add more bookkeeping.
     this.prepare();
   }
 }
