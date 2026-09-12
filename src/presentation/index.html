@@ -17,7 +17,7 @@
 
     <header class="hud-top">
       <div class="event-copy"><span class="eyebrow">荒野爭局 · PROTOTYPE 0.2</span><h1>牧羊人：荒野之歌</h1><p id="instruction">等待爭局開始</p></div>
-      <div class="round-hud"><div id="round-display">第 1 / 7 輪</div><button id="restart">重新開始</button></div>
+      <div class="round-hud"><div id="round-display">第 1 / 7 輪</div><a id="restart" href="./?restart=1">重新開始</a></div>
     </header>
 
     <section id="status" class="status-strip" aria-label="爭局狀態"></section>
@@ -69,11 +69,10 @@
       </article>
     </div>
 
+    <div id="debug-state" aria-live="polite" style="position:fixed;left:8px;top:8px;z-index:20000;font:11px/1.35 monospace;color:#d8d1bf;background:#050807cc;padding:6px 8px;border-radius:6px;pointer-events:none"></div>
     <div id="toast" class="toast" aria-live="polite"></div>
   </main>
   <script src="interaction-guard.js"></script>
   <script type="module" src="app.js"></script>
-  <script type="module" src="ui-polish.js"></script>
-  <script type="module" src="tabletop-history.js"></script>
 </body>
 </html>
