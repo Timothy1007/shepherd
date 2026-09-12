@@ -1,11 +1,7 @@
 import { createGame, executeNormalAction, getNormalActions } from '../game/game.js';
 
-const defaultSetTimer = (callback, delay) => setTimeout(callback, delay);
-const defaultClearTimer = (timer) => clearTimeout(timer);
-const AI_HOUSEKEEPING_DELAY = 140;
-
 export class GameController {
-  constructor({ render = () => {}, setTimer = defaultSetTimer, clearTimer = defaultClearTimer, delay = () => 1400 } = {}) {
+  constructor({ render = () => {}, setTimer = setTimeout, clearTimer = clearTimeout, delay = () => 1400 } = {}) {
     this.render = render;
     this.setTimer = setTimer;
     this.clearTimer = clearTimer;
@@ -13,11 +9,11 @@ export class GameController {
     this.state = null;
     this.generation = 0;
     this.actionToken = 0;
-    this.aiTimer = null;
+    this.timer = null;
   }
 
   start(seed) {
-    this.cancelAiTimer();
+    this.cancelTimer();
     this.generation += 1;
     this.actionToken += 1;
     this.state = createGame({ seed });
@@ -29,9 +25,9 @@ export class GameController {
     return this.start(seed);
   }
 
-  cancelAiTimer() {
-    if (this.aiTimer !== null) this.clearTimer(this.aiTimer);
-    this.aiTimer = null;
+  cancelTimer() {
+    if (this.timer !== null) this.clearTimer(this.timer);
+    this.timer = null;
   }
 
   snapshot() {
@@ -51,57 +47,58 @@ export class GameController {
     return { ok: true, state: this.state };
   }
 
-  scheduleAi(action, token, delay) {
-    this.cancelAiTimer();
-    this.aiTimer = this.setTimer(() => {
-      this.aiTimer = null;
-      if (token.generation !== this.generation || token.actionToken !== this.actionToken) return;
-      if (action) this.act(action, token);
-      else this.runAiTurn(token);
-    }, delay);
-  }
-
   prepare() {
     if (!this.state) return;
     const available = getNormalActions(this.state);
     this.render(this.state, available, this.snapshot());
-    this.cancelAiTimer();
+    this.cancelTimer();
     if (this.state.gameOver) return;
 
+    // Empty-hand exit is bookkeeping, not a visible player decision.
     if (available.length === 1 && available[0].type === 'endEmptyHand') {
-      this.scheduleAi(available[0], this.snapshot(), 0);
+      this.act(available[0], this.snapshot());
       return;
     }
 
     const player = this.state.players.find((candidate) => candidate.playerId === this.state.currentPlayer);
     if (player?.type !== 'ai') return;
 
-    const automatic = available.length === 1 && ['redraw', 'endParticipation'].includes(available[0].type);
-    this.scheduleAi(null, this.snapshot(), automatic ? AI_HOUSEKEEPING_DELAY : this.delay());
+    const token = this.snapshot();
+    this.timer = this.setTimer(() => {
+      this.timer = null;
+      if (token.generation !== this.generation || token.actionToken !== this.actionToken) return;
+      this.runAiTurn(token);
+    }, this.delay());
   }
 
   runAiTurn(token) {
-    if (!this.state || this.state.gameOver) return;
-    if (token.generation !== this.generation || token.actionToken !== this.actionToken) return;
+    // Keep the original proven behavior: an AI redraw and the immediately-following
+    // play/exit resolve in one AI turn. This prevents the game from being left in a
+    // redraw-complete / endParticipation waiting state after another player exits.
+    while (token.generation === this.generation && token.actionToken === this.actionToken) {
+      const player = this.state.players.find((candidate) => candidate.playerId === this.state.currentPlayer);
+      if (player?.type !== 'ai' || this.state.gameOver) return;
 
-    const player = this.state.players.find((candidate) => candidate.playerId === this.state.currentPlayer);
-    if (player?.type !== 'ai') return;
+      const actions = getNormalActions(this.state);
+      if (!actions.length) return;
 
-    const actions = getNormalActions(this.state);
-    if (!actions.length) {
-      this.render(this.state, actions, this.snapshot());
-      return;
+      const wasRedraw = actions[0].type === 'redraw';
+      const result = executeNormalAction(this.state, actions[0]);
+      if (!result.ok) return;
+
+      this.state = result.state;
+      this.actionToken += 1;
+      token = this.snapshot();
+
+      if (!wasRedraw) {
+        this.prepare();
+        return;
+      }
+
+      // A redraw keeps the same player's turn. Re-render the new hand, then loop
+      // immediately so that either a legal play or endParticipation is resolved.
+      this.render(this.state, getNormalActions(this.state), token);
     }
-
-    const result = executeNormalAction(this.state, actions[0]);
-    if (!result.ok) {
-      this.render(this.state, actions, this.snapshot());
-      return;
-    }
-
-    this.state = result.state;
-    this.actionToken += 1;
-    this.prepare();
   }
 }
 
