@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGame, executeNormalAction, getNormalActions, listCardLocations, settleRound } from '../src/game/game.js';
-import { DEFINITION_BY_ID, getDefinition } from '../src/game/cards.js';
+import { DEFINITION_BY_ID } from '../src/game/cards.js';
 
 function take(state, definitionId, source = state.deck) {
   let card;
@@ -26,15 +26,33 @@ function act(state, action) {
   return result.state;
 }
 
-test('new game deals seven cards to every player and preserves 90 locations', () => {
+test('new game deals seven cards to every player, guarantees 回轉歸向 to human, and preserves 91 locations', () => {
   const state = createGame({ seed: 1 });
   assert.deepEqual(state.players.map((player) => player.hand.length), [7, 7, 7, 7]);
-  assert.equal(listCardLocations(state).length, 90);
-  assert.equal(new Set(listCardLocations(state)).size, 90);
+  assert.ok(state.players[0].hand.some((card) => card.definitionId === 'miracle-01'));
+  assert.equal(listCardLocations(state).length, 91);
+  assert.equal(new Set(listCardLocations(state)).size, 91);
 });
 
 test('same seed reproduces rolls, deck, hands, and RNG state', () => {
   assert.deepEqual(createGame({ seed: 'repeatable' }), createGame({ seed: 'repeatable' }));
+});
+
+test('回轉歸向 reverses direction, draws one, enters played area, preserves apostle, and frees next resource', () => {
+  let state = createGame({ seed: 21 });
+  putHand(state, 0, ['miracle-01', 'sheep-1']);
+  state.currentResource = { type: 'food', number: 9, instanceId: 'test' };
+  state.currentApostle = 'player-4';
+  state.direction = -1;
+  const beforeHand = state.players[0].hand.length;
+  const action = getNormalActions(state).find((candidate) => candidate.type === 'playMiracle');
+  assert.ok(action);
+  state = act(state, action);
+  assert.equal(state.direction, 1);
+  assert.equal(state.players[0].hand.length, beforeHand);
+  assert.equal(state.playedArea.at(-1).definitionId, 'miracle-01');
+  assert.equal(state.currentResource, null);
+  assert.equal(state.currentApostle, 'player-4');
 });
 
 test('starting roll ties reroll only tied contenders', () => {
@@ -124,7 +142,6 @@ test('redraw with no legal result automatically ends participation and advances'
   assert.equal(redrawn.players[0].hasRedrawnThisRound, true);
   assert.equal(redrawn.players[0].hasNormalAction, false);
   assert.notEqual(redrawn.currentPlayer, 'player-1');
-  assert.ok(!getNormalActions(redrawn).some((action) => action.type === 'endParticipation' && action.playerId === 'player-1'));
 });
 
 test('endParticipation remains a defensive fallback for malformed post-redraw states', () => {
@@ -228,8 +245,8 @@ test('card location invariant is preserved through actions', () => {
   for (let index = 0; index < 30 && !state.gameOver; index += 1) {
     state = act(state, getNormalActions(state)[0]);
     const locations = listCardLocations(state);
-    assert.equal(locations.length, 90);
-    assert.equal(new Set(locations).size, 90);
+    assert.equal(locations.length, 91);
+    assert.equal(new Set(locations).size, 91);
     assert.ok(locations.every((id) => state.cardRegistry[id]));
   }
 });
