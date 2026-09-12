@@ -2,6 +2,7 @@ const tableCard = document.querySelector('#table-card');
 const centerPlay = document.querySelector('#drop-zone');
 const status = document.querySelector('#status');
 const roundDisplay = document.querySelector('#round-display');
+const instruction = document.querySelector('#instruction');
 
 if (tableCard && centerPlay && status && roundDisplay) {
   const pile = document.createElement('div');
@@ -14,6 +15,7 @@ if (tableCard && centerPlay && status && roundDisplay) {
   let lastPlayedCount = 0;
   let lastRound = null;
   let disposed = false;
+  let finalSnapshotEmitted = false;
 
   const rotations = [-8, 5, -3, 7, -5, 4];
   const offsets = [[-26, 12], [18, 7], [-6, -4], [24, 10], [-20, 5], [8, -6]];
@@ -65,6 +67,10 @@ if (tableCard && centerPlay && status && roundDisplay) {
     return match ? Number(match[1]) : null;
   }
 
+  function isGameOver() {
+    return instruction?.textContent?.startsWith('爭局結束') ?? false;
+  }
+
   function emitRoundPileSnapshot(round) {
     if (!snapshots.length) return;
     const rect = pile.getBoundingClientRect();
@@ -85,11 +91,10 @@ if (tableCard && centerPlay && status && roundDisplay) {
     const playedCount = readPlayedCount();
 
     if (round !== null && lastRound !== null && round !== lastRound) {
-      // Emit a detached snapshot before clearing the live pile. Resolution effects
-      // can animate that clone without touching the DOM that gameplay depends on.
       emitRoundPileSnapshot(lastRound);
       clearPile();
       lastPlayedCount = 0;
+      finalSnapshotEmitted = false;
     }
     if (round !== null) lastRound = round;
 
@@ -97,6 +102,13 @@ if (tableCard && centerPlay && status && roundDisplay) {
       if (playedCount > lastPlayedCount) captureCurrentCard();
       if (playedCount < lastPlayedCount && playedCount === 0) clearPile();
       lastPlayedCount = playedCount;
+    }
+
+    // 第七輪不會再切到第八輪，因此另外在 gameOver 時觸發最後一次使徒結算動畫。
+    if (isGameOver() && !finalSnapshotEmitted && lastRound !== null && snapshots.length) {
+      finalSnapshotEmitted = true;
+      emitRoundPileSnapshot(lastRound);
+      clearPile();
     }
 
     window.setTimeout(tick, 120);
