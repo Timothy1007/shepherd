@@ -36,11 +36,12 @@ function dealCards(state) {
   }
 }
 
-function dealFirstMiracleToHumanForAlphaTest(state) {
+function dealAlphaMiraclesToHuman(state) {
   if (state.round !== 1) return;
-  const index = state.deck.findIndex((card) => card.definitionId === 'miracle-01');
-  if (index < 0) return;
-  state.players[0].hand.push(state.deck.splice(index, 1)[0]);
+  for (const definitionId of ['miracle-01', 'miracle-05']) {
+    const index = state.deck.findIndex((card) => card.definitionId === definitionId);
+    if (index >= 0) state.players[0].hand.push(state.deck.splice(index, 1)[0]);
+  }
 }
 
 function prepareRound(state, startingIndex) {
@@ -59,7 +60,7 @@ function prepareRound(state, startingIndex) {
   const shuffled = shuffleWithState(state.deck, state.rngState);
   state.deck = shuffled.items;
   state.rngState = shuffled.state;
-  dealFirstMiracleToHumanForAlphaTest(state);
+  dealAlphaMiraclesToHuman(state);
   dealCards(state);
 }
 
@@ -184,6 +185,25 @@ function playResourceMutable(state, action) {
   return { state: advanceOrSettle(state, index) };
 }
 
+function resolveWindMiracle(state, player, action) {
+  const choice = action.choice ?? 'fire';
+  if (choice === 'fire') {
+    player.fire += 3;
+    return null;
+  }
+  if (choice !== 'cycle') return 'Unknown 如風吹來 choice.';
+
+  const discardIds = [...new Set(action.discardIds ?? [])];
+  if (discardIds.length < 1 || discardIds.length > 3) return '如風吹來 must discard 1 to 3 cards.';
+  const selected = discardIds.map((instanceId) => player.hand.find((card) => card.instanceId === instanceId));
+  if (selected.some((card) => !card)) return 'A selected discard card is not in hand.';
+
+  player.hand = player.hand.filter((card) => !discardIds.includes(card.instanceId));
+  state.discardPile.push(...selected);
+  player.hand.push(...drawWithDiscardRecycle(state, discardIds.length));
+  return null;
+}
+
 function playMiracleMutable(state, action) {
   const index = playerIndex(state, action.playerId);
   const player = state.players[index];
@@ -191,18 +211,34 @@ function playMiracleMutable(state, action) {
   if (handIndex < 0) return { error: 'Card is not in the current player hand.' };
   const card = player.hand[handIndex];
   const definition = getDefinition(card);
-  if (definition.kind !== 'miracle' || definition.definitionId !== 'miracle-01') return { error: 'Unsupported miracle.' };
+  if (definition.kind !== 'miracle') return { error: 'Unsupported miracle.' };
+
+  // Validate choices before removing the miracle itself from hand.
+  if (definition.definitionId === 'miracle-05' && action.choice === 'cycle') {
+    const ids = [...new Set(action.discardIds ?? [])];
+    if (ids.includes(card.instanceId)) return { error: '如風吹來 cannot discard itself as its effect cost.' };
+    if (ids.length < 1 || ids.length > 3 || ids.some((id) => !player.hand.some((held) => held.instanceId === id))) {
+      return { error: 'Invalid 如風吹來 discard selection.' };
+    }
+  }
 
   player.hand.splice(handIndex, 1);
   state.playedArea.push(card);
 
-  // 回轉歸向：改變出牌方向，然後你抽1張牌。
-  state.direction *= -1;
-  player.hand.push(...drawWithDiscardRecycle(state, 1));
+  if (definition.definitionId === 'miracle-01') {
+    // 回轉歸向：改變出牌方向，然後你抽1張牌。
+    state.direction *= -1;
+    player.hand.push(...drawWithDiscardRecycle(state, 1));
+  } else if (definition.definitionId === 'miracle-05') {
+    // 如風吹來：AI/無選項呼叫預設選火種；玩家 UI 可傳入 fire 或 cycle。
+    const error = resolveWindMiracle(state, player, action);
+    if (error) return { error };
+  } else {
+    return { error: 'Unsupported miracle.' };
+  }
 
   // 神蹟／災難之後的下一張物資為自由出牌；使徒仍是最後成功打出物資的玩家。
   state.currentResource = null;
-
   return { state: advanceOrSettle(state, index) };
 }
 
