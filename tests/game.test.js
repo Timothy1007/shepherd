@@ -78,11 +78,12 @@ test('illegal or stale action returns original state', () => {
   assert.equal(result.state, state);
 });
 
-test('redraw discards the hand, draws the same count, and remains the same turn', () => {
+test('redraw discards the hand, draws the same count, and stays on turn when redraw is playable', () => {
   const state = createGame({ seed: 5 });
   const player = putHand(state, 0, ['sheep-1', 'sheep-2']);
   state.currentResource = { type: 'sheep', number: 9 };
   const oldIds = player.hand.map((card) => card.instanceId);
+  state.deck = [take(state, 'money-1'), ...state.deck];
   const next = act(state, getNormalActions(state)[0]);
   assert.equal(next.currentPlayer, 'player-1');
   assert.equal(next.players[0].hasRedrawnThisRound, true);
@@ -114,16 +115,19 @@ test('redraw with a legal result requires an immediate play on the same turn', (
   assert.deepEqual([...new Set(getNormalActions(redrawn).map((action) => action.type))], ['playResource']);
 });
 
-test('redraw with no legal result exposes endParticipation', () => {
+test('redraw with no legal result automatically ends participation and advances', () => {
   const state = createGame({ seed: 8 });
   putHand(state, 0, ['sheep-1']);
   state.currentResource = { type: 'sheep', number: 9 };
   state.deck = [take(state, 'sheep-2'), ...state.deck];
   const redrawn = act(state, getNormalActions(state)[0]);
-  assert.equal(getNormalActions(redrawn)[0].type, 'endParticipation');
+  assert.equal(redrawn.players[0].hasRedrawnThisRound, true);
+  assert.equal(redrawn.players[0].hasNormalAction, false);
+  assert.notEqual(redrawn.currentPlayer, 'player-1');
+  assert.ok(!getNormalActions(redrawn).some((action) => action.type === 'endParticipation' && action.playerId === 'player-1'));
 });
 
-test('endParticipation permanently removes normal action for the round', () => {
+test('endParticipation remains a defensive fallback for malformed post-redraw states', () => {
   let state = createGame({ seed: 9 });
   putHand(state, 0, ['sheep-1']);
   state.currentResource = { type: 'sheep', number: 9 };
