@@ -2,6 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { simulate } from '../scripts/simulate.js';
 import { listCardLocations } from '../src/game/game.js';
+import { createResourceDeck } from '../src/game/cards.js';
+
+const expectedCardCount = createResourceDeck().length;
 
 for (const seed of ['alpha', 'bravo', 'charlie', 'delta', 'echo']) {
   test(`complete seven-round simulation: ${seed}`, () => {
@@ -10,6 +13,6 @@ for (const seed of ['alpha', 'bravo', 'charlie', 'delta', 'echo']) {
     assert.equal(state.round, 7);
     assert.ok(state.winner.length >= 1);
     assert.ok(actions < 5000);
-    assert.equal(listCardLocations(state).length, 90);
+    assert.equal(listCardLocations(state).length, expectedCardCount);
   });
 }
