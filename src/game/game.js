@@ -30,9 +30,17 @@ function rollStartingPlayer(rngState) {
 
 function dealCards(state) {
   for (const player of state.players) {
-    const count = 7 + player.startingHandBonus;
-    player.hand.push(...state.deck.splice(0, count));
+    const targetCount = 7 + player.startingHandBonus;
+    const missing = Math.max(0, targetCount - player.hand.length);
+    player.hand.push(...state.deck.splice(0, missing));
   }
+}
+
+function dealFirstMiracleToHumanForAlphaTest(state) {
+  if (state.round !== 1) return;
+  const index = state.deck.findIndex((card) => card.definitionId === 'miracle-01');
+  if (index < 0) return;
+  state.players[0].hand.push(state.deck.splice(index, 1)[0]);
 }
 
 function prepareRound(state, startingIndex) {
@@ -51,6 +59,7 @@ function prepareRound(state, startingIndex) {
   const shuffled = shuffleWithState(state.deck, state.rngState);
   state.deck = shuffled.items;
   state.rngState = shuffled.state;
+  dealFirstMiracleToHumanForAlphaTest(state);
   dealCards(state);
 }
 
@@ -98,10 +107,15 @@ export function createGame({ seed = 'shepherd-recovery' } = {}) {
   return state;
 }
 
-function legalPlayActions(state, player) {
+function legalCardActions(state, player) {
   const actions = [];
   for (const card of player.hand) {
     const definition = getDefinition(card);
+    if (definition.kind === 'miracle') {
+      actions.push({ type: 'playMiracle', playerId: player.playerId, instanceId: card.instanceId });
+      continue;
+    }
+    if (definition.kind !== 'resource') continue;
     const declarations = definition.type === 'grace' ? RESOURCE_TYPES : [definition.type];
     for (const declaredType of declarations) {
       if (isLegalResourcePlay(card, state.currentResource, declaredType)) {
@@ -116,12 +130,10 @@ export function getNormalActions(state) {
   if (state.phase !== 'playing' || state.gameOver) return [];
   const player = state.players.find((candidate) => candidate.playerId === state.currentPlayer);
   if (!player?.hasNormalAction) return [];
-  const plays = legalPlayActions(state, player);
+  const plays = legalCardActions(state, player);
   if (plays.length) return plays;
   if (player.hand.length === 0) return [{ type: 'endEmptyHand', playerId: player.playerId }];
   if (!player.hasRedrawnThisRound) return [{ type: 'redraw', playerId: player.playerId }];
-  // This is a defensive fallback only. In normal play redrawMutable automatically
-  // removes a player when the one allowed redraw still produces no legal card.
   return [{ type: 'endParticipation', playerId: player.playerId }];
 }
 
@@ -172,6 +184,28 @@ function playResourceMutable(state, action) {
   return { state: advanceOrSettle(state, index) };
 }
 
+function playMiracleMutable(state, action) {
+  const index = playerIndex(state, action.playerId);
+  const player = state.players[index];
+  const handIndex = player.hand.findIndex((card) => card.instanceId === action.instanceId);
+  if (handIndex < 0) return { error: 'Card is not in the current player hand.' };
+  const card = player.hand[handIndex];
+  const definition = getDefinition(card);
+  if (definition.kind !== 'miracle' || definition.definitionId !== 'miracle-01') return { error: 'Unsupported miracle.' };
+
+  player.hand.splice(handIndex, 1);
+  state.playedArea.push(card);
+
+  // 回轉歸向：改變出牌方向，然後你抽1張牌。
+  state.direction *= -1;
+  player.hand.push(...drawWithDiscardRecycle(state, 1));
+
+  // 神蹟／災難之後的下一張物資為自由出牌；使徒仍是最後成功打出物資的玩家。
+  state.currentResource = null;
+
+  return { state: advanceOrSettle(state, index) };
+}
+
 function redrawMutable(state, action) {
   const index = playerIndex(state, action.playerId);
   const player = state.players[index];
@@ -182,16 +216,10 @@ function redrawMutable(state, action) {
   player.hand = [];
   player.hasRedrawnThisRound = true;
   player.hand.push(...drawWithDiscardRecycle(state, count));
-
-  // Each player gets exactly one redraw per round. If that redraw still produces
-  // no legal play, leave the round immediately instead of exposing a redundant
-  // "end participation" confirmation button. This also removes an intermediate
-  // state that previously looked like a deadlock in the presentation layer.
-  if (!legalPlayActions(state, player).length) {
+  if (!legalCardActions(state, player).length) {
     player.hasNormalAction = false;
     return { state: advanceOrSettle(state, index) };
   }
-
   return { state };
 }
 
@@ -253,6 +281,7 @@ export function executeNormalAction(state, action) {
   const next = clone(state);
   let result;
   if (action.type === 'playResource') result = playResourceMutable(next, action);
+  else if (action.type === 'playMiracle') result = playMiracleMutable(next, action);
   else if (action.type === 'redraw') result = redrawMutable(next, action);
   else if (action.type === 'endParticipation') result = endMutable(next, action, action.type);
   else if (action.type === 'endEmptyHand') result = endMutable(next, action, action.type);
@@ -268,6 +297,7 @@ export function settleRound(state) {
 }
 
 export const playResource = (state, action) => executeNormalAction(state, { ...action, type: 'playResource' });
+export const playMiracle = (state, action) => executeNormalAction(state, { ...action, type: 'playMiracle' });
 export const redraw = (state, action) => executeNormalAction(state, { ...action, type: 'redraw' });
 export const endParticipation = (state, action) => executeNormalAction(state, { ...action, type: 'endParticipation' });
 export const endEmptyHand = (state, action) => executeNormalAction(state, { ...action, type: 'endEmptyHand' });
