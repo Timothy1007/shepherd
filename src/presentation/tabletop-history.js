@@ -65,6 +65,19 @@ if (tableCard && centerPlay && status && roundDisplay) {
     return match ? Number(match[1]) : null;
   }
 
+  function emitRoundPileSnapshot(round) {
+    if (!snapshots.length) return;
+    const rect = pile.getBoundingClientRect();
+    const pileClone = pile.cloneNode(true);
+    window.dispatchEvent(new CustomEvent('shepherd:round-pile-snapshot', {
+      detail: {
+        round,
+        rect: { left: rect.left, top: rect.top, width: rect.width, height: rect.height },
+        pile: pileClone,
+      },
+    }));
+  }
+
   function tick() {
     if (disposed) return;
 
@@ -72,18 +85,16 @@ if (tableCard && centerPlay && status && roundDisplay) {
     const playedCount = readPlayedCount();
 
     if (round !== null && lastRound !== null && round !== lastRound) {
+      // Emit a detached snapshot before clearing the live pile. Resolution effects
+      // can animate that clone without touching the DOM that gameplay depends on.
+      emitRoundPileSnapshot(lastRound);
       clearPile();
       lastPlayedCount = 0;
     }
     if (round !== null) lastRound = round;
 
     if (playedCount !== null) {
-      // A count increase means app.js has already rendered the newly played card.
-      // Capture exactly once per actual play. No MutationObserver is used here,
-      // so changing classes/children can never feed back into this detector.
       if (playedCount > lastPlayedCount) captureCurrentCard();
-
-      // Restart/new round can reset the count before the round label updates.
       if (playedCount < lastPlayedCount && playedCount === 0) clearPile();
       lastPlayedCount = playedCount;
     }
