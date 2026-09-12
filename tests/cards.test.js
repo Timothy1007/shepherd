@@ -4,11 +4,11 @@ import { CARD_DEFINITIONS, createResourceDeck, isLegalResourcePlay } from '../sr
 
 const card = (definitionId) => ({ instanceId: `${definitionId}#test`, definitionId });
 
-test('alpha recipe has 36 resource definitions plus 回轉歸向 and 91 instances', () => {
+test('alpha recipe has 36 resource definitions plus two miracles and 92 instances', () => {
   assert.equal(CARD_DEFINITIONS.filter((definition) => definition.kind === 'resource').length, 36);
-  assert.equal(CARD_DEFINITIONS.filter((definition) => definition.kind === 'miracle').length, 1);
-  assert.equal(CARD_DEFINITIONS.length, 37);
-  assert.equal(createResourceDeck().length, 91);
+  assert.equal(CARD_DEFINITIONS.filter((definition) => definition.kind === 'miracle').length, 2);
+  assert.equal(CARD_DEFINITIONS.length, 38);
+  assert.equal(createResourceDeck().length, 92);
 });
 
 test('every resource definition points to its production artwork path', () => {
@@ -17,16 +17,21 @@ test('every resource definition points to its production artwork path', () => {
   }
 });
 
-test('回轉歸向 points to its uploaded miracle artwork', () => {
-  const miracle = CARD_DEFINITIONS.find((definition) => definition.definitionId === 'miracle-01');
-  assert.equal(miracle.name, '回轉歸向');
-  assert.equal(miracle.image, 'assets/miracles/miracle-01.png');
-  assert.deepEqual(miracle.tags, ['新生']);
+test('implemented miracles point to their uploaded artwork', () => {
+  const first = CARD_DEFINITIONS.find((definition) => definition.definitionId === 'miracle-01');
+  assert.equal(first.name, '回轉歸向');
+  assert.equal(first.image, 'assets/miracles/miracle-01.png');
+  assert.deepEqual(first.tags, ['新生']);
+
+  const second = CARD_DEFINITIONS.find((definition) => definition.definitionId === 'miracle-05');
+  assert.equal(second.name, '如風吹來');
+  assert.equal(second.image, 'assets/miracles/miracle-05.png');
+  assert.deepEqual(second.tags, ['流轉', '火種']);
 });
 
 test('every card instanceId is unique', () => {
   const ids = createResourceDeck().map(({ instanceId }) => instanceId);
-  assert.equal(new Set(ids).size, 91);
+  assert.equal(new Set(ids).size, ids.length);
 });
 
 test('resource counts match the official recipe', () => {
