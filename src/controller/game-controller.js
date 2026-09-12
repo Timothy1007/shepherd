@@ -13,6 +13,7 @@ export class GameController {
     this.generation = 0;
     this.actionToken = 0;
     this.timer = null;
+    this.lastRenderError = null;
   }
 
   start(seed) {
@@ -37,6 +38,18 @@ export class GameController {
     return { generation: this.generation, actionToken: this.actionToken };
   }
 
+  safeRender(available = getNormalActions(this.state)) {
+    try {
+      this.render(this.state, available, this.snapshot());
+      this.lastRenderError = null;
+      return true;
+    } catch (error) {
+      this.lastRenderError = error;
+      console.error('[Shepherd] presentation render failed; gameplay will continue.', error);
+      return false;
+    }
+  }
+
   act(action, token = this.snapshot()) {
     if (!this.state) return { ok: false, reason: 'No game is active.', state: this.state };
     if (token.generation !== this.generation || token.actionToken !== this.actionToken) {
@@ -53,7 +66,12 @@ export class GameController {
   prepare() {
     if (!this.state) return;
     const available = getNormalActions(this.state);
-    this.render(this.state, available, this.snapshot());
+
+    // Rendering must never own the game loop. A visual-layer exception previously
+    // prevented the code below from scheduling the next AI action, which looked
+    // exactly like a frozen match and also made restart appear broken.
+    this.safeRender(available);
+
     this.cancelTimer();
     if (this.state.gameOver) return;
 
@@ -88,14 +106,14 @@ export class GameController {
 
       const actions = getNormalActions(this.state);
       if (!actions.length) {
-        this.render(this.state, actions, this.snapshot());
+        this.safeRender(actions);
         return;
       }
 
       const action = actions[0];
       const result = executeNormalAction(this.state, action);
       if (!result.ok) {
-        this.render(this.state, actions, this.snapshot());
+        this.safeRender(actions);
         return;
       }
 
@@ -109,7 +127,7 @@ export class GameController {
         return;
       }
 
-      this.render(this.state, getNormalActions(this.state), this.snapshot());
+      this.safeRender(getNormalActions(this.state));
     }
 
     // Safety fallback: never spin forever if future rules add more bookkeeping.
