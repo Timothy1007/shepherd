@@ -38,7 +38,7 @@ function dealCards(state) {
 
 function dealAlphaMiraclesToHuman(state) {
   if (state.round !== 1) return;
-  for (const definitionId of ['miracle-01', 'miracle-05']) {
+  for (const definitionId of ['miracle-01', 'miracle-02', 'miracle-05']) {
     const index = state.deck.findIndex((card) => card.definitionId === definitionId);
     if (index >= 0) state.players[0].hand.push(state.deck.splice(index, 1)[0]);
   }
@@ -56,6 +56,7 @@ function prepareRound(state, startingIndex) {
     player.hasNormalAction = true;
     player.hasRedrawnThisRound = false;
     player.hand = [];
+    player.effects = [];
   }
   const shuffled = shuffleWithState(state.deck, state.rngState);
   state.deck = shuffled.items;
@@ -169,6 +170,11 @@ function drawWithDiscardRecycle(state, count) {
   return drawn;
 }
 
+function consumeEffect(state, player, effectIndex) {
+  const [effect] = player.effects.splice(effectIndex, 1);
+  if (effect) state.discardPile.push(effect);
+}
+
 function playResourceMutable(state, action) {
   const index = playerIndex(state, action.playerId);
   const player = state.players[index];
@@ -178,10 +184,21 @@ function playResourceMutable(state, action) {
   if (!isLegalResourcePlay(card, state.currentResource, action.declaredType)) return { error: 'Illegal resource play.' };
   const definition = getDefinition(card);
   const playedCard = { ...card, declaredType: definition.type === 'grace' ? action.declaredType : definition.type };
+  const wildernessIndex = player.effects.findIndex((effect) => effect.definitionId === 'miracle-02');
+  const numberBonus = wildernessIndex >= 0 ? 3 : 0;
+
   player.hand.splice(handIndex, 1);
   state.playedArea.push(playedCard);
-  state.currentResource = { type: playedCard.declaredType, number: definition.number, instanceId: card.instanceId };
+  state.currentResource = {
+    type: playedCard.declaredType,
+    number: definition.number + numberBonus,
+    instanceId: card.instanceId,
+    baseNumber: definition.number,
+    numberBonus,
+  };
   state.currentApostle = player.playerId;
+
+  if (wildernessIndex >= 0) consumeEffect(state, player, wildernessIndex);
   return { state: advanceOrSettle(state, index) };
 }
 
@@ -213,7 +230,6 @@ function playMiracleMutable(state, action) {
   const definition = getDefinition(card);
   if (definition.kind !== 'miracle') return { error: 'Unsupported miracle.' };
 
-  // Validate choices before removing the miracle itself from hand.
   if (definition.definitionId === 'miracle-05' && action.choice === 'cycle') {
     const ids = [...new Set(action.discardIds ?? [])];
     if (ids.includes(card.instanceId)) return { error: '如風吹來 cannot discard itself as its effect cost.' };
@@ -223,21 +239,26 @@ function playMiracleMutable(state, action) {
   }
 
   player.hand.splice(handIndex, 1);
-  state.playedArea.push(card);
+
+  if (definition.definitionId === 'miracle-02') {
+    // 行曠野之路：持續到此玩家下一次成功打出物資；不進已出牌區。
+    player.effects.push(card);
+  } else {
+    state.playedArea.push(card);
+  }
 
   if (definition.definitionId === 'miracle-01') {
-    // 回轉歸向：改變出牌方向，然後你抽1張牌。
     state.direction *= -1;
     player.hand.push(...drawWithDiscardRecycle(state, 1));
+  } else if (definition.definitionId === 'miracle-02') {
+    // 效果由 playResourceMutable 在下一次成功物資出牌時消耗。
   } else if (definition.definitionId === 'miracle-05') {
-    // 如風吹來：AI/無選項呼叫預設選火種；玩家 UI 可傳入 fire 或 cycle。
     const error = resolveWindMiracle(state, player, action);
     if (error) return { error };
   } else {
     return { error: 'Unsupported miracle.' };
   }
 
-  // 神蹟／災難之後的下一張物資為自由出牌；使徒仍是最後成功打出物資的玩家。
   state.currentResource = null;
   return { state: advanceOrSettle(state, index) };
 }
@@ -293,6 +314,7 @@ function settleRoundMutable(state) {
 
   state.deck.push(
     ...state.players.flatMap((player) => player.hand),
+    ...state.players.flatMap((player) => player.effects),
     ...state.playedArea,
     ...state.discardPile,
     ...state.removedForRound,
@@ -300,6 +322,7 @@ function settleRoundMutable(state) {
   state.playedArea = [];
   state.discardPile = [];
   state.removedForRound = [];
+  for (const player of state.players) player.effects = [];
   const previousStart = playerIndex(state, state.startingPlayer);
   const nextStart = (previousStart + state.startingPlayerDirection + state.players.length) % state.players.length;
   prepareRound(state, nextStart);
@@ -345,5 +368,6 @@ export function listCardLocations(state) {
     ...state.playedArea,
     ...state.removedForRound,
     ...state.players.flatMap((player) => player.hand),
+    ...state.players.flatMap((player) => player.effects),
   ].map((card) => card.instanceId);
 }
