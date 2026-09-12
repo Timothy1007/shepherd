@@ -22,6 +22,15 @@ export const MIRACLE_DEFINITIONS = Object.freeze([
     image: 'assets/miracles/miracle-01.png',
     copies: 1,
   }),
+  Object.freeze({
+    definitionId: 'miracle-05',
+    kind: 'miracle',
+    name: '如風吹來',
+    tags: Object.freeze(['流轉', '火種']),
+    text: '你選擇：棄置1至3張手牌，然後抽取等量的牌 或 不棄置手牌，獲得3點火種',
+    image: 'assets/miracles/miracle-05.png',
+    copies: 1,
+  }),
 ]);
 
 export const CARD_DEFINITIONS = Object.freeze([
