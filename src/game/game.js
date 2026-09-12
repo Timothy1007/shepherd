@@ -294,7 +294,7 @@ function settleRoundMutable(state) {
   const apostle = state.players.find((player) => player.playerId === state.currentApostle);
   if (apostle) apostle.fire += state.playedArea.length;
   for (const player of state.players) {
-    player.losingStreak = player === apostle ? 0 : Math.min(3, player.losingStreak + 1);
+    player.losingStreak = player === apostle ? 0 : Math.min(2, player.losingStreak + 1);
     player.startingHandBonus = player.losingStreak;
   }
   state.lastRoundResult = {
