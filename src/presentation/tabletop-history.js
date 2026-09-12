@@ -1,7 +1,9 @@
 const tableCard = document.querySelector('#table-card');
 const centerPlay = document.querySelector('#drop-zone');
+const status = document.querySelector('#status');
+const roundDisplay = document.querySelector('#round-display');
 
-if (tableCard && centerPlay) {
+if (tableCard && centerPlay && status && roundDisplay) {
   const pile = document.createElement('div');
   pile.className = 'tabletop-pile';
   pile.setAttribute('aria-hidden', 'true');
@@ -9,18 +11,27 @@ if (tableCard && centerPlay) {
 
   const snapshots = [];
   let playSequence = 0;
-  let waitingForNextRoundFirstCard = false;
+  let lastPlayedCount = 0;
+  let lastRound = null;
+  let disposed = false;
+
   const rotations = [-8, 5, -3, 7, -5, 4];
-  const offsets = [[-26,12],[18,7],[-6,-4],[24,10],[-20,5],[8,-6]];
+  const offsets = [[-26, 12], [18, 7], [-6, -4], [24, 10], [-20, 5], [8, -6]];
 
   function renderPile() {
-    pile.replaceChildren(...snapshots.map((item, i) => {
+    pile.replaceChildren(...snapshots.map((item, index) => {
       const node = item.cloneNode(true);
-      node.style.setProperty('--pile-depth', String(i));
-      node.classList.toggle('pile-latest', i === snapshots.length - 1);
+      node.style.setProperty('--pile-depth', String(index));
+      node.classList.toggle('pile-latest', index === snapshots.length - 1);
       return node;
     }));
     pile.classList.toggle('has-cards', snapshots.length > 0);
+  }
+
+  function clearPile() {
+    snapshots.length = 0;
+    renderPile();
+    tableCard.classList.remove('pile-source-hidden');
   }
 
   function captureCurrentCard() {
@@ -28,13 +39,9 @@ if (tableCard && centerPlay) {
     const image = visual?.querySelector('img');
     if (!visual || !image) return;
 
-    if (waitingForNextRoundFirstCard) {
-      snapshots.length = 0;
-      waitingForNextRoundFirstCard = false;
-    }
-
     const clone = visual.cloneNode(true);
     clone.classList.add('pile-card');
+
     const slot = playSequence % offsets.length;
     const [x, y] = offsets[slot];
     clone.style.setProperty('--pile-x', `${x}px`);
@@ -48,30 +55,44 @@ if (tableCard && centerPlay) {
     tableCard.classList.add('pile-source-hidden');
   }
 
-  const observer = new MutationObserver((records) => {
-    for (const record of records) {
-      if (record.type !== 'attributes' || record.attributeName !== 'class') continue;
-      const oldClass = record.oldValue || '';
-      if (!oldClass.includes('impact') && tableCard.classList.contains('impact')) {
-        requestAnimationFrame(captureCurrentCard);
-        break;
-      }
+  function readRound() {
+    const match = roundDisplay.textContent?.match(/第\s*(\d+)\s*\/\s*7\s*輪/);
+    return match ? Number(match[1]) : null;
+  }
+
+  function readPlayedCount() {
+    const match = status.textContent?.match(/場內\s*(\d+)/);
+    return match ? Number(match[1]) : null;
+  }
+
+  function tick() {
+    if (disposed) return;
+
+    const round = readRound();
+    const playedCount = readPlayedCount();
+
+    if (round !== null && lastRound !== null && round !== lastRound) {
+      clearPile();
+      lastPlayedCount = 0;
+    }
+    if (round !== null) lastRound = round;
+
+    if (playedCount !== null) {
+      // A count increase means app.js has already rendered the newly played card.
+      // Capture exactly once per actual play. No MutationObserver is used here,
+      // so changing classes/children can never feed back into this detector.
+      if (playedCount > lastPlayedCount) captureCurrentCard();
+
+      // Restart/new round can reset the count before the round label updates.
+      if (playedCount < lastPlayedCount && playedCount === 0) clearPile();
+      lastPlayedCount = playedCount;
     }
 
-    // When a new round starts the source card becomes empty immediately. Keep the
-    // old pile on screen so the resolution animation can burn it away. The pile is
-    // cleared only when the first card of the next round is actually played.
-    if (!tableCard.querySelector('.table-card-visual')) {
-      waitingForNextRoundFirstCard = true;
-      tableCard.classList.remove('pile-source-hidden');
-    }
-  });
+    window.setTimeout(tick, 120);
+  }
 
-  observer.observe(tableCard, {
-    attributes: true,
-    attributeOldValue: true,
-    attributeFilter: ['class'],
-    childList: true,
-    subtree: true,
-  });
+  lastRound = readRound();
+  lastPlayedCount = readPlayedCount() ?? 0;
+  window.setTimeout(tick, 120);
+  window.addEventListener('beforeunload', () => { disposed = true; }, { once: true });
 }
