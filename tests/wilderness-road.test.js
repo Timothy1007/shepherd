@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createGame, executeNormalAction, getNormalActions, listCardLocations } from '../src/game/game.js';
+import { createGame, executeNormalAction, getNormalActions, listCardLocations, settleRound } from '../src/game/game.js';
 
 function take(state, definitionId) {
   for (const location of [state.deck, state.discardPile, state.playedArea, ...state.players.map((player) => player.hand), ...state.players.map((player) => player.effects)]) {
@@ -64,4 +64,30 @@ test('effect-zone cards remain part of the card location invariant', () => {
   state = act(state, action);
   assert.equal(listCardLocations(state).length, expected);
   assert.equal(new Set(listCardLocations(state)).size, expected);
+});
+
+test('an unresolved Wilderness Road cannot stall the next round', () => {
+  let state = createGame({ seed: 'wilderness-round-boundary' });
+  const expected = Object.keys(state.cardRegistry).length;
+  prepareHuman(state, ['miracle-02', 'sheep-1']);
+  state = act(state, getNormalActions(state).find((candidate) => candidate.type === 'playMiracle'));
+  assert.equal(state.players[0].effects.length, 1);
+
+  state.players.forEach((player, index) => { player.hasNormalAction = index === 0; });
+  const result = settleRound(state);
+  assert.equal(result.ok, true, result.reason);
+  state = result.state;
+  assert.equal(state.round, 2);
+  assert.equal(state.phase, 'playing');
+  assert.ok(state.currentPlayer);
+  assert.equal(state.players.every((player) => player.effects.length === 0), true);
+  assert.equal(listCardLocations(state).length, expected);
+  assert.ok(getNormalActions(state).length > 0);
+
+  state.players.forEach((player, index) => { player.hasNormalAction = index === 0; });
+  const second = settleRound(state);
+  assert.equal(second.ok, true, second.reason);
+  assert.equal(second.state.round, 3);
+  assert.equal(second.state.phase, 'playing');
+  assert.ok(second.state.currentPlayer);
 });
