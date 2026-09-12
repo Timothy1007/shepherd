@@ -1,15 +1,9 @@
-import { advanceToNextRound, createGame, executeNormalAction, getNormalActions } from '../src/game/game.js';
+import { createGame, executeNormalAction, getNormalActions } from '../src/game/game.js';
 
 export function simulate(seed) {
   let state = createGame({ seed });
   let actions = 0;
   while (!state.gameOver && actions < 5000) {
-    if (state.phase === 'roundEnd') {
-      const transition = advanceToNextRound(state);
-      if (!transition.ok) throw new Error(transition.reason);
-      state = transition.state;
-      continue;
-    }
     const available = getNormalActions(state);
     if (!available.length) throw new Error(`No action in active game for seed ${seed}`);
     const result = executeNormalAction(state, available[0]);
