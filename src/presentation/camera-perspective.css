@@ -41,20 +41,28 @@
 }
 .board-surface{display:none!important}
 
-/* Layout pass from annotated screenshot: move only the three marked areas. */
+/* Layout pass from annotated screenshots. */
 .status-strip{
   left:32%!important;
   top:52px!important;
   transform:translateX(-50%)!important;
 }
+/* Player 3 upward; current-resource/apostle copy leftward. */
 .seat-top{
   left:60%!important;
-  top:0!important;
+  top:-7%!important;
 }
 .center-meta{
-  left:60%!important;
+  left:55%!important;
   top:11%!important;
 }
+/* Played pile leftward toward the center emblem. */
 .center-play{
-  transform:translate(-50%,-50%) translate(90px,-150px)!important;
+  transform:translate(-50%,-50%) translate(35px,-150px)!important;
 }
+/* Player 2 slightly upward. */
+.seat-left{
+  top:41%!important;
+}
+/* Remove the subtitle/instruction directly under the game title. */
+.event-copy #instruction{display:none!important}
