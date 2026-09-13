@@ -28,7 +28,7 @@
 /* Background trial: use the uploaded arena artwork as the single visible world/battlefield layer.
    Keep the existing gameplay geometry untouched; only remove the two old visual layers. */
 .dispute-shell{
-  background-image:url('../../public/assets/background.png')!important;
+  background-image:url('assets/background.png')!important;
   background-size:cover!important;
   background-position:center center!important;
   background-repeat:no-repeat!important;
