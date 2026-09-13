@@ -8,6 +8,7 @@ export const COUNTERCLOCKWISE = -1;
 
 const clone = (value) => structuredClone(value);
 const playerIndex = (state, playerId) => state.players.findIndex((player) => player.playerId === playerId);
+const hasEffect = (player, definitionId) => player.effects.some((effect) => effect.definitionId === definitionId);
 
 function rollStartingPlayer(rngState) {
   let contenders = [0, 1, 2, 3];
@@ -38,7 +39,7 @@ function dealCards(state) {
 
 function dealAlphaMiraclesToHuman(state) {
   if (state.round !== 1) return;
-  for (const definitionId of ['miracle-01', 'miracle-02', 'miracle-05']) {
+  for (const definitionId of ['miracle-01', 'miracle-02', 'miracle-03', 'miracle-05']) {
     const index = state.deck.findIndex((card) => card.definitionId === definitionId);
     if (index >= 0) state.players[0].hand.push(state.deck.splice(index, 1)[0]);
   }
@@ -109,6 +110,15 @@ export function createGame({ seed = 'shepherd-recovery' } = {}) {
   return state;
 }
 
+function isResourceLegalForPlayer(card, state, player, declaredType) {
+  if (hasEffect(player, 'miracle-03')) {
+    const definition = getDefinition(card);
+    const type = definition.type === 'grace' ? declaredType : definition.type;
+    return definition.kind === 'resource' && RESOURCE_TYPES.includes(type);
+  }
+  return isLegalResourcePlay(card, state.currentResource, declaredType);
+}
+
 function legalCardActions(state, player) {
   const actions = [];
   for (const card of player.hand) {
@@ -120,7 +130,7 @@ function legalCardActions(state, player) {
     if (definition.kind !== 'resource') continue;
     const declarations = definition.type === 'grace' ? RESOURCE_TYPES : [definition.type];
     for (const declaredType of declarations) {
-      if (isLegalResourcePlay(card, state.currentResource, declaredType)) {
+      if (isResourceLegalForPlayer(card, state, player, declaredType)) {
         actions.push({ type: 'playResource', playerId: player.playerId, instanceId: card.instanceId, declaredType });
       }
     }
@@ -170,9 +180,14 @@ function drawWithDiscardRecycle(state, count) {
   return drawn;
 }
 
-function consumeEffect(state, player, effectIndex) {
-  const [effect] = player.effects.splice(effectIndex, 1);
-  if (effect) state.discardPile.push(effect);
+function consumeEffects(state, player, definitionIds) {
+  const consumed = [];
+  player.effects = player.effects.filter((effect) => {
+    if (!definitionIds.includes(effect.definitionId)) return true;
+    consumed.push(effect);
+    return false;
+  });
+  state.discardPile.push(...consumed);
 }
 
 function playResourceMutable(state, action) {
@@ -181,11 +196,11 @@ function playResourceMutable(state, action) {
   const handIndex = player.hand.findIndex((card) => card.instanceId === action.instanceId);
   if (handIndex < 0) return { error: 'Card is not in the current player hand.' };
   const card = player.hand[handIndex];
-  if (!isLegalResourcePlay(card, state.currentResource, action.declaredType)) return { error: 'Illegal resource play.' };
+  if (!isResourceLegalForPlayer(card, state, player, action.declaredType)) return { error: 'Illegal resource play.' };
   const definition = getDefinition(card);
   const playedCard = { ...card, declaredType: definition.type === 'grace' ? action.declaredType : definition.type };
-  const wildernessIndex = player.effects.findIndex((effect) => effect.definitionId === 'miracle-02');
-  const numberBonus = wildernessIndex >= 0 ? 3 : 0;
+  const hasWildernessRoad = hasEffect(player, 'miracle-02');
+  const numberBonus = hasWildernessRoad ? 3 : 0;
 
   player.hand.splice(handIndex, 1);
   state.playedArea.push(playedCard);
@@ -198,7 +213,7 @@ function playResourceMutable(state, action) {
   };
   state.currentApostle = player.playerId;
 
-  if (wildernessIndex >= 0) consumeEffect(state, player, wildernessIndex);
+  consumeEffects(state, player, ['miracle-02', 'miracle-03']);
   return { state: advanceOrSettle(state, index) };
 }
 
@@ -240,8 +255,7 @@ function playMiracleMutable(state, action) {
 
   player.hand.splice(handIndex, 1);
 
-  if (definition.definitionId === 'miracle-02') {
-    // 行曠野之路：持續到此玩家下一次成功打出物資；不進已出牌區。
+  if (['miracle-02', 'miracle-03'].includes(definition.definitionId)) {
     player.effects.push(card);
   } else {
     state.playedArea.push(card);
@@ -250,8 +264,8 @@ function playMiracleMutable(state, action) {
   if (definition.definitionId === 'miracle-01') {
     state.direction *= -1;
     player.hand.push(...drawWithDiscardRecycle(state, 1));
-  } else if (definition.definitionId === 'miracle-02') {
-    // 效果由 playResourceMutable 在下一次成功物資出牌時消耗。
+  } else if (['miracle-02', 'miracle-03'].includes(definition.definitionId)) {
+    // 下一張成功物資出牌時，由 playResourceMutable 套用並消耗持續效果。
   } else if (definition.definitionId === 'miracle-05') {
     const error = resolveWindMiracle(state, player, action);
     if (error) return { error };

@@ -4,11 +4,11 @@ import { CARD_DEFINITIONS, createResourceDeck, isLegalResourcePlay } from '../sr
 
 const card = (definitionId) => ({ instanceId: `${definitionId}#test`, definitionId });
 
-test('alpha recipe has 36 resource definitions plus three miracles and 93 instances', () => {
+test('alpha recipe has 36 resource definitions plus four miracles and 94 instances', () => {
   assert.equal(CARD_DEFINITIONS.filter((definition) => definition.kind === 'resource').length, 36);
-  assert.equal(CARD_DEFINITIONS.filter((definition) => definition.kind === 'miracle').length, 3);
-  assert.equal(CARD_DEFINITIONS.length, 39);
-  assert.equal(createResourceDeck().length, 93);
+  assert.equal(CARD_DEFINITIONS.filter((definition) => definition.kind === 'miracle').length, 4);
+  assert.equal(CARD_DEFINITIONS.length, 40);
+  assert.equal(createResourceDeck().length, 94);
 });
 
 test('every resource definition points to its production artwork path', () => {
@@ -27,6 +27,11 @@ test('implemented miracles point to their uploaded artwork', () => {
   assert.equal(wilderness.name, '行曠野之路');
   assert.equal(wilderness.image, 'assets/miracles/miracle-02.png');
   assert.deepEqual(wilderness.tags, ['新生']);
+
+  const crown = CARD_DEFINITIONS.find((definition) => definition.definitionId === 'miracle-03');
+  assert.equal(crown.name, '荊棘冠冕');
+  assert.equal(crown.image, 'assets/miracles/miracle-03.png');
+  assert.deepEqual(crown.tags, ['新生']);
 
   const wind = CARD_DEFINITIONS.find((definition) => definition.definitionId === 'miracle-05');
   assert.equal(wind.name, '如風吹來');

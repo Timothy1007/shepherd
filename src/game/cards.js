@@ -32,6 +32,15 @@ export const MIRACLE_DEFINITIONS = Object.freeze([
     copies: 1,
   }),
   Object.freeze({
+    definitionId: 'miracle-03',
+    kind: 'miracle',
+    name: '荊棘冠冕',
+    tags: Object.freeze(['新生']),
+    text: '將此牌置於你的效果區。你下一張成功打出的物資牌無視出牌限制。成功打出物資牌後，你棄置此牌',
+    image: 'assets/miracles/miracle-03.png',
+    copies: 1,
+  }),
+  Object.freeze({
     definitionId: 'miracle-05',
     kind: 'miracle',
     name: '如風吹來',
