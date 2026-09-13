@@ -42,25 +42,26 @@
 .board-surface{display:none!important}
 
 /* Layout pass from annotated screenshots. */
+/* Battlefield status now sits below the title with a deliberate visual gap. */
 .status-strip{
-  left:17.5%!important;
-  top:76px!important;
-  transform:translateX(0)!important;
+  left:24px!important;
+  top:82px!important;
+  transform:none!important;
 }
-/* Align Player 3 and current-resource copy to the played-pile vertical centerline. */
+/* Player 3 and current-resource copy align to the screen/battlefield center, preserving their vertical spacing. */
 .seat-top{
-  left:calc(50% + 35px)!important;
+  left:50%!important;
   top:-7%!important;
 }
 .center-meta{
-  left:calc(50% + 35px)!important;
+  left:50%!important;
   top:11%!important;
 }
 /* Played pile stays at the same position. */
 .center-play{
   transform:translate(-50%,-50%) translate(35px,-150px)!important;
 }
-/* Player 2 further upward. */
+/* Player 2 remains at the raised position from the previous pass. */
 .seat-left{
   top:35%!important;
 }
