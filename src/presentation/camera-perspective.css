@@ -43,26 +43,26 @@
 
 /* Layout pass from annotated screenshots. */
 .status-strip{
-  left:32%!important;
-  top:52px!important;
-  transform:translateX(-50%)!important;
+  left:17.5%!important;
+  top:76px!important;
+  transform:translateX(0)!important;
 }
-/* Player 3 upward; current-resource/apostle copy leftward. */
+/* Align Player 3 and current-resource copy to the played-pile vertical centerline. */
 .seat-top{
-  left:60%!important;
+  left:calc(50% + 35px)!important;
   top:-7%!important;
 }
 .center-meta{
-  left:55%!important;
+  left:calc(50% + 35px)!important;
   top:11%!important;
 }
-/* Played pile leftward toward the center emblem. */
+/* Played pile stays at the same position. */
 .center-play{
   transform:translate(-50%,-50%) translate(35px,-150px)!important;
 }
-/* Player 2 slightly upward. */
+/* Player 2 further upward. */
 .seat-left{
-  top:41%!important;
+  top:35%!important;
 }
 /* Remove the subtitle/instruction directly under the game title. */
 .event-copy #instruction{display:none!important}
