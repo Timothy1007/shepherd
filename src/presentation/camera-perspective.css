@@ -61,8 +61,9 @@
 .center-play{
   transform:translate(-50%,-50%) translate(35px,-150px)!important;
 }
-/* Player 2 remains at the raised position from the previous pass. */
-.seat-left{
+/* Player 2 and Player 4 share the same vertical alignment. */
+.seat-left,
+.seat-right{
   top:35%!important;
 }
 /* Remove the subtitle/instruction directly under the game title. */
