@@ -24,3 +24,19 @@
 .seat{width:230px!important;min-width:0!important;z-index:28!important}.seat-top{left:50%!important;top:2%!important;transform:translateX(-50%) scale(.82)!important;text-align:center!important}.seat-left{left:3.4%!important;top:47%!important;transform:translateY(-50%) scale(.95)!important;transform-origin:left center!important;text-align:left!important}.seat-right{right:3.4%!important;top:47%!important;transform:translateY(-50%) scale(.95)!important;transform-origin:right center!important;text-align:right!important}.seat .name,.human-meta .name{display:block!important;width:100%!important}.seat .stats,.human-meta .stats{display:flex!important;width:100%!important;margin-top:7px!important}.seat-left .stats,.human-meta .stats{justify-content:flex-start!important}.seat-top .stats{justify-content:center!important}.seat-right .stats{justify-content:flex-end!important}.human-meta{left:24px!important;bottom:24px!important;width:240px!important;text-align:left!important}
 .center-meta{position:absolute!important;z-index:34!important;left:50%!important;top:19%!important;transform:translateX(-50%)!important;width:320px!important;text-align:center!important;pointer-events:none!important}.center-meta .center-label{display:block!important;margin:0 0 4px!important}.center-meta .apostle-display{margin:0!important}.drag-instruction{position:absolute!important;left:50%!important;bottom:4.5%!important;transform:translateX(-50%)!important;z-index:34!important;font-size:11px!important;letter-spacing:.08em!important;color:#a9a18f!important;opacity:.48!important;pointer-events:none!important;white-space:nowrap!important}.blue-flame{filter:none!important;box-shadow:none!important}.blue-flame:before,.blue-flame:after{box-shadow:none!important}
 @media(max-height:760px){.ground-plane{top:12%!important;height:74vh!important;width:min(84vw,1180px)!important;transform:translateX(-50%) rotateX(59deg)!important}.center-meta{top:18%!important}.seat-top{top:1%!important}.drag-instruction{bottom:3%!important}}
+
+/* Background trial: use the uploaded arena artwork as the single visible world/battlefield layer.
+   Keep the existing gameplay geometry untouched; only remove the two old visual layers. */
+.dispute-shell{
+  background-image:url('../../public/assets/background.png')!important;
+  background-size:cover!important;
+  background-position:center center!important;
+  background-repeat:no-repeat!important;
+}
+.world-layer{display:none!important}
+.ground-plane{
+  background:transparent!important;
+  box-shadow:none!important;
+  border:0!important;
+}
+.board-surface{display:none!important}
