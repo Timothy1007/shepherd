@@ -40,3 +40,21 @@
   border:0!important;
 }
 .board-surface{display:none!important}
+
+/* Layout pass from annotated screenshot: move only the three marked areas. */
+.status-strip{
+  left:32%!important;
+  top:52px!important;
+  transform:translateX(-50%)!important;
+}
+.seat-top{
+  left:60%!important;
+  top:0!important;
+}
+.center-meta{
+  left:60%!important;
+  top:11%!important;
+}
+.center-play{
+  transform:translate(-50%,-50%) translate(90px,-150px)!important;
+}
