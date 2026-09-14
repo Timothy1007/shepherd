@@ -1,0 +1,35 @@
+/* Battlefield UI tuning for the animated arena background. */
+
+/* The standalone physical resource-deck prop is redundant with the HUD count. */
+.resource-deck{
+  display:none!important;
+}
+
+/* Give the title and battlefield counters more breathing room. */
+.status-strip{
+  left:24px!important;
+  top:104px!important;
+  transform:none!important;
+  gap:34px!important;
+  padding:8px 18px!important;
+}
+
+/* Move the current-resource copy down so it does not crowd the upper player/title area. */
+.center-meta{
+  left:50%!important;
+  top:18%!important;
+  transform:translateX(-50%)!important;
+}
+
+/* Place the played pile on the visual center of the background arena instead of floating above it. */
+.center-play{
+  left:50%!important;
+  top:52%!important;
+  transform:translate(-50%,-50%) translate(0,-72px)!important;
+}
+
+@media(max-height:760px){
+  .status-strip{top:98px!important;gap:28px!important}
+  .center-meta{top:17%!important}
+  .center-play{transform:translate(-50%,-50%) translate(0,-58px)!important}
+}
