@@ -1,77 +1,13 @@
 /* Battlefield UI tuning for the animated arena background. */
+.resource-deck{display:none!important}
+.status-strip{left:24px!important;top:104px!important;transform:none!important;gap:34px!important;padding:8px 18px!important}
+.center-meta{left:50%!important;top:18%!important;transform:translateX(-50%)!important}
+.center-play{left:50%!important;top:52%!important;transform:translate(-50%,-50%) translate(46px,-72px)!important}
+.grace-choice .choice-card{display:block!important;width:112px!important;height:156px!important;margin:4px auto!important;overflow:visible!important}.grace-choice .choice-card img{display:block!important;width:112px!important;height:156px!important;max-width:112px!important;max-height:156px!important;object-fit:contain!important}
+.seat.current:after,.human-meta.current:after{content:none!important;display:none!important}.seat.current .name,.human-meta.current .name{position:relative!important}.seat.current .name:before,.human-meta.current .name:before{content:"▼";position:absolute;left:50%;bottom:calc(100% + 5px);transform:translateX(-50%);color:#f0cf86;font-size:13px;line-height:1;text-shadow:0 0 10px #d79042,0 2px 5px #000;pointer-events:none}
 
-/* The standalone physical resource-deck prop is redundant with the HUD count. */
-.resource-deck{
-  display:none!important;
-}
+/* Hand cards must follow the source artwork ratio instead of the old hard-coded 88x132 / 128x184 box. */
+.hand .card{height:auto!important;aspect-ratio:var(--card-art-ratio,63/88)!important;overflow:visible}
+.hand .card-art{width:100%!important;height:100%!important;object-fit:contain!important;aspect-ratio:inherit}
 
-/* Give the title and battlefield counters more breathing room. */
-.status-strip{
-  left:24px!important;
-  top:104px!important;
-  transform:none!important;
-  gap:34px!important;
-  padding:8px 18px!important;
-}
-
-/* Move the current-resource copy down so it does not crowd the upper player/title area. */
-.center-meta{
-  left:50%!important;
-  top:18%!important;
-  transform:translateX(-50%)!important;
-}
-
-/* Place the played pile slightly right of the visual center of the background arena. */
-.center-play{
-  left:50%!important;
-  top:52%!important;
-  transform:translate(-50%,-50%) translate(46px,-72px)!important;
-}
-
-/* Grace transformation previews must stay card-sized even while the overlay is opening/reflowing. */
-.grace-choice .choice-card{
-  display:block!important;
-  width:112px!important;
-  height:156px!important;
-  margin:4px auto!important;
-  overflow:visible!important;
-}
-.grace-choice .choice-card img{
-  display:block!important;
-  width:112px!important;
-  height:156px!important;
-  max-width:112px!important;
-  max-height:156px!important;
-  object-fit:contain!important;
-}
-
-/* Replace the old text turn marker with a compact gold arrow above the active name. */
-.seat.current:after,
-.human-meta.current:after{
-  content:none!important;
-  display:none!important;
-}
-.seat.current .name,
-.human-meta.current .name{
-  position:relative!important;
-}
-.seat.current .name:before,
-.human-meta.current .name:before{
-  content:"▼";
-  position:absolute;
-  left:50%;
-  bottom:calc(100% + 5px);
-  transform:translateX(-50%);
-  color:#f0cf86;
-  font-size:13px;
-  line-height:1;
-  text-shadow:0 0 10px #d79042,0 2px 5px #000;
-  pointer-events:none;
-}
-
-@media(max-height:760px){
-  .status-strip{top:98px!important;gap:28px!important}
-  .center-meta{top:17%!important}
-  .center-play{transform:translate(-50%,-50%) translate(40px,-58px)!important}
-  .grace-choice .choice-card,.grace-choice .choice-card img{width:96px!important;height:134px!important;max-width:96px!important;max-height:134px!important}
-}
+@media(max-height:760px){.status-strip{top:98px!important;gap:28px!important}.center-meta{top:17%!important}.center-play{transform:translate(-50%,-50%) translate(40px,-58px)!important}.grace-choice .choice-card,.grace-choice .choice-card img{width:96px!important;height:134px!important;max-width:96px!important;max-height:134px!important}}
