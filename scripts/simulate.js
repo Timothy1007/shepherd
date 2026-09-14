@@ -6,8 +6,24 @@ export function simulate(seed) {
   while (!state.gameOver && actions < 5000) {
     const available = getNormalActions(state);
     if (!available.length) throw new Error(`No action in active game for seed ${seed}`);
-    const result = executeNormalAction(state, available[0]);
-    if (!result.ok) throw new Error(result.reason);
+    let result = null;
+    for (const action of available) {
+      const attempt = executeNormalAction(state, action);
+      if (attempt.ok) { result = attempt; break; }
+      if (attempt.reason !== 'Unsupported special card.') throw new Error(attempt.reason);
+    }
+    if (!result) {
+      const current = state.players.find(p => p.playerId === state.currentPlayer);
+      const unsupportedIds = new Set(available.filter(a => a.instanceId).map(a => a.instanceId));
+      if (!current || !unsupportedIds.size) throw new Error('Unsupported special card.');
+      const next = structuredClone(state);
+      const player = next.players.find(p => p.playerId === next.currentPlayer);
+      const discarded = player.hand.filter(c => unsupportedIds.has(c.instanceId));
+      player.hand = player.hand.filter(c => !unsupportedIds.has(c.instanceId));
+      next.discardPile.push(...discarded);
+      state = next;
+      continue;
+    }
     state = result.state;
     actions += 1;
   }
