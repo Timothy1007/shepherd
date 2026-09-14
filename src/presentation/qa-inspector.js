@@ -14,13 +14,14 @@ function ensureHistory(){let o=$('#played-history-overlay');if(o)return o;o=docu
 function history(){if(!state)return;const o=ensureHistory(),host=o.querySelector('.played-history-grid');host.replaceChildren();for(const card of state.playedArea){const d=getDefinition(card),b=document.createElement('button');b.className='played-history-card';b.innerHTML=`<img src="${d.image}" alt="${title(card)}"><span>${title(card)}</span>`;b.onclick=()=>detail(card);host.append(b);}if(!state.playedArea.length)host.textContent='目前還沒有已打出的牌。';o.hidden=false;}
 function aiMarkup(p){return `<div class="qa-ai-hand" aria-label="Player ${p.seat} 公開手牌">${p.hand.map(c=>{const d=getDefinition(c);return `<button class="qa-ai-card" data-ai-card="${c.instanceId}" title="${title(c)}"><img src="${d.image}" alt="${title(c)}"></button>`;}).join('')}</div>`;}
 function renderAiHands(){if(!state)return;const targets=['#seat-left','#seat-top','#seat-right'];state.players.slice(1).forEach((p,i)=>{const seat=$(targets[i]);if(!seat)return;seat.querySelector('.qa-ai-hand')?.remove();seat.insertAdjacentHTML('beforeend',aiMarkup(p));seat.querySelectorAll('[data-ai-card]').forEach(b=>b.onclick=e=>{e.stopPropagation();const c=p.hand.find(x=>x.instanceId===b.dataset.aiCard);if(c)detail(c);});});}
-
 function pileRect(){const pile=$('.tabletop-pile');if(!pile||!pile.classList.contains('has-cards'))return null;const r=pile.getBoundingClientRect();return{left:r.left,top:r.top,right:r.right,bottom:r.bottom};}
 function inPile(e){const r=pileRect();return !!r&&e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom;}
 
-// Capture at window level on purpose. The battlefield is a transformed visual layer and several
-// ancestors intentionally use pointer-events:none, so hit-testing the pile element itself is brittle.
 window.addEventListener('pointerdown',e=>{if((e.button??0)!==0||!inPile(e)||!state?.playedArea.length)return;pilePress={pointerId:e.pointerId,x:e.clientX,y:e.clientY,long:false,timer:setTimeout(()=>{if(!pilePress)return;pilePress.long=true;history();if(navigator.vibrate)navigator.vibrate(18);},LONG_PRESS_MS)};},{capture:true});
 window.addEventListener('pointermove',e=>{if(!pilePress||e.pointerId!==pilePress.pointerId)return;if(Math.hypot(e.clientX-pilePress.x,e.clientY-pilePress.y)>8){clearTimeout(pilePress.timer);pilePress=null;}},{capture:true});
 window.addEventListener('pointerup',e=>{if(!pilePress||e.pointerId!==pilePress.pointerId)return;const p=pilePress;pilePress=null;clearTimeout(p.timer);if(!p.long&&inPile(e)&&state?.playedArea.length)detail(state.playedArea.at(-1));},{capture:true});
 window.addEventListener('pointercancel',()=>{if(pilePress)clearTimeout(pilePress.timer);pilePress=null;},{capture:true});
+
+// app.js starts the controller before this QA module loads. Force one harmless render capture by
+// waiting for the next controller render; AI/turn activity will provide it immediately. Until then,
+// the public AI hand UI is intentionally absent rather than guessing game state.
