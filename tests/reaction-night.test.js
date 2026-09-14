@@ -26,16 +26,17 @@ test('越過長夜 is registered as a miracle reaction with official artwork',()
   const definition=getDefinition(instance);
   assert.equal(definition.name,'越過長夜');
   assert.equal(definition.cardType,'miracle');
-  assert.equal(definition.kind,'reaction');
+  assert.equal(definition.kind,'miracle');
+  assert.equal(definition.reaction,true);
   assert.equal(definition.image,'assets/miracles/miracle-16.png');
 });
 
-test('越過長夜 cannot be used as a normal-turn action',()=>{
+test('越過長夜 remains available as a normal-turn miracle outside reaction timing',()=>{
   const state=createGame({seed:'reaction-normal-action'});
   const reaction=moveReactionToHuman(state);
   state.currentPlayer='player-1';
   const actions=getNormalActions(state);
-  assert.equal(actions.some(a=>a.instanceId===reaction.instanceId),false);
+  assert.equal(actions.some(a=>a.instanceId===reaction.instanceId&&a.type==='playMiracle'),true);
 });
 
 test('reaction card remains inside card location invariant before use',()=>{
