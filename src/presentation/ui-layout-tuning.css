@@ -13,9 +13,11 @@
 .hand .card:hover{filter:none!important}.hand .card.selected{filter:drop-shadow(0 16px 14px #0008)!important}.hand .card.illegal,.hand .card.illegal:hover{filter:none!important}
 .drag-ghost{width:106px!important;height:auto!important;background:transparent!important;border:0!important;border-radius:7px!important;box-shadow:none!important}.drag-ghost:before,.drag-ghost:after{content:none!important}.drag-ghost .card-art{display:block!important;width:106px!important;height:auto!important;object-fit:contain!important;border-radius:7px!important;box-shadow:none!important}
 
-/* QA-visible P2/P3/P4 hands: match P1 card artwork corners without adding a frame. */
-.qa-ai-card{overflow:visible!important;background:transparent!important;border-radius:7px!important}
-.qa-ai-card img{display:block!important;border-radius:7px!important;clip-path:inset(0 round 7px)!important}
+/* QA-visible P2/P3/P4 hands are rendered smaller than P1. Their corner radius therefore
+   scales with each card's actual rendered width instead of reusing P1's fixed 7px radius.
+   6.6% of card width preserves the same visual corner proportion as 7px on a 106px P1 card. */
+.qa-ai-card{overflow:visible!important;background:transparent!important;border-radius:6.6cqw!important;container-type:inline-size!important}
+.qa-ai-card img{display:block!important;border-radius:6.6cqw!important;clip-path:inset(0 round 6.6cqw)!important}
 
 @media(min-width:1500px){.hand .card{flex-basis:114px!important;width:114px!important}.hand .card-art,.drag-ghost .card-art{width:114px!important}.drag-ghost{width:114px!important}}
 
