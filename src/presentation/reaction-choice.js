@@ -23,21 +23,19 @@ function show(controller,action,token,generation,playerId){ensureUi();const info
 function guaranteePreviewReaction(controller){
   if(controller.state?.qaSeed!=='recovery-preview'||controller.state.round!==1)return;
   const state=controller.state,human=humanOf(controller);
-  if(reactionCard(human))return;
+  const existing=human.hand.filter(c=>c.definitionId===REACTION_ID);
+  if(existing.length){
+    const keep=existing[0];
+    human.hand=human.hand.filter(c=>c.definitionId!==REACTION_ID||c.instanceId===keep.instanceId);
+    return;
+  }
   let incoming=null,source=null;
   const deckIndex=state.deck.findIndex(c=>c.definitionId===REACTION_ID);
   if(deckIndex>=0){incoming=state.deck.splice(deckIndex,1)[0];source=state.deck;}
-  if(!incoming){
-    for(const player of state.players.filter(p=>p.type==='ai')){
-      const index=player.hand.findIndex(c=>c.definitionId===REACTION_ID);
-      if(index>=0){incoming=player.hand.splice(index,1)[0];source=player.hand;break;}
-    }
-  }
+  if(!incoming){for(const player of state.players.filter(p=>p.type==='ai')){const index=player.hand.findIndex(c=>c.definitionId===REACTION_ID);if(index>=0){incoming=player.hand.splice(index,1)[0];source=player.hand;break;}}}
   if(!incoming)return;
   const replaceIndex=human.hand.findIndex(c=>getDefinition(c).kind!=='disaster');
-  const replaced=replaceIndex>=0?human.hand.splice(replaceIndex,1,incoming)[0]:human.hand.pop();
-  human.hand.push(incoming);
-  if(replaced)source.push(replaced);
+  if(replaceIndex>=0){const replaced=human.hand.splice(replaceIndex,1,incoming)[0];if(replaced)source.push(replaced);}else{const replaced=human.hand.pop();human.hand.push(incoming);if(replaced)source.push(replaced);}
 }
 GameController.prototype.start=function(seed){originalStart.call(this,seed);guaranteePreviewReaction(this);this.safeRender(getNormalActions(this.state));return this.state;};
 GameController.prototype.safeRender=function(available=getNormalActions(this.state)){const filtered=available.filter(a=>{if(a.type!=='playMiracle')return true;const actor=this.state?.players.find(p=>p.playerId===a.playerId),card=actor?.hand.find(c=>c.instanceId===a.instanceId);return card?.definitionId!==REACTION_ID;});return originalSafeRender.call(this,filtered);};
