@@ -38,5 +38,12 @@ GameController.prototype.start=function(seed){originalStart.call(this,seed);guar
 GameController.prototype.act=function(action,token=this.snapshot()){const special=resolveNormalReaction(this,action,token);return special??originalAct.call(this,action,token);};
 GameController.prototype.prepare=function(){if(pending?.controller===this){this.cancelTimer();this.safeRender(getNormalActions(this.state));return;}return originalPrepare.call(this);};
 GameController.prototype.runAiTurn=function(generation,playerId){if(pending?.controller===this){this.cancelTimer();return;}if(generation!==this.generation||!this.state||this.state.gameOver)return;const actor=this.state.players.find(p=>p.playerId===this.state.currentPlayer);if(actor?.type==='ai'&&actor.playerId===playerId){const actions=getNormalActions(this.state);let action=actions.find(a=>isDisasterAction(this,a));if(this.state.qaSeed==='recovery-preview'){const qa=actions.find(a=>{if(!isDisasterAction(this,a))return false;const info=disasterInfo(this,a);return info?.definition.definitionId===QA_DISASTER_ID&&a.targetPlayerId!==humanOf(this)?.playerId;});if(qa)action=qa;}action=action??actions[0];if(action&&isDisasterAction(this,action)){const info=disasterInfo(this,action),human=humanOf(this),otherTarget=targetsAnotherPlayer(action,info.definition.definitionId,human.playerId);if(cardInHand(human,SCAPEGOAT_ID)&&otherTarget){showScapegoat(this,action,otherTarget);return;}if(cardInHand(human,IMMUNITY_ID)&&affectsPlayer(action,info.definition.definitionId,human.playerId)){showImmunity(this,action);return;}if(hasEffect(human,SCAPEGOAT_ID)&&affectsPlayer(action,info.definition.definitionId,human.playerId)){if(info.definition.definitionId==='disaster-01')return originalRunAiTurn.call(this,generation,playerId);executeShieldedDisaster(this,action);return;}}
-if(action&&action!==actions[0]){const result=executeNormalAction(this.state,action);if(result.ok){this.state=result.state;this.actionToken+=1;this.prepare();}return;}}
+if(action&&action!==actions[0]){
+  // A reaction-aware AI may deliberately choose a disaster that is not the first
+  // normal action. It still has to travel through the already-installed action
+  // handlers (target/group choice UI, including 方舟之外) instead of bypassing
+  // them with executeNormalAction. Bypassing here made P1 silently auto-resolve.
+  originalAct.call(this,action,this.snapshot());
+  return;
+}}
 return originalRunAiTurn.call(this,generation,playerId);};
