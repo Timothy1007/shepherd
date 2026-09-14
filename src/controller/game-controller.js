@@ -3,162 +3,20 @@ import { getDefinition } from '../game/cards.js';
 
 const defaultSetTimer = (callback, delay) => globalThis.setTimeout(callback, delay);
 const defaultClearTimer = (timer) => globalThis.clearTimeout(timer);
+function playerLabel(state, playerId) { const player=state?.players?.find(c=>c.playerId===playerId); return player?`P${player.seat}`:playerId; }
+function actionCard(state, action) { if(!action?.instanceId)return null;const player=state.players.find(c=>c.playerId===action.playerId);return player?.hand?.find(c=>c.instanceId===action.instanceId)??null; }
+function cardLabel(card){if(!card)return'未知牌';const d=getDefinition(card);if(d.kind==='resource'){const n={sheep:'群羊',food:'糧食',money:'金錢',grace:'恩典'};return`${n[d.type]??d.type} ${d.number}`;}return d.name;}
+function actionDescription(state,action){if(!action)return'未知行動';if(action.type==='redraw')return'重新整備手牌';if(action.type==='endParticipation')return'退出本輪';if(action.type==='endEmptyHand')return'空手結束參與';const card=actionCard(state,action);if(!card)return action.type;const d=getDefinition(card);if(d.kind==='resource'){const type=d.type==='grace'?action.declaredType??d.type:d.type,n={sheep:'群羊',food:'糧食',money:'金錢',grace:'恩典'};return`打出 ${n[type]??type} ${d.number}`;}return`打出${d.kind==='miracle'?'神蹟':'災難'}〈${d.name}〉`;}
+function decisionDescriptions(state,action,card){if(!card)return[];const d=getDefinition(card),lines=[];if(action.targetPlayerId)lines.push(`→ 選擇目標：${playerLabel(state,action.targetPlayerId)}`);if(action.targetPlayerIds?.length)lines.push(`→ 選擇目標：${action.targetPlayerIds.map(id=>playerLabel(state,id)).join('、')}`);if(d.definitionId==='miracle-10'&&action.targetPlayerId){const actor=state.players.find(p=>p.playerId===action.playerId),target=state.players.find(p=>p.playerId===action.targetPlayerId),own=actor?.hand.find(c=>c.instanceId===(action.selectedOwnCardId??actor.hand.find(c=>c.instanceId!==action.instanceId)?.instanceId)),theirs=target?.hand.find(c=>c.instanceId===(action.targetCardId??target.hand[0]?.instanceId));lines.push(`→ ${playerLabel(state,action.playerId)} 展示：${cardLabel(own)}；${playerLabel(state,action.targetPlayerId)} 展示：${cardLabel(theirs)}`);lines.push(`→ 交換決定：${action.consent===false?'拒絕交換':'同意交換'}`);}if(d.definitionId==='disaster-02'&&action.targetPlayerIds?.length){const targets=action.targetPlayerIds.map(id=>state.players.find(p=>p.playerId===id));const shown=targets.map((p,i)=>p?.hand.find(c=>c.instanceId===(action.targetCardIds?.[i]??p?.hand[0]?.instanceId)));if(shown.some(Boolean))lines.push(`→ 展示：${shown.map((c,i)=>`${playerLabel(state,action.targetPlayerIds[i])} ${cardLabel(c)}`).join('；')}`);const chosen=shown.find(c=>c?.instanceId===(action.chosenCardId??shown[0]?.instanceId));if(chosen)lines.push(`→ 取得：${cardLabel(chosen)}`);}if(d.definitionId==='disaster-01')lines.push('→ 目標：全體玩家（各自保留 1 種物資，其餘最多棄 2）');return lines;}
 
-function playerLabel(state, playerId) {
-  const player = state?.players?.find((candidate) => candidate.playerId === playerId);
-  return player ? `P${player.seat}` : playerId;
-}
-
-function actionCard(state, action) {
-  if (!action?.instanceId) return null;
-  const player = state.players.find((candidate) => candidate.playerId === state.currentPlayer);
-  return player?.hand?.find((card) => card.instanceId === action.instanceId) ?? null;
-}
-
-function actionDescription(state, action) {
-  if (!action) return '未知行動';
-  if (action.type === 'redraw') return '重新整備手牌';
-  if (action.type === 'endParticipation') return '退出本輪';
-  if (action.type === 'endEmptyHand') return '空手結束參與';
-  const card = actionCard(state, action);
-  if (!card) return action.type;
-  const definition = getDefinition(card);
-  if (definition.kind === 'resource') {
-    const type = definition.type === 'grace' ? action.declaredType ?? definition.type : definition.type;
-    const names = { sheep: '群羊', food: '糧食', money: '金錢', grace: '恩典' };
-    return `打出 ${names[type] ?? type} ${definition.number}`;
-  }
-  return `打出${definition.kind === 'miracle' ? '神蹟' : '災難'}〈${definition.name}〉`;
-}
-
-export class GameController {
-  constructor({ render = () => {}, setTimer = defaultSetTimer, clearTimer = defaultClearTimer, delay = aiDelay } = {}) {
-    this.render = render;
-    this.setTimer = setTimer;
-    this.clearTimer = clearTimer;
-    this.delay = delay;
-    this.state = null;
-    this.generation = 0;
-    this.actionToken = 0;
-    this.timer = null;
-    this.lastRenderError = null;
-    this.recovering = false;
-    this.aiLog = [];
-  }
-
-  logAi(message) {
-    const documentRef = globalThis.document;
-    const entry = `[${new Date().toLocaleTimeString('zh-TW', { hour12: false })}] ${message}`;
-    this.aiLog.push(entry);
-    if (this.aiLog.length > 14) this.aiLog.shift();
-    const host = documentRef?.querySelector?.('#ai-debug-log');
-    if (host) {
-      host.replaceChildren(...this.aiLog.map((text) => {
-        const line = documentRef.createElement('div');
-        line.textContent = text;
-        return line;
-      }));
-      host.scrollTop = host.scrollHeight;
-    }
-  }
-
-  start(seed) {
-    this.cancelTimer();
-    this.generation += 1;
-    this.actionToken += 1;
-    this.aiLog = [];
-    this.state = createGame({ seed });
-    this.prepare();
-    return this.state;
-  }
-
-  restart(seed) { return this.start(seed); }
-  cancelTimer() { if (this.timer !== null) this.clearTimer(this.timer); this.timer = null; }
-  snapshot() { return { generation: this.generation, actionToken: this.actionToken }; }
-
-  updateDebug(available) {
-    const documentRef = globalThis.document;
-    if (!documentRef || !this.state) return;
-    const host = documentRef.querySelector('#debug-state');
-    if (!host) return;
-    const current = this.state.players.find((player) => player.playerId === this.state.currentPlayer);
-    const eligible = this.state.players.filter((player) => player.hasNormalAction).map((player) => player.playerId).join(',') || 'none';
-    host.textContent = `R${this.state.round} ${this.state.phase} | turn=${this.state.currentPlayer ?? 'none'} | actions=${available.map((action) => action.type).join(',') || 'none'} | eligible=${eligible} | redraw=${current?.hasRedrawnThisRound ?? '-'} | hand=${current?.hand.length ?? '-'}`;
-  }
-
-  safeRender(available = getNormalActions(this.state)) {
-    this.updateDebug(available);
-    try { this.render(this.state, available, this.snapshot()); this.lastRenderError = null; return true; }
-    catch (error) { this.lastRenderError = error; console.error('[Shepherd] presentation render failed; gameplay will continue.', error); return false; }
-  }
-
-  act(action, token = this.snapshot()) {
-    if (!this.state) return { ok: false, reason: 'No game is active.', state: this.state };
-    if (token.generation !== this.generation || token.actionToken !== this.actionToken) return { ok: false, reason: 'Action token expired.', state: this.state };
-    const result = executeNormalAction(this.state, action);
-    if (!result.ok) return result;
-    this.state = result.state; this.actionToken += 1; this.prepare();
-    return { ok: true, state: this.state };
-  }
-
-  recoverStalledState(available) {
-    if (this.recovering || !this.state || this.state.gameOver || available.length) return false;
-    this.recovering = true;
-    try {
-      const eligible = this.state.players.filter((player) => player.hasNormalAction);
-      if (eligible.length <= 1) { const result = settleRound(this.state); if (result.ok) { this.state = result.state; this.actionToken += 1; return true; } }
-      const current = this.state.players.find((player) => player.playerId === this.state.currentPlayer);
-      if ((!current || !current.hasNormalAction) && eligible.length > 0) { this.state = structuredClone(this.state); this.state.currentPlayer = eligible[0].playerId; this.actionToken += 1; return true; }
-      return false;
-    } finally { this.recovering = false; }
-  }
-
-  prepare() {
-    if (!this.state) return;
-    let available = getNormalActions(this.state);
-    this.cancelTimer();
-    if (this.state.gameOver) { this.safeRender(available); return; }
-    if (available.length === 1 && ['endEmptyHand', 'endParticipation'].includes(available[0].type)) {
-      const result = executeNormalAction(this.state, available[0]);
-      if (result.ok) { this.state = result.state; this.actionToken += 1; this.prepare(); return; }
-    }
-    this.safeRender(available);
-    if (!available.length && this.recoverStalledState(available)) { available = getNormalActions(this.state); this.safeRender(available); if (this.state.gameOver) return; }
-    const player = this.state.players.find((candidate) => candidate.playerId === this.state.currentPlayer);
-    if (player?.type !== 'ai') return;
-    const generation = this.generation, playerId = player.playerId;
-    const wait = this.delay();
-    this.logAi(`${playerLabel(this.state, playerId)} 思考中…（約 ${(wait / 1000).toFixed(1)} 秒）`);
-    this.timer = this.setTimer(() => {
-      this.timer = null;
-      if (generation !== this.generation || !this.state || this.state.gameOver || this.state.currentPlayer !== playerId) return;
-      this.runAiTurn(generation, playerId);
-    }, wait);
-  }
-
-  runAiTurn(generation, playerId) {
-    if (generation !== this.generation || !this.state || this.state.gameOver) return;
-    const player = this.state.players.find((candidate) => candidate.playerId === this.state.currentPlayer);
-    if (player?.type !== 'ai' || player.playerId !== playerId) return;
-    const actions = getNormalActions(this.state);
-    if (!actions.length) { if (this.recoverStalledState(actions)) { this.prepare(); return; } this.safeRender(actions); return; }
-    const action = actions[0];
-    const beforeHand = player.hand.map((card) => card.instanceId);
-    this.logAi(`${playerLabel(this.state, playerId)} ${actionDescription(this.state, action)}`);
-    const result = executeNormalAction(this.state, action);
-    if (!result.ok) { this.logAi(`${playerLabel(this.state, playerId)} 行動失敗：${result.reason ?? '未知原因'}`); this.safeRender(actions); return; }
-    this.state = result.state; this.actionToken += 1;
-    if (action.type === 'redraw') {
-      const after = this.state.players.find((candidate) => candidate.playerId === playerId)?.hand ?? [];
-      this.logAi(`${playerLabel(this.state, playerId)} 已重洗：${beforeHand.length} 張 → ${after.length} 張`);
-      this.safeRender(getNormalActions(this.state));
-      const nextGeneration = this.generation;
-      this.timer = this.setTimer(() => { this.timer = null; if (nextGeneration === this.generation && this.state?.currentPlayer === playerId) this.runAiTurn(nextGeneration, playerId); }, aiFollowupDelay());
-      return;
-    }
-    this.prepare();
-  }
-}
-
-export function aiDelay() { return 1900 + Math.floor(Math.random() * 1601); }
-export function aiFollowupDelay() { return 1100 + Math.floor(Math.random() * 901); }
+export class GameController{
+constructor({render=()=>{},setTimer=defaultSetTimer,clearTimer=defaultClearTimer,delay=aiDelay}={}){this.render=render;this.setTimer=setTimer;this.clearTimer=clearTimer;this.delay=delay;this.state=null;this.generation=0;this.actionToken=0;this.timer=null;this.lastRenderError=null;this.recovering=false;this.aiLog=[];}
+logAi(message){const d=globalThis.document,entry=`[${new Date().toLocaleTimeString('zh-TW',{hour12:false})}] ${message}`;this.aiLog.push(entry);if(this.aiLog.length>18)this.aiLog.shift();const host=d?.querySelector?.('#ai-debug-log');if(host){host.replaceChildren(...this.aiLog.map(text=>{const line=d.createElement('div');line.textContent=text;return line;}));host.scrollTop=host.scrollHeight;}}
+start(seed){this.cancelTimer();this.generation+=1;this.actionToken+=1;this.aiLog=[];this.state=createGame({seed});this.prepare();return this.state;}restart(seed){return this.start(seed);}cancelTimer(){if(this.timer!==null)this.clearTimer(this.timer);this.timer=null;}snapshot(){return{generation:this.generation,actionToken:this.actionToken};}
+updateDebug(available){const d=globalThis.document;if(!d||!this.state)return;const host=d.querySelector('#debug-state');if(!host)return;const current=this.state.players.find(p=>p.playerId===this.state.currentPlayer),eligible=this.state.players.filter(p=>p.hasNormalAction).map(p=>p.playerId).join(',')||'none';host.textContent=`R${this.state.round} ${this.state.phase} | turn=${this.state.currentPlayer??'none'} | actions=${available.map(a=>a.type).join(',')||'none'} | eligible=${eligible} | redraw=${current?.hasRedrawnThisRound??'-'} | hand=${current?.hand.length??'-'}`;}
+safeRender(available=getNormalActions(this.state)){this.updateDebug(available);try{this.render(this.state,available,this.snapshot());this.lastRenderError=null;return true;}catch(error){this.lastRenderError=error;console.error('[Shepherd] presentation render failed; gameplay will continue.',error);return false;}}
+act(action,token=this.snapshot()){if(!this.state)return{ok:false,reason:'No game is active.',state:this.state};if(token.generation!==this.generation||token.actionToken!==this.actionToken)return{ok:false,reason:'Action token expired.',state:this.state};const result=executeNormalAction(this.state,action);if(!result.ok)return result;this.state=result.state;this.actionToken+=1;this.prepare();return{ok:true,state:this.state};}
+recoverStalledState(available){if(this.recovering||!this.state||this.state.gameOver||available.length)return false;this.recovering=true;try{const eligible=this.state.players.filter(p=>p.hasNormalAction);if(eligible.length<=1){const result=settleRound(this.state);if(result.ok){this.state=result.state;this.actionToken+=1;return true;}}const current=this.state.players.find(p=>p.playerId===this.state.currentPlayer);if((!current||!current.hasNormalAction)&&eligible.length>0){this.state=structuredClone(this.state);this.state.currentPlayer=eligible[0].playerId;this.actionToken+=1;return true;}return false;}finally{this.recovering=false;}}
+prepare(){if(!this.state)return;let available=getNormalActions(this.state);this.cancelTimer();if(this.state.gameOver){this.safeRender(available);return;}if(available.length===1&&['endEmptyHand','endParticipation'].includes(available[0].type)){const result=executeNormalAction(this.state,available[0]);if(result.ok){this.state=result.state;this.actionToken+=1;this.prepare();return;}}this.safeRender(available);if(!available.length&&this.recoverStalledState(available)){available=getNormalActions(this.state);this.safeRender(available);if(this.state.gameOver)return;}const player=this.state.players.find(c=>c.playerId===this.state.currentPlayer);if(player?.type!=='ai')return;const generation=this.generation,playerId=player.playerId,wait=this.delay();this.logAi(`${playerLabel(this.state,playerId)} 思考中…（約 ${(wait/1000).toFixed(1)} 秒）`);this.timer=this.setTimer(()=>{this.timer=null;if(generation!==this.generation||!this.state||this.state.gameOver||this.state.currentPlayer!==playerId)return;this.runAiTurn(generation,playerId);},wait);}
+runAiTurn(generation,playerId){if(generation!==this.generation||!this.state||this.state.gameOver)return;const player=this.state.players.find(c=>c.playerId===this.state.currentPlayer);if(player?.type!=='ai'||player.playerId!==playerId)return;const actions=getNormalActions(this.state);if(!actions.length){if(this.recoverStalledState(actions)){this.prepare();return;}this.safeRender(actions);return;}const action=actions[0],card=actionCard(this.state,action),beforeHand=player.hand.map(c=>c.instanceId);this.logAi(`${playerLabel(this.state,playerId)} ${actionDescription(this.state,action)}`);for(const line of decisionDescriptions(this.state,action,card))this.logAi(line);const result=executeNormalAction(this.state,action);if(!result.ok){this.logAi(`${playerLabel(this.state,playerId)} 行動失敗：${result.reason??'未知原因'}`);this.safeRender(actions);return;}this.state=result.state;this.actionToken+=1;if(action.type==='redraw'){const after=this.state.players.find(c=>c.playerId===playerId)?.hand??[];this.logAi(`${playerLabel(this.state,playerId)} 已重洗：${beforeHand.length} 張 → ${after.length} 張`);this.safeRender(getNormalActions(this.state));const g=this.generation;this.timer=this.setTimer(()=>{this.timer=null;if(g===this.generation&&this.state?.currentPlayer===playerId)this.runAiTurn(g,playerId);},aiFollowupDelay());return;}this.logAi('→ 效果已結算');this.prepare();}}
+export function aiDelay(){return 1900+Math.floor(Math.random()*1601);}export function aiFollowupDelay(){return 1100+Math.floor(Math.random()*901);}
