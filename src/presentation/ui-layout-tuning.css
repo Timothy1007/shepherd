@@ -21,15 +21,39 @@
   transform:translateX(-50%)!important;
 }
 
-/* Place the played pile on the visual center of the background arena instead of floating above it. */
+/* Place the played pile slightly right of the visual center of the background arena. */
 .center-play{
   left:50%!important;
   top:52%!important;
-  transform:translate(-50%,-50%) translate(0,-72px)!important;
+  transform:translate(-50%,-50%) translate(46px,-72px)!important;
+}
+
+/* Replace the old text turn marker with a compact gold arrow above the active name. */
+.seat.current:after,
+.human-meta.current:after{
+  content:none!important;
+  display:none!important;
+}
+.seat.current .name,
+.human-meta.current .name{
+  position:relative!important;
+}
+.seat.current .name:before,
+.human-meta.current .name:before{
+  content:"▼";
+  position:absolute;
+  left:50%;
+  bottom:calc(100% + 5px);
+  transform:translateX(-50%);
+  color:#f0cf86;
+  font-size:13px;
+  line-height:1;
+  text-shadow:0 0 10px #d79042,0 2px 5px #000;
+  pointer-events:none;
 }
 
 @media(max-height:760px){
   .status-strip{top:98px!important;gap:28px!important}
   .center-meta{top:17%!important}
-  .center-play{transform:translate(-50%,-50%) translate(0,-58px)!important}
+  .center-play{transform:translate(-50%,-50%) translate(40px,-58px)!important}
 }
