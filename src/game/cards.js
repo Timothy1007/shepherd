@@ -5,7 +5,8 @@ Object.freeze({definitionId:'miracle-01',kind:'miracle',name:'回轉歸向',tags
 Object.freeze({definitionId:'miracle-02',kind:'miracle',name:'行曠野之路',tags:Object.freeze(['新生']),text:'將此牌置於你的效果區。你下一張成功打出的物資牌數字+3，且可超過原本的數字上限。成功打出物資牌後，你棄置此牌',image:'assets/miracles/miracle-02.png',copies:1}),
 Object.freeze({definitionId:'miracle-03',kind:'miracle',name:'荊棘冠冕',tags:Object.freeze(['新生']),text:'將此牌置於你的效果區。你下一張成功打出的物資牌無視出牌限制。成功打出物資牌後，你棄置此牌',image:'assets/miracles/miracle-03.png',copies:1}),
 Object.freeze({definitionId:'miracle-05',kind:'miracle',name:'如風吹來',tags:Object.freeze(['流轉','火種']),text:'你選擇：棄置1至3張手牌，然後抽取等量的牌 或 不棄置手牌，獲得3點火種',image:'assets/miracles/miracle-05.png',copies:1}),
-Object.freeze({definitionId:'miracle-10',kind:'miracle',name:'恰如飛鳥經過',tags:Object.freeze(['共鳴','流轉']),text:'你選擇1名其他玩家。若你與該玩家皆有手牌，你們各選擇1張手牌並同時展示。若雙方皆同意，則交換這2張牌；若任一方不同意，則收回展示的牌。若交換的牌型不同，你與該玩家各獲得3點火種',image:'assets/miracles/miracle-10.png',copies:1}),]);
+Object.freeze({definitionId:'miracle-10',kind:'miracle',name:'恰如飛鳥經過',tags:Object.freeze(['共鳴','流轉']),text:'你選擇1名其他玩家。若你與該玩家皆有手牌，你們各選擇1張手牌並同時展示。若雙方皆同意，則交換這2張牌；若任一方不同意，則收回展示的牌。若交換的牌型不同，你與該玩家各獲得3點火種',image:'assets/miracles/miracle-10.png',copies:1}),
+Object.freeze({definitionId:'miracle-16',kind:'miracle',name:'越過長夜',tags:Object.freeze(['應對','庇護']),text:'【應對】當你即將受到災難效果時，你可以打出此牌：你免疫該次效果',image:'assets/miracles/miracle-16.png',copies:1}),]);
 export const DISASTER_DEFINITIONS=Object.freeze([
 Object.freeze({definitionId:'disaster-01',kind:'disaster',name:'方舟之外',tags:Object.freeze(['群體','掠奪']),text:'每名玩家選擇自己手中的1種物資種類並保留該種類的物資牌，然後從其他種類的物資牌中棄置2張；若不足2張，則全部棄置',image:'assets/disasters/disaster-01.png',copies:1}),
 Object.freeze({definitionId:'disaster-02',kind:'disaster',name:'謊言與試探',tags:Object.freeze(['多體','掠奪']),text:'你選擇2名其他玩家。這2名玩家各自選擇1張手牌並展示，你選擇其中1張取得；另一張由原持有者收回手牌',image:'assets/disasters/disaster-02.png',copies:1}),
