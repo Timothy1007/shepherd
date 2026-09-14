@@ -3,7 +3,9 @@ import assert from 'node:assert/strict';
 import { GameController } from '../src/controller/game-controller.js';
 import { DEFINITION_BY_ID } from '../src/game/cards.js';
 import { getNormalActions, listCardLocations } from '../src/game/game.js';
-import '../src/presentation/reaction-choice.js';
+
+globalThis.document={querySelector:()=>null};
+await import('../src/presentation/reaction-choice.js');
 
 const noTimer=()=>1;
 const noClear=()=>{};
