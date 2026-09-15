@@ -28,6 +28,18 @@ function readRoundResult(expectedRound) {
   return { round, apostle: match[2].trim(), reward: Number(match[3]) };
 }
 
+function seatForApostle(apostle) {
+  if (!apostle) return null;
+  if (seatByPlayer[apostle]) return document.querySelector(seatByPlayer[apostle]);
+  if (apostle === '你') return document.querySelector('#seat-human');
+  for (const selector of Object.values(seatByPlayer)) {
+    const seat = document.querySelector(selector);
+    const visibleName = seat?.querySelector('.name')?.textContent?.trim() ?? '';
+    if (visibleName === apostle || visibleName.startsWith(`${apostle} ·`) || visibleName.includes(`（${apostle}）`)) return seat;
+  }
+  return null;
+}
+
 function createEmber(from, to, index, total) {
   const ember = document.createElement('span');
   ember.className = 'round-ember';
@@ -57,7 +69,7 @@ function animateSnapshot({ round, rect, pile }) {
   const result = readRoundResult(round);
   if (!result || !result.apostle || result.apostle === '無' || lastAnimatedRound === round) return;
 
-  const target = document.querySelector(seatByPlayer[result.apostle]);
+  const target = seatForApostle(result.apostle);
   const targetRect = target?.getBoundingClientRect();
   if (!targetRect?.width || !rect?.width || !pile) return;
 
