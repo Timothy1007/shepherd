@@ -1,0 +1,13 @@
+:root{--overlay-backdrop:rgba(3,7,6,.58);--overlay-glass:rgba(12,18,16,.78);--overlay-line:rgba(225,196,132,.26);--overlay-shadow:0 32px 100px rgba(0,0,0,.68)}
+/* Shared overlay hierarchy: gameplay < decisions < card inspection < contextual help. */
+.overlay{z-index:40000!important;isolation:isolate}.overlay[data-overlay-level="decision"]{z-index:41000!important}.overlay[data-overlay-level="inspect"],#detail-overlay{z-index:46000!important}.overlay[data-overlay-level="context"]{z-index:51000!important}
+.overlay-backdrop{background:var(--overlay-backdrop)!important;backdrop-filter:blur(10px) saturate(.82)!important;-webkit-backdrop-filter:blur(10px) saturate(.82)!important;animation:overlayVeilIn .18s ease-out both}
+.detail-panel,.grace-panel{background:linear-gradient(145deg,rgba(21,33,31,.80),rgba(7,12,11,.76))!important;border:1px solid var(--overlay-line)!important;box-shadow:var(--overlay-shadow),inset 0 1px rgba(255,255,255,.035)!important;backdrop-filter:blur(18px) saturate(.92);-webkit-backdrop-filter:blur(18px) saturate(.92)}
+#detail-overlay .detail-panel{width:min(920px,92vw);min-height:0;max-height:88vh;padding:clamp(22px,3vw,40px);grid-template-columns:minmax(210px,330px) minmax(260px,1fr);gap:clamp(24px,4vw,54px);overflow:auto;animation:overlayCardIn .22s cubic-bezier(.2,.82,.25,1) both}
+#detail-overlay .detail-card-art{max-height:72vh;border-radius:16px;filter:drop-shadow(0 28px 34px rgba(0,0,0,.72));transform:translateZ(0)}
+#detail-overlay .detail-copy{align-self:center}#detail-overlay .detail-copy h2{font-size:clamp(25px,3vw,38px);letter-spacing:.035em}#detail-overlay .detail-copy p{font-size:clamp(13px,1.15vw,16px);line-height:1.8}
+#detail-overlay .overlay-close{z-index:4;width:42px;height:42px;display:grid;place-items:center;border:1px solid rgba(224,199,143,.20);border-radius:50%;background:rgba(5,9,8,.35);backdrop-filter:blur(8px);transition:background .15s,border-color .15s,transform .15s}#detail-overlay .overlay-close:hover{background:rgba(52,45,31,.58);border-color:rgba(239,210,145,.6);transform:scale(1.05)}
+/* Any inspection layer opened from another modal must remain visually above it. */
+body:has(#detail-overlay:not([hidden])) .overlay:not(#detail-overlay){filter:none}
+@keyframes overlayVeilIn{from{opacity:0}to{opacity:1}}@keyframes overlayCardIn{from{opacity:0;transform:translateY(18px) scale(.975)}to{opacity:1;transform:none}}
+@media(max-width:720px){#detail-overlay .detail-panel{grid-template-columns:1fr;width:min(94vw,520px);max-height:92vh;gap:18px;text-align:center}#detail-overlay .detail-card-art{width:min(240px,64vw);max-height:48vh;margin:auto}#detail-overlay .detail-copy p{text-align:left}}
