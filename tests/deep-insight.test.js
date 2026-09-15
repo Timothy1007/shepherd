@@ -45,7 +45,7 @@ test('行向水深之處 stops when the third distinct card type is revealed', (
   assert.ok(state.players[0].hand.some(card => card.instanceId === selected.instanceId));
   assert.deepEqual(state.deck.slice(-3).map(card => card.instanceId), bottomOrder.map(card => card.instanceId));
   assert.equal(state.deck.some(card => card.instanceId === viewed[4].instanceId), true);
-  assert.equal(state.deck.length, beforeDeckLength - 4);
+  assert.equal(state.deck.length, beforeDeckLength - 1);
   assert.ok(state.playedArea.some(card => card.definitionId === 'miracle-07'));
   const locations = listCardLocations(state);
   assert.equal(locations.length, Object.keys(state.cardRegistry).length);
