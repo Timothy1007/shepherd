@@ -15,10 +15,11 @@ function openEffectDetail(card) {
   const content = document.querySelector('#detail-content');
   if (!overlay || !content) return;
   const tags = definition.tags?.length ? definition.tags.join('｜') : '持續效果';
+  const kind = definition.kind === 'disaster' ? '災難' : '神蹟';
   content.innerHTML = `
     <img class="detail-card-art" src="${definition.image}" alt="${definition.name}">
     <div class="detail-copy">
-      <span class="eyebrow">神蹟 · ${tags}</span>
+      <span class="eyebrow">${kind} · ${tags}${definition.negative ? '｜負面' : ''}</span>
       <h2>${definition.name}</h2>
       <p>此牌目前正在效果區持續生效。</p>
       <p class="detail-note">${definition.text ?? ''}</p>
@@ -40,11 +41,12 @@ function renderEffectZone(player) {
   for (const card of visible) {
     const definition = getDefinition(card);
     const item = document.createElement('button');
-    item.className = `effect-mini effect-${definition.kind}`;
+    item.className = `effect-mini effect-${definition.kind}${definition.negative ? ' effect-negative' : ''}`;
     item.type = 'button';
     item.title = `${definition.name}\n${definition.text ?? ''}`;
     item.setAttribute('aria-label', `${definition.name}：${definition.text ?? ''}`);
-    item.innerHTML = `<img src="${definition.image}" alt="${definition.name}"><span>${definition.name}</span>${definition.definitionId === 'miracle-02' ? '<b>+3</b>' : ''}`;
+    const badge = definition.definitionId === 'miracle-02' ? '<b>+3</b>' : definition.definitionId === 'disaster-09' ? '<b>-2</b>' : '';
+    item.innerHTML = `<img src="${definition.image}" alt="${definition.name}"><span>${definition.name}</span>${badge}`;
     item.addEventListener('click', (event) => {
       event.preventDefault();
       event.stopPropagation();
@@ -69,7 +71,8 @@ function renderEffectZones(state) {
 
 function renderModifiedCurrentResource(state) {
   const current = state?.currentResource;
-  if (!current?.numberBonus) return;
+  const modifier = current?.numberModifier ?? current?.numberBonus ?? 0;
+  if (!modifier) return;
   const tableCard = document.querySelector('#table-card');
   const visual = tableCard?.querySelector('.table-card-visual');
   if (!tableCard || !visual) return;
@@ -80,7 +83,7 @@ function renderModifiedCurrentResource(state) {
     badge.className = 'resource-modifier-badge';
     visual.append(badge);
   }
-  badge.textContent = `+${current.numberBonus}`;
+  badge.textContent = modifier > 0 ? `+${modifier}` : `${modifier}`;
 
   let effective = tableCard.querySelector('.effective-resource-number');
   if (!effective) {
