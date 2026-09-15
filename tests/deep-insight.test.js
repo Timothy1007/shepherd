@@ -28,9 +28,9 @@ test('deep QA guarantees 行向水深之處 without fixing unrelated random card
   assert.ok(state.players[0].hand.some(card => card.definitionId === 'miracle-07'));
 });
 
-test('行向水深之處 stops when the third distinct card type is revealed', () => {
+test('行向水深之處 stops when 物資、神蹟、災難 have all appeared', () => {
   let state = createGame({ seed: 'deep-three-types' });
-  const viewed = setDeckTop(state, ['sheep-1', 'sheep-2', 'miracle-01', 'disaster-01', 'food-9']);
+  const viewed = setDeckTop(state, ['sheep-1', 'food-2', 'miracle-01', 'disaster-01', 'money-9']);
   const action = deepAction(state);
   const selected = viewed[2];
   const bottomOrder = [viewed[3], viewed[1], viewed[0]];
@@ -52,9 +52,9 @@ test('行向水深之處 stops when the third distinct card type is revealed', (
   assert.equal(new Set(locations).size, locations.length);
 });
 
-test('行向水深之處 reveals at most five cards when three types do not appear', () => {
+test('群羊、糧食、金錢、恩典全部只算同一種物資牌型', () => {
   let state = createGame({ seed: 'deep-five-cap' });
-  const viewed = setDeckTop(state, ['sheep-1', 'sheep-2', 'sheep-3', 'sheep-4', 'sheep-5', 'disaster-01']);
+  const viewed = setDeckTop(state, ['sheep-1', 'food-2', 'money-3', 'grace-4', 'sheep-5', 'disaster-01']);
   const action = deepAction(state);
   const selected = viewed[4];
   const rest = viewed.slice(0,4).reverse();
