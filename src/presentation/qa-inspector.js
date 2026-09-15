@@ -20,25 +20,31 @@ function renderAiHands(){if(!state)return;const targets=['#seat-left','#seat-top
 function pileRect(){const pile=$('.tabletop-pile');if(!pile||!pile.classList.contains('has-cards'))return null;const r=pile.getBoundingClientRect();return{left:r.left,top:r.top,right:r.right,bottom:r.bottom};}
 function inPile(e){const r=pileRect();return !!r&&e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom;}
 
-// 中央牌堆查看是最低優先互動：只在桌面完全沒有其他選擇／彈窗時才允許。
-// 舊版用座標判斷，因此即使 modal 蓋在牌堆上，window capture 還是會把點擊當成牌堆短按。
-function visible(el){if(!el||el.hidden)return false;const style=getComputedStyle(el);return style.display!=='none'&&style.visibility!=='hidden'&&style.pointerEvents!=='none';}
+// 中央牌堆查看維持最低優先，但正常桌面狀態必須可短按／長按。
+// 判斷「正在互動」只看實際可見的 modal / selection UI，不能因 hidden overlay 裡的 dialog 子節點而永久封鎖。
+function visible(el){
+  if(!el||!el.isConnected||el.hidden||el.closest('[hidden]'))return false;
+  if(el.getClientRects().length===0)return false;
+  const style=getComputedStyle(el);
+  return style.display!=='none'&&style.visibility!=='hidden'&&style.pointerEvents!=='none';
+}
 function hasActiveInteraction(){
-  const blockers=[
-    ...document.querySelectorAll('.overlay:not([hidden])'),
-    ...document.querySelectorAll('[role="dialog"]'),
-    ...document.querySelectorAll('#wind-choice-overlay:not([hidden]),#reaction-overlay:not([hidden]),#empty-tomb-overlay,#overcome-death-overlay,#hope-insight-overlay:not([hidden])')
-  ];
-  if(blockers.some(el=>el.id!=='played-history-overlay'&&el.id!=='detail-overlay'&&visible(el)))return true;
+  const overlays=[...document.querySelectorAll('.overlay')].filter(el=>el.id!=='played-history-overlay'&&el.id!=='detail-overlay');
+  if(overlays.some(visible))return true;
+  const runtimeIds=['#wind-choice-overlay','#reaction-overlay','#empty-tomb-overlay','#overcome-death-overlay','#hope-insight-overlay'];
+  if(runtimeIds.some(selector=>visible($(selector))))return true;
+  const dialogs=[...document.querySelectorAll('[role="dialog"]')].filter(el=>!el.closest('#played-history-overlay,#detail-overlay'));
+  if(dialogs.some(visible))return true;
   const selection=$('#selection-actions');
-  if(selection&&visible(selection)&&selection.querySelector('button:not([disabled]),[role="button"]'))return true;
+  if(visible(selection)&&selection.querySelector('button:not([disabled]),[role="button"]'))return true;
   return false;
 }
 function coveredByInteractiveUi(e){
   const top=document.elementFromPoint(e.clientX,e.clientY);
   if(!top)return false;
-  if(top.closest('.overlay,[role="dialog"],button,input,select,textarea,a,[data-overlay-level]'))return true;
-  return false;
+  // 點到中央牌堆本身（或其 clone / 圖片）就是合法查看來源，不應被 button 等泛用規則誤擋。
+  if(top.closest('.tabletop-pile,#table-card,#drop-zone'))return false;
+  return !!top.closest('.overlay,[role="dialog"],button,input,select,textarea,a,[data-overlay-level]');
 }
 function canInspectPile(e){return inPile(e)&&!hasActiveInteraction()&&!coveredByInteractiveUi(e);}
 
