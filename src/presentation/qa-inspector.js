@@ -20,7 +20,29 @@ function renderAiHands(){if(!state)return;const targets=['#seat-left','#seat-top
 function pileRect(){const pile=$('.tabletop-pile');if(!pile||!pile.classList.contains('has-cards'))return null;const r=pile.getBoundingClientRect();return{left:r.left,top:r.top,right:r.right,bottom:r.bottom};}
 function inPile(e){const r=pileRect();return !!r&&e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom;}
 
-window.addEventListener('pointerdown',e=>{if((e.button??0)!==0||!inPile(e))return;pilePress={pointerId:e.pointerId,x:e.clientX,y:e.clientY,long:false,timer:setTimeout(()=>{if(!pilePress)return;pilePress.long=true;history();if(navigator.vibrate)navigator.vibrate(18);},LONG_PRESS_MS)};},{capture:true});
+// 中央牌堆查看是最低優先互動：只在桌面完全沒有其他選擇／彈窗時才允許。
+// 舊版用座標判斷，因此即使 modal 蓋在牌堆上，window capture 還是會把點擊當成牌堆短按。
+function visible(el){if(!el||el.hidden)return false;const style=getComputedStyle(el);return style.display!=='none'&&style.visibility!=='hidden'&&style.pointerEvents!=='none';}
+function hasActiveInteraction(){
+  const blockers=[
+    ...document.querySelectorAll('.overlay:not([hidden])'),
+    ...document.querySelectorAll('[role="dialog"]'),
+    ...document.querySelectorAll('#wind-choice-overlay:not([hidden]),#reaction-overlay:not([hidden]),#empty-tomb-overlay,#overcome-death-overlay,#hope-insight-overlay:not([hidden])')
+  ];
+  if(blockers.some(el=>el.id!=='played-history-overlay'&&el.id!=='detail-overlay'&&visible(el)))return true;
+  const selection=$('#selection-actions');
+  if(selection&&visible(selection)&&selection.querySelector('button:not([disabled]),[role="button"]'))return true;
+  return false;
+}
+function coveredByInteractiveUi(e){
+  const top=document.elementFromPoint(e.clientX,e.clientY);
+  if(!top)return false;
+  if(top.closest('.overlay,[role="dialog"],button,input,select,textarea,a,[data-overlay-level]'))return true;
+  return false;
+}
+function canInspectPile(e){return inPile(e)&&!hasActiveInteraction()&&!coveredByInteractiveUi(e);}
+
+window.addEventListener('pointerdown',e=>{if((e.button??0)!==0||!canInspectPile(e))return;pilePress={pointerId:e.pointerId,x:e.clientX,y:e.clientY,long:false,timer:setTimeout(()=>{if(!pilePress||hasActiveInteraction())return;pilePress.long=true;history();if(navigator.vibrate)navigator.vibrate(18);},LONG_PRESS_MS)};},{capture:true});
 window.addEventListener('pointermove',e=>{if(!pilePress||e.pointerId!==pilePress.pointerId)return;if(Math.hypot(e.clientX-pilePress.x,e.clientY-pilePress.y)>8){clearTimeout(pilePress.timer);pilePress=null;}},{capture:true});
-window.addEventListener('pointerup',e=>{if(!pilePress||e.pointerId!==pilePress.pointerId)return;const p=pilePress;pilePress=null;clearTimeout(p.timer);if(!p.long&&inPile(e)){if(state?.playedArea?.length)detail(state.playedArea.at(-1));else domDetail();}},{capture:true});
+window.addEventListener('pointerup',e=>{if(!pilePress||e.pointerId!==pilePress.pointerId)return;const p=pilePress;pilePress=null;clearTimeout(p.timer);if(!p.long&&canInspectPile(e)){if(state?.playedArea?.length)detail(state.playedArea.at(-1));else domDetail();}},{capture:true});
 window.addEventListener('pointercancel',()=>{if(pilePress)clearTimeout(pilePress.timer);pilePress=null;},{capture:true});
