@@ -11,11 +11,9 @@ const seatByPlayer = {
 };
 
 // app.js keeps a stable manual-preview seed. Route that seed to the card that
-// is currently under manual QA so old card fixtures do not keep reappearing.
-// This module loads after the older QA wrappers, so they receive plague-preview
-// and therefore do not inject their recovery-preview-only cards.
+// is currently under manual QA so older fixtures do not keep reappearing.
 GameController.prototype.start = function startCurrentManualQa(seed) {
-  return originalStart.call(this, seed === 'recovery-preview' ? 'plague-preview' : seed);
+  return originalStart.call(this, seed === 'recovery-preview' ? 'rain-preview' : seed);
 };
 
 function openEffectDetail(card) {
