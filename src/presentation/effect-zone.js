@@ -13,7 +13,7 @@ const seatByPlayer = {
 // app.js keeps a stable manual-preview seed. Route that seed to the card that
 // is currently under manual QA so older fixtures do not keep reappearing.
 GameController.prototype.start = function startCurrentManualQa(seed) {
-  return originalStart.call(this, seed === 'recovery-preview' ? 'rain-preview' : seed);
+  return originalStart.call(this, seed === 'recovery-preview' ? 'deep-preview' : seed);
 };
 
 function openEffectDetail(card) {
