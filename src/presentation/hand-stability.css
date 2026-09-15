@@ -1,14 +1,21 @@
-.hand .card{transition:transform .24s cubic-bezier(.2,.75,.2,1),filter .2s,opacity .2s}
+.hand .card{transition:transform .3s cubic-bezier(.2,.75,.2,1),filter .24s,opacity .2s}
 
-/* Keep a lifted card's hover hit-area reaching back to its resting position.
-   This prevents the cursor from repeatedly entering/leaving an overlapping card
-   while it animates upward. */
-.hand .card:hover::before{content:"";position:absolute;z-index:-1;left:-2px;right:-2px;top:0;bottom:-58px;pointer-events:auto}
+/* Native :hover is too sensitive for an overlapped fan: lifting one card changes
+   the hit-test boundary and can immediately hand hover to its neighbour. Keep
+   native hover visually neutral and let hand-stability.js choose one stable card. */
+.hand .card:hover:not(.selected):not(.inspecting){
+  transform:translateY(var(--y)) rotate(var(--r)) rotateX(10deg);
+}
+.hand .card.hand-hover:not(.selected):not(.inspecting){
+  z-index:20;
+  transform:translateY(-46px) rotate(0) rotateX(0) scale(1.13)!important;
+  filter:brightness(1.08);
+}
+.hand .card.illegal.hand-hover:not(.selected):not(.inspecting){filter:saturate(.75) brightness(.82)}
 
-/* Outside the human action window the hand is presentation-only: no hover lift,
-   no half-raised cards, and no drag cursor. */
-.human-zone:not(:has(.human-meta.current)) .hand .card,
-.human-zone:not(:has(.human-meta.current)) .hand .card:hover,
+/* During AI/other-player turns cards can still react to the cursor so the hand
+   does not feel frozen. Dragging is blocked by JS, and stale active states are
+   still forced back to the canonical fan position. */
 .human-zone:not(:has(.human-meta.current)) .hand .card.selected,
 .human-zone:not(:has(.human-meta.current)) .hand .card.inspecting,
 .human-zone:not(:has(.human-meta.current)) .hand .card.drag-source{
@@ -16,12 +23,11 @@
   opacity:1!important;
   cursor:default!important;
 }
-.human-zone:not(:has(.human-meta.current)) .hand .card:hover{filter:none}
-.human-zone:not(:has(.human-meta.current)) .hand .card.illegal:hover{filter:saturate(.55) brightness(.65)}
+.human-zone:not(:has(.human-meta.current)) .hand .card{cursor:default!important}
 
-/* A cancelled pointer interaction should visually settle immediately instead of
-   waiting for another hover/pointer event to repair the card. */
+/* A cancelled pointer interaction should visually settle automatically instead
+   of waiting for another hover/pointer event to repair the card. */
 .hand.hand-settling .card{
   transform:translateY(var(--y)) rotate(var(--r)) rotateX(10deg)!important;
-  transition:transform .18s cubic-bezier(.2,.8,.2,1),filter .18s,opacity .18s!important;
+  transition:transform .2s cubic-bezier(.2,.8,.2,1),filter .18s,opacity .18s!important;
 }
