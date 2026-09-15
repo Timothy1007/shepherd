@@ -4,9 +4,9 @@ const humanCanAct=()=>humanMeta()?.classList.contains('current')===true;
 let hoveredCard=null;
 let hoverCandidate=null;
 let hoverTimer=null;
-const SWITCH_DELAY_MS=75;
-const CLEAR_DELAY_MS=90;
-const HYSTERESIS_PX=16;
+const SWITCH_DELAY_MS=40;
+const CLEAR_DELAY_MS=55;
+const HYSTERESIS_PX=14;
 
 function setHover(card){
   if(hoveredCard===card)return;
@@ -21,7 +21,7 @@ function clearHover(delay=0){
   hoverTimer=setTimeout(()=>setHover(null),delay);
 }
 function nearestCardForX(x){
-  const cards=[...hand()?.querySelectorAll('.card')??[]];
+  const cards=[...hand()?.querySelectorAll('.card:not(.drag-source)')??[]];
   if(!cards.length)return null;
   return cards.reduce((best,card)=>{
     const rect=card.getBoundingClientRect(),distance=Math.abs(x-(rect.left+rect.width/2));
@@ -56,7 +56,7 @@ function settleHand(){
   void host.offsetWidth;
   host.classList.add('hand-settling');
   clearTimeout(settleHand.timer);
-  settleHand.timer=setTimeout(()=>host.classList.remove('hand-settling'),210);
+  settleHand.timer=setTimeout(()=>host.classList.remove('hand-settling'),180);
 }
 
 function cancelSelectionWhenIdle(){
@@ -68,10 +68,11 @@ function cancelSelectionWhenIdle(){
 
 // Use horizontal proximity plus a short switch delay/hysteresis instead of raw
 // :hover. This stops two overlapping cards from stealing hover from each other
-// several times per second while the cursor passes their shared boundary.
+// while keeping transitions quick enough to feel direct. During a legal drag,
+// the dragged source is excluded but neighbouring cards can still lift normally.
 document.addEventListener('pointermove',event=>{
   const host=hand();
-  if(!host||!host.matches(':hover')||document.querySelector('.drag-ghost'))return;
+  if(!host||!host.matches(':hover'))return;
   const nearest=nearestCardForX(event.clientX);
   requestHover(nearest?{...nearest,x:event.clientX}:null);
 },{passive:true});
