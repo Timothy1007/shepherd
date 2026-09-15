@@ -4,6 +4,7 @@ export const MIRACLE_DEFINITIONS=Object.freeze([
 Object.freeze({definitionId:'miracle-01',kind:'miracle',name:'回轉歸向',tags:Object.freeze(['新生']),text:'改變出牌方向，然後你抽1張牌',image:'assets/miracles/miracle-01.png',copies:1}),
 Object.freeze({definitionId:'miracle-02',kind:'miracle',name:'行曠野之路',tags:Object.freeze(['新生']),text:'將此牌置於你的效果區。你下一張成功打出的物資牌數字+3，且可超過原本的數字上限。成功打出物資牌後，你棄置此牌',image:'assets/miracles/miracle-02.png',copies:1}),
 Object.freeze({definitionId:'miracle-03',kind:'miracle',name:'荊棘冠冕',tags:Object.freeze(['新生']),text:'將此牌置於你的效果區。你下一張成功打出的物資牌無視出牌限制。成功打出物資牌後，你棄置此牌',image:'assets/miracles/miracle-03.png',copies:1}),
+Object.freeze({definitionId:'miracle-04',kind:'miracle',name:'於水中重生',tags:Object.freeze(['流轉','新生']),text:'你棄置全部手牌，然後抽取等量的牌',image:'assets/miracles/miracle-04.png',copies:1}),
 Object.freeze({definitionId:'miracle-05',kind:'miracle',name:'如風吹來',tags:Object.freeze(['流轉','火種']),text:'你選擇：棄置1至3張手牌，然後抽取等量的牌 或 不棄置手牌，獲得3點火種',image:'assets/miracles/miracle-05.png',copies:1}),
 Object.freeze({definitionId:'miracle-06',kind:'miracle',name:'所望之實底',tags:Object.freeze(['洞察']),text:'你查看牌庫頂3張牌，選擇其中1張加入手牌，其餘牌以任意順序置於牌庫底',image:'assets/miracles/miracle-06.png',copies:1}),
 Object.freeze({definitionId:'miracle-07',kind:'miracle',name:'行向水深之處',tags:Object.freeze(['洞察','新生']),text:'你依序展示牌庫頂的牌，直到展示出3種不同牌型或共展示5張為止。選擇其中1張加入手牌，其餘牌以任意順序置於牌庫底',image:'assets/miracles/miracle-07.png',copies:1}),
