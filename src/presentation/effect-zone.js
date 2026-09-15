@@ -2,11 +2,20 @@ import { GameController } from '../controller/game-controller.js';
 import { getDefinition } from '../game/cards.js';
 
 const originalSafeRender = GameController.prototype.safeRender;
+const originalStart = GameController.prototype.start;
 const seatByPlayer = {
   'player-1': '#seat-human',
   'player-2': '#seat-left',
   'player-3': '#seat-top',
   'player-4': '#seat-right',
+};
+
+// app.js keeps a stable manual-preview seed. Route that seed to the card that
+// is currently under manual QA so old card fixtures do not keep reappearing.
+// This module loads after the older QA wrappers, so they receive plague-preview
+// and therefore do not inject their recovery-preview-only cards.
+GameController.prototype.start = function startCurrentManualQa(seed) {
+  return originalStart.call(this, seed === 'recovery-preview' ? 'plague-preview' : seed);
 };
 
 function openEffectDetail(card) {
