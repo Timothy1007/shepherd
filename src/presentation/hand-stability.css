@@ -1,4 +1,4 @@
-.hand .card{transition:transform .3s cubic-bezier(.2,.75,.2,1),filter .24s,opacity .2s}
+.hand .card{transition:transform .24s cubic-bezier(.2,.75,.2,1),filter .2s,opacity .18s}
 
 /* Native :hover is too sensitive for an overlapped fan: lifting one card changes
    the hit-test boundary and can immediately hand hover to its neighbour. Keep
@@ -29,5 +29,5 @@
    of waiting for another hover/pointer event to repair the card. */
 .hand.hand-settling .card{
   transform:translateY(var(--y)) rotate(var(--r)) rotateX(10deg)!important;
-  transition:transform .2s cubic-bezier(.2,.8,.2,1),filter .18s,opacity .18s!important;
+  transition:transform .17s cubic-bezier(.2,.8,.2,1),filter .16s,opacity .16s!important;
 }
