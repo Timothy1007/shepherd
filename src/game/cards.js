@@ -8,6 +8,7 @@ Object.freeze({definitionId:'miracle-04',kind:'miracle',name:'於水中重生',t
 Object.freeze({definitionId:'miracle-05',kind:'miracle',name:'如風吹來',tags:Object.freeze(['流轉','火種']),text:'你選擇：棄置1至3張手牌，然後抽取等量的牌 或 不棄置手牌，獲得3點火種',image:'assets/miracles/miracle-05.png',copies:1}),
 Object.freeze({definitionId:'miracle-06',kind:'miracle',name:'所望之實底',tags:Object.freeze(['洞察']),text:'你查看牌庫頂3張牌，選擇其中1張加入手牌，其餘牌以任意順序置於牌庫底',image:'assets/miracles/miracle-06.png',copies:1}),
 Object.freeze({definitionId:'miracle-07',kind:'miracle',name:'行向水深之處',tags:Object.freeze(['洞察','新生']),text:'你依序展示牌庫頂的牌，直到展示出3種不同牌型或共展示5張為止。選擇其中1張加入手牌，其餘牌以任意順序置於牌庫底',image:'assets/miracles/miracle-07.png',copies:1}),
+Object.freeze({definitionId:'miracle-08',kind:'miracle',name:'拆毀後重建',tags:Object.freeze(['洞察','新生']),text:'你棄置1張手牌。若如此做，你查看棄牌區最上方5張牌，選擇其中1張加入手牌。若你選擇的是神蹟或災難，你再棄置1張手牌',image:'assets/miracles/miracle-08.png',copies:1}),
 Object.freeze({definitionId:'miracle-10',kind:'miracle',name:'恰如飛鳥經過',tags:Object.freeze(['共鳴','流轉']),text:'你選擇1名其他玩家。若你與該玩家皆有手牌，你們各選擇1張手牌並同時展示。若雙方皆同意，則交換這2張牌；若任一方不同意，則收回展示的牌。若交換的牌型不同，你與該玩家各獲得3點火種',image:'assets/miracles/miracle-10.png',copies:1}),
 Object.freeze({definitionId:'miracle-13',kind:'miracle',name:'在黎明前叩門',tags:Object.freeze(['洞察','新生']),text:'將此牌置於你的效果區。你下一次因效果抽牌時，抽牌數量+1。抽牌後，你棄置1張手牌，然後棄置此牌',image:'assets/miracles/miracle-13.png',copies:1}),
 Object.freeze({definitionId:'miracle-16',kind:'miracle',cardType:'miracle',reaction:true,name:'越過長夜',tags:Object.freeze(['應對','庇護']),text:'【應對】當你即將受到災難效果時，你可以打出此牌：你免疫該次效果',image:'assets/miracles/miracle-16.png',copies:1}),
