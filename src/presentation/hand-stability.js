@@ -62,14 +62,11 @@ function settleHand(){
 function cancelSelectionWhenIdle(){
   if(humanCanAct())return;
   settleHand();
-  // Reuse the app's Escape path so its private selected-card state is cleared too.
-  window.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape'}));
 }
 
-// Use horizontal proximity plus a short switch delay/hysteresis instead of raw
-// :hover. This stops two overlapping cards from stealing hover from each other
-// while keeping transitions quick enough to feel direct. During a legal drag,
-// the dragged source is excluded but neighbouring cards can still lift normally.
+// Horizontal proximity + hysteresis keeps neighbouring overlapped cards from
+// fighting over hover. This remains active while dragging another card, so the
+// rest of the hand still feels alive during play.
 document.addEventListener('pointermove',event=>{
   const host=hand();
   if(!host||!host.matches(':hover'))return;
@@ -83,25 +80,16 @@ document.addEventListener('pointerout',event=>{
   clearHover(CLEAR_DELAY_MS);
 },{capture:true});
 
-// AI turns remain visually interactive, but accidental pointer-down must never
-// begin a drag or leave a card half-raised.
-document.addEventListener('pointerdown',event=>{
-  const card=event.target.closest?.('#hand .card');
-  if(!card||humanCanAct())return;
-  event.preventDefault();
-  event.stopImmediatePropagation();
-  clearTimeout(hoverTimer);
-  setHover(card);
-},{capture:true});
+// Do not intercept pointerdown during AI/other-player turns. app.js marks those
+// interactions viewOnly, so hover, click selection and long-press inspection keep
+// working while actual drag/play is still blocked at the source.
 
-// Recover from browser focus loss / pointer cancellation cases where pointerup
-// may never reach the game and a card could otherwise remain half-raised.
 window.addEventListener('blur',settleHand);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)settleHand();});
 window.addEventListener('pointercancel',settleHand,{capture:true});
 
-// Rendering changes #seat-human's class every turn. Detect the transition into
-// an idle turn and clear active interaction state, while hover remains available.
+// When the turn changes away from the player, clear transient drag state but do
+// not erase the ability to inspect cards during the idle turn.
 const observer=new MutationObserver(()=>cancelSelectionWhenIdle());
 const start=()=>{
   const meta=humanMeta();
