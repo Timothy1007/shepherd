@@ -10,9 +10,11 @@ const FILES=Object.freeze({
   roundEnd:'round-end.mp3',
   fire:'fire-gain.mp3',
 });
-const STORAGE_KEY='shepherd-audio-v1';
-let settings={music:true,sfx:true,musicVolume:.32,sfxVolume:.72};
+const STORAGE_KEY='shepherd-audio-v2';
+let settings={music:true,sfx:true,musicVolume:.18,sfxVolume:.72};
 try{settings={...settings,...JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}')}}catch{}
+settings.musicVolume=Math.max(0,Math.min(.22,Number(settings.musicVolume)||.18));
+settings.sfxVolume=Math.max(0,Math.min(1,Number(settings.sfxVolume)||.72));
 let unlocked=false,lastPlayedId=null,lastRound=null,lastFireTotal=null;
 const bgm=new Audio(`${AUDIO_BASE}${FILES.bgm}`);bgm.loop=true;bgm.preload='auto';bgm.volume=settings.musicVolume;
 
