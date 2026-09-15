@@ -70,6 +70,37 @@ test('infected sheep is reduced by 2 and plague spreads in current direction', (
   assert.equal(state.players[0].effects.some((effect) => effect.definitionId === 'disaster-09'), true);
 });
 
+test('瘟疫 penalty is applied before same-type legality checks', () => {
+  let state = createGame({ seed: 'plague-legality' });
+  const human = prepareHand(state, 'player-1', ['disaster-09', 'sheep-3']);
+  const plague = human.hand.find((card) => card.definitionId === 'disaster-09');
+  state = act(state, getNormalActions(state).find((candidate) => candidate.instanceId === plague.instanceId && candidate.targetPlayerId === 'player-1'));
+  state.currentPlayer = 'player-1';
+  state.currentResource = { type: 'sheep', number: 3, instanceId: 'fixture', baseNumber: 3, numberBonus: 0, numberPenalty: 0, numberModifier: 0 };
+  const sheep = state.players[0].hand.find((card) => card.definitionId === 'sheep-3');
+  const action = getNormalActions(state).find((candidate) => candidate.instanceId === sheep.instanceId);
+  assert.equal(action, undefined);
+});
+
+test('行曠野之路 and 瘟疫 modifiers are both applied before legality checks', () => {
+  let state = createGame({ seed: 'plague-legality-stack' });
+  const human = prepareHand(state, 'player-1', ['disaster-09', 'miracle-02', 'sheep-3']);
+  const plague = human.hand.find((card) => card.definitionId === 'disaster-09');
+  state = act(state, getNormalActions(state).find((candidate) => candidate.instanceId === plague.instanceId && candidate.targetPlayerId === 'player-1'));
+  state.currentPlayer = 'player-1';
+  const wilderness = state.players[0].hand.find((card) => card.definitionId === 'miracle-02');
+  state = act(state, getNormalActions(state).find((candidate) => candidate.instanceId === wilderness.instanceId));
+  state.currentPlayer = 'player-1';
+  state.currentResource = { type: 'sheep', number: 4, instanceId: 'fixture', baseNumber: 4, numberBonus: 0, numberPenalty: 0, numberModifier: 0 };
+  const sheep = state.players[0].hand.find((card) => card.definitionId === 'sheep-3');
+  const action = getNormalActions(state).find((candidate) => candidate.instanceId === sheep.instanceId);
+  assert.ok(action);
+  state = act(state, action);
+  assert.equal(state.currentResource.numberBonus, 3);
+  assert.equal(state.currentResource.numberPenalty, 2);
+  assert.equal(state.currentResource.number, 4);
+});
+
 test('瘟疫 follows reversed direction after direction changes', () => {
   let state = createGame({ seed: 'plague-direction' });
   state.currentPlayer = 'player-1';
