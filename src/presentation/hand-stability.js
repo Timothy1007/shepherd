@@ -21,7 +21,7 @@ function clearHover(delay=0){
   hoverTimer=setTimeout(()=>setHover(null),delay);
 }
 function nearestCardForX(x){
-  const cards=[...hand()?.querySelectorAll('.card:not(.drag-source)')??[]];
+  const cards=[...hand()?.querySelectorAll('.card:not(.drag-source):not(.click-preview)')??[]];
   if(!cards.length)return null;
   return cards.reduce((best,card)=>{
     const rect=card.getBoundingClientRect(),distance=Math.abs(x-(rect.left+rect.width/2));
@@ -50,7 +50,7 @@ function settleHand(){
   if(!host)return;
   document.querySelectorAll('.drag-ghost').forEach(node=>node.remove());
   document.querySelector('#drop-zone')?.classList.remove('accepting','rejecting');
-  host.querySelectorAll('.card.drag-source,.card.inspecting').forEach(card=>card.classList.remove('drag-source','inspecting'));
+  host.querySelectorAll('.card.drag-source,.card.inspecting,.card.click-preview').forEach(card=>card.classList.remove('drag-source','inspecting','click-preview'));
   clearHover();
   host.classList.remove('hand-settling');
   void host.offsetWidth;
@@ -65,11 +65,13 @@ function cancelSelectionWhenIdle(){
 }
 
 // Horizontal proximity + hysteresis keeps neighbouring overlapped cards from
-// fighting over hover. This remains active while dragging another card, so the
-// rest of the hand still feels alive during play.
+// fighting over hover. A clicked preview temporarily owns its own hit area; once
+// the pointer leaves it, normal hover selection resumes immediately.
 document.addEventListener('pointermove',event=>{
   const host=hand();
-  if(!host||!host.matches(':hover'))return;
+  if(!host||!host.matches(':hover')){clearHover(CLEAR_DELAY_MS);return;}
+  const preview=host.querySelector('.card.click-preview');
+  if(preview&&preview.matches(':hover')){clearHover();return;}
   const nearest=nearestCardForX(event.clientX);
   requestHover(nearest?{...nearest,x:event.clientX}:null);
 },{passive:true});
