@@ -3,15 +3,26 @@
 /* Native :hover is too sensitive for an overlapped fan: lifting one card changes
    the hit-test boundary and can immediately hand hover to its neighbour. Keep
    native hover visually neutral and let hand-stability.js choose one stable card. */
-.hand .card:hover:not(.selected):not(.inspecting){
+.hand .card:hover:not(.selected):not(.inspecting):not(.click-preview){
   transform:translateY(var(--y)) rotate(var(--r)) rotateX(10deg);
 }
-.hand .card.hand-hover:not(.selected):not(.inspecting){
+.hand .card.hand-hover:not(.selected):not(.inspecting):not(.click-preview){
   z-index:20;
   transform:translateY(-46px) rotate(0) rotateX(0) scale(1.13)!important;
   filter:brightness(1.08);
 }
-.hand .card.illegal.hand-hover:not(.selected):not(.inspecting){filter:saturate(.75) brightness(.82)}
+.hand .card.illegal.hand-hover:not(.selected):not(.inspecting):not(.click-preview){filter:saturate(.75) brightness(.82)}
+
+/* Short click is a local preview, not a latched selection pose. It enlarges the
+   clicked card around its lower edge, then naturally returns when the pointer
+   leaves that card. */
+.hand .card.click-preview:not(.inspecting):not(.drag-source){
+  z-index:45;
+  transform-origin:50% 100%;
+  transform:translateY(-18px) rotate(0) rotateX(0) scale(1.38)!important;
+  filter:brightness(1.08) drop-shadow(0 18px 28px #0009)!important;
+  transition:transform .18s cubic-bezier(.18,.78,.2,1),filter .18s!important;
+}
 
 /* During AI/other-player turns cards can still react to the cursor so the hand
    does not feel frozen. Dragging is blocked by JS, and stale active states are
