@@ -13,7 +13,7 @@ const seatByPlayer = {
 // app.js keeps a stable manual-preview seed. Route that seed to the card that
 // is currently under manual QA so older fixtures do not keep reappearing.
 GameController.prototype.start = function startCurrentManualQa(seed) {
-  return originalStart.call(this, seed === 'recovery-preview' ? 'rebuild-preview' : seed);
+  return originalStart.call(this, seed === 'recovery-preview' ? 'victory-preview' : seed);
 };
 
 function openEffectDetail(card) {
@@ -52,7 +52,7 @@ function renderEffectZone(player) {
     item.type = 'button';
     item.title = `${definition.name}\n${definition.text ?? ''}`;
     item.setAttribute('aria-label', `${definition.name}：${definition.text ?? ''}`);
-    const badge = definition.definitionId === 'miracle-02' ? '<b>+3</b>' : definition.definitionId === 'miracle-13' ? '<b>抽+1</b>' : definition.definitionId === 'disaster-09' ? '<b>-2</b>' : '';
+    const badge = definition.definitionId === 'miracle-02' ? '<b>+3</b>' : definition.definitionId === 'miracle-09' ? '<b>↔4</b>' : definition.definitionId === 'miracle-13' ? '<b>抽+1</b>' : definition.definitionId === 'disaster-09' ? '<b>-2</b>' : '';
     item.innerHTML = `<img src="${definition.image}" alt="${definition.name}"><span>${definition.name}</span>${badge}`;
     item.addEventListener('click', (event) => {
       event.preventDefault();
