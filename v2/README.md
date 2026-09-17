@@ -124,3 +124,12 @@ http://localhost:4174/v2/
 - `legacy-ui-bridge.css` / `hand-stability-v2.js` / `drag-play-v2.js`：舊版最後 UI/UX 優化的 V2 對應層。
 - `scripts/preview.js`：V2 本機 preview server。
 - `tests/`：V2 核心、playable、registry 與 UI bridge 契約／smoke tests。
+
+
+## 2026-09-18 UI/UX interaction restore
+
+- Removed the manual **跳過** button. Normal-turn skipping is not a player option; Death-round no-legal-action skipping remains automatic per V2 rules.
+- Restored direct hand interaction: drag/pull/throw a card toward the center to play it.
+- Restored the center played pile showing the latest **3** played cards as a physical stack.
+- Restored press semantics: **short press = single-card enlarged preview**, **long press = full card detail**.
+- These changes stay entirely inside `v2/`; V1 presentation/runtime remains untouched.
