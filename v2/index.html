@@ -28,11 +28,17 @@
   <main class="table-wrap">
     <div class="table-plane"></div>
     <div id="seat-p2" class="seat seat-top"></div><div id="seat-p3" class="seat seat-left"></div><div id="seat-p4" class="seat seat-right"></div>
-    <div class="center-stage"><div class="round-pill" id="round-pill">第 1 / 7 輪</div><div id="current-card" class="current-card empty"><span>尚無物資</span></div><div id="apostle" class="apostle">使徒 · 尚無</div><div id="direction" class="direction">順時針</div></div>
-    <div class="drag-hint">拖曳卡牌至中央打出 · 點擊卡牌查看效果</div>
+    <div class="center-stage" id="drop-zone">
+      <div class="round-pill" id="round-pill">第 1 / 7 輪</div>
+      <div id="played-pile" class="played-pile" aria-label="最近三張已出牌"></div>
+      <div id="current-card" class="current-card empty"><span>尚無出牌</span></div>
+      <div id="apostle" class="apostle">使徒 · 尚無</div>
+      <div id="direction" class="direction">順時針</div>
+    </div>
+    <div class="drag-hint">拖、拉或甩牌到中央出牌 · 短按放大 · 長按看詳細資料</div>
   </main>
   <section class="human-zone"><div id="seat-p1" class="human-card"></div><div id="hand" class="hand"></div><div class="human-actions"><button id="prepare" class="ghost">整備</button></div></section>
-  <aside id="detail-panel" class="detail-panel panel"><div class="panel-title">卡牌資訊</div><div id="detail-content" class="detail-content"><p class="muted">點擊手牌查看內容與崩壞值。</p></div></aside>
+  <aside id="detail-panel" class="detail-panel panel"><div class="panel-title">操作提示</div><div id="detail-content" class="detail-content"><p class="muted">短按卡牌放大預覽；長按查看完整牌面資料；拖曳、拉出或甩向中央即可出牌。</p></div></aside>
   <aside id="log-panel" class="log-panel panel hidden"><div class="log-head"><div class="panel-title">戰局紀錄</div><button id="close-log" class="icon-btn">×</button></div><div id="log-list" class="log-list"></div></aside>
   <div id="toast" class="toast"></div><div id="overlay" class="overlay hidden"><div class="overlay-backdrop"></div><div id="modal" class="modal"></div></div>
   <audio id="bgm" loop preload="auto"><source src="../public/assets/audio/bgm-wilderness.mp3" type="audio/mpeg"></audio>
