@@ -5,52 +5,49 @@ import { readFile } from 'node:fs/promises';
 const root = new URL('../', import.meta.url);
 const read = (path) => readFile(new URL(path, root), 'utf8');
 
-test('V2 shell loads optimized presentation bridge after base UI', async () => {
+test('V2 shell is rebased on the final V1 presentation stylesheet stack', async () => {
   const html = await read('index.html');
-  const base = html.indexOf('./ui.css');
-  const bridge = html.indexOf('./legacy-ui-bridge.css');
-  assert.ok(base >= 0, 'base V2 UI stylesheet is missing');
-  assert.ok(bridge > base, 'legacy UI bridge must load after base UI');
+  for (const file of [
+    'style.css','interaction-fix.css','hierarchy-polish.css','tabletop-history.css',
+    'camera-perspective.css','round-resolution.css','effect-zone.css','final-results.css',
+    'ui-layout-tuning.css','card-legality-visual.css','overlay-stack.css','hand-stability.css'
+  ]) assert.ok(html.includes(`../src/presentation/${file}`), `${file} missing`);
+  assert.ok(html.includes('./v1-ui-adapter.css'));
+  assert.ok(!html.includes('./ui.css'));
 });
 
-test('V2 shell has no manual skip button and restores the central played pile', async () => {
+test('V2 shell keeps V1 table/hand DOM and removes floating info panels', async () => {
   const html = await read('index.html');
-  assert.doesNotMatch(html, /id="pass"/);
+  assert.match(html, /id="drop-zone" class="center-play"/);
+  assert.match(html, /id="seat-human" class="human-meta"/);
+  assert.match(html, /id="hand" class="hand"/);
+  assert.match(html, /id="played-pile" class="tabletop-pile"/);
+  assert.doesNotMatch(html, /class="left-panel/);
   assert.doesNotMatch(html, />跳過</);
-  assert.match(html, /id="played-pile"/);
-  assert.match(html, /短按放大/);
-  assert.match(html, /長按看詳細資料/);
 });
 
-test('V2 shell wires stable hover and drag-to-play helpers', async () => {
-  const html = await read('index.html');
-  assert.match(html, /hand-stability-v2\.js/);
-  assert.match(html, /drag-play-v2\.js/);
-  assert.match(html, /拖、拉或甩牌到中央出牌/);
+test('adapter puts the center pile on the lower battlefield center and preserves V1 hand sizing', async () => {
+  const css = await read('v1-ui-adapter.css');
+  assert.match(css, /translate\(-50%,-50%\) translate\(35px,52px\)/);
+  assert.match(css, /\.tabletop-pile/);
+  assert.match(css, /width:152px!important/);
+  assert.match(css, /\.hand \.card/);
+  assert.match(css, /106px!important/);
 });
 
-test('optimized UI preserves readable illegal cards, short preview and three-card pile', async () => {
-  const css = await read('legacy-ui-bridge.css');
-  assert.match(css, /\.game-card\.illegal/);
-  assert.match(css, /filter:none!important/);
-  assert.match(css, /\.game-card\.click-preview/);
-  assert.match(css, /\.played-pile/);
-  assert.match(css, /\.pile-card-v2/);
-});
-
-test('gesture helper emits short preview, long detail, and direct play events', async () => {
-  const js = await read('drag-play-v2.js');
+test('V1 interaction port supports short press, long press, drag and throw', async () => {
+  const js = await read('v1-interactions.js');
   assert.match(js, /shepherd:v2-card-preview/);
   assert.match(js, /shepherd:v2-card-detail/);
   assert.match(js, /shepherd:v2-play-card/);
   assert.match(js, /LONG_PRESS_MS/);
   assert.match(js, /THROW_DISTANCE/);
-  assert.doesNotMatch(js, /#play-selected/);
 });
 
-test('app renders only the latest three played cards', async () => {
+test('V2 app renders latest three played cards and makes pile history reachable', async () => {
   const js = await read('app.js');
   assert.match(js, /state\.played\.slice\(-3\)/);
-  assert.match(js, /renderPlayedPile/);
+  assert.match(js, /el\.pile\.addEventListener\('click',renderHistory\)/);
+  assert.match(js, /played-history-card/);
   assert.match(js, /shepherd:v2-card-detail/);
 });
