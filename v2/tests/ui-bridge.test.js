@@ -13,23 +13,44 @@ test('V2 shell loads optimized presentation bridge after base UI', async () => {
   assert.ok(bridge > base, 'legacy UI bridge must load after base UI');
 });
 
+test('V2 shell has no manual skip button and restores the central played pile', async () => {
+  const html = await read('index.html');
+  assert.doesNotMatch(html, /id="pass"/);
+  assert.doesNotMatch(html, />跳過</);
+  assert.match(html, /id="played-pile"/);
+  assert.match(html, /短按放大/);
+  assert.match(html, /長按看詳細資料/);
+});
+
 test('V2 shell wires stable hover and drag-to-play helpers', async () => {
   const html = await read('index.html');
   assert.match(html, /hand-stability-v2\.js/);
   assert.match(html, /drag-play-v2\.js/);
-  assert.match(html, /拖曳卡牌至中央打出/);
+  assert.match(html, /拖、拉或甩牌到中央出牌/);
 });
 
-test('optimized UI preserves readable illegal cards and stable hand classes', async () => {
+test('optimized UI preserves readable illegal cards, short preview and three-card pile', async () => {
   const css = await read('legacy-ui-bridge.css');
   assert.match(css, /\.game-card\.illegal/);
   assert.match(css, /filter:none!important/);
-  assert.match(css, /\.game-card\.hand-hover/);
-  assert.match(css, /\.hand\[data-count="10"\]/);
+  assert.match(css, /\.game-card\.click-preview/);
+  assert.match(css, /\.played-pile/);
+  assert.match(css, /\.pile-card-v2/);
 });
 
-test('drag helper delegates play through the existing selected-card action', async () => {
+test('gesture helper emits short preview, long detail, and direct play events', async () => {
   const js = await read('drag-play-v2.js');
-  assert.match(js, /#play-selected:not\(:disabled\)/);
-  assert.match(js, /center-stage/);
+  assert.match(js, /shepherd:v2-card-preview/);
+  assert.match(js, /shepherd:v2-card-detail/);
+  assert.match(js, /shepherd:v2-play-card/);
+  assert.match(js, /LONG_PRESS_MS/);
+  assert.match(js, /THROW_DISTANCE/);
+  assert.doesNotMatch(js, /#play-selected/);
+});
+
+test('app renders only the latest three played cards', async () => {
+  const js = await read('app.js');
+  assert.match(js, /state\.played\.slice\(-3\)/);
+  assert.match(js, /renderPlayedPile/);
+  assert.match(js, /shepherd:v2-card-detail/);
 });
