@@ -7,12 +7,12 @@
 - **V2 special-card source:** `docs/SPECIAL_CARDS_MASTER.md`.
 - **V2 character source:** `docs/CHARACTERS_V2.md`.
 - **V2 blessing source:** `docs/BLESSINGS_V2.md`.
-- `docs/RULES.md` still describes the V1 rules semantics currently reflected by much of the code; do not assume V2 systems are implemented yet.
-- The V2 redesign must be agreed and balanced at the text/rules layer before replacing the core implementation.
+- `docs/RULES.md` still describes the V1 rules semantics currently reflected by much of the old code.
+- **Isolated V2 implementation now lives under `v2/` and must remain separate from the old `src/`, `dist/`, `public/`, and V1 tests until V2 is independently ready.**
 
 ## PvP V2 direction
 
-The next core rewrite targets 2–4 player Classic/Ranked PvP and keeps seven rounds while redesigning the victory/resource loop:
+The core rewrite targets 2–4 player Classic/Ranked PvP and keeps seven rounds while redesigning the victory/resource loop:
 
 - Rounds 1–6 use public per-player missions; mission progress resets each round while completed-mission count persists.
 - Mission progress uses the **printed/original resource number**, not temporary number modifiers.
@@ -29,6 +29,29 @@ The next core rewrite targets 2–4 player Classic/Ranked PvP and keeps seven ro
 - Blessings are now primarily long-term build pieces rather than disposable items. Most persist in the Blessing area and provide ongoing or once-per-round effects; only explicitly marked strong effects are consumed.
 - For Blessings with a generic `once per round` active and no event trigger, the default timing is at the start of one of the player's normal actions of their choice that round, not necessarily their first action.
 - Ranked points are an out-of-match system and must not be a direct conversion of leftover fire.
+
+## Corruption / Judgment V2
+
+- The whole table shares one corruption meter and corruption persists across rounds.
+- The exact Judgment threshold is still configurable and must be tuned after card-flow testing rather than guessed.
+- Reaching the threshold triggers a persistent Judgment and subtracts the threshold while preserving overflow.
+- Judgments persist for the match. Different domains can coexist; same-domain Judgments replace each other unless they belong to the same upgrade chain.
+- Character skills and Blessings do **not** receive generic corruption values; they default to 0 unless a future exceptional effect explicitly says otherwise.
+
+### Finalized card corruption values
+
+Resources:
+- normal resource printed number 1–4: corruption 0;
+- normal resource printed number 5–9: corruption 1;
+- Grace resources: corruption 0.
+
+Miracles:
+- 回轉歸向 2, 行曠野之路 2, 荊棘冠冕 3, 於水中重生 3, 如風吹來 1, 所望之實底 1, 行向水深之處 3, 拆毀後重建 2, 勝利歸於我們 3, 恰如飛鳥經過 2, 窄門與窄路 3, 分杯之火 1, 在黎明前叩門 1, 杯滿盈溢 2, 三股合成繩 3, 越過長夜 1, 替罪羊 3, 空墳墓 2, 拆毀堅固營壘 2, 勝過死亡 2, 焚而不毀荊棘 2, 雨幕之下 1, 第二次生命 2, 劫後餘生 3.
+
+Disasters:
+- 方舟之外 3, 謊言與試探 2, 告別舊時代 3, 半朽蜜果 2, 瞳中倒影 2, 蟲災 2, 灰與燼 3, 積財寶在地上 2, 瘟疫 4, 染血銀幣 2, 盜火 2, 哈米吉多頓 4, 破碎玻璃海 4, 愛慾之種 3, 焚城之火 3, 虛謊之舌 2, 三分之一的星辰 4, 倒塌帳幕 3.
+
+Implementation lives in `v2/src/game/card-corruption.js` and is exported through `v2/src/game/index.js`.
 
 ## Faction / character V2 direction
 
@@ -61,17 +84,28 @@ The old heuristic **“draw 1 card ≈ gain 5 fire” is retired and must not be
 
 V2 card evaluation must separately consider card flow, mission progress, Apostle control, fire economy, Death timing and long-term Blessing build value.
 
-## Current implementation constraints
+## Current implementation status
 
-- `currentResource` and `currentApostle` are separate. Only a successful resource play updates the Apostle.
-- `dist/` is generated. Make source changes in `src/` and rebuild.
-- Existing implemented miracles/disasters/characters/blessings remain V1 code behavior until the V2 core rewrite. Documentation updates do not imply implementation parity.
-- Do not continue implementing the remaining V1 miracles by default.
-- Current V2 text review has completed first-pass integration for 24 miracles, 18 disasters, 16 characters and 24 blessings.
+- Old V1 remains untouched as the recovery/playable baseline.
+- `v2/` is a parallel implementation area and must not mutate V1 runtime state.
+- Implemented in V2 so far: base state, missions, Death semantics, corruption meter, per-card corruption lookup, Judgment registry/domain handling, round/death-round transitions, Apostle tracking, and contract tests.
+- `v2/tests/card-corruption.test.js` records the finalized corruption lookup contract.
+- Tests have been added but have **not** been executed by the connector; do not claim they pass without CI or local output.
+
+## Still open
+
+- exact corruption threshold;
+- Death insertion depth by player count;
+- exact base hand-size / compensation formula;
+- mission requirement numbers by player count;
+- `沉淪 II`;
+- additional Judgment pool beyond the finalized existing set;
+- wiring the V2 special-card definitions and effects into the isolated V2 engine;
+- V2 UI, AI, QA seeds and presentation.
 
 ## Next work
 
-1. Review Judgments and any remaining global systems against V2 mission/Death rules.
-2. Run whole-system balance review across miracles, disasters, characters and blessings.
-3. Freeze the V2 rules/text baseline for implementation.
-4. Then rewrite the game core, character/card definitions, AI, tests, QA seeds and presentation for V2.
+1. Move finalized V2 miracle/disaster definitions into the isolated V2 card registry and attach the finalized corruption values.
+2. Implement resource-card corruption rule (1–4 = 0, 5–9 = 1, Grace = 0) at card creation/play boundaries.
+3. Continue the V2 core implementation only inside `v2/`.
+4. Tune the corruption threshold after representative card-flow simulations/tests exist.
