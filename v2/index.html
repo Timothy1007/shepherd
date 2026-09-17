@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>牧羊人：荒野之歌 · PvP V2</title>
+<link rel="stylesheet" href="./ui.css" />
+</head>
+<body>
+<div id="app" class="app-shell">
+  <video class="world-video" autoplay muted loop playsinline><source src="../public/assets/background.mp4" type="video/mp4"></video>
+  <div class="world-vignette"></div><div class="embers"></div>
+  <header class="topbar">
+    <div class="brand"><span class="kicker">SHEPHERD · PVP V2 TEST BUILD</span><h1>牧羊人：荒野之歌</h1><p id="phase-copy">建立爭局中</p></div>
+    <div class="top-actions"><button id="audio-toggle" class="ghost">♫ 音樂</button><button id="restart" class="ghost">重新開始</button></div>
+  </header>
+  <section class="world-meter" aria-label="世界崩壞">
+    <div class="meter-label"><span>世界崩壞</span><strong id="corruption-value">0 / 30</strong></div>
+    <div class="meter-track"><i id="corruption-fill"></i></div>
+    <div id="judgment-strip" class="judgment-strip"></div>
+  </section>
+  <aside class="left-panel panel">
+    <div class="panel-title">戰局情報</div><div id="round-summary" class="round-summary"></div>
+    <div class="panel-title small">目前使徒獎池</div><div id="jackpot" class="jackpot">0</div>
+    <button id="toggle-log" class="text-button">查看戰局紀錄</button>
+  </aside>
+  <main class="table-wrap">
+    <div class="table-plane"></div>
+    <div id="seat-p2" class="seat seat-top"></div><div id="seat-p3" class="seat seat-left"></div><div id="seat-p4" class="seat seat-right"></div>
+    <div class="center-stage"><div class="round-pill" id="round-pill">第 1 / 7 輪</div><div id="current-card" class="current-card empty"><span>尚無物資</span></div><div id="apostle" class="apostle">使徒 · 尚無</div><div id="direction" class="direction">順時針</div></div>
+  </main>
+  <section class="human-zone"><div id="seat-p1" class="human-card"></div><div id="hand" class="hand"></div><div class="human-actions"><button id="prepare" class="ghost">整備</button><button id="pass" class="danger">跳過</button></div></section>
+  <aside id="detail-panel" class="detail-panel panel"><div class="panel-title">卡牌資訊</div><div id="detail-content" class="detail-content"><p class="muted">點擊手牌查看內容與崩壞值。</p></div></aside>
+  <aside id="log-panel" class="log-panel panel hidden"><div class="log-head"><div class="panel-title">戰局紀錄</div><button id="close-log" class="icon-btn">×</button></div><div id="log-list" class="log-list"></div></aside>
+  <div id="toast" class="toast"></div><div id="overlay" class="overlay hidden"><div class="overlay-backdrop"></div><div id="modal" class="modal"></div></div>
+  <audio id="bgm" loop preload="auto"><source src="../public/assets/audio/bgm-wilderness.mp3" type="audio/mpeg"></audio>
+</div>
+<script type="module" src="./app.js"></script>
+</body>
+</html>
