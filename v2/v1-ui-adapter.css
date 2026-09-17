@@ -1,0 +1,103 @@
+/* V2 adapter on top of the exact final V1 presentation stack. */
+.dispute-shell{background:#070b0c!important}
+.battle-background{display:block!important;filter:saturate(.82) brightness(.70) contrast(1.04)}
+.dispute-shell{background-image:none!important}
+.world-layer{display:none!important}
+#instruction{display:none!important}
+.round-hud{display:flex;align-items:center;gap:8px;pointer-events:auto}
+.round-hud>div{margin:0 6px 0 0}
+.round-hud button{border:1px solid #d8c38c40;background:#0c1210e6;border-radius:999px;padding:6px 13px;color:inherit;cursor:pointer}
+.round-hud button:hover{border-color:#d9bd84}
+
+/* V2 status lives where the old status strip lived; no floating left/right info panels. */
+.status-strip{left:24px!important;top:82px!important;transform:none!important;gap:18px!important;max-width:calc(100vw - 48px);overflow:auto}
+.v2-status-item{display:flex;align-items:center;gap:5px}
+.v2-status-item strong{color:#ead39f}
+.v2-corruption-track{width:130px;height:4px;border-radius:99px;background:#ffffff12;overflow:hidden}
+.v2-corruption-track i{display:block;height:100%;background:linear-gradient(90deg,#98713c,#c45f43,#ef8b58)}
+.v2-judgment{border:1px solid #a75b4f55;border-radius:999px;padding:2px 6px;color:#eabca7;background:#51251f55}
+
+/* Keep player information fully visible. */
+.seat-left{left:3.4%!important;top:35%!important}
+.seat-right{right:3.4%!important;top:35%!important}
+.seat-top{top:-7%!important}
+.seat .mission-row,.human-meta .mission-row{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:6px;min-width:210px}
+.mission-bit{font-size:8px;color:#b9b3a6}
+.mission-bar{height:3px;background:#ffffff12;border-radius:99px;overflow:hidden;margin-top:2px}
+.mission-bar i{display:block;height:100%;background:#c7a55d}
+.seat-foot{display:flex;gap:4px;flex-wrap:wrap;margin-top:5px}
+.mini-chip{font-size:8px;padding:2px 5px;border:1px solid #ffffff14;border-radius:999px;color:#aaa49a}
+
+/* User-marked target: bring the played pile down to the stone at the battlefield center. */
+.center-play{
+  left:50%!important;
+  top:52%!important;
+  transform:translate(-50%,-50%) translate(35px,52px)!important;
+  width:300px!important;height:230px!important;
+  pointer-events:none!important
+}
+.table-card{display:none!important}
+.tabletop-pile{
+  position:absolute!important;left:50%!important;top:50%!important;
+  width:270px!important;height:210px!important;
+  transform:translate(-50%,-50%)!important;
+  margin:0!important;
+  pointer-events:auto!important;cursor:pointer!important;
+  outline:none!important
+}
+.tabletop-pile:empty:after{
+  content:"等待本輪第一張牌";position:absolute;left:50%;top:50%;
+  transform:translate(-50%,-50%);white-space:nowrap;color:#8f8d84;font-size:11px
+}
+.tabletop-pile .pile-card{
+  position:absolute!important;left:50%!important;top:50%!important;width:152px!important;
+  transform:translate(calc(-50% + var(--pile-x)),calc(-50% + var(--pile-y))) rotateZ(var(--pile-r)) translateZ(calc(var(--pile-depth) * 5px))!important;
+  filter:drop-shadow(0 10px 8px #0008)!important;pointer-events:none!important
+}
+.tabletop-pile .pile-card img{display:block!important;width:152px!important;max-height:214px!important;object-fit:contain!important;border-radius:8px!important}
+.tabletop-pile .pile-card.pile-latest{z-index:4!important;animation:pileDrop .38s cubic-bezier(.17,.84,.28,1.15)!important}
+.tabletop-pile:hover .pile-card.pile-latest{filter:brightness(1.06) drop-shadow(0 14px 12px #0009)!important}
+.center-meta{left:50%!important;top:15%!important}
+.drag-instruction{bottom:3.7%!important}
+
+/* Exact V1 hand language. */
+.hand .card{flex:0 0 106px!important;width:106px!important;height:auto!important;overflow:visible!important;background:transparent!important;border:0!important;border-radius:7px!important;box-shadow:none!important}
+.hand .card-art{display:block!important;width:106px!important;height:auto!important;object-fit:contain!important;border-radius:7px!important}
+.hand .card.click-preview:not(.inspecting):not(.drag-source){z-index:45!important;transform-origin:50% 100%!important;transform:translateY(-18px) rotate(0) rotateX(0) scale(1.38)!important;filter:brightness(1.08) drop-shadow(0 18px 28px #0009)!important}
+.card-corruption{position:absolute;right:-5px;top:-5px;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:#6d2d27;border:1px solid #e18769;color:#ffe3cf;font-size:9px;box-shadow:0 0 11px #d24d3e66}
+.hand[data-count="8"] .card,.hand[data-count="9"] .card{margin-left:-18px!important;margin-right:-18px!important}
+.hand[data-count="10"] .card,.hand[data-count="11"] .card,.hand[data-count="12"] .card{margin-left:-24px!important;margin-right:-24px!important}
+.hand[data-count="13"] .card,.hand[data-count="14"] .card,.hand[data-count="15"] .card{margin-left:-30px!important;margin-right:-30px!important}
+
+.v2-drag-ghost{position:fixed;left:0;top:0;z-index:2500;pointer-events:none;width:106px;filter:drop-shadow(0 24px 18px #000b);transform-origin:0 0}
+.v2-drag-ghost img{display:block;width:100%;border-radius:7px}
+.center-play.accepting .tabletop-pile{filter:drop-shadow(0 0 24px #e0b15f66)}
+.center-play.rejecting{animation:zoneReject .35s ease}
+
+/* V1-style detail/history overlays. */
+.detail-card-art{width:100%;max-height:58vh;object-fit:contain;border-radius:14px;filter:drop-shadow(0 24px 28px #000b)}
+.detail-copy h2{font-family:Georgia,"Noto Serif TC",serif;font-size:28px;font-weight:500;margin:0 0 10px}
+.detail-copy p{color:#c8c3b6;line-height:1.7}
+.detail-meta{display:flex;gap:7px;flex-wrap:wrap;margin-top:15px}
+.detail-meta span{border:1px solid #d6bd8240;border-radius:999px;padding:4px 8px;font-size:9px;color:#d8c59d}
+.played-history-panel{position:relative;z-index:2;width:min(900px,92vw);max-height:86vh;overflow:auto;padding:28px;border:1px solid #d7bf8840;border-radius:24px;background:linear-gradient(145deg,#15211ff5,#0b1110f8);box-shadow:0 30px 90px #000c}
+.played-history-panel h2{margin:5px 0}.played-history-panel p{color:#b8b4a7}
+.played-history-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(105px,1fr));gap:14px;margin-top:18px}
+.played-history-card{padding:8px;border:1px solid #d7bf8833;border-radius:12px;background:#ffffff08;cursor:pointer}
+.played-history-card:hover{border-color:#d9bd84;transform:translateY(-3px)}
+.played-history-card img{display:block;width:100%;height:145px;object-fit:contain}
+.played-history-card span{display:block;margin-top:5px;font-size:11px}
+.v2-choice-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:18px 0}
+.v2-choice{border:1px solid #d7bf8840;border-radius:14px;background:#ffffff08;padding:13px;color:inherit;text-align:left;cursor:pointer}
+.v2-choice:hover,.v2-choice.selected{border-color:#d8b66f;background:#d5a75a12}
+.v2-modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
+.v2-modal-actions button{border:1px solid #d7bf8840;background:#161c18df;border-radius:999px;padding:8px 13px;color:inherit;cursor:pointer}
+.v2-modal-actions .primary{background:#9b6532;border-color:#e1bb70}
+.setup-character-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+
+@media(max-height:760px){
+  .center-play{transform:translate(-50%,-50%) translate(35px,35px)!important}
+  .hand .card{flex-basis:96px!important;width:96px!important}.hand .card-art{width:96px!important}
+}
+@media(max-width:1100px){.status-strip{max-width:70vw}.seat-left{left:2%!important}.seat-right{right:2%!important}}
+@media(max-width:820px){.setup-character-grid{grid-template-columns:repeat(2,1fr)}.status-strip{max-width:92vw}.center-play{transform:translate(-50%,-50%) translate(0,45px)!important}}
