@@ -1,49 +1,47 @@
 # Codex handoff
 
-## Baseline
+## Baseline / safety
 
-- Current playable implementation remains the recovered Web baseline and existing special-card work.
-- **Upcoming design source of truth:** `docs/PVP_CORE_RULES_V2.md`.
-- **V2 special-card source:** `docs/SPECIAL_CARDS_MASTER.md`.
-- **V2 character source:** `docs/CHARACTERS_V2.md`.
-- **V2 blessing source:** `docs/BLESSINGS_V2.md`.
-- `docs/RULES.md` still describes the V1 rules semantics currently reflected by much of the old code.
-- **Isolated V2 implementation now lives under `v2/` and must remain separate from the old `src/`, `dist/`, `public/`, and V1 tests until V2 is independently ready.**
+- Old V1 Web implementation remains untouched as the recovery/comparison baseline.
+- **V2 runtime is isolated under `v2/`. Do not move V2 work back into old `src/`, `dist/`, or V1 tests until V2 is independently ready.**
+- Existing `public/assets/` is reused read-only for V2 art, background video, card images and BGM.
+- V2 design sources of truth remain:
+  - `docs/PVP_CORE_RULES_V2.md`
+  - `docs/SPECIAL_CARDS_MASTER.md`
+  - `docs/CHARACTERS_V2.md`
+  - `docs/BLESSINGS_V2.md`
 
-## PvP V2 direction
+## PvP V2 core
 
-The core rewrite targets 2–4 player Classic/Ranked PvP and keeps seven rounds while redesigning the victory/resource loop:
-
-- Rounds 1–6 use public per-player missions; mission progress resets each round while completed-mission count persists.
-- Mission progress uses the **printed/original resource number**, not temporary number modifiers.
-- Round 7 is the final Apostle contest rather than a normal mission round.
-- Miracle/disaster play still opens one free-resource play for the next normal-action player.
-- The Death card is a hidden round timer. When revealed, the current effect finishes, then every player receives exactly one final normal action; no preparation is allowed during the Death round.
-- V2 preparation: if a player has no legal card during a normal action, they may discard the whole hand and draw 2; preparation consumes that action and may be used again on a later normal action before Death.
-- Physical cards do not persist across rounds. Only the number of cards left in hand is carried forward as an additional random-draw count next round.
-- The Apostle remains the last player to successfully play a resource.
-- Apostle fire reward keeps the original jackpot identity: gain fire equal to the number of cards in the played area, with no artificial cap.
-- Fire becomes primarily an in-match strategic resource rather than the main victory score.
-- Fire Spirit is redesigned as a fixed blessing auction after rounds 2 and 5; number of blessings equals number of players, fire totals are public, each player targets one auction item at a time, and each player is intended to leave with one blessing.
-- Blessing capacity remains 2.
-- Blessings are now primarily long-term build pieces rather than disposable items. Most persist in the Blessing area and provide ongoing or once-per-round effects; only explicitly marked strong effects are consumed.
-- For Blessings with a generic `once per round` active and no event trigger, the default timing is at the start of one of the player's normal actions of their choice that round, not necessarily their first action.
-- Ranked points are an out-of-match system and must not be a direct conversion of leftover fire.
+- 7 rounds total. R1–6 use public per-player missions; R7 is the final Apostle contest.
+- Mission progress resets each round; completed-mission count persists.
+- Resource mission progress always uses the **printed/original number**.
+- Miracle/disaster play opens one free resource play for the next normal-action player.
+- Physical hand identities do not persist across rounds; only leftover hand **count** contributes to the next fresh random hand.
+- Preparation: with no legal card during a normal action, discard the whole hand and draw 2; it consumes the action and cannot be used during Death round.
+- Death is a hidden round timer. Draw/show triggers it; look does not. Death never enters hand and does not consume the requested normal-card draw count.
+- After Death is revealed, finish the current effect, lock the current-direction final circuit starting from the next seat, and give each player exactly one final normal action.
+- Apostle is the last player to successfully play a resource. Round jackpot = number of cards in played area, no artificial cap.
+- Fire is an in-match strategic resource, not the primary victory score.
+- Blessing auction occurs after R2 and R5. Capacity remains 2.
+- Ranked balance target remains a full 4-seat table; fewer humans may be filled by AI.
 
 ## Corruption / Judgment V2
 
-- The whole table shares one corruption meter and corruption persists across rounds.
-- The exact Judgment threshold is still configurable and must be tuned after card-flow testing rather than guessed.
-- Reaching the threshold triggers a persistent Judgment and subtracts the threshold while preserving overflow.
-- Judgments persist for the match. Different domains can coexist; same-domain Judgments replace each other unless they belong to the same upgrade chain.
-- Character skills and Blessings do **not** receive generic corruption values; they default to 0 unless a future exceptional effect explicitly says otherwise.
+- The whole table shares one corruption meter; corruption persists across rounds.
+- Threshold is still a tunable parameter. Current playable default is **30 only as a Prototype**, not a frozen design value.
+- Reaching threshold triggers an unknown Judgment, subtracts the threshold and preserves overflow.
+- Judgments persist for the match.
+- Different domains stack; same-domain Judgments replace each other. Tier-I can add its Tier-II successor to the future Judgment pool.
+- Finalized current Judgments: 失序 I/II、蒙蔽 I/II、沉淪 I、爭戰 I/II、傾覆 I/II、分裂 I/II、揭露 I/II. `沉淪 II` is not finalized and must not be invented.
+- Character skills and Blessings default to corruption 0 unless a future exceptional effect explicitly says otherwise.
 
-### Finalized card corruption values
+### Frozen card corruption values
 
 Resources:
-- normal resource printed number 1–4: corruption 0;
-- normal resource printed number 5–9: corruption 1;
-- Grace resources: corruption 0.
+- normal printed 1–4 = 0
+- normal printed 5–9 = 1
+- Grace = 0
 
 Miracles:
 - 回轉歸向 2, 行曠野之路 2, 荊棘冠冕 3, 於水中重生 3, 如風吹來 1, 所望之實底 1, 行向水深之處 3, 拆毀後重建 2, 勝利歸於我們 3, 恰如飛鳥經過 2, 窄門與窄路 3, 分杯之火 1, 在黎明前叩門 1, 杯滿盈溢 2, 三股合成繩 3, 越過長夜 1, 替罪羊 3, 空墳墓 2, 拆毀堅固營壘 2, 勝過死亡 2, 焚而不毀荊棘 2, 雨幕之下 1, 第二次生命 2, 劫後餘生 3.
@@ -51,61 +49,73 @@ Miracles:
 Disasters:
 - 方舟之外 3, 謊言與試探 2, 告別舊時代 3, 半朽蜜果 2, 瞳中倒影 2, 蟲災 2, 灰與燼 3, 積財寶在地上 2, 瘟疫 4, 染血銀幣 2, 盜火 2, 哈米吉多頓 4, 破碎玻璃海 4, 愛慾之種 3, 焚城之火 3, 虛謊之舌 2, 三分之一的星辰 4, 倒塌帳幕 3.
 
-Implementation lives in `v2/src/game/card-corruption.js` and is exported through `v2/src/game/index.js`.
+Canonical lookup also exists at `v2/src/game/card-corruption.js`.
 
-## Faction / character V2 direction
+## Playable V2 build now exists
 
-The 16 characters have completed a first-pass V2 redesign. Use `docs/CHARACTERS_V2.md` as the current character text source.
+A browser-testable vertical slice has been added entirely inside `v2/`:
 
-Faction identities:
+- `v2/src/playable/cards.js`
+  - 90 resources + 24 miracles + 18 disasters = 132-card base registry.
+  - reuses old card image assets.
+  - includes finalized per-card corruption values.
+- `v2/src/playable/game.js`
+  - 1 human + 3 AI four-seat game flow;
+  - 7 rounds, missions, carry-over hand count, Death/final circuit, Apostle jackpot;
+  - corruption/Judgment triggering and persistent Judgment domains;
+  - special-card playable resolution layer;
+  - R2/R5 Blessing auction;
+  - basic AI turn selection;
+  - temporary test-build final fallback if R7 Apostle is unqualified.
+- `v2/index.html`, `v2/ui.css`, `v2/app.js`
+  - independent browser presentation;
+  - live corruption meter, Judgment chips, public mission bars, Apostle jackpot, card corruption badges, card-detail panel, history drawer, target/choice modals, auction UI and result screen;
+  - reuses `public/assets/background.mp4` and `public/assets/audio/bgm-wilderness.mp3`.
+- `v2/scripts/preview.js`
+  - local isolated preview server.
+- `v2/tests/playable.test.js`, `v2/tests/registry.test.js`
+  - smoke / registry contracts.
 
-- **富饒城邦**: value, trade, wealth distribution, investment and risk management.
-- **榮光聖殿**: information, prediction, order and reducing decision error; may foresee Death but normally cannot move it.
-- **彼岸之使**: redirects ownership/effects and can explicitly manipulate Death when character text grants an exception.
-- **流火之民**: converts danger, low resources and self-imposed cost into burst turns.
+### How to test
 
-Ranked balance should primarily assume a full 4-seat table. If fewer than four human players are present, high-level AI may fill the remaining ranked seats; 2–3 human-only tables may be treated as casual/custom modes. Rules should still remain usable at lower player counts where practical.
+From repository root:
 
-## Blessings V2 direction
+```bash
+cd v2
+npm test
+npm run preview
+```
 
-The 24 existing Blessings have completed a first-pass V2 redesign in `docs/BLESSINGS_V2.md`.
+Then open `http://localhost:4174/v2/`.
 
-Current Blessing structure:
+The authored playable snapshot was locally syntax-checked and the playable/registry test set passed **8/8** before final documentation sync. This is local execution evidence, not GitHub CI evidence.
 
-- Most positive Blessings are persistent build pieces.
-- Some use once-per-round active or event-triggered effects.
-- A small number of very strong Blessings remain one-shot and are discarded after use.
-- Negative Blessings do not count toward Blessing capacity and are not part of the normal Fire Spirit auction pool.
-- Current first-pass watchlist includes 群星的迴響、駛向新生命、偶爾需要沉默、命運從未公平.
+## Character / Blessing direction
 
-## Deprecated balance rule
+- The 16 character V2 texts are in `docs/CHARACTERS_V2.md`.
+- The 24 Blessing V2 texts are in `docs/BLESSINGS_V2.md`.
+- The playable build currently lets players choose one of the 16 character identities, but **full character-specific mechanics are not all wired yet**.
+- The auction uses the V2 Blessing pool, but some complex active/reaction Blessing interactions are simplified in the current vertical slice.
 
-The old heuristic **“draw 1 card ≈ gain 5 fire” is retired and must not be used for V2 balancing.**
+## Prototype-only values / known simplifications
 
-V2 card evaluation must separately consider card flow, mission progress, Apostle control, fire economy, Death timing and long-term Blessing build value.
+Do not silently treat these as final rules:
 
-## Current implementation status
+- corruption threshold default 30;
+- Death insertion depth currently 10–18 cards into the remaining deck;
+- mission prototypes 7/7/7, 11/5/5 and 4/5/12;
+- 4-seat qualification currently uses 3 completed missions;
+- if R7 Apostle is unqualified, current test build temporarily falls back to completed missions then fire; official secondary settlement is still TBD;
+- several high-interaction Miracle/Disaster reactions and multi-step human decisions are currently automated/simplified to keep the first playable build moving;
+- detailed character abilities are not yet complete in playable runtime;
+- some Blessing actives/reactions are not yet complete;
+- additional Judgment pool beyond the finalized set is still open.
 
-- Old V1 remains untouched as the recovery/playable baseline.
-- `v2/` is a parallel implementation area and must not mutate V1 runtime state.
-- Implemented in V2 so far: base state, missions, Death semantics, corruption meter, per-card corruption lookup, Judgment registry/domain handling, round/death-round transitions, Apostle tracking, and contract tests.
-- `v2/tests/card-corruption.test.js` records the finalized corruption lookup contract.
-- Tests have been added but have **not** been executed by the connector; do not claim they pass without CI or local output.
+## Next implementation priority
 
-## Still open
-
-- exact corruption threshold;
-- Death insertion depth by player count;
-- exact base hand-size / compensation formula;
-- mission requirement numbers by player count;
-- `沉淪 II`;
-- additional Judgment pool beyond the finalized existing set;
-- wiring the V2 special-card definitions and effects into the isolated V2 engine;
-- V2 UI, AI, QA seeds and presentation.
-
-## Next work
-
-1. Move finalized V2 miracle/disaster definitions into the isolated V2 card registry and attach the finalized corruption values.
-2. Implement resource-card corruption rule (1–4 = 0, 5–9 = 1, Grace = 0) at card creation/play boundaries.
-3. Continue the V2 core implementation only inside `v2/`.
-4. Tune the corruption threshold after representative card-flow simulations/tests exist.
+1. Playtest the isolated build and fix game-flow / Death / corruption / Judgment blockers first.
+2. Replace simplified special-card decisions and response windows with the finalized card-specific interaction flows.
+3. Wire the 16 character kits faction by faction, without adding generic character corruption.
+4. Complete the 24 Blessing mechanics and auction edge cases.
+5. Tune corruption threshold and Death depth from representative full-game data instead of intuition.
+6. Only after the V2 test build is stable, consider integration/deployment changes outside `v2/`.
