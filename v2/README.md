@@ -29,6 +29,25 @@
 - 新 UI：即時崩壞條、審判列、公開使命進度、使徒獎池、牌面崩壞提示、戰局紀錄、競拍與終局視窗。
 - 沿用舊版荒野背景影片、物資／神蹟／災難圖像與 BGM。
 
+## V2 UI / UX 已重新接回舊版最後優化方向
+
+V2 不再使用最初那套偏 Prototype 的獨立版面，而是在 `v2/` 內重新套用舊版最後確認過的互動與鏡頭語言：
+
+- 高角度荒野戰場鏡頭與原有背景資產；拿掉厚重的假桌板層。
+- P2／P3／P4 與中央牌堆位置回到最後一版桌面構圖。
+- P1 手牌固定比例、圓角與尺寸；8～15 張時自動壓縮，不再把整手牌擠出畫面。
+- 恢復「穩定 hover」：重疊手牌不會在相鄰卡之間瘋狂跳動。
+- 非法牌不再整張變暗，保留可讀性；是否合法由操作結果與按鈕狀態溝通。
+- 恢復拖曳／甩牌到中央的操作，同時保留點擊查看與按鈕出牌。
+- 回合玩家以箭頭與高亮呈現；死亡輪會增加環境狀態提示。
+- Overlay、Toast、戰局紀錄與選擇視窗的層級重新整理，避免互相蓋住。
+
+實作檔案：
+
+- `legacy-ui-bridge.css`：把最後版 UI 決策映射到 V2 DOM。
+- `hand-stability-v2.js`：穩定重疊手牌 hover 與高張數壓縮。
+- `drag-play-v2.js`：拖曳到中央後委派給既有 V2 出牌流程，不複製規則邏輯。
+
 ## 執行測試
 
 在 repository 根目錄：
@@ -38,7 +57,7 @@ cd v2
 npm test
 ```
 
-目前新增的 playable smoke / registry tests 覆蓋：
+目前新增的 playable smoke / registry / UI bridge tests 覆蓋：
 
 - 四座位與使命輪初始化；
 - 合法行動與跳過；
@@ -46,7 +65,8 @@ npm test
 - AI 可推進行動；
 - 祝福競拍後進下一輪；
 - 24 神蹟、18 災難與 132 張基礎牌庫數量；
-- 物資與恩典的崩壞規則。
+- 物資與恩典的崩壞規則；
+- 最終 UI bridge 載入順序、穩定手牌與拖曳出牌 helper 有正確接上。
 
 ## 啟動瀏覽器測試版
 
@@ -101,5 +121,6 @@ http://localhost:4174/v2/
 - `src/playable/cards.js`：可玩版 132 張基礎牌庫與崩壞值。
 - `src/playable/game.js`：完整測試局狀態機、AI、死亡、使命、審判與競拍。
 - `index.html` / `ui.css` / `app.js`：獨立 V2 瀏覽器 UI／UX。
+- `legacy-ui-bridge.css` / `hand-stability-v2.js` / `drag-play-v2.js`：舊版最後 UI/UX 優化的 V2 對應層。
 - `scripts/preview.js`：V2 本機 preview server。
-- `tests/`：V2 核心與 playable 契約／smoke tests。
+- `tests/`：V2 核心、playable、registry 與 UI bridge 契約／smoke tests。
