@@ -71,10 +71,17 @@ A browser-testable vertical slice has been added entirely inside `v2/`:
   - independent browser presentation;
   - live corruption meter, Judgment chips, public mission bars, Apostle jackpot, card corruption badges, card-detail panel, history drawer, target/choice modals, auction UI and result screen;
   - reuses `public/assets/background.mp4` and `public/assets/audio/bgm-wilderness.mp3`.
+- `v2/legacy-ui-bridge.css`, `v2/hand-stability-v2.js`, `v2/drag-play-v2.js`
+  - restore the final V1 presentation decisions inside the isolated V2 DOM without importing V1 runtime code;
+  - high-angle battlefield composition and removal of the synthetic oval table layer;
+  - stable overlapped-hand hover with high-card-count compression;
+  - illegal-card artwork remains readable instead of being dimmed;
+  - drag / fling card to the central play area is restored while click-to-inspect still works;
+  - current-turn arrow, Death-state visual accent, corrected overlay/toast hierarchy.
 - `v2/scripts/preview.js`
   - local isolated preview server.
-- `v2/tests/playable.test.js`, `v2/tests/registry.test.js`
-  - smoke / registry contracts.
+- `v2/tests/playable.test.js`, `v2/tests/registry.test.js`, `v2/tests/ui-bridge.test.js`
+  - smoke / registry / presentation bridge contracts.
 
 ### How to test
 
@@ -86,9 +93,16 @@ npm test
 npm run preview
 ```
 
+On PowerShell systems that block unsigned `npm.ps1`, use:
+
+```powershell
+npm.cmd test
+npm.cmd run preview
+```
+
 Then open `http://localhost:4174/v2/`.
 
-The authored playable snapshot was locally syntax-checked and the playable/registry test set passed **8/8** before final documentation sync. This is local execution evidence, not GitHub CI evidence.
+Earlier authored playable snapshot evidence was locally syntax-checked and the playable/registry test set passed **8/8** before the UI bridge restoration. The newly added UI bridge contract test has been committed but has not been executed by the GitHub connector; do not claim it passes until local/CI output confirms it.
 
 ## Character / Blessing direction
 
@@ -113,9 +127,10 @@ Do not silently treat these as final rules:
 
 ## Next implementation priority
 
-1. Playtest the isolated build and fix game-flow / Death / corruption / Judgment blockers first.
-2. Replace simplified special-card decisions and response windows with the finalized card-specific interaction flows.
-3. Wire the 16 character kits faction by faction, without adding generic character corruption.
-4. Complete the 24 Blessing mechanics and auction edge cases.
-5. Tune corruption threshold and Death depth from representative full-game data instead of intuition.
-6. Only after the V2 test build is stable, consider integration/deployment changes outside `v2/`.
+1. Have the user pull and playtest the restored optimized UI first; fix any visual/interaction regression before adding more systems.
+2. Playtest the isolated build and fix game-flow / Death / corruption / Judgment blockers.
+3. Replace simplified special-card decisions and response windows with the finalized card-specific interaction flows.
+4. Wire the 16 character kits faction by faction, without adding generic character corruption.
+5. Complete the 24 Blessing mechanics and auction edge cases.
+6. Tune corruption threshold and Death depth from representative full-game data instead of intuition.
+7. Only after the V2 test build is stable, consider integration/deployment changes outside `v2/`.
