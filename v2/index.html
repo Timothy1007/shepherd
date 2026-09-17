@@ -1,50 +1,107 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>牧羊人：荒野之歌 · PvP V2</title>
-<link rel="stylesheet" href="./ui.css" />
-<link rel="stylesheet" href="./legacy-ui-bridge.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>牧羊人：荒野之歌 · PvP V2</title>
+  <link rel="stylesheet" href="../src/presentation/style.css">
+  <link rel="stylesheet" href="../src/presentation/interaction-fix.css">
+  <link rel="stylesheet" href="../src/presentation/hierarchy-polish.css">
+  <link rel="stylesheet" href="../src/presentation/tabletop-history.css">
+  <link rel="stylesheet" href="../src/presentation/camera-perspective.css">
+  <link rel="stylesheet" href="../src/presentation/round-resolution.css">
+  <link rel="stylesheet" href="../src/presentation/resource-deck.css">
+  <link rel="stylesheet" href="../src/presentation/effect-zone.css">
+  <link rel="stylesheet" href="../src/presentation/final-results.css">
+  <link rel="stylesheet" href="../src/presentation/foil-prototype.css">
+  <link rel="stylesheet" href="../src/presentation/ui-layout-tuning.css">
+  <link rel="stylesheet" href="../src/presentation/card-legality-visual.css">
+  <link rel="stylesheet" href="../src/presentation/overlay-stack.css">
+  <link rel="stylesheet" href="../src/presentation/hand-stability.css">
+  <link rel="stylesheet" href="./v1-ui-adapter.css">
 </head>
 <body>
-<div id="app" class="app-shell">
-  <video class="world-video" autoplay muted loop playsinline><source src="../public/assets/background.mp4" type="video/mp4"></video>
-  <div class="world-vignette"></div><div class="embers"></div>
-  <header class="topbar">
-    <div class="brand"><span class="kicker">SHEPHERD · PVP V2 TEST BUILD</span><h1>牧羊人：荒野之歌</h1><p id="phase-copy">建立爭局中</p></div>
-    <div class="top-actions"><button id="audio-toggle" class="ghost">♫ 音樂</button><button id="restart" class="ghost">重新開始</button></div>
-  </header>
-  <section class="world-meter" aria-label="世界崩壞">
-    <div class="meter-label"><span>世界崩壞</span><strong id="corruption-value">0 / 30</strong></div>
-    <div class="meter-track"><i id="corruption-fill"></i></div>
-    <div id="judgment-strip" class="judgment-strip"></div>
-  </section>
-  <aside class="left-panel panel">
-    <div class="panel-title">戰局情報</div><div id="round-summary" class="round-summary"></div>
-    <div class="panel-title small">目前使徒獎池</div><div id="jackpot" class="jackpot">0</div>
-    <button id="toggle-log" class="text-button">查看戰局紀錄</button>
-  </aside>
-  <main class="table-wrap">
-    <div class="table-plane"></div>
-    <div id="seat-p2" class="seat seat-top"></div><div id="seat-p3" class="seat seat-left"></div><div id="seat-p4" class="seat seat-right"></div>
-    <div class="center-stage" id="drop-zone">
-      <div class="round-pill" id="round-pill">第 1 / 7 輪</div>
-      <div id="played-pile" class="played-pile" aria-label="最近三張已出牌"></div>
-      <div id="current-card" class="current-card empty"><span>尚無出牌</span></div>
-      <div id="apostle" class="apostle">使徒 · 尚無</div>
-      <div id="direction" class="direction">順時針</div>
+  <main class="dispute-shell">
+    <video class="battle-background" autoplay muted loop playsinline preload="auto" aria-hidden="true">
+      <source src="../public/assets/background.mp4" type="video/mp4">
+    </video>
+    <div class="world-layer" aria-hidden="true"><div class="horizon"></div><div class="ruins ruins-left"></div><div class="ruins ruins-right"></div><div class="ash"></div></div>
+
+    <header class="hud-top">
+      <div class="event-copy">
+        <span class="eyebrow">SHEPHERD · PVP V2 TEST BUILD</span>
+        <h1>牧羊人：荒野之歌</h1>
+        <p id="instruction">建立爭局中</p>
+      </div>
+      <div class="round-hud">
+        <div id="round-display">第 1 / 7 輪</div>
+        <button id="audio-toggle">♫ 音樂</button>
+        <button id="restart">重新開始</button>
+      </div>
+    </header>
+
+    <section id="status" class="status-strip" aria-label="爭局狀態"></section>
+
+    <section class="arena" aria-label="爭局場域">
+      <div id="seat-top" class="seat seat-top"></div>
+      <div id="seat-left" class="seat seat-left"></div>
+      <div id="seat-right" class="seat seat-right"></div>
+
+      <div class="ground-plane">
+        <div class="board-surface" aria-hidden="true"></div>
+        <div id="drop-zone" class="center-play" aria-label="中央出牌區">
+          <div id="table-card" class="table-card"><span>等待本輪第一張牌</span></div>
+          <div id="played-pile" class="tabletop-pile" tabindex="0" role="button" aria-label="查看本輪已出牌"></div>
+        </div>
+      </div>
+
+      <div class="center-meta" aria-live="polite">
+        <span id="current-label" class="center-label">當前物資 · 尚無</span>
+        <div id="apostle-display" class="apostle-display">使徒 · 尚無</div>
+      </div>
+
+      <div class="drag-instruction">拖曳或甩出卡牌至桌面中央</div>
+      <div id="round-result" class="round-result"></div>
+    </section>
+
+    <section class="human-zone">
+      <div id="seat-human" class="human-meta"></div>
+      <div id="hand" class="hand" aria-label="你的手牌"></div>
+      <div id="selection-actions" class="selection-actions"></div>
+      <div id="actions" class="actions"></div>
+    </section>
+
+    <div id="detail-overlay" class="overlay" data-overlay-level="inspect" hidden>
+      <div class="overlay-backdrop" data-close="detail"></div>
+      <article class="detail-panel" role="dialog" aria-modal="true" aria-label="卡牌詳細資訊">
+        <button class="overlay-close" data-close="detail" aria-label="關閉">×</button>
+        <div id="detail-content"></div>
+      </article>
     </div>
-    <div class="drag-hint">拖、拉或甩牌到中央出牌 · 短按放大 · 長按看詳細資料</div>
+
+    <div id="decision-overlay" class="overlay" data-overlay-level="decision" hidden>
+      <div class="overlay-backdrop"></div>
+      <article class="grace-panel" role="dialog" aria-modal="true">
+        <div id="decision-content"></div>
+      </article>
+    </div>
+
+    <div id="history-overlay" class="overlay" data-overlay-level="inspect" hidden>
+      <div class="overlay-backdrop" data-close="history"></div>
+      <article class="played-history-panel" role="dialog" aria-modal="true">
+        <button class="overlay-close" data-close="history" aria-label="關閉">×</button>
+        <h2>本輪已出牌</h2>
+        <p>中央牌堆只顯示最近三張；這裡可查看本輪全部已出牌。</p>
+        <div id="played-history-grid" class="played-history-grid"></div>
+      </article>
+    </div>
+
+    <div id="toast" class="toast" aria-live="polite"></div>
+    <audio id="bgm" loop preload="auto"><source src="../public/assets/audio/bgm-wilderness.mp3" type="audio/mpeg"></audio>
   </main>
-  <section class="human-zone"><div id="seat-p1" class="human-card"></div><div id="hand" class="hand"></div><div class="human-actions"><button id="prepare" class="ghost">整備</button></div></section>
-  <aside id="detail-panel" class="detail-panel panel"><div class="panel-title">操作提示</div><div id="detail-content" class="detail-content"><p class="muted">短按卡牌放大預覽；長按查看完整牌面資料；拖曳、拉出或甩向中央即可出牌。</p></div></aside>
-  <aside id="log-panel" class="log-panel panel hidden"><div class="log-head"><div class="panel-title">戰局紀錄</div><button id="close-log" class="icon-btn">×</button></div><div id="log-list" class="log-list"></div></aside>
-  <div id="toast" class="toast"></div><div id="overlay" class="overlay hidden"><div class="overlay-backdrop"></div><div id="modal" class="modal"></div></div>
-  <audio id="bgm" loop preload="auto"><source src="../public/assets/audio/bgm-wilderness.mp3" type="audio/mpeg"></audio>
-</div>
-<script type="module" src="./app.js"></script>
-<script type="module" src="./hand-stability-v2.js"></script>
-<script type="module" src="./drag-play-v2.js"></script>
+
+  <script type="module" src="./app.js"></script>
+  <script type="module" src="../src/presentation/hand-stability.js"></script>
+  <script type="module" src="./v1-interactions.js"></script>
 </body>
 </html>
