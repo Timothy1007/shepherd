@@ -6,6 +6,7 @@
 - **Upcoming design source of truth:** `docs/PVP_CORE_RULES_V2.md`.
 - **V2 special-card source:** `docs/SPECIAL_CARDS_MASTER.md`.
 - **V2 character source:** `docs/CHARACTERS_V2.md`.
+- **V2 blessing source:** `docs/BLESSINGS_V2.md`.
 - `docs/RULES.md` still describes the V1 rules semantics currently reflected by much of the code; do not assume V2 systems are implemented yet.
 - The V2 redesign must be agreed and balanced at the text/rules layer before replacing the core implementation.
 
@@ -25,6 +26,8 @@ The next core rewrite targets 2–4 player Classic/Ranked PvP and keeps seven ro
 - Fire becomes primarily an in-match strategic resource rather than the main victory score.
 - Fire Spirit is redesigned as a fixed blessing auction after rounds 2 and 5; number of blessings equals number of players, fire totals are public, each player targets one auction item at a time, and each player is intended to leave with one blessing.
 - Blessing capacity remains 2.
+- Blessings are now primarily long-term build pieces rather than disposable items. Most persist in the Blessing area and provide ongoing or once-per-round effects; only explicitly marked strong effects are consumed.
+- For Blessings with a generic `once per round` active and no event trigger, the default timing is at the start of one of the player's normal actions of their choice that round, not necessarily their first action.
 - Ranked points are an out-of-match system and must not be a direct conversion of leftover fire.
 
 ## Faction / character V2 direction
@@ -40,23 +43,35 @@ Faction identities:
 
 Ranked balance should primarily assume a full 4-seat table. If fewer than four human players are present, high-level AI may fill the remaining ranked seats; 2–3 human-only tables may be treated as casual/custom modes. Rules should still remain usable at lower player counts where practical.
 
+## Blessings V2 direction
+
+The 24 existing Blessings have completed a first-pass V2 redesign in `docs/BLESSINGS_V2.md`.
+
+Current Blessing structure:
+
+- Most positive Blessings are persistent build pieces.
+- Some use once-per-round active or event-triggered effects.
+- A small number of very strong Blessings remain one-shot and are discarded after use.
+- Negative Blessings do not count toward Blessing capacity and are not part of the normal Fire Spirit auction pool.
+- Current first-pass watchlist includes 群星的迴響、駛向新生命、偶爾需要沉默、命運從未公平.
+
 ## Deprecated balance rule
 
 The old heuristic **“draw 1 card ≈ gain 5 fire” is retired and must not be used for V2 balancing.**
 
-V2 card evaluation must separately consider card flow, mission progress, Apostle control, fire economy, and Death timing.
+V2 card evaluation must separately consider card flow, mission progress, Apostle control, fire economy, Death timing and long-term Blessing build value.
 
 ## Current implementation constraints
 
 - `currentResource` and `currentApostle` are separate. Only a successful resource play updates the Apostle.
 - `dist/` is generated. Make source changes in `src/` and rebuild.
-- Existing implemented miracles/disasters/characters remain V1 code behavior until the V2 core rewrite. Documentation updates do not imply implementation parity.
+- Existing implemented miracles/disasters/characters/blessings remain V1 code behavior until the V2 core rewrite. Documentation updates do not imply implementation parity.
 - Do not continue implementing the remaining V1 miracles by default.
-- Current V2 text review has completed first-pass integration for 24 miracles, 18 disasters and 16 characters.
+- Current V2 text review has completed first-pass integration for 24 miracles, 18 disasters, 16 characters and 24 blessings.
 
 ## Next work
 
-1. Redesign and rebalance Blessings around auction/build value and the high-flow fire economy.
-2. Review Judgments and any remaining global systems against V2 mission/Death rules.
-3. Run whole-system balance review across miracles, disasters, characters and blessings.
-4. Only after rule/text consensus, rewrite the game core, character/card definitions, AI, tests, QA seeds and presentation for V2.
+1. Review Judgments and any remaining global systems against V2 mission/Death rules.
+2. Run whole-system balance review across miracles, disasters, characters and blessings.
+3. Freeze the V2 rules/text baseline for implementation.
+4. Then rewrite the game core, character/card definitions, AI, tests, QA seeds and presentation for V2.
