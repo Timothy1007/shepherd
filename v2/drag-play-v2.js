@@ -1,5 +1,6 @@
 const hand=()=>document.querySelector('#hand');
 const stage=()=>document.querySelector('#drop-zone');
+const humanCanAct=()=>document.querySelector('#seat-p1 .seat-card.current')!==null;
 let gesture=null;
 const START_DISTANCE=8;
 const LONG_PRESS_MS=430;
@@ -62,7 +63,7 @@ document.addEventListener('pointerdown',event=>{
 document.addEventListener('pointermove',event=>{
   if(!gesture||event.pointerId!==gesture.pointerId)return;
   const distance=Math.hypot(event.clientX-gesture.startX,event.clientY-gesture.startY);
-  if(distance>=START_DISTANCE&&!gesture.longPressed)startGhost();
+  if(distance>=START_DISTANCE&&!gesture.longPressed&&humanCanAct())startGhost();
   if(gesture.ghost){
     moveGhost(event.clientX,event.clientY);
     event.preventDefault();
