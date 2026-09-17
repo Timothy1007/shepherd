@@ -134,3 +134,16 @@ Do not silently treat these as final rules:
 5. Complete the 24 Blessing mechanics and auction edge cases.
 6. Tune corruption threshold and Death depth from representative full-game data instead of intuition.
 7. Only after the V2 test build is stable, consider integration/deployment changes outside `v2/`.
+
+
+## Latest UI interaction contract (2026-09-18)
+
+The V2 browser build must preserve the final V1 interaction language while keeping V2 rules/runtime isolated:
+
+- no manual `跳過` button; Death-round forced no-legal-action skip is automatic;
+- hand cards can be dragged/pulled/thrown to the center to play;
+- center battlefield shows the latest three played cards as a stacked pile;
+- short press enlarges one card locally; long press opens full card details;
+- keep stable overlapped-hand hover and readable illegal-card art.
+
+Current implementation files: `v2/drag-play-v2.js`, `v2/hand-stability-v2.js`, `v2/legacy-ui-bridge.css`, `v2/app.js`, `v2/index.html`.
