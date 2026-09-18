@@ -156,3 +156,11 @@ Required interaction contract:
 - clicking the center pile opens current-round played history;
 - keep player information unobstructed by floating panels;
 - V2 systems such as corruption, Judgment, missions, auction, Death and future character mechanics are layered onto this V1 presentation rather than replacing it.
+
+
+### Pile / detail interaction correction (2026-09-18)
+- Center pile short press = latest played card detail.
+- Center pile long press (~480 ms) = current-round played history.
+- Keep detail/history overlays compact; do not regress to oversized full-screen-like dialogs.
+- Card artwork in detail/history must retain rounded corners.
+- Current center pile adapter offset is 35px right / 24px down from the V1 center-play anchor.
