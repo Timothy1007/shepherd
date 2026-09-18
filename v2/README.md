@@ -129,7 +129,7 @@ http://localhost:4174/v2/
 
 V2 browser presentation is now **rebased directly on the final V1 presentation stack**, instead of maintaining a separately recreated V2 UI.
 
-- `v2/index.html` links the finalized V1 presentation CSS files from `src/presentation/` in the same order as the old playable shell.
+- `v2/index.html` loads a copied snapshot of the finalized V1 presentation stack from `v2/v1-presentation/`, so V2 no longer depends on the old runtime presentation files at test time.
 - V2-only UI additions live in `v2/v1-ui-adapter.css`.
 - V2 card gestures live in `v2/v1-interactions.js`.
 - `v2/app.js` is the adapter that binds V2 state/rules into the V1 DOM/presentation language.
