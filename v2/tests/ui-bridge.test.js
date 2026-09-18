@@ -5,13 +5,13 @@ import { readFile } from 'node:fs/promises';
 const root = new URL('../', import.meta.url);
 const read = (path) => readFile(new URL(path, root), 'utf8');
 
-test('V2 shell is rebased on the final V1 presentation stylesheet stack', async () => {
+test('V2 shell uses the copied final V1 presentation stylesheet stack', async () => {
   const html = await read('index.html');
   for (const file of [
     'style.css','interaction-fix.css','hierarchy-polish.css','tabletop-history.css',
     'camera-perspective.css','round-resolution.css','effect-zone.css','final-results.css',
     'ui-layout-tuning.css','card-legality-visual.css','overlay-stack.css','hand-stability.css'
-  ]) assert.ok(html.includes(`../src/presentation/${file}`), `${file} missing`);
+  ]) assert.ok(html.includes(`./v1-presentation/${file}`), `${file} missing`);
   assert.ok(html.includes('./v1-ui-adapter.css'));
   assert.ok(!html.includes('./ui.css'));
 });
