@@ -1,0 +1,14 @@
+/* Card legality is communicated by play/reject behavior, not by dimming artwork. */
+.card.illegal,
+.card.illegal:hover,
+.card.illegal.selected {
+  filter: none !important;
+}
+
+/* Preserve the normal interaction lift/selection shadow without recoloring the artwork. */
+.card.illegal:hover {
+  filter: brightness(1.08) !important;
+}
+.card.illegal.selected {
+  filter: drop-shadow(0 18px 18px #000b) brightness(1.08) !important;
+}
