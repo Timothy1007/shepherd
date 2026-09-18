@@ -1,0 +1,24 @@
+/* Battlefield UI tuning for the animated arena background. */
+.resource-deck{display:none!important}
+.status-strip{left:24px!important;top:104px!important;transform:none!important;gap:34px!important;padding:8px 18px!important}
+.center-meta{left:50%!important;top:18%!important;transform:translateX(-50%)!important}
+.center-play{left:50%!important;top:52%!important;transform:translate(-50%,-50%) translate(46px,-72px)!important}
+.grace-choice .choice-card{display:block!important;width:112px!important;height:156px!important;margin:4px auto!important;overflow:visible!important}.grace-choice .choice-card img{display:block!important;width:112px!important;height:156px!important;max-width:112px!important;max-height:156px!important;object-fit:contain!important}
+.seat.current:after,.human-meta.current:after{content:none!important;display:none!important}.seat.current .name,.human-meta.current .name{position:relative!important}.seat.current .name:before,.human-meta.current .name:before{content:"▼";position:absolute;left:50%;bottom:calc(100% + 5px);transform:translateX(-50%);color:#f0cf86;font-size:13px;line-height:1;text-shadow:0 0 10px #d79042,0 2px 5px #000;pointer-events:none}
+
+/* All visible hand artwork uses the same subtle rounded card corners. */
+.hand .card{flex:0 0 106px!important;width:106px!important;height:auto!important;aspect-ratio:auto!important;overflow:visible!important;background:transparent!important;border:0!important;border-radius:7px!important;box-shadow:none!important;outline:0!important}
+.hand .card:before,.hand .card:after,.hand .card.legal:after,.hand .card.illegal:after{content:none!important;display:none!important;border:0!important;box-shadow:none!important}
+.hand .card-art{display:block!important;width:106px!important;height:auto!important;max-width:100%!important;max-height:none!important;aspect-ratio:auto!important;object-fit:contain!important;border-radius:7px!important;box-shadow:none!important;outline:0!important}
+.hand .card:hover{filter:none!important}.hand .card.selected{filter:drop-shadow(0 16px 14px #0008)!important}.hand .card.illegal,.hand .card.illegal:hover{filter:none!important}
+.drag-ghost{width:106px!important;height:auto!important;background:transparent!important;border:0!important;border-radius:7px!important;box-shadow:none!important}.drag-ghost:before,.drag-ghost:after{content:none!important}.drag-ghost .card-art{display:block!important;width:106px!important;height:auto!important;object-fit:contain!important;border-radius:7px!important;box-shadow:none!important}
+
+/* QA-visible P2/P3/P4 hands are rendered smaller than P1. Their corner radius therefore
+   scales with each card's actual rendered width instead of reusing P1's fixed 7px radius.
+   6.6% of card width preserves the same visual corner proportion as 7px on a 106px P1 card. */
+.qa-ai-card{overflow:visible!important;background:transparent!important;border-radius:6.6cqw!important;container-type:inline-size!important}
+.qa-ai-card img{display:block!important;border-radius:6.6cqw!important;clip-path:inset(0 round 6.6cqw)!important}
+
+@media(min-width:1500px){.hand .card{flex-basis:114px!important;width:114px!important}.hand .card-art,.drag-ghost .card-art{width:114px!important}.drag-ghost{width:114px!important}}
+
+@media(max-height:760px){.status-strip{top:98px!important;gap:28px!important}.center-meta{top:17%!important}.center-play{transform:translate(-50%,-50%) translate(40px,-58px)!important}.grace-choice .choice-card,.grace-choice .choice-card img{width:96px!important;height:134px!important;max-width:96px!important;max-height:134px!important}.hand .card{flex-basis:96px!important;width:96px!important}.hand .card-art,.drag-ghost .card-art{width:96px!important}.drag-ghost{width:96px!important}}
