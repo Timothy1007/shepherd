@@ -125,11 +125,19 @@ http://localhost:4174/v2/
 - `scripts/preview.js`：V2 本機 preview server。
 - `tests/`：V2 核心、playable、registry 與 UI bridge 契約／smoke tests。
 
+## 2026-09-18 presentation baseline reset
 
-## 2026-09-18 UI/UX interaction restore
+V2 browser presentation is now **rebased directly on the final V1 presentation stack**, instead of maintaining a separately recreated V2 UI.
 
-- Removed the manual **跳過** button. Normal-turn skipping is not a player option; Death-round no-legal-action skipping remains automatic per V2 rules.
-- Restored direct hand interaction: drag/pull/throw a card toward the center to play it.
-- Restored the center played pile showing the latest **3** played cards as a physical stack.
-- Restored press semantics: **short press = single-card enlarged preview**, **long press = full card detail**.
-- These changes stay entirely inside `v2/`; V1 presentation/runtime remains untouched.
+- `v2/index.html` links the finalized V1 presentation CSS files from `src/presentation/` in the same order as the old playable shell.
+- V2-only UI additions live in `v2/v1-ui-adapter.css`.
+- V2 card gestures live in `v2/v1-interactions.js`.
+- `v2/app.js` is the adapter that binds V2 state/rules into the V1 DOM/presentation language.
+- Obsolete standalone V2 UI files (`ui.css`, `legacy-ui-bridge.css`, `hand-stability-v2.js`, `drag-play-v2.js`) were removed to avoid two competing UI baselines.
+- No manual **跳過** button.
+- Restored V1 hand behavior: stable overlapping hover, short press enlarged preview, long press detail, drag/pull/throw to center.
+- Center played pile shows the latest **three** played cards and is clickable to inspect the full current-round played history.
+- The played pile is positioned lower on the battlefield center per the annotated playtest screenshot.
+- The floating left battle-info panel and right operation-hint panel are removed so they no longer cover player information.
+
+This is now the canonical V2 presentation direction: **V1 final UI first, V2 systems layered on top.**
