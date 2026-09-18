@@ -135,15 +135,24 @@ Do not silently treat these as final rules:
 6. Tune corruption threshold and Death depth from representative full-game data instead of intuition.
 7. Only after the V2 test build is stable, consider integration/deployment changes outside `v2/`.
 
+## Canonical V2 presentation baseline (2026-09-18)
 
-## Latest UI interaction contract (2026-09-18)
+Do **not** rebuild a separate V2 UI from scratch.
 
-The V2 browser build must preserve the final V1 interaction language while keeping V2 rules/runtime isolated:
+The browser build is now rebased on the finalized V1 presentation:
+- `v2/index.html` directly loads the final V1 stylesheet stack from `src/presentation/`.
+- V2-only styling goes in `v2/v1-ui-adapter.css`.
+- V2 gesture adaptation goes in `v2/v1-interactions.js`.
+- `v2/app.js` binds the V2 engine/state to that V1 shell.
+- Old standalone V2 UI bridge files were removed so there is only one presentation baseline.
 
-- no manual `跳過` button; Death-round forced no-legal-action skip is automatic;
-- hand cards can be dragged/pulled/thrown to the center to play;
-- center battlefield shows the latest three played cards as a stacked pile;
-- short press enlarges one card locally; long press opens full card details;
-- keep stable overlapped-hand hover and readable illegal-card art.
-
-Current implementation files: `v2/drag-play-v2.js`, `v2/hand-stability-v2.js`, `v2/legacy-ui-bridge.css`, `v2/app.js`, `v2/index.html`.
+Required interaction contract:
+- no manual skip button;
+- stable overlapped hand;
+- short press = enlarged single-card preview;
+- long press = full card detail;
+- drag / pull / throw card to center = play;
+- center pile displays latest 3 played cards;
+- clicking the center pile opens current-round played history;
+- keep player information unobstructed by floating panels;
+- V2 systems such as corruption, Judgment, missions, auction, Death and future character mechanics are layered onto this V1 presentation rather than replacing it.
