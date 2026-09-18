@@ -140,7 +140,7 @@ Do not silently treat these as final rules:
 Do **not** rebuild a separate V2 UI from scratch.
 
 The browser build is now rebased on the finalized V1 presentation:
-- `v2/index.html` directly loads the final V1 stylesheet stack from `src/presentation/`.
+- `v2/index.html` loads the copied final V1 stylesheet stack from `v2/v1-presentation/`.
 - V2-only styling goes in `v2/v1-ui-adapter.css`.
 - V2 gesture adaptation goes in `v2/v1-interactions.js`.
 - `v2/app.js` binds the V2 engine/state to that V1 shell.
