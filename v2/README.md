@@ -141,3 +141,10 @@ V2 browser presentation is now **rebased directly on the final V1 presentation s
 - The floating left battle-info panel and right operation-hint panel are removed so they no longer cover player information.
 
 This is now the canonical V2 presentation direction: **V1 final UI first, V2 systems layered on top.**
+
+
+### 2026-09-18 interaction correction
+- Center played pile moved slightly upward from the previous V2 placement.
+- Short press on the center pile opens the **latest played card detail**.
+- Long press (~480 ms) on the center pile opens the **current-round played history**.
+- Card detail and played-history overlays were reduced in size, and card artwork uses rounded clipping again.
