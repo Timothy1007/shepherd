@@ -160,6 +160,7 @@ function requestPlay(raw){
   commitPlay(c,{});
 }
 
+function openLastPlayedDetail(){const c=state?.played?.at(-1);if(c)openDetail(c);}
 function renderHistory(){
   el.historyGrid.innerHTML=state.played.map(c=>`<button class="played-history-card" data-history-card="${esc(c.id)}"><img src="${c.image||''}" alt=""><span>${esc(c.name||'已出牌')}</span></button>`).join('');
   el.historyGrid.querySelectorAll('[data-history-card]').forEach(b=>b.onclick=()=>{
@@ -225,8 +226,24 @@ window.addEventListener('shepherd:v2-card-preview',e=>{
 window.addEventListener('shepherd:v2-card-detail',e=>{const c=cardById(e.detail?.cardId);if(c)openDetail(c);});
 window.addEventListener('shepherd:v2-play-card',e=>{const c=cardById(e.detail?.cardId);if(c)requestPlay(c);});
 
-el.pile.addEventListener('click',renderHistory);
-el.pile.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();renderHistory();}});
+let pilePressTimer=null,pileLongPressed=false;
+el.pile.addEventListener('pointerdown',e=>{
+  if(e.button!==undefined&&e.button!==0)return;
+  pileLongPressed=false;
+  clearTimeout(pilePressTimer);
+  pilePressTimer=setTimeout(()=>{pileLongPressed=true;renderHistory();},480);
+});
+el.pile.addEventListener('pointerup',()=>{
+  clearTimeout(pilePressTimer);
+  if(pileLongPressed){pileLongPressed=false;return;}
+  openLastPlayedDetail();
+});
+el.pile.addEventListener('pointercancel',()=>{clearTimeout(pilePressTimer);pileLongPressed=false;});
+el.pile.addEventListener('pointerleave',()=>{clearTimeout(pilePressTimer);});
+el.pile.addEventListener('keydown',e=>{
+  if(e.key==='Enter'){e.preventDefault();openLastPlayedDetail();}
+  if(e.key===' '){e.preventDefault();renderHistory();}
+});
 document.querySelectorAll('[data-close="detail"]').forEach(x=>x.addEventListener('click',closeDetail));
 document.querySelectorAll('[data-close="history"]').forEach(x=>x.addEventListener('click',()=>el.historyOverlay.hidden=true));
 $('#restart').onclick=setupModal;
