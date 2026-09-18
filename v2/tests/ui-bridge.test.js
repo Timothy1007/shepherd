@@ -28,7 +28,7 @@ test('V2 shell keeps V1 table/hand DOM and removes floating info panels', async 
 
 test('adapter puts the center pile on the lower battlefield center and preserves V1 hand sizing', async () => {
   const css = await read('v1-ui-adapter.css');
-  assert.match(css, /translate\(-50%,-50%\) translate\(35px,52px\)/);
+  assert.match(css, /translate\(-50%,-50%\) translate\(35px,24px\)/);
   assert.match(css, /\.tabletop-pile/);
   assert.match(css, /width:152px!important/);
   assert.match(css, /\.hand \.card/);
@@ -47,7 +47,17 @@ test('V1 interaction port supports short press, long press, drag and throw', asy
 test('V2 app renders latest three played cards and makes pile history reachable', async () => {
   const js = await read('app.js');
   assert.match(js, /state\.played\.slice\(-3\)/);
-  assert.match(js, /el\.pile\.addEventListener\('click',renderHistory\)/);
+  assert.match(js, /openLastPlayedDetail/);
+  assert.match(js, /pilePressTimer=setTimeout\(\(\)=>\{pileLongPressed=true;renderHistory\(\);\},480\)/);
   assert.match(js, /played-history-card/);
   assert.match(js, /shepherd:v2-card-detail/);
+});
+
+
+test('detail and history overlays stay compact and card artwork remains rounded', async () => {
+  const css = await read('v1-ui-adapter.css');
+  assert.match(css, /width:min\(620px,82vw\)!important/);
+  assert.match(css, /grid-template-columns:190px minmax\(0,1fr\)/);
+  assert.match(css, /clip-path:inset\(0 round 9px\)!important/);
+  assert.match(css, /width:min\(680px,84vw\)!important/);
 });
