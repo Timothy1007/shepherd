@@ -25,3 +25,6 @@
 @media(min-width:1500px){.hand .card{flex-basis:114px!important;width:114px!important}.hand .card-art,.drag-ghost .card-art{width:114px!important}.drag-ghost{width:114px!important}}
 
 @media(max-height:760px){.resource-status-current{top:31%!important}.resource-status-deck{right:calc(min(290px,24vw) + 120px)!important;bottom:164px!important}.human-meta{left:205px!important;bottom:150px!important}.center-play{transform:translate(-50%,-50%) translate(40px,-58px)!important}.grace-choice .choice-card,.grace-choice .choice-card img{width:96px!important;height:134px!important;max-width:96px!important;max-height:134px!important}.hand .card{flex-basis:96px!important;width:96px!important}.hand .card-art,.drag-ghost .card-art{width:96px!important}.drag-ghost{width:96px!important}}
+
+
+#boot-error{position:fixed;z-index:50000;left:50%;bottom:24px;max-width:min(720px,calc(100vw - 32px));transform:translateX(-50%);padding:12px 16px;border:1px solid #db8177;border-radius:12px;background:#2a100fe8;color:#fff1e8;font:700 14px/1.45 system-ui;box-shadow:0 12px 32px #000a}
