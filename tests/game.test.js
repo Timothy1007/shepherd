@@ -253,3 +253,35 @@ test('card location invariant is preserved through actions', () => {
     assert.ok(locations.every((id) => state.cardRegistry[id]));
   }
 });
+
+function makePresentationElement() {
+  return {
+    textContent: '', innerHTML: '', hidden: false, className: '', dataset: {}, style: {},
+    classList: { add() {}, remove() {}, toggle() {}, contains() { return false; } },
+    addEventListener() {}, append() {}, appendChild() {}, replaceChildren() {}, remove() {},
+    querySelector() { return makePresentationElement(); }, querySelectorAll() { return []; },
+    setAttribute() {}, getBoundingClientRect() { return { left: 0, top: 0, width: 100, height: 100 }; },
+    animate() { return { finished: Promise.resolve() }; },
+  };
+}
+
+test('V1 presentation module starts and renders an initial dealt table', async () => {
+  const elements = new Map();
+  const elementFor = (selector) => {
+    if (!elements.has(selector)) elements.set(selector, makePresentationElement());
+    return elements.get(selector);
+  };
+  const previous = { document: globalThis.document, window: globalThis.window, CSS: globalThis.CSS, setTimeout: globalThis.setTimeout, clearTimeout: globalThis.clearTimeout };
+  globalThis.document = { querySelector: elementFor, querySelectorAll: () => [], createElement: () => makePresentationElement(), addEventListener() {} };
+  globalThis.window = { addEventListener() {} };
+  globalThis.CSS = { escape: (value) => String(value) };
+  globalThis.setTimeout = () => 0;
+  globalThis.clearTimeout = () => {};
+  try {
+    await import(`../src/presentation/app.js?startup-smoke=${Date.now()}`);
+    assert.equal(elements.get('#deck-remaining-display').textContent, '84');
+    assert.match(elements.get('#seat-human').innerHTML, /牧羊人/);
+  } finally {
+    Object.assign(globalThis, previous);
+  }
+});
