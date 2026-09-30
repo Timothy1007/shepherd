@@ -164,3 +164,20 @@ Required interaction contract:
 - Keep detail/history overlays compact; do not regress to oversized full-screen-like dialogs.
 - Card artwork in detail/history must retain rounded corners.
 - Current center pile adapter offset is 35px right / 24px down from the V1 center-play anchor.
+
+
+## Active development baseline — V1 first (2026-09-30)
+
+Owner decision: stop treating the current all-at-once V2 browser build as the primary playable development target.
+
+From now on:
+- **Root V1 is the active playable baseline and UI/UX source of truth.**
+- Keep `v2/` intact as a design/rules/reference implementation; do not delete it.
+- Do not bulk-port V2 systems into V1.
+- Add V2 changes **one system at a time** onto V1, then playtest and fix regressions before the next system.
+- Preserve V1 interaction quality first: hand layout/hover, short press, long press detail, drag/fling play, center played pile/history, overlays, camera, player-info placement and animation.
+- Before any V2 migration, verify the untouched V1 baseline locally with root tests/build/preview.
+- Root browser flow is: `npm test` → `npm run build` → `npm run preview` → open `http://localhost:4173`.
+- On PowerShell systems where `npm.ps1` is blocked, use `npm.cmd`.
+
+Migration order is intentionally incremental and must be agreed before each step. A low-impact candidate such as corruption can be introduced first, but no order is frozen until the owner confirms after baseline playtest.
