@@ -76,6 +76,21 @@ test('失序 I reverses only the resource dominance relation', () => {
   assert.equal(state.currentResource.number, 2);
 });
 
+test('失序 II also reverses same-resource number comparison', () => {
+  let state = createGame({ seed: 'disorder-two-effect' });
+  const player = putHand(state, 0, ['sheep-4']);
+  state.currentPlayer = player.playerId;
+  state.currentResource = { type: 'sheep', number: 6, instanceId: 'fixture' };
+  state.activeJudgments = { 秩序: 'disorder-1' };
+  assert.equal(getNormalActions(state).some((action) => action.type === 'playResource'), false);
+  state.activeJudgments = { 秩序: 'disorder-2' };
+  const action = getNormalActions(state).find((candidate) => candidate.type === 'playResource');
+  assert.ok(action);
+  state = act(state, action);
+  assert.equal(state.currentResource.type, 'sheep');
+  assert.equal(state.currentResource.number, 4);
+});
+
 test('judgment disorder QA starts with a visible active judgment and a legal reversed counter', () => {
   const state = createGame({ seed: 'judgment-disorder-preview' });
   assert.equal(state.currentPlayer, 'player-1');
@@ -87,6 +102,14 @@ test('judgment disorder QA starts with a visible active judgment and a legal rev
   assert.ok(getNormalActions(state).some((action) => action.instanceId === foodTwo.instanceId && action.type === 'playResource'));
   assert.equal(new Set(listCardLocations(state)).size, Object.keys(state.cardRegistry).length);
   assert.equal(listCardLocations(state).length, Object.keys(state.cardRegistry).length);
+});
+
+test('judgment disorder II QA guarantees a lower same-type resource as its proof card', () => {
+  const state = createGame({ seed: 'judgment-disorder-2-preview' });
+  assert.equal(state.activeJudgments['秩序'], 'disorder-2');
+  const sheepFour = state.players[0].hand.find((card) => card.definitionId === 'sheep-4');
+  assert.ok(sheepFour);
+  assert.ok(getNormalActions(state).some((action) => action.instanceId === sheepFour.instanceId && action.type === 'playResource'));
 });
 
 test('new game deals seven cards to every player, guarantees alpha miracles to human, and preserves every registered card', () => {
