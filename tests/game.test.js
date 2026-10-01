@@ -125,15 +125,18 @@ test('傾覆 I caps an existing fire-loss effect at three, while 傾覆 II fixes
   }
 });
 
-test('傾覆 QA starts at tier I and force-upgrades to tier II at the beginning of round two', () => {
+test('傾覆 QA supplies distinguishable tier-I and tier-II manual test cards', () => {
   let state = createGame({ seed: 'judgment-overturn-preview' });
   assert.equal(state.round, 1);
   assert.equal(state.activeJudgments['異變'], 'overturn-1');
-  let wind = state.players[0].hand.find((card) => card.definitionId === 'miracle-05');
-  assert.ok(wind);
-  let action = getNormalActions(state).find((candidate) => candidate.instanceId === wind.instanceId);
-  state = act(state, { ...action, choice: 'fire' });
-  assert.equal(state.players[0].fire, 3);
+  const treasure = state.players[0].hand.find((card) => card.definitionId === 'disaster-08');
+  const rebirth = state.players[0].hand.find((card) => card.definitionId === 'miracle-04');
+  assert.ok(treasure);
+  assert.ok(rebirth);
+  assert.equal(state.players[1].fire, 25);
+  let action = getNormalActions(state).find((candidate) => candidate.instanceId === treasure.instanceId && candidate.targetPlayerId === 'player-2');
+  state = act(state, action);
+  assert.equal(state.players[1].fire, 22, 'tier I must visibly cap a 10-fire loss at 3');
 
   state.players.forEach((player) => { player.hasNormalAction = false; });
   const roundTwo = settleRound(state);
@@ -143,13 +146,78 @@ test('傾覆 QA starts at tier I and force-upgrades to tier II at the beginning 
   assert.equal(state.corruption, 0);
   assert.equal(state.activeJudgments['異變'], 'overturn-2');
   assert.equal(state.lastJudgment.replacedJudgmentId, 'overturn-1');
-  wind = state.players[0].hand.find((card) => card.definitionId === 'miracle-05');
+  const wind = state.players[0].hand.find((card) => card.definitionId === 'miracle-05');
+  const ashes = state.players[0].hand.find((card) => card.definitionId === 'disaster-07');
+  const ark = state.players[0].hand.find((card) => card.definitionId === 'disaster-01');
   assert.ok(wind);
+  assert.ok(ashes);
+  assert.ok(ark);
+  const discardIds = state.players[0].hand.filter((card) => card.instanceId !== wind.instanceId).slice(0, 3).map((card) => card.instanceId);
   action = getNormalActions(state).find((candidate) => candidate.instanceId === wind.instanceId);
-  state = act(state, { ...action, choice: 'fire' });
-  assert.equal(state.players[0].fire, 4);
+  state = act(state, { ...action, choice: 'cycle', discardIds });
+  assert.equal(discardIds.filter((id) => state.discardPile.some((card) => card.instanceId === id)).length, 1, 'tier II only permits one discard/draw change');
   assert.equal(new Set(listCardLocations(state)).size, Object.keys(state.cardRegistry).length);
   assert.equal(listCardLocations(state).length, Object.keys(state.cardRegistry).length);
+});
+
+test('傾覆 II limits multi-card and multi-fire effects across every implemented V1 resolver', () => {
+  for (const [cardId, expectedHandLoss] of [['disaster-01', 1]]) {
+    let state = createGame({ seed: `overturn-${cardId}` });
+    const player = putHand(state, 0, [cardId, 'sheep-1', 'food-1', 'money-1']);
+    state.activeJudgments = { 異變: 'overturn-2' };
+    const before = player.hand.length;
+    const action = getNormalActions(state).find((candidate) => candidate.instanceId === player.hand.find((card) => card.definitionId === cardId).instanceId);
+    state = act(state, action);
+    assert.equal(before - state.players[0].hand.length, 1 + expectedHandLoss, `${cardId} should only discard one additional hand card`);
+  }
+  let ashes = createGame({ seed: 'overturn-ashes' });
+  const ashesPlayer = putHand(ashes, 0, ['disaster-07']);
+  ashes.players.forEach((player) => { player.fire = 3; });
+  ashes.activeJudgments = { 異變: 'overturn-2' };
+  ashes = act(ashes, getNormalActions(ashes).find((candidate) => candidate.instanceId === ashesPlayer.hand[0].instanceId));
+  assert.deepEqual(ashes.players.map((player) => player.fire), [2, 2, 2, 2]);
+});
+
+test('傾覆 limits rebirth, bird exchange, rain cover, and victory fire gains', () => {
+  let rebirth = createGame({ seed: 'overturn-rebirth' });
+  const rebirthPlayer = putHand(rebirth, 0, ['miracle-04', 'sheep-1', 'food-1', 'money-1', 'sheep-2', 'food-2', 'money-2']);
+  const originalHand = rebirthPlayer.hand.slice(1).map((card) => card.instanceId);
+  rebirth.activeJudgments = { 異變: 'overturn-1' };
+  rebirth = act(rebirth, getNormalActions(rebirth).find((candidate) => candidate.instanceId === rebirthPlayer.hand[0].instanceId));
+  assert.equal(originalHand.filter((id) => rebirth.discardPile.some((card) => card.instanceId === id)).length, 3);
+
+  for (const [judgmentId, expected] of [['overturn-1', 3], ['overturn-2', 1]]) {
+    let bird = createGame({ seed: `overturn-bird-${judgmentId}` });
+    const birdPlayer = putHand(bird, 0, ['miracle-10', 'sheep-1', 'food-1']);
+    putHand(bird, 1, ['money-1']);
+    bird.currentPlayer = birdPlayer.playerId;
+    bird.activeJudgments = { 異變: judgmentId };
+    const birdAction = getNormalActions(bird).find((candidate) => candidate.instanceId === birdPlayer.hand.find((card) => card.definitionId === 'miracle-10').instanceId && candidate.targetPlayerId === 'player-2');
+    bird = act(bird, birdAction);
+    assert.equal(bird.players[0].fire, expected);
+    assert.equal(bird.players[1].fire, expected);
+
+    let rain = createGame({ seed: `overturn-rain-${judgmentId}` });
+    const rainPlayer = putHand(rain, 0, ['miracle-22']);
+    const plague = take(rain, 'disaster-09');
+    rain.players[1].effects.push({ ...plague, effectOwnerPlayerId: 'player-2' });
+    rain.activeJudgments = { 異變: judgmentId };
+    const rainAction = getNormalActions(rain).find((candidate) => candidate.instanceId === rainPlayer.hand[0].instanceId && candidate.targetPlayerId === 'player-2');
+    rain = act(rain, rainAction);
+    assert.equal(rain.players[1].fire, judgmentId === 'overturn-1' ? 2 : 1);
+
+    let victory = createGame({ seed: `overturn-victory-${judgmentId}` });
+    const victoryPlayer = putHand(victory, 0, ['miracle-09']);
+    victory.activeJudgments = { 異變: judgmentId };
+    victory.currentApostle = 'player-1';
+    const victoryAction = getNormalActions(victory).find((candidate) => candidate.instanceId === victoryPlayer.hand[0].instanceId && candidate.targetPlayerId === 'player-2');
+    victory = act(victory, victoryAction);
+    victory.players.forEach((player) => { player.hasNormalAction = false; });
+    victory = settleRound(victory).state;
+    assert.equal(victory.lastRoundResult.reward, 0);
+    assert.equal(victory.players[0].fire, expected);
+    assert.equal(victory.players[1].fire, expected);
+  }
 });
 
 test('new game deals seven cards to every player, guarantees alpha miracles to human, and preserves every registered card', () => {
