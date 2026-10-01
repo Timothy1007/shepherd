@@ -21,6 +21,24 @@ export function getCardCorruption(definition){
   if(definition.kind==='disaster')return DISASTER_CORRUPTION[definition.name]??0;
   return 0;
 }
+export const JUDGMENT_DEFINITIONS=Object.freeze([
+  Object.freeze({id:'disorder-1',name:'失序 I',domain:'秩序',tier:1,upgradesTo:'disorder-2',text:'物資克制關係顛倒。'}),
+  Object.freeze({id:'disorder-2',name:'失序 II',domain:'秩序',tier:2,text:'克制關係與數字大小關係皆顛倒。'}),
+  Object.freeze({id:'blindness-1',name:'蒙蔽 I',domain:'資訊',tier:1,upgradesTo:'blindness-2',text:'神蹟與災難保持覆蓋；選擇牌型後隨機打出。'}),
+  Object.freeze({id:'blindness-2',name:'蒙蔽 II',domain:'資訊',tier:2,text:'神蹟與災難統一視為未知功能牌，隨機打出。'}),
+  Object.freeze({id:'sinking-1',name:'沉淪 I',domain:'災變',tier:1,text:'單體災難對原目標生效時，左右玩家也受同效果。'}),
+  Object.freeze({id:'war-1',name:'爭戰 I',domain:'戰局',tier:1,upgradesTo:'war-2',text:'每名玩家每輪1次，可棄1抽1。'}),
+  Object.freeze({id:'war-2',name:'爭戰 II',domain:'戰局',tier:2,text:'每名玩家每輪1次，可棄至多2張並抽等量。'}),
+  Object.freeze({id:'overturn-1',name:'傾覆 I',domain:'異變',tier:1,upgradesTo:'overturn-2',text:'效果區造成的單次手牌／火種變動絕對值最高為3。'}),
+  Object.freeze({id:'overturn-2',name:'傾覆 II',domain:'異變',tier:2,text:'效果區造成的單次手牌／火種變動固定為1。'}),
+  Object.freeze({id:'division-1',name:'分裂 I',domain:'資源',tier:1,upgradesTo:'division-2',text:'有人一次獲得5火以上時，火種最低者+2；使徒 Jackpot 不觸發。'}),
+  Object.freeze({id:'division-2',name:'分裂 II',domain:'資源',tier:2,text:'同條件改為火種最低者+3。'}),
+  Object.freeze({id:'revelation-1',name:'揭露 I',domain:'資訊',tier:1,upgradesTo:'revelation-2',text:'正常牌加入手牌前先公開。'}),
+  Object.freeze({id:'revelation-2',name:'揭露 II',domain:'資訊',tier:2,text:'所有玩家手牌保持公開。'}),
+]);
+export const BASE_JUDGMENT_IDS=Object.freeze(['disorder-1','blindness-1','sinking-1','war-1','overturn-1','division-1','revelation-1']);
+const JUDGMENT_BY_ID=new Map(JUDGMENT_DEFINITIONS.map(judgment=>[judgment.id,judgment]));
+export function getJudgmentDefinition(id){const judgment=JUDGMENT_BY_ID.get(id);if(!judgment)throw new Error(`Unknown judgment: ${id}`);return judgment;}
 const RESOURCE_DEFINITIONS=['sheep','food','money','grace'].flatMap(type=>Array.from({length:9},(_,index)=>Object.freeze({definitionId:`${type}-${index+1}`,kind:'resource',type,number:index+1,name:type==='grace'?`恩典 ${index+1}`:undefined,image:`assets/cards/${type}-${index+1}.png`,copies:type==='grace'?1:3})));
 export const MIRACLE_DEFINITIONS=Object.freeze([
 Object.freeze({definitionId:'miracle-01',kind:'miracle',name:'回轉歸向',tags:Object.freeze(['新生']),text:'改變出牌方向，然後你抽1張牌',image:'assets/miracles/miracle-01.png',copies:1}),
