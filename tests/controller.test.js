@@ -9,6 +9,13 @@ test('empty action is explicitly rejected', () => {
   assert.equal(result.ok, false);
 });
 
+test('judgment QA records its seeded opening play in the battle log', () => {
+  const controller = new GameController({ setTimer() { return 1; }, clearTimer() {}, delay: () => 999999 });
+  controller.start('judgment-disorder-preview');
+  assert.ok(controller.aiLog.some((entry) => entry.includes('審判〈失序 I〉降臨')));
+  assert.ok(controller.aiLog.some((entry) => entry.includes('群羊 6')));
+});
+
 test('expired action token cannot change state', () => {
   const controller = new GameController();
   controller.start(2);
