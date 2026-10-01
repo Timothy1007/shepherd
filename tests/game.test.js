@@ -112,6 +112,46 @@ test('judgment disorder II QA guarantees a lower same-type resource as its proof
   assert.ok(getNormalActions(state).some((action) => action.instanceId === sheepFour.instanceId && action.type === 'playResource'));
 });
 
+test('傾覆 I caps an existing fire-loss effect at three, while 傾覆 II fixes it at one', () => {
+  for (const [judgmentId, expectedLoss] of [['overturn-1', 3], ['overturn-2', 1]]) {
+    let state = createGame({ seed: `overturn-${judgmentId}` });
+    const player = putHand(state, 0, ['disaster-08']);
+    state.players[1].fire = 30;
+    state.activeJudgments = { 異變: judgmentId };
+    const action = getNormalActions(state).find((candidate) => candidate.type === 'playMiracle' && candidate.targetPlayerId === 'player-2');
+    assert.ok(action);
+    state = act(state, action);
+    assert.equal(state.players[1].fire, 30 - expectedLoss);
+  }
+});
+
+test('傾覆 QA starts at tier I and force-upgrades to tier II at the beginning of round two', () => {
+  let state = createGame({ seed: 'judgment-overturn-preview' });
+  assert.equal(state.round, 1);
+  assert.equal(state.activeJudgments['異變'], 'overturn-1');
+  let wind = state.players[0].hand.find((card) => card.definitionId === 'miracle-05');
+  assert.ok(wind);
+  let action = getNormalActions(state).find((candidate) => candidate.instanceId === wind.instanceId);
+  state = act(state, { ...action, choice: 'fire' });
+  assert.equal(state.players[0].fire, 3);
+
+  state.players.forEach((player) => { player.hasNormalAction = false; });
+  const roundTwo = settleRound(state);
+  assert.equal(roundTwo.ok, true, roundTwo.reason);
+  state = roundTwo.state;
+  assert.equal(state.round, 2);
+  assert.equal(state.corruption, 0);
+  assert.equal(state.activeJudgments['異變'], 'overturn-2');
+  assert.equal(state.lastJudgment.replacedJudgmentId, 'overturn-1');
+  wind = state.players[0].hand.find((card) => card.definitionId === 'miracle-05');
+  assert.ok(wind);
+  action = getNormalActions(state).find((candidate) => candidate.instanceId === wind.instanceId);
+  state = act(state, { ...action, choice: 'fire' });
+  assert.equal(state.players[0].fire, 4);
+  assert.equal(new Set(listCardLocations(state)).size, Object.keys(state.cardRegistry).length);
+  assert.equal(listCardLocations(state).length, Object.keys(state.cardRegistry).length);
+});
+
 test('new game deals seven cards to every player, guarantees alpha miracles to human, and preserves every registered card', () => {
   const state = createGame({ seed: 1 });
   const expectedTotal = Object.keys(state.cardRegistry).length;

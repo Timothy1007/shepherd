@@ -23,6 +23,13 @@ test('judgment II QA records its inverted-number proof card in the battle log', 
   assert.ok(controller.aiLog.some((entry) => entry.includes('群羊 4')));
 });
 
+test('傾覆 QA records its tier-I-to-tier-II test instructions', () => {
+  const controller = new GameController({ setTimer() { return 1; }, clearTimer() {}, delay: () => 999999 });
+  controller.start('judgment-overturn-preview');
+  assert.ok(controller.aiLog.some((entry) => entry.includes('傾覆 I')));
+  assert.ok(controller.aiLog.some((entry) => entry.includes('第二輪固定升為〈傾覆 II〉')));
+});
+
 test('expired action token cannot change state', () => {
   const controller = new GameController();
   controller.start(2);
