@@ -62,6 +62,33 @@ test('new judgment in the same domain replaces the previous active judgment', ()
   assert.equal(state.judgmentHistory.length, 2);
 });
 
+test('失序 I reverses only the resource dominance relation', () => {
+  let state = createGame({ seed: 'disorder-effect' });
+  const player = putHand(state, 0, ['food-2']);
+  state.currentPlayer = player.playerId;
+  state.currentResource = { type: 'sheep', number: 6, instanceId: 'fixture' };
+  assert.equal(getNormalActions(state).some((action) => action.type === 'playResource'), false);
+  state.activeJudgments = { 秩序: 'disorder-1' };
+  const action = getNormalActions(state).find((candidate) => candidate.type === 'playResource');
+  assert.ok(action);
+  state = act(state, action);
+  assert.equal(state.currentResource.type, 'food');
+  assert.equal(state.currentResource.number, 2);
+});
+
+test('judgment disorder QA starts with a visible active judgment and a legal reversed counter', () => {
+  const state = createGame({ seed: 'judgment-disorder-preview' });
+  assert.equal(state.currentPlayer, 'player-1');
+  assert.equal(state.activeJudgments['秩序'], 'disorder-1');
+  assert.equal(state.currentResource.type, 'sheep');
+  assert.equal(state.currentResource.number, 6);
+  const foodTwo = state.players[0].hand.find((card) => card.definitionId === 'food-2');
+  assert.ok(foodTwo);
+  assert.ok(getNormalActions(state).some((action) => action.instanceId === foodTwo.instanceId && action.type === 'playResource'));
+  assert.equal(new Set(listCardLocations(state)).size, Object.keys(state.cardRegistry).length);
+  assert.equal(listCardLocations(state).length, Object.keys(state.cardRegistry).length);
+});
+
 test('new game deals seven cards to every player, guarantees alpha miracles to human, and preserves every registered card', () => {
   const state = createGame({ seed: 1 });
   const expectedTotal = Object.keys(state.cardRegistry).length;
