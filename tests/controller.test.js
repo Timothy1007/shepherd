@@ -16,6 +16,13 @@ test('judgment QA records its seeded opening play in the battle log', () => {
   assert.ok(controller.aiLog.some((entry) => entry.includes('群羊 6')));
 });
 
+test('judgment II QA records its inverted-number proof card in the battle log', () => {
+  const controller = new GameController({ setTimer() { return 1; }, clearTimer() {}, delay: () => 999999 });
+  controller.start('judgment-disorder-2-preview');
+  assert.ok(controller.aiLog.some((entry) => entry.includes('失序 II')));
+  assert.ok(controller.aiLog.some((entry) => entry.includes('群羊 4')));
+});
+
 test('expired action token cannot change state', () => {
   const controller = new GameController();
   controller.start(2);
