@@ -99,8 +99,14 @@ if (tableCard && centerPlay && status && roundDisplay) {
     if (round !== null) lastRound = round;
 
     if (playedCount !== null) {
+      // A restart or QA fixture can begin with an already-played card. Resetting the
+      // visual cache first lets that opening card go through the same pile path as a
+      // normal play instead of leaving a non-interactive source card on the table.
+      if (playedCount < lastPlayedCount) {
+        clearPile();
+        lastPlayedCount = 0;
+      }
       if (playedCount > lastPlayedCount) captureCurrentCard();
-      if (playedCount < lastPlayedCount && playedCount === 0) clearPile();
       lastPlayedCount = playedCount;
     }
 
@@ -115,7 +121,9 @@ if (tableCard && centerPlay && status && roundDisplay) {
   }
 
   lastRound = readRound();
-  lastPlayedCount = readPlayedCount() ?? 0;
+  // Begin at zero even if a QA fixture has an opening card in playedArea. The first
+  // tick will capture it into the recent-three pile and restore short/long press.
+  lastPlayedCount = 0;
   window.setTimeout(tick, 120);
   window.addEventListener('beforeunload', () => { disposed = true; }, { once: true });
 }
