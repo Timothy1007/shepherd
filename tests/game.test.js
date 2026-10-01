@@ -160,6 +160,35 @@ test('傾覆 QA supplies distinguishable tier-I and tier-II manual test cards', 
   assert.equal(listCardLocations(state).length, Object.keys(state.cardRegistry).length);
 });
 
+test('分裂 QA makes tier I exclude the fire gainer and tier II permit the fire gainer', () => {
+  let state = createGame({ seed: 'judgment-division-preview' });
+  assert.equal(state.round, 1);
+  assert.equal(state.activeJudgments['資源'], 'division-1');
+  assert.deepEqual(state.players.map((player) => player.fire), [0, 1, 1, 4]);
+  let action = getNormalActions(state).find((candidate) => candidate.type === 'divisionQaGain');
+  assert.ok(action);
+  state = act(state, action);
+  assert.equal(state.players[0].fire, 5);
+  assert.deepEqual(getNormalActions(state).map((candidate) => candidate.recipientPlayerId), ['player-2', 'player-3']);
+  action = getNormalActions(state).find((candidate) => candidate.recipientPlayerId === 'player-2');
+  state = act(state, action);
+  assert.equal(state.players[1].fire, 3);
+
+  state.players.forEach((player) => { player.hasNormalAction = false; });
+  const roundTwo = settleRound(state);
+  assert.equal(roundTwo.ok, true, roundTwo.reason);
+  state = roundTwo.state;
+  assert.equal(state.round, 2);
+  assert.equal(state.activeJudgments['資源'], 'division-2');
+  assert.deepEqual(state.players.map((player) => player.fire), [0, 5, 5, 5]);
+  action = getNormalActions(state).find((candidate) => candidate.type === 'divisionQaGain');
+  state = act(state, action);
+  assert.deepEqual(getNormalActions(state).map((candidate) => candidate.recipientPlayerId), ['player-1', 'player-2', 'player-3', 'player-4']);
+  action = getNormalActions(state).find((candidate) => candidate.recipientPlayerId === 'player-1');
+  state = act(state, action);
+  assert.equal(state.players[0].fire, 8, 'tier II permits the original fire gainer to receive the extra 3 fire');
+});
+
 test('傾覆 II limits multi-card and multi-fire effects across every implemented V1 resolver', () => {
   for (const [cardId, expectedHandLoss] of [['disaster-01', 1]]) {
     let state = createGame({ seed: `overturn-${cardId}` });
