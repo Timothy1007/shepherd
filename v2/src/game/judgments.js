@@ -78,7 +78,7 @@ export const JUDGMENTS = Object.freeze({
     domain: JUDGMENT_DOMAINS.RESOURCE,
     tier: 1,
     upgradesTo: 'division-2',
-    text: '本場每當一名玩家於行動或效果結算中一次獲得5點及以上火種時，當前火種最少的玩家獲得2點火種。若有多人並列最少，由該次獲得火種的玩家選擇其中1名。輪末使徒 Jackpot 不觸發此效果。',
+    text: '本場每當一名玩家於行動或效果結算中一次獲得5點及以上火種時，除該玩家外，火種數量最少的一名玩家獲得2點火種。若有多名玩家並列最少，由該次獲得火種的玩家選擇其中一名。輪末使徒依成功打出物資牌張數所獲得的火種，不會觸發此效果。',
   },
   DIVISION_II: {
     id: 'division-2',
@@ -86,7 +86,7 @@ export const JUDGMENTS = Object.freeze({
     domain: JUDGMENT_DOMAINS.RESOURCE,
     tier: 2,
     replaces: 'division-1',
-    text: '在【分裂 I】基礎上，火種最少的玩家改為獲得3點火種。若該次獲得5點及以上火種的玩家自己就是火種最少者，則改由火種次少的玩家獲得；若多人並列，仍由該玩家選擇其中1名。',
+    text: '本場每當一名玩家於行動或效果結算中一次獲得5點及以上火種時，火種數量最少的一名玩家獲得3點火種。該次獲得火種的玩家可以成為額外獲得者。若有多名玩家並列最少，由該次獲得火種的玩家選擇其中一名。輪末使徒依成功打出物資牌張數所獲得的火種，不會觸發此效果。',
   },
   REVELATION_I: {
     id: 'revelation-1',

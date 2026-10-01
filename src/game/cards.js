@@ -31,8 +31,8 @@ export const JUDGMENT_DEFINITIONS=Object.freeze([
   Object.freeze({id:'war-2',name:'爭戰 II',domain:'戰局',tier:2,text:'每名玩家每輪1次，可棄至多2張並抽等量。'}),
   Object.freeze({id:'overturn-1',name:'傾覆 I',domain:'異變',tier:1,upgradesTo:'overturn-2',text:'效果區造成的單次手牌／火種變動絕對值最高為3。'}),
   Object.freeze({id:'overturn-2',name:'傾覆 II',domain:'異變',tier:2,text:'效果區造成的單次手牌／火種變動固定為1。'}),
-  Object.freeze({id:'division-1',name:'分裂 I',domain:'資源',tier:1,upgradesTo:'division-2',text:'有人一次獲得5火以上時，火種最低者+2；使徒 Jackpot 不觸發。'}),
-  Object.freeze({id:'division-2',name:'分裂 II',domain:'資源',tier:2,text:'同條件改為火種最低者+3。'}),
+  Object.freeze({id:'division-1',name:'分裂 I',domain:'資源',tier:1,upgradesTo:'division-2',text:'當任一玩家因行動或效果，單次獲得5點或以上火種時，除該玩家外，火種數量最少的一名玩家獲得2點火種。若有多名玩家並列最少，由該次獲得火種的玩家選擇其中一名。輪末使徒依成功打出物資牌張數所獲得的火種，不會觸發此效果。'}),
+  Object.freeze({id:'division-2',name:'分裂 II',domain:'資源',tier:2,text:'當任一玩家因行動或效果，單次獲得5點或以上火種時，火種數量最少的一名玩家獲得3點火種。該次獲得火種的玩家可以成為額外獲得者。若有多名玩家並列最少，由該次獲得火種的玩家選擇其中一名。輪末使徒依成功打出物資牌張數所獲得的火種，不會觸發此效果。'}),
   Object.freeze({id:'revelation-1',name:'揭露 I',domain:'資訊',tier:1,upgradesTo:'revelation-2',text:'正常牌加入手牌前先公開。'}),
   Object.freeze({id:'revelation-2',name:'揭露 II',domain:'資訊',tier:2,text:'所有玩家手牌保持公開。'}),
 ]);
