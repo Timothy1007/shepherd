@@ -165,6 +165,9 @@ test('分裂 QA makes tier I exclude the fire gainer and tier II permit the fire
   assert.equal(state.round, 1);
   assert.equal(state.activeJudgments['資源'], 'division-1');
   assert.deepEqual(state.players.map((player) => player.fire), [0, 1, 1, 4]);
+  assert.deepEqual(state.players[0].hand.map((card) => card.definitionId).sort(), ['miracle-05', 'miracle-09', 'miracle-10', 'miracle-22'].sort());
+  assert.equal(state.players[1].effects.some((card) => card.definitionId === 'disaster-09'), true, '雨幕之下 must have a prepared removable effect');
+  assert.equal(state.players[1].hand.length, 1, '恰如飛鳥經過 must have a prepared exchange target');
   let action = getNormalActions(state).find((candidate) => candidate.type === 'divisionQaGain');
   assert.ok(action);
   state = act(state, action);
