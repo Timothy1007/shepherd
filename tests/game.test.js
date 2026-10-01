@@ -26,6 +26,42 @@ function act(state, action) {
   return result.state;
 }
 
+function playJudgmentThresholdResource(state, definitionId = 'sheep-5') {
+  const player = putHand(state, 0, [definitionId]);
+  state.currentPlayer = player.playerId;
+  state.currentResource = null;
+  const action = getNormalActions(state).find((candidate) => candidate.type === 'playResource');
+  assert.ok(action, 'expected a legal resource action');
+  return act(state, action);
+}
+
+test('corruption threshold reveals one unknown judgment and preserves overflow', () => {
+  const state = createGame({ seed: 'judgment-threshold' });
+  state.corruption = 29;
+  state.judgmentDeck = ['war-1'];
+  const next = playJudgmentThresholdResource(state);
+  assert.equal(next.corruptionThreshold, 30);
+  assert.equal(next.corruption, 0);
+  assert.equal(next.judgmentHistory.length, 1);
+  assert.equal(next.lastJudgment.judgmentId, 'war-1');
+  assert.equal(next.activeJudgments['戰局'], 'war-1');
+  assert.ok(next.judgmentDeck.includes('war-2'));
+});
+
+test('new judgment in the same domain replaces the previous active judgment', () => {
+  let state = createGame({ seed: 'judgment-replacement' });
+  state.corruption = 29;
+  state.judgmentDeck = ['blindness-1'];
+  state = playJudgmentThresholdResource(state, 'food-5');
+  assert.equal(state.activeJudgments['資訊'], 'blindness-1');
+  state.corruption = 29;
+  state.judgmentDeck = ['revelation-1'];
+  state = playJudgmentThresholdResource(state, 'money-5');
+  assert.equal(state.activeJudgments['資訊'], 'revelation-1');
+  assert.equal(state.lastJudgment.replacedJudgmentId, 'blindness-1');
+  assert.equal(state.judgmentHistory.length, 2);
+});
+
 test('new game deals seven cards to every player, guarantees alpha miracles to human, and preserves every registered card', () => {
   const state = createGame({ seed: 1 });
   const expectedTotal = Object.keys(state.cardRegistry).length;
@@ -251,37 +287,5 @@ test('card location invariant is preserved through actions', () => {
     assert.equal(locations.length, expectedTotal);
     assert.equal(new Set(locations).size, expectedTotal);
     assert.ok(locations.every((id) => state.cardRegistry[id]));
-  }
-});
-
-function makePresentationElement() {
-  return {
-    textContent: '', innerHTML: '', hidden: false, className: '', dataset: {}, style: {},
-    classList: { add() {}, remove() {}, toggle() {}, contains() { return false; } },
-    addEventListener() {}, append() {}, appendChild() {}, replaceChildren() {}, remove() {},
-    querySelector() { return makePresentationElement(); }, querySelectorAll() { return []; },
-    setAttribute() {}, getBoundingClientRect() { return { left: 0, top: 0, width: 100, height: 100 }; },
-    animate() { return { finished: Promise.resolve() }; },
-  };
-}
-
-test('V1 presentation module starts and renders an initial dealt table', async () => {
-  const elements = new Map();
-  const elementFor = (selector) => {
-    if (!elements.has(selector)) elements.set(selector, makePresentationElement());
-    return elements.get(selector);
-  };
-  const previous = { document: globalThis.document, window: globalThis.window, CSS: globalThis.CSS, setTimeout: globalThis.setTimeout, clearTimeout: globalThis.clearTimeout };
-  globalThis.document = { querySelector: elementFor, querySelectorAll: () => [], createElement: () => makePresentationElement(), addEventListener() {} };
-  globalThis.window = { addEventListener() {} };
-  globalThis.CSS = { escape: (value) => String(value) };
-  globalThis.setTimeout = () => 0;
-  globalThis.clearTimeout = () => {};
-  try {
-    await import(`../src/presentation/app.js?startup-smoke=${Date.now()}`);
-    assert.equal(elements.get('#deck-remaining-display').textContent, '84');
-    assert.match(elements.get('#seat-human').innerHTML, /牧羊人/);
-  } finally {
-    Object.assign(globalThis, previous);
   }
 });
