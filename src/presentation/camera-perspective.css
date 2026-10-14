@@ -17,9 +17,9 @@
 }
 .board-surface{position:absolute;inset:5.5%;border-radius:28px;border:2px solid #c1ab6a36;background:linear-gradient(90deg,transparent 49.7%,#d8c99210 50%,transparent 50.3%),linear-gradient(0deg,transparent 49.7%,#d8c9920a 50%,transparent 50.3%),radial-gradient(circle at 50% 48%,#ffffff08 0 2%,transparent 2.4%),repeating-linear-gradient(135deg,#ffffff025 0 1px,transparent 1px 22px);box-shadow:inset 0 0 55px #0004;pointer-events:none}
 .center-play{position:absolute!important;left:50%!important;top:52%!important;width:42%!important;height:38%!important;min-width:0!important;min-height:0!important;padding:0!important;transform:translate(-50%,-50%)!important;transform-style:flat!important;display:flex!important;align-items:center!important;justify-content:center!important;background:transparent!important;box-shadow:none!important;pointer-events:none!important}
-.tabletop-pile{position:absolute!important;left:50%!important;top:50%!important;width:270px!important;height:200px!important;margin:0!important;/* This pile now lives outside the tilted board, matching the NPC hands' screen-flat plane. */transform:translate(-50%,-50%)!important;transform-style:flat!important;perspective:none!important;pointer-events:auto!important;cursor:pointer!important;touch-action:none!important}
-.table-card.pile-source-hidden + .tabletop-pile{margin-top:0!important}.tabletop-pile .pile-card{position:absolute!important;left:50%!important;top:50%!important;width:152px!important;pointer-events:none!important;transform-origin:center center!important;/* Keep recent cards upright; their offset alone communicates the three-card history. */transform:translate(calc(-50% + var(--pile-x)),calc(-50% + var(--pile-y)))!important;filter:drop-shadow(0 10px 8px #0008)!important;opacity:1!important}
-.tabletop-pile .pile-card img{display:block!important;width:152px!important;max-height:214px!important;object-fit:contain!important;box-shadow:0 3px 8px #0007!important}.tabletop-pile .pile-card.pile-latest{opacity:1!important;z-index:4!important;animation:pileDrop .38s cubic-bezier(.17,.84,.28,1.15)!important}
+.tabletop-pile{position:absolute!important;left:50%!important;top:50%!important;width:236px!important;height:180px!important;margin:0!important;/* This pile now lives outside the tilted board, matching the NPC hands' screen-flat plane. */transform:translate(-50%,-50%)!important;transform-style:flat!important;perspective:none!important;pointer-events:auto!important;cursor:pointer!important;touch-action:none!important}
+.table-card.pile-source-hidden + .tabletop-pile{margin-top:0!important}.tabletop-pile .pile-card{position:absolute!important;left:50%!important;top:50%!important;width:128px!important;pointer-events:none!important;transform-origin:center center!important;/* Keep recent cards upright; their offset alone communicates the three-card history. */transform:translate(calc(-50% + var(--pile-x)),calc(-50% + var(--pile-y)))!important;filter:drop-shadow(0 10px 8px #0008)!important;opacity:1!important}
+.tabletop-pile .pile-card img{display:block!important;width:128px!important;max-height:180px!important;object-fit:contain!important;box-shadow:0 3px 8px #0007!important}.tabletop-pile .pile-card.pile-latest{opacity:1!important;z-index:4!important;animation:pileDrop .38s cubic-bezier(.17,.84,.28,1.15)!important}
 @keyframes pileDrop{0%{transform:translate(calc(-50% + var(--pile-x)),calc(-50% + var(--pile-y) - 76px)) scale(1.06);opacity:1}75%{transform:translate(calc(-50% + var(--pile-x)),calc(-50% + var(--pile-y) + 4px)) scale(.98);opacity:1}100%{transform:translate(calc(-50% + var(--pile-x)),calc(-50% + var(--pile-y)));opacity:1}}
 .seat{width:230px!important;min-width:0!important;z-index:28!important}.seat-top{left:50%!important;top:2%!important;transform:translateX(-50%) scale(.82)!important;text-align:center!important}.seat-left{left:3.4%!important;top:47%!important;transform:translateY(-50%) scale(.95)!important;transform-origin:left center!important;text-align:left!important}.seat-right{right:3.4%!important;top:47%!important;transform:translateY(-50%) scale(.95)!important;transform-origin:right center!important;text-align:right!important}.seat .name,.human-meta .name{display:block!important;width:100%!important}.seat .stats,.human-meta .stats{display:flex!important;width:100%!important;margin-top:7px!important}.seat-left .stats,.human-meta .stats{justify-content:flex-start!important}.seat-top .stats{justify-content:center!important}.seat-right .stats{justify-content:flex-end!important}.human-meta{left:24px!important;bottom:24px!important;width:240px!important;text-align:left!important}
 .center-meta{position:absolute!important;z-index:34!important;left:50%!important;top:19%!important;transform:translateX(-50%)!important;width:320px!important;text-align:center!important;pointer-events:none!important}.center-meta .center-label{display:block!important;margin:0 0 4px!important}.center-meta .apostle-display{margin:0!important}.drag-instruction{position:absolute!important;left:50%!important;bottom:4.5%!important;transform:translateX(-50%)!important;z-index:34!important;font-size:11px!important;letter-spacing:.08em!important;color:#a9a18f!important;opacity:.48!important;pointer-events:none!important;white-space:nowrap!important}.blue-flame{filter:none!important;box-shadow:none!important}.blue-flame:before,.blue-flame:after{box-shadow:none!important}
@@ -51,7 +51,7 @@
 /* Player 3 and current-resource copy align to the screen/battlefield center, preserving their vertical spacing. */
 .seat-top{
   left:50%!important;
-  top:-7%!important;
+  top:-12%!important;
 }
 .center-meta{
   left:50%!important;
@@ -59,7 +59,7 @@
 }
 /* Played pile stays at the same position. */
 .center-play{
-  transform:translate(-50%,-50%) translate(35px,-150px)!important;
+  transform:translate(-50%,-50%) translate(0,-20px)!important;
 }
 /* Player 2 and Player 4 share the same vertical alignment. */
 .seat-left,
