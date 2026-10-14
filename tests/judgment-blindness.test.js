@@ -28,6 +28,8 @@ test('蒙蔽 I 將新抽到的功能牌自動歸回對應的覆蓋牌堆', () =>
   state.qaSeed = 'blindness-draw-inspection';
   state = executeNormalAction(state, firstChoice).state;
   const human = state.players[0];
+  assert.equal(human.hand.filter((card) => getDefinition(card).kind === 'miracle').length, 1);
+  assert.equal(human.hand.filter((card) => getDefinition(card).kind === 'disaster').length, 3);
   assert.ok(human.hand.some((card) => getDefinition(card).definitionId === 'disaster-09'));
 
   state.currentPlayer = human.playerId;
