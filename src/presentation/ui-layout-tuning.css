@@ -44,9 +44,10 @@
 
 /* Visual-only: keep the existing corruption slot and turn only its indicator into a diamond. */
 @media(min-width:1001px){
-  .corruption-hud{display:grid!important;place-items:center;width:36px;height:36px;min-height:0!important;padding:0!important;border:1px solid #c16b5f!important;border-radius:0!important;background:#24100ed9!important;box-shadow:0 4px 14px #0009!important;clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}
+  .corruption-hud{position:fixed!important;z-index:41!important;left:calc(var(--gx) * 3.5)!important;top:calc(var(--gy) * 1)!important;display:grid!important;place-items:center;width:36px;height:36px;min-height:0!important;margin:0!important;padding:0!important;border:1px solid #c16b5f!important;border-radius:0!important;background:#24100ed9!important;box-shadow:0 4px 14px #0009!important;clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);transform:translate(-50%,-50%)!important}
   .corruption-hud:before,.corruption-hud span{display:none!important}
   .corruption-hud strong{display:block;color:#f0ddd3!important;font-size:16px!important;line-height:1!important}
+  #round-display{position:fixed!important;z-index:41!important;left:calc(var(--gx) * 3.5)!important;top:var(--restart-center-y,50%)!important;transform:translate(-50%,-50%)!important;color:#fffdf7;font:800 14px/1 Inter,system-ui,"Noto Sans TC",sans-serif;letter-spacing:.08em;text-align:center;text-shadow:0 2px 7px #000;white-space:nowrap}
 }
 
 /* The nine-zone map is a calibration background. Every live game element must sit above it. */
