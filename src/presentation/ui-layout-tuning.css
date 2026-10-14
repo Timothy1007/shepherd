@@ -47,7 +47,8 @@
   .round-hud,.corruption-stack{display:grid!important;grid-template-rows:44px 28px;align-items:center!important}
   .round-hud{grid-row:auto!important;align-items:start!important}
   #venue-display{color:#fff5dc;font:700 22px/1.1 Georgia,"Noto Serif TC",serif;letter-spacing:.08em;text-shadow:0 2px 7px #000}
-  #restart{align-self:center}
+  /* Keep the restart control at its original compact position; only the round label aligns to the corruption diamond. */
+  #restart{align-self:start;justify-self:start}
   .corruption-stack{justify-items:center}
   .corruption-hud{display:grid!important;place-items:center;width:36px;height:36px;min-height:0!important;margin:0!important;padding:0!important;border:1px solid #c16b5f!important;border-radius:0!important;background:#24100ed9!important;box-shadow:0 4px 14px #0009!important;transform:rotate(45deg)}
   .corruption-hud:before,.corruption-hud span{display:none!important}
