@@ -47,5 +47,10 @@
   .round-hud{grid-row:auto!important;display:flex!important;flex-direction:column;align-items:flex-start;gap:7px}
   #venue-display{color:#fff5dc;font:700 22px/1.1 Georgia,"Noto Serif TC",serif;letter-spacing:.08em;text-shadow:0 2px 7px #000}
   .corruption-stack{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
-  #round-display{color:#fffdf7;font:800 14px/1 Inter,system-ui,"Noto Sans TC",sans-serif;letter-spacing:.08em;text-shadow:0 2px 7px #000}
+  #round-display{position:relative;left:-8px;color:#fffdf7;font:800 14px/1 Inter,system-ui,"Noto Sans TC",sans-serif;letter-spacing:.08em;text-shadow:0 2px 7px #000}
+}
+
+/* The nine-zone map is a calibration background. Every live game element must sit above it. */
+@media(min-width:1001px){
+  .hud-top,.seat,.human-meta,.player-effect-zone,.center-play,.resource-status,.hand,.actions,.selection-actions,#ai-debug-log{z-index:40!important}
 }
