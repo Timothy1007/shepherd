@@ -42,6 +42,13 @@
   .human-zone{position:absolute!important;inset:0!important;height:auto!important;background:none!important;perspective:none!important;z-index:30!important;pointer-events:none}.human-meta{left:calc(var(--gx) * .7)!important;top:calc(var(--gy) * 12.2)!important;bottom:auto!important;width:calc(var(--gx) * 6)!important;text-align:left!important}.human-meta .stats{justify-content:flex-start!important}.human-meta .player-effect-zone{position:fixed!important;left:calc(var(--gx) * 25.4)!important;top:calc(var(--gy) * 12.2)!important;bottom:auto!important;width:calc(var(--gx) * 5.5)!important;min-height:62px;padding:7px 8px;border:0!important;border-radius:0!important;background:transparent!important;transform:none!important;justify-content:flex-start;pointer-events:auto}.hand{left:50%!important;top:calc(var(--gy) * 13.05)!important;bottom:auto!important;width:calc(var(--gx) * 17.4)!important;height:calc(var(--gy) * 4.95)!important;transform:translateX(-50%)!important;z-index:36!important}.hand .card{pointer-events:auto!important}.actions{left:calc(var(--gx) * 28.2)!important;top:calc(var(--gy) * 16.35)!important;bottom:auto!important;transform:translateX(-50%)!important;z-index:43!important;pointer-events:auto}.selection-actions{right:calc(var(--gx) * .8)!important;bottom:calc(var(--gy) * .7)!important;z-index:43!important;pointer-events:auto}
 }
 
+/* Visual-only: keep the existing corruption slot and turn only its indicator into a diamond. */
+@media(min-width:1001px){
+  .corruption-hud{display:grid!important;place-items:center;width:36px;height:36px;min-height:0!important;padding:0!important;border:1px solid #c16b5f!important;border-radius:0!important;background:#24100ed9!important;box-shadow:0 4px 14px #0009!important;transform:rotate(45deg)}
+  .corruption-hud:before,.corruption-hud span{display:none!important}
+  .corruption-hud strong{display:block;transform:rotate(-45deg);color:#f0ddd3!important;font-size:16px!important;line-height:1!important}
+}
+
 /* The nine-zone map is a calibration background. Every live game element must sit above it. */
 @media(min-width:1001px){
   .hud-top,.seat,.human-meta,.player-effect-zone,.center-play,.resource-status,.hand,.actions,.selection-actions,#ai-debug-log{z-index:40!important}
