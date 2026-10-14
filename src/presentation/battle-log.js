@@ -14,20 +14,25 @@ if (compactLog) {
   document.body.append(overlay);
 
   const close = () => { overlay.hidden = true; };
-  const collapseToggle = document.createElement('button');
-  collapseToggle.type = 'button';
-  collapseToggle.className = 'battle-log-collapse-toggle';
-  collapseToggle.setAttribute('aria-label', '收合戰況紀錄');
-  collapseToggle.setAttribute('title', '收合戰況紀錄');
-  collapseToggle.textContent = '−';
-  compactLog.prepend(collapseToggle);
-
+  let collapseToggle;
   const setCollapsed = (collapsed) => {
     compactLog.classList.toggle('is-collapsed', collapsed);
     compactLog.setAttribute('aria-label', collapsed ? '開啟戰況紀錄' : '戰況紀錄，短按查看完整內容');
     collapseToggle.setAttribute('aria-label', collapsed ? '展開戰況紀錄' : '收合戰況紀錄');
     collapseToggle.setAttribute('title', collapsed ? '展開戰況紀錄' : '收合戰況紀錄');
     collapseToggle.textContent = collapsed ? '☷' : '−';
+  };
+  const mountCollapseToggle = () => {
+    if (compactLog.querySelector('.battle-log-collapse-toggle')) return;
+    collapseToggle = document.createElement('button');
+    collapseToggle.type = 'button';
+    collapseToggle.className = 'battle-log-collapse-toggle';
+    collapseToggle.addEventListener('click', (event) => {
+      event.stopPropagation();
+      setCollapsed(!compactLog.classList.contains('is-collapsed'));
+    });
+    compactLog.prepend(collapseToggle);
+    setCollapsed(compactLog.classList.contains('is-collapsed'));
   };
   const open = () => {
     const lines = overlay.querySelector('.battle-log-lines');
@@ -42,10 +47,8 @@ if (compactLog) {
     overlay.hidden = false;
   };
 
-  collapseToggle.addEventListener('click', (event) => {
-    event.stopPropagation();
-    setCollapsed(!compactLog.classList.contains('is-collapsed'));
-  });
+  mountCollapseToggle();
+  new MutationObserver(mountCollapseToggle).observe(compactLog, { childList: true });
   compactLog.addEventListener('click', () => {
     if (compactLog.classList.contains('is-collapsed')) setCollapsed(false);
     else open();
