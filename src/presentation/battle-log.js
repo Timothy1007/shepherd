@@ -14,6 +14,21 @@ if (compactLog) {
   document.body.append(overlay);
 
   const close = () => { overlay.hidden = true; };
+  const collapseToggle = document.createElement('button');
+  collapseToggle.type = 'button';
+  collapseToggle.className = 'battle-log-collapse-toggle';
+  collapseToggle.setAttribute('aria-label', '收合戰況紀錄');
+  collapseToggle.setAttribute('title', '收合戰況紀錄');
+  collapseToggle.textContent = '−';
+  compactLog.prepend(collapseToggle);
+
+  const setCollapsed = (collapsed) => {
+    compactLog.classList.toggle('is-collapsed', collapsed);
+    compactLog.setAttribute('aria-label', collapsed ? '開啟戰況紀錄' : '戰況紀錄，短按查看完整內容');
+    collapseToggle.setAttribute('aria-label', collapsed ? '展開戰況紀錄' : '收合戰況紀錄');
+    collapseToggle.setAttribute('title', collapsed ? '展開戰況紀錄' : '收合戰況紀錄');
+    collapseToggle.textContent = collapsed ? '☷' : '−';
+  };
   const open = () => {
     const lines = overlay.querySelector('.battle-log-lines');
     const entries = [...compactLog.querySelectorAll(':scope > div')];
@@ -27,11 +42,19 @@ if (compactLog) {
     overlay.hidden = false;
   };
 
-  compactLog.addEventListener('click', open);
+  collapseToggle.addEventListener('click', (event) => {
+    event.stopPropagation();
+    setCollapsed(!compactLog.classList.contains('is-collapsed'));
+  });
+  compactLog.addEventListener('click', () => {
+    if (compactLog.classList.contains('is-collapsed')) setCollapsed(false);
+    else open();
+  });
   compactLog.addEventListener('keydown', (event) => {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
-      open();
+      if (compactLog.classList.contains('is-collapsed')) setCollapsed(false);
+      else open();
     }
   });
   overlay.querySelectorAll('[data-close-battle-log]').forEach((node) => node.addEventListener('click', close));
