@@ -1,10 +1,12 @@
 .hand .card{transition:transform .24s cubic-bezier(.2,.75,.2,1),filter .2s,opacity .18s}
 
-/* Native :hover is too sensitive for an overlapped fan: lifting one card changes
-   the hit-test boundary and can immediately hand hover to its neighbour. Keep
-   native hover visually neutral and let hand-stability.js choose one stable card. */
+/* Native hover is the interaction baseline. The stability script may improve
+   switching between overlapping cards, but it must never be required for a
+   card to feel alive or to remain usable. */
 .hand .card:hover:not(.selected):not(.inspecting):not(.click-preview){
-  transform:translateY(var(--y)) rotate(var(--r)) rotateX(10deg);
+  z-index:20;
+  transform:translateY(-46px) rotate(0) rotateX(0) scale(1.13)!important;
+  filter:brightness(1.08);
 }
 .hand .card.hand-hover:not(.selected):not(.inspecting):not(.click-preview){
   z-index:20;
