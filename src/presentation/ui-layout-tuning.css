@@ -82,6 +82,7 @@
 .mission-progress{color:#eee1bd;font-size:12px;font-weight:750;letter-spacing:.025em}
 .mission-progress span,.stat-fire,.stat-hand,.low-temperature-fire{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
 .mission-progress b,.stat-fire b,.stat-hand b,.low-temperature-fire b{font-variant-numeric:tabular-nums}
+.mission-crown{display:inline-flex;align-items:center;gap:3px;margin-left:7px;color:#f0c77f;font-family:inherit;font-size:.8em;font-weight:750;line-height:1;vertical-align:middle;text-shadow:0 1px 4px #000}.mission-crown b{font-variant-numeric:tabular-nums}
 .hand-icon{display:inline-block;width:10px;height:14px;border:1px solid #bce7ff;border-radius:2px;background:linear-gradient(135deg,#7fd5ff,#226dbe);box-shadow:1px -1px 0 #174779,2px -2px 0 #102c4e}
 .low-temperature-slot{display:none}
 .low-temperature-fire{color:#bde9ff}
