@@ -27,6 +27,20 @@ function showPileDetail(title, pileCount, hidden) {
 deck?.addEventListener('click', () => showPileDetail('牌庫', lastCount ?? 0, false));
 discardPile?.addEventListener('click', () => showPileDetail('棄牌堆', Number(discardCount?.textContent ?? 0), true));
 
+function alignSharedPiles() {
+  const center = document.querySelector('#drop-zone')?.getBoundingClientRect();
+  if (!center) return;
+  const y = center.top + center.height / 2;
+  [[deck, 11.5], [discardPile, 20]].forEach(([pile, x]) => {
+    if (!pile?.style?.setProperty) return;
+    pile.style.setProperty('left', `${globalThis.innerWidth * x / 32}px`, 'important');
+    pile.style.setProperty('top', `${y}px`, 'important');
+  });
+}
+
+alignSharedPiles();
+window.addEventListener('resize', alignSharedPiles);
+
 function tick() {
   if (disposed) return;
   const next = readDeckCount(), discarded = readDiscardCount();
