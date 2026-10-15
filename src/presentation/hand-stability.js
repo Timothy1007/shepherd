@@ -70,7 +70,7 @@ function cancelSelectionWhenIdle(){
 document.addEventListener('pointermove',event=>{
   const host=hand();
   if(!host||!host.matches(':hover')){clearHover(CLEAR_DELAY_MS);return;}
-  const preview=host.querySelector('.card.click-preview');
+  // A Blindness pile is layered on top of the hand area. It must own the pointer\n  // completely; otherwise this fallback promotes the nearest ordinary card.\n  const pile=document.elementFromPoint(event.clientX,event.clientY)?.closest?.('.blindness-pile');\n  if(pile&&host.contains(pile)){clearHover();return;}\n  const preview=host.querySelector('.card.click-preview');
   if(preview&&preview.matches(':hover')){clearHover();return;}
   const nearest=nearestCardForX(event.clientX);
   requestHover(nearest?{...nearest,x:event.clientX}:null);
