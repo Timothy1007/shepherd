@@ -52,15 +52,13 @@
 /* The test window can be narrower than 1001 CSS pixels (for example when the
    browser is zoomed). NPC3's detached information HUD still uses the board
    coordinate system in that case, rather than falling back to normal flow. */
-@media(min-width:600px){
-  .dispute-shell{--gx:calc(100vw / 32);--gy:calc(100vh / 18)}
-  #seat-top-info{position:fixed!important;left:calc(var(--gx) * 12)!important;top:calc(var(--gy) * 1)!important;z-index:42!important;width:max-content!important;text-align:left!important;text-shadow:0 2px 7px #000!important;transform:translate(-.5em,-50%)!important}
-  #seat-top-info .name,#seat-top-info .stats,#seat-top-info .mission-progress{width:max-content!important;min-height:22px;line-height:22px;text-align:left!important}
-  #seat-top-info .name{font-family:Georgia,"Noto Serif TC",serif;font-size:17px!important;font-weight:650;letter-spacing:.035em}
-  #seat-top-info .stats,#seat-top-info .mission-progress{display:flex!important;align-items:center;justify-content:flex-start!important;gap:10px;margin-top:2px!important;font-size:12px!important}
-  #seat-top-info.current .name{color:#f0cf86;text-shadow:0 0 14px #d79042}
-  #seat-top-info.inactive{opacity:.42}
-}
+.dispute-shell{--gx:calc(100vw / 32);--gy:calc(100vh / 18)}
+#seat-top-info{position:fixed!important;left:calc(var(--gx) * 12)!important;top:calc(var(--gy) * 1)!important;z-index:42!important;width:max-content!important;text-align:left!important;text-shadow:0 2px 7px #000!important;transform:translate(-.5em,-50%)!important}
+#seat-top-info .name,#seat-top-info .stats,#seat-top-info .mission-progress{width:max-content!important;min-height:22px;line-height:22px;text-align:left!important}
+#seat-top-info .name{font-family:Georgia,"Noto Serif TC",serif;font-size:17px!important;font-weight:650;letter-spacing:.035em}
+#seat-top-info .stats,#seat-top-info .mission-progress{display:flex!important;align-items:center;justify-content:flex-start!important;gap:10px;margin-top:2px!important;font-size:12px!important}
+#seat-top-info.current .name{color:#f0cf86;text-shadow:0 0 14px #d79042}
+#seat-top-info.inactive{opacity:.42}
 
 /* Visual-only: keep the existing corruption slot and turn only its indicator into a diamond. */
 @media(min-width:1001px){
