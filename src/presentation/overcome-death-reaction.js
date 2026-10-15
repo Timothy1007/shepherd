@@ -6,6 +6,7 @@ import { thresholdCrossings, THRESHOLD_FIRE, THRESHOLD_HAND } from '../game/thre
 const OVERCOME='miracle-20', ASHES='disaster-07';
 const CONFLICTING=['miracle-16','miracle-17','miracle-18','miracle-19'];
 const previousStart=GameController.prototype.start;
+const previousAct=GameController.prototype.act;
 const previousPrepare=GameController.prototype.prepare;
 const previousRunAiTurn=GameController.prototype.runAiTurn;
 let pending=null;
@@ -15,6 +16,7 @@ const log=(c,t)=>typeof c.logAi==='function'&&c.logAi(t);
 const label=(s,id)=>{const p=s.players.find(x=>x.playerId===id);return p?`P${p.seat}${p.type==='human'?'（你）':''}`:id;};
 function disasterInfo(c,a){const p=c.state.players.find(x=>x.playerId===a.playerId),card=p?.hand.find(x=>x.instanceId===a.instanceId);if(!card)return null;const d=getDefinition(card);return d.kind==='disaster'?{card,definition:d}:null;}
 function preview(c,a){const h=human(c),r=executeNormalAction(c.state,a);if(!h||!r.ok)return null;const after=r.state.players.find(p=>p.playerId===h.playerId);if(!after)return null;return{result:r,before:{fire:h.fire,handCount:h.hand.length,hand:structuredClone(h.hand)},after:{fire:after.fire,handCount:after.hand.length,hand:structuredClone(after.hand)},crossings:thresholdCrossings({fire:h.fire,handCount:h.hand.length},{fire:after.fire,handCount:after.hand.length})};}
+export function shouldOfferOvercomeDeath(c,a){return Boolean(disasterInfo(c,a)&&cardInHand(human(c),OVERCOME)&&preview(c,a)?.crossings.length);}
 function removeEverywhere(s,id){s.deck=s.deck.filter(c=>c.instanceId!==id);s.discardPile=s.discardPile.filter(c=>c.instanceId!==id);s.playedArea=s.playedArea.filter(c=>c.instanceId!==id);s.removedForRound=s.removedForRound.filter(c=>c.instanceId!==id);for(const p of s.players){p.hand=p.hand.filter(c=>c.instanceId!==id);p.effects=p.effects.filter(c=>c.instanceId!==id);}}
 function restoreCardToHand(s,p,card){removeEverywhere(s,card.instanceId);p.hand.push(structuredClone(card));}
 function finish(c,s){c.state=s;c.actionToken++;pending=null;document.querySelector('#overcome-death-overlay')?.remove();document.querySelector('#overcome-death-return')?.remove();c.prepare();}
@@ -27,6 +29,6 @@ function moveTo(s,id,target){if(target.hand.some(c=>c.definitionId===id))return;
 function removeDefinition(s,p,id){const cards=p.hand.filter(c=>c.definitionId===id);p.hand=p.hand.filter(c=>c.definitionId!==id);s.deck.push(...cards);}
 function refill(s,p,n=7){while(p.hand.length<n&&s.deck.length)p.hand.push(s.deck.shift());while(p.hand.length>n)s.deck.push(p.hand.pop());}
 function setup(c){if(c.state?.qaSeed!=='recovery-preview'||c.state.round!==1)return;const s=c.state,h=human(c),ai=s.players.find(p=>p.type==='ai');h.fire=3;for(const id of CONFLICTING)removeDefinition(s,h,id);moveTo(s,OVERCOME,h);refill(s,h,7);if(ai){for(const p of s.players.filter(x=>x.type==='ai'))removeDefinition(s,p,'disaster-02');moveTo(s,ASHES,ai);refill(s,ai,7);}c.safeRender(getNormalActions(s));}
-GameController.prototype.start=function(seed){const r=previousStart.call(this,seed);setup(this);return r;};
+GameController.prototype.start=function(seed){const r=previousStart.call(this,seed);setup(this);return r;};GameController.prototype.act=function(a,t=this.snapshot()){if(shouldOfferOvercomeDeath(this,a)){const pv=preview(this,a);show(this,a,pv,disasterInfo(this,a));return{ok:true,pendingReaction:true,state:this.state};}return previousAct.call(this,a,t);};
 GameController.prototype.prepare=function(){if(pending?.controller===this){this.cancelTimer();this.safeRender(getNormalActions(this.state));return;}return previousPrepare.call(this);};
 GameController.prototype.runAiTurn=function(g,pid){if(pending?.controller===this){this.cancelTimer();return;}if(g===this.generation&&this.state&&!this.state.gameOver){const actor=this.state.players.find(p=>p.playerId===this.state.currentPlayer);if(actor?.type==='ai'&&actor.playerId===pid&&cardInHand(human(this),OVERCOME)){const actions=getNormalActions(this.state);for(const a of actions){const info=disasterInfo(this,a);if(!info)continue;const pv=preview(this,a);if(pv?.crossings.length){show(this,a,pv,info);return;}}}}return previousRunAiTurn.call(this,g,pid);};
