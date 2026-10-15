@@ -69,11 +69,11 @@ function cancelSelectionWhenIdle(){
 // the pointer leaves it, normal hover selection resumes immediately.
 document.addEventListener('pointermove',event=>{
   const host=hand();
-  if(!host||!host.matches(':hover')){clearHover(CLEAR_DELAY_MS);return;}
+  const directCard=event.target?.closest?.('#hand .card:not(.drag-source):not(.click-preview)');
+  if(!host||(!host.matches(':hover')&&!directCard)){clearHover(CLEAR_DELAY_MS);return;}
   // A Blindness pile is layered on top of the hand area. It must own the pointer\n  // completely; otherwise this fallback promotes the nearest ordinary card.\n  const pile=document.elementFromPoint(event.clientX,event.clientY)?.closest?.('.blindness-pile');\n  if(pile&&host.contains(pile)){clearHover();return;}\n  const preview=host.querySelector('.card.click-preview');
   if(preview&&preview.matches(':hover')){clearHover();return;}
-  const nearest=nearestCardForX(event.clientX);
-  requestHover(nearest?{...nearest,x:event.clientX}:null);
+  // Prefer the actual button below the pointer. This remains reliable when a\n  // card rises outside the hand container's geometric box in the nine-zone UI.\n  // Keep horizontal proximity as the overlap fallback, so neighbouring cards\n  // still switch smoothly rather than fluttering at their shared edges.\n  const nearest=directCard?{card:directCard,distance:0}:{...nearestCardForX(event.clientX)};\n  requestHover(nearest?.card?{...nearest,x:event.clientX}:null);
 },{passive:true});
 document.addEventListener('pointerout',event=>{
   const host=hand();
