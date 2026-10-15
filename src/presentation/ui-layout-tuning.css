@@ -36,7 +36,7 @@
 /* Nine-zone layout draft — UI placement only; no game state or rules are changed here. */
 @media(min-width:1001px){
   .dispute-shell{--gx:calc(100vw / 32);--gy:calc(100vh / 18)}
-  /* Seats are redrawn whenever an action resolves. Their layout must not
+  /* Seats are redrawn whenever an action resolves.  Their layout must not
      animate between render frames, or NPC labels appear to jump. */
   .seat,.human-meta{transition:none!important}
   .hud-top{left:calc(var(--gx) * .5)!important;top:calc(var(--gy) * .45)!important;width:calc(var(--gx) * 8.5)!important;padding:0!important;background:transparent!important;border:0!important;border-radius:0;box-shadow:none!important;pointer-events:auto!important}.top-left-hud{display:grid!important;grid-template-columns:auto auto;gap:8px 12px!important;max-width:none!important;padding:10px 12px!important}.round-hud{grid-row:1 / span 2}.judgment-bar{grid-column:1 / -1;flex-basis:auto!important;margin:0!important}.corruption-hud{padding:3px 7px!important;min-height:0!important;background:transparent!important;box-shadow:none!important}
@@ -60,6 +60,21 @@
 #seat-top-info.current .name{color:#f0cf86;text-shadow:0 0 14px #d79042}
 #seat-top-info.inactive{opacity:.42}
 
+/* Player information is deliberately a three-line stack: identity, current
+   resources, then mission progress.  Mission values are visual placeholders
+   until the mission system is connected to game state. */
+.seat .name,.human-meta .name,.seat .stats,.human-meta .stats,.mission-progress{min-height:22px;line-height:22px}
+.seat .stats,.human-meta .stats,.mission-progress{display:flex;align-items:center;gap:10px;margin-top:2px!important}
+.mission-progress{color:#eee1bd;font-size:12px;font-weight:750;letter-spacing:.025em}
+.mission-progress span,.stat-fire,.stat-hand,.low-temperature-fire{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+.mission-progress b,.stat-fire b,.stat-hand b,.low-temperature-fire b{font-variant-numeric:tabular-nums}
+.mission-crown{display:inline-flex;align-items:center;gap:3px;margin-left:7px;color:#f0c77f;font-family:inherit;font-size:.8em;font-weight:750;line-height:1;vertical-align:middle;text-shadow:0 1px 4px #000}.mission-crown b{font-variant-numeric:tabular-nums}
+.hand-icon{display:inline-block;width:10px;height:14px;border:1px solid #bce7ff;border-radius:2px;background:linear-gradient(135deg,#7fd5ff,#226dbe);box-shadow:1px -1px 0 #174779,2px -2px 0 #102c4e}
+.low-temperature-slot{display:none}
+.low-temperature-fire{color:#bde9ff}
+#resource-deck.shared-card-pile,#discard-pile.shared-card-pile{position:fixed!important;left:calc(var(--gx) * 11.5)!important;top:calc(var(--gy) * 8.9)!important;z-index:41!important;display:block!important;width:76px!important;height:108px!important;margin:0!important;padding:0!important;border:0!important;background:transparent!important;transform:translate(-50%,-50%)!important;transform-style:flat!important;cursor:pointer!important;pointer-events:auto!important}#discard-pile.shared-card-pile{left:calc(var(--gx) * 20)!important}#resource-deck.shared-card-pile .deck-stack,#discard-pile.shared-card-pile .deck-stack{transform:none!important}#resource-deck.shared-card-pile .deck-stack>span,#discard-pile.shared-card-pile .deck-stack>span{border:1px solid #caa95a8c!important;border-radius:6px!important;background:linear-gradient(145deg,#213d78,#101d3e)!important;box-shadow:0 2px 4px #000a!important}#resource-deck.shared-card-pile .deck-stack>span:nth-child(1),#discard-pile.shared-card-pile .deck-stack>span:nth-child(1){opacity:.55!important}#resource-deck.shared-card-pile .deck-stack>span:nth-child(2),#discard-pile.shared-card-pile .deck-stack>span:nth-child(2){opacity:.74!important}#resource-deck.shared-card-pile .deck-top,#discard-pile.shared-card-pile .deck-top{background-image:url('assets/cards/resource-card-back.png')!important;background-size:cover!important;background-position:center!important;filter:none!important}#discard-pile.shared-card-pile .deck-top{box-shadow:inset 0 0 0 2px #caa95a8c,0 7px 14px #0008!important}#resource-deck.shared-card-pile .deck-count,#discard-pile.shared-card-pile .deck-count{top:calc(100% + 10px)!important;gap:3px!important;color:#fffdf7!important;font-size:13px!important;font-weight:800!important;letter-spacing:.06em!important}#resource-deck.shared-card-pile .deck-count strong,#discard-pile.shared-card-pile .deck-count strong{font-size:17px!important;color:#f0c56f!important}#resource-deck.shared-card-pile .deck-count em,#discard-pile.shared-card-pile .deck-count em{font-style:normal!important;font-size:13px!important;color:#fffdf7!important}#resource-deck.shared-card-pile:hover,#resource-deck.shared-card-pile:focus-visible,#discard-pile.shared-card-pile:hover,#discard-pile.shared-card-pile:focus-visible{filter:brightness(1.13) drop-shadow(0 8px 8px #000a);outline:none}#resource-deck.shared-card-pile:focus-visible .deck-top,#discard-pile.shared-card-pile:focus-visible .deck-top{box-shadow:0 0 0 2px #f0c56f,0 7px 14px #0008!important}
+@media(min-width:1001px){.seat-left .mission-progress,.human-meta .mission-progress{justify-content:flex-start}.seat-right .mission-progress{justify-content:flex-end}}
+
 /* Visual-only: keep the existing corruption slot and turn only its indicator into a diamond. */
 @media(min-width:1001px){
   .corruption-hud{position:absolute!important;z-index:41!important;left:calc(var(--gx) * 3)!important;top:calc(var(--gy) * .8)!important;display:grid!important;place-items:center;width:36px;height:36px;min-height:0!important;margin:0!important;padding:0!important;border:1px solid #c16b5f!important;border-radius:0!important;background:#24100ed9!important;box-shadow:0 4px 14px #0009!important;clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);transform:translate(-50%,-50%)!important}
@@ -72,19 +87,3 @@
 @media(min-width:1001px){
   .hud-top,.seat,.human-meta,.player-effect-zone,.center-play,.resource-status,.hand,.actions,.selection-actions,#ai-debug-log{z-index:40!important}
 }
-
-
-/* Player information is deliberately a three-line stack: identity, current
-   resources, then mission progress. Mission values are visual placeholders
-   until the mission system is connected to game state. */
-.seat .name,.human-meta .name,.seat .stats,.human-meta .stats,.mission-progress{min-height:22px;line-height:22px}
-.seat .stats,.human-meta .stats,.mission-progress{display:flex;align-items:center;gap:10px;margin-top:2px!important}
-.mission-progress{color:#eee1bd;font-size:12px;font-weight:750;letter-spacing:.025em}
-.mission-progress span,.stat-fire,.stat-hand,.low-temperature-fire{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
-.mission-progress b,.stat-fire b,.stat-hand b,.low-temperature-fire b{font-variant-numeric:tabular-nums}
-.mission-crown{display:inline-flex;align-items:center;gap:3px;margin-left:7px;color:#f0c77f;font-family:inherit;font-size:.8em;font-weight:750;line-height:1;vertical-align:middle;text-shadow:0 1px 4px #000}.mission-crown b{font-variant-numeric:tabular-nums}
-.hand-icon{display:inline-block;width:10px;height:14px;border:1px solid #bce7ff;border-radius:2px;background:linear-gradient(135deg,#7fd5ff,#226dbe);box-shadow:1px -1px 0 #174779,2px -2px 0 #102c4e}
-.low-temperature-slot{display:none}
-.low-temperature-fire{color:#bde9ff}
-#resource-deck.shared-card-pile,#discard-pile.shared-card-pile{position:fixed!important;left:calc(var(--gx) * 11.5)!important;top:calc(var(--gy) * 8.9)!important;z-index:41!important;display:block!important;width:76px!important;height:108px!important;margin:0!important;padding:0!important;border:0!important;background:transparent!important;transform:translate(-50%,-50%)!important;transform-style:flat!important;cursor:pointer!important;pointer-events:auto!important}#discard-pile.shared-card-pile{left:calc(var(--gx) * 20)!important}#resource-deck.shared-card-pile .deck-stack,#discard-pile.shared-card-pile .deck-stack{transform:none!important}#resource-deck.shared-card-pile .deck-stack>span,#discard-pile.shared-card-pile .deck-stack>span{border-radius:6px!important}#resource-deck.shared-card-pile .deck-top,#discard-pile.shared-card-pile .deck-top{background-image:url('assets/cards/resource-card-back.png')!important;background-size:cover!important;background-position:center!important}#discard-pile.shared-card-pile .deck-top{filter:brightness(.62) saturate(.5)}#resource-deck.shared-card-pile .deck-count,#discard-pile.shared-card-pile .deck-count{top:calc(100% + 10px)!important;gap:3px!important;color:#fffdf7!important;font-size:13px!important;font-weight:800!important;letter-spacing:.06em!important}#resource-deck.shared-card-pile .deck-count strong,#discard-pile.shared-card-pile .deck-count strong{font-size:17px!important;color:#f0c56f!important}#resource-deck.shared-card-pile .deck-count em,#discard-pile.shared-card-pile .deck-count em{font-style:normal!important;font-size:13px!important;color:#fffdf7!important}#resource-deck.shared-card-pile:hover,#resource-deck.shared-card-pile:focus-visible,#discard-pile.shared-card-pile:hover,#discard-pile.shared-card-pile:focus-visible{filter:brightness(1.13) drop-shadow(0 8px 8px #000a);outline:none}#resource-deck.shared-card-pile:focus-visible .deck-top,#discard-pile.shared-card-pile:focus-visible .deck-top{box-shadow:0 0 0 2px #f0c56f,0 7px 14px #0008!important}
-@media(min-width:1001px){.seat-left .mission-progress,.human-meta .mission-progress{justify-content:flex-start}.seat-right .mission-progress{justify-content:flex-end}}
