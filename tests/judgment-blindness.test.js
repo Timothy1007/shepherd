@@ -60,6 +60,23 @@ test('蒙蔽 I 將新抽到的功能牌自動歸回對應的覆蓋牌堆', () =>
   assert.ok(getNormalActions(state).some((action) => action.type === 'playBlindnessPile' && action.kind === 'disaster'));
 });
 
+
+test('蒙蔽 II 翻出〈迴轉歸向〉時仍會反轉方向並抽牌', () => {
+  let state = blindnessPendingFixture('miracle-01');
+  const human = state.players[0];
+  const directionBefore = state.direction;
+  const handBefore = human.hand.map((card) => card.instanceId);
+  const revealed = getNormalActions(state).find((action) => action.type === 'playMiracle');
+
+  state = executeNormalAction(state, revealed).state;
+
+  const after = state.players[0];
+  assert.equal(state.direction, -directionBefore);
+  assert.ok(state.playedArea.some((card) => card.definitionId === 'miracle-01'));
+  assert.equal(after.hand.length, handBefore.length);
+  assert.equal(after.hand.filter((card) => !handBefore.includes(card.instanceId)).length, 1);
+});
+
 test('蒙蔽翻出的目標型功能牌保留原本的選擇行動，不會被預設值直接結算', () => {
   const cases = [
     { id: 'disaster-08', targetHands: false, field: 'targetPlayerId', count: 3 },
