@@ -36,6 +36,9 @@
 /* Nine-zone layout draft — UI placement only; no game state or rules are changed here. */
 @media(min-width:1001px){
   .dispute-shell{--gx:calc(100vw / 32);--gy:calc(100vh / 18)}
+  /* Seats are redrawn whenever an action resolves. Their layout must not
+     animate between render frames, or NPC labels appear to jump. */
+  .seat,.human-meta{transition:none!important}
   .hud-top{left:calc(var(--gx) * .5)!important;top:calc(var(--gy) * .45)!important;width:calc(var(--gx) * 8.5)!important;padding:0!important;background:transparent!important;border:0!important;border-radius:0;box-shadow:none!important;pointer-events:auto!important}.top-left-hud{display:grid!important;grid-template-columns:auto auto;gap:8px 12px!important;max-width:none!important;padding:10px 12px!important}.round-hud{grid-row:1 / span 2}.judgment-bar{grid-column:1 / -1;flex-basis:auto!important;margin:0!important}.corruption-hud{padding:3px 7px!important;min-height:0!important;background:transparent!important;box-shadow:none!important}
   .arena{inset:0!important;perspective:none!important;overflow:visible!important}.ground-plane{display:none!important}.seat,.human-meta{width:calc(var(--gx) * 7.5)!important;min-width:0!important;margin:0!important;padding:10px 12px!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;text-shadow:0 2px 7px #000!important;transform:none!important;z-index:28!important}.seat .name,.human-meta .name{font-size:17px!important}.seat .stats,.human-meta .stats{gap:9px!important;margin-top:5px!important;font-size:12px!important}
   /* NPC3's information and its QA public hand use separate planes: the name
