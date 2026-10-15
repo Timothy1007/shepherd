@@ -1,5 +1,7 @@
 import { GameController } from '../controller/game-controller.js';
 
+const revelationStyle=document.createElement('style');revelationStyle.textContent='.public-hand{display:flex;gap:2px;margin-top:6px;max-width:172px}.seat-left .public-hand{justify-content:flex-start}.seat-top .public-hand{justify-content:center}.seat-right .public-hand{justify-content:flex-end}.public-hand img{width:18px;height:26px;object-fit:cover;border:1px solid #d8c38c77;border-radius:2px;box-shadow:0 2px 5px #0009}';document.head.append(revelationStyle);
+
 const QA_HAND_SIZE = 7;
 const originalStart = GameController.prototype.start;
 
@@ -26,6 +28,7 @@ function normalizeHumanQaHand(controller) {
 }
 
 GameController.prototype.start = function startWithNormalizedQaHand(seed) {
+  if (new URLSearchParams(globalThis.location?.search ?? '').get('qa') === 'judgment-revelation') seed = 'judgment-revelation-preview';
   const result = originalStart.call(this, seed);
   normalizeHumanQaHand(this);
   this.safeRender?.();
