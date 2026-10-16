@@ -17,6 +17,6 @@
 .stronghold-ending{white-space:nowrap}
 
 /* 新生標記：獨立於底圖的程式菱形，可隨卡片尺寸縮放。 */
-.stronghold-card-copy::before,.stronghold-card-copy::after{content:"";position:absolute;width:7.2%;height:8.2%;background:#006b58;clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);transform:translate(-50%,-50%);pointer-events:none}
+.stronghold-card-copy::before,.stronghold-card-copy::after{content:"";position:absolute;width:7.2%;height:8.2%;background:center/100% 100% no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath fill='%23006b58' d='M45 5 Q50 0 55 5 L95 45 Q100 50 95 55 L55 95 Q50 100 45 95 L5 55 Q0 50 5 45 Z'/%3E%3C/svg%3E");transform:translate(-50%,-50%);pointer-events:none}
 .stronghold-card-copy::before{left:85.8%;top:10.6%}
 .stronghold-card-copy::after{left:13.4%;top:88.3%}
