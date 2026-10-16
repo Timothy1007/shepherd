@@ -52,7 +52,7 @@ function renderEffectZone(player) {
     item.type = 'button';
     item.title = `${definition.name}\n${definition.text ?? ''}`;
     item.setAttribute('aria-label', `${definition.name}：${definition.text ?? ''}`);
-    const badge = definition.definitionId === 'miracle-02' ? '<b>+3</b>' : definition.definitionId === 'miracle-09' ? '<b>↔4</b>' : definition.definitionId === 'miracle-13' ? '<b>抽+1</b>' : definition.definitionId === 'disaster-09' ? '<b>-2</b>' : '';
+    const badge = definition.definitionId === 'miracle-02' ? '<b>+3</b>' : definition.definitionId === 'miracle-09' ? '<b>使命+2</b>' : definition.definitionId === 'miracle-13' ? '<b>抽+1</b>' : definition.definitionId === 'disaster-09' ? '<b>-2</b>' : '';
     item.innerHTML = `<img src="${definition.image}" alt="${definition.name}"><span>${definition.name}</span>${badge}`;
     item.addEventListener('click', (event) => {
       event.preventDefault();
