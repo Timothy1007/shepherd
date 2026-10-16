@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createGame, executeNormalAction, getNormalActions, listCardLocations } from '../src/game/game.js';
+import { createGame, executeNormalAction, getNormalActions, listCardLocations, settleRound } from '../src/game/game.js';
 
 function takeFromDeck(state, definitionId) {
   const index = state.deck.findIndex((card) => card.definitionId === definitionId);
@@ -52,4 +52,14 @@ test('死亡輪不能整備；四名玩家各結束一次後立即換輪', () =>
 
   assert.equal(state.round, 2);
   assert.equal(state.phase, 'playing');
+});
+
+test('未翻到的死亡牌不會被洗進下一輪手牌', () => {
+  const state = createGame({ seed: 'death-v1-next-round' });
+  state.players.forEach((player, index) => { player.hasNormalAction = index === 0; });
+
+  const next = settleRound(state).state;
+
+  assert.equal(next.players.flatMap((player) => player.hand).some((card) => card.definitionId === 'death'), false);
+  assert.equal(next.deck.filter((card) => card.definitionId === 'death').length, 1);
 });
