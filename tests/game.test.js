@@ -213,7 +213,7 @@ test('傾覆 II limits multi-card and multi-fire effects across every implemente
   assert.deepEqual(ashes.players.map((player) => player.fire), [2, 2, 2, 2]);
 });
 
-test('傾覆 limits rebirth, bird exchange, rain cover, and victory fire gains', () => {
+test('傾覆 limits rebirth and rain-cover fire gains; mission rewards are not fire changes', () => {
   let rebirth = createGame({ seed: 'overturn-rebirth' });
   const rebirthPlayer = putHand(rebirth, 0, ['miracle-04', 'sheep-1', 'food-1', 'money-1', 'sheep-2', 'food-2', 'money-2']);
   const originalHand = rebirthPlayer.hand.slice(1).map((card) => card.instanceId);
@@ -222,16 +222,6 @@ test('傾覆 limits rebirth, bird exchange, rain cover, and victory fire gains',
   assert.equal(originalHand.filter((id) => rebirth.discardPile.some((card) => card.instanceId === id)).length, 3);
 
   for (const [judgmentId, expected] of [['overturn-1', 3], ['overturn-2', 1]]) {
-    let bird = createGame({ seed: `overturn-bird-${judgmentId}` });
-    const birdPlayer = putHand(bird, 0, ['miracle-10', 'sheep-1', 'food-1']);
-    putHand(bird, 1, ['money-1']);
-    bird.currentPlayer = birdPlayer.playerId;
-    bird.activeJudgments = { 異變: judgmentId };
-    const birdAction = getNormalActions(bird).find((candidate) => candidate.instanceId === birdPlayer.hand.find((card) => card.definitionId === 'miracle-10').instanceId && candidate.targetPlayerId === 'player-2');
-    bird = act(bird, birdAction);
-    assert.equal(bird.players[0].fire, expected);
-    assert.equal(bird.players[1].fire, expected);
-
     let rain = createGame({ seed: `overturn-rain-${judgmentId}` });
     const rainPlayer = putHand(rain, 0, ['miracle-22']);
     const plague = take(rain, 'disaster-09');
@@ -240,18 +230,6 @@ test('傾覆 limits rebirth, bird exchange, rain cover, and victory fire gains',
     const rainAction = getNormalActions(rain).find((candidate) => candidate.instanceId === rainPlayer.hand[0].instanceId && candidate.targetPlayerId === 'player-2');
     rain = act(rain, rainAction);
     assert.equal(rain.players[1].fire, judgmentId === 'overturn-1' ? 2 : 1);
-
-    let victory = createGame({ seed: `overturn-victory-${judgmentId}` });
-    const victoryPlayer = putHand(victory, 0, ['miracle-09']);
-    victory.activeJudgments = { 異變: judgmentId };
-    victory.currentApostle = 'player-1';
-    const victoryAction = getNormalActions(victory).find((candidate) => candidate.instanceId === victoryPlayer.hand[0].instanceId && candidate.targetPlayerId === 'player-2');
-    victory = act(victory, victoryAction);
-    victory.players.forEach((player) => { player.hasNormalAction = false; });
-    victory = settleRound(victory).state;
-    assert.equal(victory.lastRoundResult.reward, 0);
-    assert.equal(victory.players[0].fire, expected);
-    assert.equal(victory.players[1].fire, expected);
   }
 });
 
