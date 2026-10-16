@@ -5,7 +5,7 @@ const SEED='reaction-five-preview';
 const SCENARIOS=Object.freeze([
   { title:'第 1 輪｜越過長夜', note:'你自己打出《灰與燼》，你同時也是受影響者；應跳出《越過長夜》。', cards:['disaster-07','miracle-16'], fire:10 },
   { title:'第 2 輪｜替罪羊', note:'你自己打出《積財寶在地上》並指定任一 NPC；應跳出《替罪羊》。', cards:['disaster-08','miracle-17'], fire:10, targetFire:10 },
-  { title:'第 3 輪｜空墳墓', note:'你自己打出《灰與燼》；應跳出《空墳墓》，正常失去 3 火種後抽 1 張。', cards:['disaster-07','miracle-18'], fire:6 },
+  { title:'第 3 輪｜空墳墓', note:'你自己打出《灰與燼》；應跳出《空墳墓》，正常失去 4 火種後抽 1 張。', cards:['disaster-07','miracle-18'], fire:6 },
   { title:'第 4 輪｜拆毀堅固營壘', note:'你自己打出《灰與燼》；應跳出《拆毀堅固營壘》，可選擇擋掉其中一項效果。', cards:['disaster-07','miracle-19'], fire:6 },
   { title:'第 5 輪｜勝過死亡', note:'你自己打出《灰與燼》；火種 3 將降為 0，應跳出《勝過死亡》。', cards:['disaster-07','miracle-20'], fire:3 },
 ]);
