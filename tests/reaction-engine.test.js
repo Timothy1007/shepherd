@@ -16,6 +16,14 @@ test('通用應對視窗正確列出群體災難受影響者與可用應對',()=
   assert.deepEqual(window.optionsByPlayer['player-3'][0].choices.map(choice=>choice.effectId),['lose-fire','miracle-fire-reduction']);
 });
 
+test('其他玩家打出單體災難時，受影響的玩家仍會取得可用應對',()=>{
+  const state=createGame({seed:'reaction-window-opponent'}),treasure=give(state,'player-2','disaster-08');
+  give(state,'player-1','miracle-16');
+  const action=actionFor(state,'player-2',treasure);
+  action.targetPlayerId='player-1';
+  assert.deepEqual(reactionOptionsFor(state,action,'player-1'),[{reactionId:'miracle-16',kind:'immunity'}]);
+});
+
 test('通用應對視窗為多目標災難提供替罪羊可轉移的原目標',()=>{
   const state=createGame({seed:'reaction-window-lies'}),lies=give(state,'player-1','disaster-02');
   give(state,'player-4','miracle-17');
