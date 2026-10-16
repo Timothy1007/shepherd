@@ -2,6 +2,7 @@ import { GameController } from '../controller/game-controller.js';
 import { getNormalActions } from '../game/game.js';
 
 const SEED='reaction-five-preview';
+const qaRoute=new URLSearchParams(globalThis.location?.search??'').get('qa');
 const SCENARIOS=Object.freeze([
   { title:'第 1 輪｜越過長夜', note:'你自己打出《灰與燼》，你同時也是受影響者；應跳出《越過長夜》。', cards:['disaster-07','miracle-16'], fire:10 },
   { title:'第 2 輪｜替罪羊', note:'你自己打出《積財寶在地上》並指定任一 NPC；應跳出《替罪羊》。', cards:['disaster-08','miracle-17'], fire:10, targetFire:10 },
@@ -24,6 +25,6 @@ function setupUi(controller){if(document.querySelector('#reaction-five-qa'))retu
 const previousStart=GameController.prototype.start;
 const previousRunAiTurn=GameController.prototype.runAiTurn;
 GameController.prototype.start=function(seed){const result=previousStart.call(this,seed);if(seed===SEED){configure(this,1);setupUi(this);}return result;};
-GameController.prototype.runAiTurn=function(generation,playerId){if(this.state?.qaSeed===SEED)return;return previousRunAiTurn.call(this,generation,playerId);};
+GameController.prototype.runAiTurn=function(generation,playerId){if(this.state?.qaSeed===SEED||qaRoute==='stronghold-card')return;return previousRunAiTurn.call(this,generation,playerId);};
 
-if(new URLSearchParams(globalThis.location?.search??'').get('qa')==='reaction-five'&&globalThis.__shepherdController){configure(globalThis.__shepherdController,1);setupUi(globalThis.__shepherdController);}
+if(['reaction-five','stronghold-card'].includes(qaRoute)&&globalThis.__shepherdController){configure(globalThis.__shepherdController,qaRoute==='stronghold-card'?4:1);setupUi(globalThis.__shepherdController);}
