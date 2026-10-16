@@ -98,8 +98,11 @@ test('judgment disorder QA starts with a visible active judgment and a legal rev
   assert.equal(state.currentResource.type, 'sheep');
   assert.equal(state.currentResource.number, 6);
   const foodTwo = state.players[0].hand.find((card) => card.definitionId === 'food-2');
+  const sheepEight = state.players[0].hand.find((card) => card.definitionId === 'sheep-8');
   assert.ok(foodTwo);
+  assert.ok(sheepEight);
   assert.ok(getNormalActions(state).some((action) => action.instanceId === foodTwo.instanceId && action.type === 'playResource'));
+  assert.ok(getNormalActions(state).some((action) => action.instanceId === sheepEight.instanceId && action.type === 'playResource'));
   assert.equal(new Set(listCardLocations(state)).size, Object.keys(state.cardRegistry).length);
   assert.equal(listCardLocations(state).length, Object.keys(state.cardRegistry).length);
 });
