@@ -324,15 +324,15 @@ test('illegal or stale action returns original state', () => {
   assert.equal(result.state, state);
 });
 
-test('redraw discards the hand, draws the same count, and stays on turn when redraw is playable', () => {
+test('整備棄置全部手牌、固定抽兩張，並結束本次行動', () => {
   const state = createGame({ seed: 5 });
-  const player = putHand(state, 0, ['sheep-1', 'sheep-2']);
+  const player = putHand(state, 0, ['sheep-1', 'sheep-2', 'sheep-3']);
   state.currentResource = { type: 'sheep', number: 9 };
   const oldIds = player.hand.map((card) => card.instanceId);
-  state.deck = [take(state, 'money-1'), ...state.deck];
+  state.deck = [take(state, 'money-1'), take(state, 'food-1'), ...state.deck];
   const next = act(state, getNormalActions(state)[0]);
-  assert.equal(next.currentPlayer, 'player-1');
-  assert.equal(next.players[0].hasRedrawnThisRound, true);
+  assert.notEqual(next.currentPlayer, 'player-1');
+  assert.equal(next.players[0].hasNormalAction, true);
   assert.equal(next.players[0].hand.length, 2);
   assert.ok(oldIds.every((id) => next.discardPile.some((card) => card.instanceId === id)));
 });
@@ -346,66 +346,52 @@ test('redraw recycles discard when deck is insufficient and never playedArea', (
   state.discardPile.push(...state.deck.splice(1));
   const playedId = played.instanceId;
   const next = act(state, getNormalActions(state)[0]);
-  assert.equal(next.players[0].hand.length, 3);
+  assert.equal(next.players[0].hand.length, 2);
   assert.ok(next.playedArea.some((card) => card.instanceId === playedId));
   assert.ok(!next.players[0].hand.some((card) => card.instanceId === playedId));
 });
 
-test('redraw with a legal result requires an immediate play on the same turn', () => {
+test('整備後即使抽到可出牌也不能在同一次行動立刻打出', () => {
   const state = createGame({ seed: 7 });
   putHand(state, 0, ['sheep-1']);
   state.currentResource = { type: 'sheep', number: 9 };
   state.deck = [take(state, 'money-1'), ...state.deck];
   const redrawn = act(state, getNormalActions(state)[0]);
-  assert.equal(redrawn.currentPlayer, 'player-1');
-  assert.deepEqual([...new Set(getNormalActions(redrawn).map((action) => action.type))], ['playResource']);
+  assert.notEqual(redrawn.currentPlayer, 'player-1');
+  assert.ok(redrawn.players[0].hand.some(card => card.definitionId === 'money-1'));
+  assert.equal(redrawn.players[0].hasNormalAction, true);
 });
 
-test('redraw with no legal result automatically ends participation and advances', () => {
+test('整備後仍無合法牌時保留本輪資格，下一次輪到時可再次整備', () => {
   const state = createGame({ seed: 8 });
   putHand(state, 0, ['sheep-1']);
   state.currentResource = { type: 'sheep', number: 9 };
-  state.deck = [take(state, 'sheep-2'), ...state.deck];
+  state.deck = [take(state, 'sheep-2'), take(state, 'sheep-3')];
   const redrawn = act(state, getNormalActions(state)[0]);
-  assert.equal(redrawn.players[0].hasRedrawnThisRound, true);
-  assert.equal(redrawn.players[0].hasNormalAction, false);
+  assert.equal(redrawn.players[0].hasNormalAction, true);
   assert.notEqual(redrawn.currentPlayer, 'player-1');
+  redrawn.currentPlayer = 'player-1';
+  assert.deepEqual(getNormalActions(redrawn).map(action => action.type), ['redraw']);
 });
 
-test('endParticipation remains a defensive fallback for malformed post-redraw states', () => {
-  let state = createGame({ seed: 9 });
-  putHand(state, 0, ['sheep-1']);
+test('空手且無合法牌時仍可整備並抽兩張', () => {
+  const state = createGame({ seed: 10 });
+  putHand(state, 0, []);
   state.currentResource = { type: 'sheep', number: 9 };
-  state.players[0].hasRedrawnThisRound = true;
-  state = act(state, getNormalActions(state)[0]);
-  assert.equal(state.players[0].hasNormalAction, false);
+  assert.deepEqual(getNormalActions(state).map((action) => action.type), ['redraw']);
+  const next = act(state, getNormalActions(state)[0]);
+  assert.equal(next.players[0].hand.length, 2);
+  assert.equal(next.players[0].hasNormalAction, true);
 });
 
-test('empty hand exposes endEmptyHand without redraw', () => {
-  let state = createGame({ seed: 10 });
-  putHand(state, 0, []);
-  assert.deepEqual(getNormalActions(state).map((action) => action.type), ['endEmptyHand']);
-  state = act(state, getNormalActions(state)[0]);
-  assert.equal(state.players[0].hasNormalAction, false);
-});
-
-test('ending with one eligible player immediately settles and starts next round', () => {
-  let state = createGame({ seed: 11 });
-  putHand(state, 0, []);
-  state.players[2].hasNormalAction = false;
-  state.players[3].hasNormalAction = false;
-  state = act(state, getNormalActions(state)[0]);
-  assert.equal(state.round, 2);
-  assert.equal(state.phase, 'playing');
-});
-
-test('redraw and ineligibility do not change the apostle', () => {
+test('整備不會改變使徒或使玩家失去本輪資格', () => {
   let state = createGame({ seed: 12 });
   state.currentApostle = 'player-4';
   putHand(state, 0, ['sheep-1']);
   state.currentResource = { type: 'sheep', number: 9 };
   state = act(state, getNormalActions(state)[0]);
   assert.equal(state.currentApostle, 'player-4');
+  assert.equal(state.players[0].hasNormalAction, true);
 });
 
 test('round reward counts every playedArea card', () => {
