@@ -30,6 +30,7 @@ test('整備翻到死亡仍補足兩張正常牌，並進入鎖定的死亡輪',
 
   assert.equal(next.phase, 'deathRound');
   assert.deepEqual(next.death.finalOrder, ['player-4', 'player-3', 'player-2', 'player-1']);
+  assert.equal(next.death.presentationAcknowledged, false);
   assert.equal(next.currentPlayer, 'player-4');
   assert.deepEqual(next.players[0].hand.map((card) => card.definitionId), ['money-1', 'food-1']);
   assert.equal(next.deck.some((card) => card.definitionId === 'death'), false);
@@ -64,7 +65,7 @@ test('未翻到的死亡牌不會被洗進下一輪手牌', () => {
   assert.equal(next.deck.filter((card) => card.definitionId === 'death').length, 1);
 });
 
-test('死亡固定從牌庫底開始，且每次正常行動向頂部推進四張', () => {
+test('死亡固定從牌庫底開始，且每次正常行動隱藏地向頂部推進二至四張', () => {
   const state = createGame({ seed: 'death-v1-clock' });
   const human = state.players[0];
   state.currentPlayer = human.playerId;
@@ -76,7 +77,8 @@ test('死亡固定從牌庫底開始，且每次正常行動向頂部推進四�
 
   const next = act(state, getNormalActions(state).find((action) => action.type === 'playResource'));
 
-  assert.equal(next.deck.findIndex((card) => card.definitionId === 'death'), before - 4);
+  const after = next.deck.findIndex((card) => card.definitionId === 'death');
+  assert.ok(after >= before - 4 && after <= before - 2);
   assert.equal(next.phase, 'playing');
 });
 
@@ -87,7 +89,7 @@ test('死亡時鐘到達牌庫頂時，當前行動結束後進入死亡輪', ()
   state.deck.push(...human.hand);
   human.hand = [takeFromDeck(state, 'money-1')];
   const death = takeFromDeck(state, 'death');
-  state.deck.splice(3, 0, death);
+  state.deck.splice(1, 0, death);
 
   const next = act(state, getNormalActions(state).find((action) => action.type === 'playResource'));
 
@@ -96,7 +98,7 @@ test('死亡時鐘到達牌庫頂時，當前行動結束後進入死亡輪', ()
   assert.equal(next.deck.some((card) => card.definitionId === 'death'), false);
 });
 
-test('整備抽兩張後，死亡時鐘額外再推進四張', () => {
+test('整備抽兩張後，死亡時鐘額外再隱藏推進二至四張', () => {
   const state = createGame({ seed: 'death-v1-preparation-clock' });
   const human = state.players[0];
   state.currentPlayer = human.playerId;
@@ -108,5 +110,6 @@ test('整備抽兩張後，死亡時鐘額外再推進四張', () => {
 
   const next = act(state, getNormalActions(state)[0]);
 
-  assert.equal(next.deck.findIndex((card) => card.definitionId === 'death'), before - 6);
+  const after = next.deck.findIndex((card) => card.definitionId === 'death');
+  assert.ok(after >= before - 6 && after <= before - 4);
 });
