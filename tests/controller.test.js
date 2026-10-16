@@ -108,7 +108,7 @@ test('AI redraw resolves immediately into play or withdrawal without timer gap',
   assert.ok(controller.state.currentPlayer !== ai.playerId || ai.hasRedrawnThisRound || controller.state.round > 1);
 });
 
-test('used redraw plus no legal play exits automatically without rendering an endParticipation choice', () => {
+test('no legal play keeps the player in the round and offers 整備 again', () => {
   const renders = [];
   const controller = new GameController({
     render(_state, actions) { renders.push(actions.map((action) => action.type)); },
@@ -120,14 +120,13 @@ test('used redraw plus no legal play exits automatically without rendering an en
   const human = controller.state.players[0];
   controller.state.currentPlayer = human.playerId;
   controller.state.currentResource = { type: 'sheep', number: 9 };
-  human.hasRedrawnThisRound = true;
   const lowSheepIndex = controller.state.deck.findIndex((card) => card.definitionId === 'sheep-1');
   controller.state.deck.push(...human.hand);
   human.hand = [controller.state.deck.splice(lowSheepIndex, 1)[0]];
-  const beforeRound = controller.state.round;
   controller.prepare();
   assert.ok(!renders.some((types) => types.includes('endParticipation')));
-  assert.ok(controller.state.currentPlayer !== human.playerId || controller.state.round > beforeRound);
+  assert.equal(controller.state.currentPlayer, human.playerId);
+  assert.ok(renders.some((types) => types.includes('redraw')));
 });
 
 test('presentation render failure does not prevent AI scheduling', () => {
