@@ -43,7 +43,7 @@ test('蒙蔽 II combines miracles and disasters into one unknown-function action
   assert.deepEqual(getNormalActions(state).filter((action) => action.type === 'playBlindnessPile').map((action) => action.kind), ['unknown']);
 });
 
-test('蒙蔽 I 將新抽到的功能牌自動歸回對應的覆蓋牌堆', () => {
+test('蒙蔽 I 進入下一輪後仍保留可用的覆蓋牌堆', () => {
   let state = createGame({ seed: 'judgment-blindness-preview' });
   const firstChoice = getNormalActions(state).find((action) => action.type === 'playBlindnessPile' && action.kind === 'miracle');
   state.qaSeed = 'blindness-draw-inspection';
@@ -51,15 +51,14 @@ test('蒙蔽 I 將新抽到的功能牌自動歸回對應的覆蓋牌堆', () =>
   const revealed = getNormalActions(state).find((action) => action.type === 'playMiracle');
   state = executeNormalAction(state, revealed).state;
   const human = state.players[0];
-  assert.equal(human.hand.filter((card) => getDefinition(card).kind === 'miracle').length, 1);
-  assert.equal(human.hand.filter((card) => getDefinition(card).kind === 'disaster').length, 3);
-  assert.ok(human.hand.some((card) => getDefinition(card).definitionId === 'disaster-09'));
+  assert.equal(human.hand.filter((card) => getDefinition(card).kind === 'miracle').length, 2);
+  assert.equal(human.hand.filter((card) => getDefinition(card).kind === 'disaster').length, 2);
+  assert.ok(state.deck.some((card) => card.definitionId === 'disaster-09'));
 
   state.currentPlayer = human.playerId;
   human.hasNormalAction = true;
-  assert.ok(getNormalActions(state).some((action) => action.type === 'playBlindnessPile' && action.kind === 'disaster'));
+  assert.ok(getNormalActions(state).some((action) => action.type === 'playBlindnessPile' && action.kind === 'unknown'));
 });
-
 
 test('蒙蔽 II 翻出〈迴轉歸向〉時仍會反轉方向並抽牌', () => {
   let state = blindnessPendingFixture('miracle-01');
