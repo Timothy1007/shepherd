@@ -1,8 +1,8 @@
 .stronghold-template-card{position:relative;isolation:isolate;overflow:hidden;container-type:inline-size;background:#08c79c url("assets/miracles/miracle%20test.png") center/100% 100% no-repeat;color:#064b40;aspect-ratio:63/88;border-radius:7px}
 .stronghold-template-card .stronghold-card-copy{position:absolute;inset:0;z-index:2;pointer-events:none;font-family:"Noto Sans TC",system-ui,sans-serif;color:#064b40;text-align:left;text-shadow:0 1px 0 #ffffff38}
-.stronghold-card-copy h3{position:absolute;top:24.5%;left:10%;right:10%;margin:0;font-family:"Noto Serif TC",serif;font-size:11.4cqw;line-height:1.12;font-weight:900;letter-spacing:.04em;text-align:center;color:#074c40}
-.stronghold-timing{position:absolute;top:37.5%;left:12%;font-size:5.4cqw;line-height:1;font-weight:800;letter-spacing:.14em;color:#087b67}
-.stronghold-timing::after{content:"";position:absolute;left:0;bottom:-.9cqw;width:21cqw;height:.55cqw;border-radius:9px;background:#087b6777}
+.stronghold-card-copy h3{position:absolute;top:22.5%;left:10%;right:10%;margin:0;font-family:"Noto Serif TC",serif;font-size:10.6cqw;line-height:1.12;font-weight:900;letter-spacing:.04em;text-align:center;color:#074c40}
+.stronghold-timing{position:absolute;top:34%;left:10%;right:10%;text-align:center;font-size:5.4cqw;line-height:1;font-weight:900;letter-spacing:.14em;color:#064b40}
+.stronghold-timing::after{content:"";position:absolute;left:50%;transform:translateX(-50%);bottom:-.9cqw;width:21cqw;height:.55cqw;border-radius:9px;background:#087b6777}
 .stronghold-rule-lines{position:absolute;top:47%;left:10.5%;right:10.5%;font-size:5.25cqw;line-height:1.43;letter-spacing:-.025em;font-weight:540}
 .stronghold-rule-lines span{display:block;white-space:nowrap}
 .stronghold-rule-lines b{font-weight:900;color:#034a3f}
