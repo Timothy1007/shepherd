@@ -1,13 +1,13 @@
 .stronghold-template-card{position:relative;isolation:isolate;overflow:hidden;container-type:inline-size;background:#08c79c url("assets/miracles/miracle%20test.png") center/100% 100% no-repeat;color:#064b40;aspect-ratio:63/88;border-radius:7px}
 .stronghold-template-card .stronghold-card-copy{position:absolute;inset:0;z-index:2;pointer-events:none;font-family:"Noto Sans TC",system-ui,sans-serif;color:#064b40;text-align:left;text-shadow:0 1px 0 #ffffff38}
-.stronghold-card-copy h3{position:absolute;top:22.5%;left:10%;right:10%;margin:0;font-family:"Noto Serif TC",serif;font-size:10.6cqw;line-height:1.12;font-weight:900;letter-spacing:.04em;text-align:center;color:#074c40}
-.stronghold-timing{position:absolute;top:34%;left:10%;right:10%;text-align:center;font-size:5.4cqw;line-height:1;font-weight:900;letter-spacing:.14em;color:#064b40}
+.stronghold-card-copy h3{position:absolute;top:17.5%;left:10%;right:10%;margin:0;font-family:"Noto Serif TC",serif;font-size:8.8cqw;line-height:1.12;font-weight:900;letter-spacing:.04em;text-align:center;color:#074c40}
+.stronghold-timing{position:absolute;top:28.5%;left:10%;right:10%;text-align:center;font-size:5.4cqw;line-height:1;font-weight:900;letter-spacing:.14em;color:#064b40}
 .stronghold-timing::after{content:"";position:absolute;left:50%;transform:translateX(-50%);bottom:-.9cqw;width:21cqw;height:.55cqw;border-radius:9px;background:#087b6777}
-.stronghold-rule-lines{position:absolute;top:47%;left:10.5%;right:10.5%;font-size:5.25cqw;line-height:1.43;letter-spacing:-.025em;font-weight:540}
-.stronghold-rule-lines span{display:block;white-space:nowrap}
+.stronghold-rule-lines{position:absolute;top:42%;left:10.5%;width:15em;max-width:79%;font-size:5.25cqw;line-height:1.6;letter-spacing:0;font-weight:400;white-space:normal;word-break:normal;line-break:strict;overflow-wrap:anywhere}
+.stronghold-rule-lines .stronghold-term,.stronghold-rule-lines .stronghold-count{display:inline-block;white-space:nowrap}
 .stronghold-rule-lines b{font-weight:900;color:#034a3f}
 .stronghold-icon{display:inline-block;width:1.36em;height:1.36em;vertical-align:-.29em;margin:0 .05em;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.stronghold-claw{color:#075347;stroke-width:2.05}.stronghold-shield{color:#075347}.stronghold-card-icon{color:#087563;stroke-width:1.7}
+.stronghold-claw{color:#075347;fill:currentColor;stroke:none}.stronghold-shield{color:#075347}.stronghold-card-icon{color:#087563;stroke-width:1.7}
 .hand .card.stronghold-template-card .card-art{width:100%!important;height:100%!important;object-fit:fill!important;border-radius:7px!important}
 .hand .card.stronghold-template-card{overflow:hidden}
 .detail-stronghold-template{width:min(250px,58vw)!important;height:auto!important;max-height:none!important;justify-self:center;filter:drop-shadow(0 28px 34px rgba(0,0,0,.72))!important;border-radius:14px!important}
