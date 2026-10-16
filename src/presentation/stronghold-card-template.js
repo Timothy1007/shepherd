@@ -11,7 +11,7 @@ function copyMarkup() {
   return `<div class="stronghold-card-copy" aria-hidden="true">
     <h3>拆毀堅固營壘</h3>
     <div class="stronghold-timing">應對</div>
-    <div class="stronghold-rule-lines">當你即將受到具有2項及以上效果的<span class="stronghold-term">${icon('claw')}<b>災難</b></span>時，你可以打出此牌：選擇其中1項效果，使其對你<span class="stronghold-term">${icon('shield')}<b>無效</b></span>；其餘效果正常結算。結算後，你棄置<span class="stronghold-count">1${icon('card')}</span>，然後抽<span class="stronghold-count">1${icon('card')}</span>。</div>
+    <div class="stronghold-rule-lines">當你即將受到具有2項及以上效果的<span class="stronghold-term">${icon('claw')}<b>災難</b></span>時，你可以打出此牌：選擇其中1項效果，使其對你<span class="stronghold-term">${icon('shield')}<b>無效</b></span>；其餘效果正常結算。結算後，你棄置<span class="stronghold-count">1${icon('card')}</span>，然後抽<span class="stronghold-ending"><span class="stronghold-count">1${icon('card')}</span>。</span></div>
   </div>`;
 }
 
