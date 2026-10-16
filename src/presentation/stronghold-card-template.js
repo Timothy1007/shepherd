@@ -2,7 +2,7 @@ const CARD_NAME = '拆毀堅固營壘';
 const CARD_BACKGROUND = 'assets/miracles/miracle%20test.png';
 
 const icon = (kind) => {
-  if (kind === 'claw') return '<svg class="stronghold-icon stronghold-claw" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 2 3 18 6 15 12 2Z"/><path d="M15 3 8 22 12 18 18 3Z"/><path d="M21 4 15 20 19 16 23 4Z"/></svg>';
+  if (kind === 'claw') return '<svg class="stronghold-icon stronghold-claw" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5H21L12 21Z"/></svg>';
   if (kind === 'shield') return '<svg class="stronghold-icon stronghold-shield" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 20 6v5.3c0 4.7-3.1 7.9-8 10.1-4.9-2.2-8-5.4-8-10.1V6l8-3Z"/><path d="m6 18 12-12"/></svg>';
   return '<svg class="stronghold-icon stronghold-card-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 18H4a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h11a1 1 0 0 1 1 1v2"/><rect x="7" y="6" width="13" height="16" rx="1.5"/></svg>';
 };
