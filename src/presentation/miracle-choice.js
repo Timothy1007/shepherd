@@ -35,7 +35,7 @@ function commit(extra) {
 function showMainChoice() {
   ensureUi();
   const overlay = document.querySelector('#wind-choice-overlay');
-  overlay.innerHTML = `<article class="wind-panel" role="dialog" aria-modal="true"><span>神蹟 · 流轉｜火種</span><h2>如風吹來</h2><p>風向已起。選擇這次神蹟要帶來的改變。</p><div class="wind-options"><button class="wind-option" data-wind="cycle"><strong>流轉手牌</strong>棄置 1 至 3 張手牌，然後抽取等量的牌。</button><button class="wind-option" data-wind="fire"><strong>守住火種</strong>不棄置手牌，獲得 3 點火種。</button></div><div class="wind-confirm"><button data-wind="cancel">取消，放回手牌</button></div></article>`;
+  overlay.innerHTML = `<article class="wind-panel" role="dialog" aria-modal="true"><span>神蹟 · 流轉｜火種</span><h2>如風吹來</h2><p>風向已起。選擇這次神蹟要帶來的改變。</p><div class="wind-options"><button class="wind-option" data-wind="cycle"><strong>流轉手牌</strong>棄置 1 至 3 張手牌，然後抽取等量的牌。</button><button class="wind-option" data-wind="fire"><strong>守住火種</strong>不棄置手牌，獲得 4 點火種。</button></div><div class="wind-confirm"><button data-wind="cancel">取消，放回手牌</button></div></article>`;
   overlay.hidden = false;
   overlay.querySelector('[data-wind="fire"]').addEventListener('click', () => commit({ choice: 'fire' }));
   overlay.querySelector('[data-wind="cycle"]').addEventListener('click', showDiscardChoice);
