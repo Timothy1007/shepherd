@@ -16,7 +16,7 @@ export function strongholdChoices(card,playerId){
   return affectedEffects(card,playerId).map(effect=>({effectId:effect.effectId,text:effect.text}));
 }
 
-export function resolveAshesForPlayer({player,blockedEffectId=null,fireLoss=3}){
+export function resolveAshesForPlayer({player,blockedEffectId=null,fireLoss=4}){
   const result={lostFire:0,miracleFireReduction:0,blockedEffectId};
   if(blockedEffectId!=='lose-fire'){
     const before=player.fire;
