@@ -16,7 +16,7 @@ function copyMarkup() {
       <span>的 ${icon('claw')}<b>災難</b> 時，你可以打出此牌：選擇</span>
       <span>其中1項效果，使其對你 ${icon('shield')}<b>無效</b>；</span>
       <span>其餘效果正常結算。結算後，</span>
-      <span>棄置 ${icon('card')}1，然後抽 ${icon('card')}1。</span>
+      <span>棄置 1${icon('card')}，然後抽 1${icon('card')}。</span>
     </div>
   </div>`;
 }
