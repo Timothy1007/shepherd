@@ -2,6 +2,7 @@ import { GameController } from '../controller/game-controller.js';
 import { executeNormalAction, getNormalActions } from '../game/game.js';
 import { getDefinition } from '../game/cards.js';
 import { thresholdCrossings, THRESHOLD_FIRE, THRESHOLD_HAND } from '../game/threshold-reaction.js';
+import { reactionOptionsFor } from '../game/reaction-engine.js';
 
 const OVERCOME='miracle-20', ASHES='disaster-07';
 const CONFLICTING=['miracle-16','miracle-17','miracle-18','miracle-19'];
@@ -16,7 +17,7 @@ const log=(c,t)=>typeof c.logAi==='function'&&c.logAi(t);
 const label=(s,id)=>{const p=s.players.find(x=>x.playerId===id);return p?`P${p.seat}${p.type==='human'?'（你）':''}`:id;};
 function disasterInfo(c,a){const p=c.state.players.find(x=>x.playerId===a.playerId),card=p?.hand.find(x=>x.instanceId===a.instanceId);if(!card)return null;const d=getDefinition(card);return d.kind==='disaster'?{card,definition:d}:null;}
 function preview(c,a){const h=human(c),r=executeNormalAction(c.state,a);if(!h||!r.ok)return null;const after=r.state.players.find(p=>p.playerId===h.playerId);if(!after)return null;return{result:r,before:{fire:h.fire,handCount:h.hand.length,hand:structuredClone(h.hand)},after:{fire:after.fire,handCount:after.hand.length,hand:structuredClone(after.hand)},crossings:thresholdCrossings({fire:h.fire,handCount:h.hand.length},{fire:after.fire,handCount:after.hand.length})};}
-export function shouldOfferOvercomeDeath(c,a){return Boolean(disasterInfo(c,a)&&cardInHand(human(c),OVERCOME)&&preview(c,a)?.crossings.length);}
+export function shouldOfferOvercomeDeath(c,a){const h=human(c),pv=preview(c,a);return Boolean(disasterInfo(c,a)&&h&&pv?.result?.ok&&reactionOptionsFor(c.state,a,h.playerId,{previewState:pv.result.state}).some(option=>option.reactionId===OVERCOME));}
 function removeEverywhere(s,id){s.deck=s.deck.filter(c=>c.instanceId!==id);s.discardPile=s.discardPile.filter(c=>c.instanceId!==id);s.playedArea=s.playedArea.filter(c=>c.instanceId!==id);s.removedForRound=s.removedForRound.filter(c=>c.instanceId!==id);for(const p of s.players){p.hand=p.hand.filter(c=>c.instanceId!==id);p.effects=p.effects.filter(c=>c.instanceId!==id);}}
 function restoreCardToHand(s,p,card){removeEverywhere(s,card.instanceId);p.hand.push(structuredClone(card));}
 function finish(c,s){c.state=s;c.actionToken++;pending=null;document.querySelector('#overcome-death-overlay')?.remove();document.querySelector('#overcome-death-return')?.remove();c.prepare();}
