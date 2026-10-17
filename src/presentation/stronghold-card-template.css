@@ -21,8 +21,12 @@
 .generic-card-copy.layout-standard .stronghold-rule-region{top:42%;bottom:12%}
 .generic-card-copy.layout-long .stronghold-rule-region{top:42%;bottom:12%}
 .generic-card-copy.layout-long .stronghold-rule-lines{font-size:4.7cqw;line-height:1.56}
+.generic-card-copy.pending-card-face .stronghold-rule-region,.generic-card-copy.pending-card-face .ashes-rule-region{left:14%;right:14%;bottom:15%}
+.generic-card-copy.layout-deep-insight .stronghold-rule-region{top:35.5%;bottom:15%;align-items:flex-start}
+.generic-card-copy.layout-deep-insight .stronghold-rule-lines{font-size:4.15cqw;line-height:1.46}
 .generic-card-copy.dense .stronghold-rule-lines,.generic-card-copy.dense .ashes-rule-lines{font-size:4.45cqw;line-height:1.5}
 .generic-card-copy.ultra-dense .stronghold-rule-lines,.generic-card-copy.ultra-dense .ashes-rule-lines{font-size:3.75cqw;line-height:1.42}
+.generic-card-copy.layout-deep-insight .stronghold-rule-lines{font-size:4.15cqw;line-height:1.46}
 /* 沒有時機文字的牌，正文仍從左上深色弧框下緣開始，不提早塞到標題下。 */
 .generic-card-copy.no-subtag:not(.layout-brief):not(.layout-standard) .stronghold-rule-region{top:42%}
 .ashes-tag{position:absolute;top:28.5%;left:14%;right:6%;text-align:center;font-size:5.4cqw;line-height:1;font-weight:900;letter-spacing:.14em;color:#2b073f;text-shadow:none}
