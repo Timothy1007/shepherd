@@ -1,7 +1,19 @@
-const CARD_STYLES = Object.freeze({
-  '拆毀堅固營壘': Object.freeze({ kind: 'miracle', background: 'assets/miracles/miracle.png' }),
-  '灰與燼': Object.freeze({ kind: 'disaster', background: 'assets/disasters/disater3.png' }),
-});
+import { CARD_DEFINITIONS } from '../game/cards.js';
+
+const NEW_LIFE = '新生';
+const EXTINGUISH = '熄滅';
+const CARD_STYLES = Object.freeze(Object.fromEntries(
+  CARD_DEFINITIONS
+    .filter(definition => definition.tags?.includes(NEW_LIFE) || definition.tags?.includes(EXTINGUISH))
+    .map(definition => {
+      const kind = definition.tags.includes(NEW_LIFE) ? 'miracle' : 'disaster';
+      return [definition.name, Object.freeze({
+        definition,
+        kind,
+        background: kind === 'miracle' ? 'assets/miracles/miracle.png' : 'assets/disasters/disater3.png',
+      })];
+    })
+));
 
 const icon = (kind) => {
   if (kind === 'disaster') return '<svg class="card-template-icon disaster-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5H21L12 21Z"/></svg>';
@@ -26,7 +38,38 @@ function disasterCopy() {
   </div>`;
 }
 
-function copyFor(style) { return style.kind === 'miracle' ? miracleCopy() : disasterCopy(); }
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"]/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[character]));
+}
+
+function genericTag(definition, category) {
+  return definition.tags.filter(tag => tag !== category).join(' · ');
+}
+
+function genericCopy(style) {
+  const definition = style.definition;
+  const category = style.kind === 'miracle' ? NEW_LIFE : EXTINGUISH;
+  const tag = genericTag(definition, category);
+  const density = definition.text.length > 130 ? 'ultra-dense' : definition.text.length > 82 ? 'dense' : '';
+  if (style.kind === 'miracle') {
+    return `<div class="stronghold-card-copy generic-card-copy ${density}${tag ? '' : ' no-subtag'}" aria-hidden="true">
+      <h3>${escapeHtml(definition.name)}</h3>
+      <div class="stronghold-timing">${escapeHtml(tag)}</div>
+      <div class="stronghold-rule-lines">${escapeHtml(definition.text)}</div>
+    </div>`;
+  }
+  return `<div class="ashes-card-copy generic-card-copy ${density}" aria-hidden="true">
+    <h3>${escapeHtml(definition.name)}</h3>
+    <div class="ashes-tag">${escapeHtml(tag)}</div>
+    <div class="ashes-rule-lines">${escapeHtml(definition.text)}</div>
+  </div>`;
+}
+
+function copyFor(style) {
+  if (style.definition.name === '拆毀堅固營壘') return miracleCopy();
+  if (style.definition.name === '灰與燼') return disasterCopy();
+  return genericCopy(style);
+}
 function templateClass(style) { return style.kind === 'miracle' ? 'stronghold-template-card' : 'ashes-template-card'; }
 
 function mountHand(image, style) {
