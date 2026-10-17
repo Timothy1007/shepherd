@@ -28,3 +28,7 @@
 /* 新生標記：獨立於底圖，只有拆毀堅固營壘使用。 */
 .stronghold-card-copy::before,.stronghold-card-copy::after{content:"";position:absolute;width:7.2%;height:8.2%;background:center/100% 100% no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath fill='%23006b58' d='M45 5 Q50 0 55 5 L95 45 Q100 50 95 55 L55 95 Q50 100 45 95 L5 55 Q0 50 5 45 Z'/%3E%3C/svg%3E");transform:translate(-50%,-50%);pointer-events:none}
 .stronghold-card-copy::before{left:85.8%;top:10.6%}.stronghold-card-copy::after{left:13.4%;top:88.3%}
+
+/* 熄滅標記：與新生共用菱形語彙，但保留中心空白。 */
+.ashes-card-copy::before,.ashes-card-copy::after{content:"";position:absolute;width:7.2%;height:8.2%;background:center/100% 100% no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M45 7 Q50 2 55 7 L93 45 Q98 50 93 55 L55 93 Q50 98 45 93 L7 55 Q2 50 7 45 Z' fill='none' stroke='%232b073f' stroke-width='12' stroke-linejoin='round'/%3E%3C/svg%3E");transform:translate(-50%,-50%);pointer-events:none}
+.ashes-card-copy::before{left:85.8%;top:10.6%}.ashes-card-copy::after{left:13.4%;top:88.3%}
