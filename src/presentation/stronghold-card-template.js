@@ -1,18 +1,21 @@
 import { CARD_DEFINITIONS } from '../game/cards.js';
 
 const NEW_LIFE = '新生';
-const NEW_LIFE_REVIEW_IDS = new Set([
-  'miracle-01', 'miracle-02', 'miracle-03',
-  'miracle-18', 'miracle-19', 'miracle-20',
+const CARD_FACE_REVIEW_IDS = new Set([
+  // 既有的新生卡：一併保留，讓舊版排版可與標籤圖案同場比較。
+  'miracle-01', 'miracle-02', 'miracle-03', 'miracle-18', 'miracle-19', 'miracle-20',
+  // 標籤圖案測試組：雙標籤、應對，以及三標籤僅取兩個主權重。
+  'miracle-04', 'miracle-07', 'miracle-10', 'miracle-16', 'miracle-17',
+  'disaster-01', 'disaster-09',
 ]);
 const CARD_STYLES = Object.freeze(Object.fromEntries(
   CARD_DEFINITIONS
-    .filter(definition => NEW_LIFE_REVIEW_IDS.has(definition.definitionId))
+    .filter(definition => CARD_FACE_REVIEW_IDS.has(definition.definitionId))
     .map(definition => {
       return [definition.name, Object.freeze({
         definition,
-        kind: 'miracle',
-        background: 'assets/miracles/miracle.png',
+        kind: definition.kind,
+        background: definition.kind === 'miracle' ? 'assets/miracles/miracle.png' : 'assets/disasters/disater3.png',
       })];
     })
 ));
@@ -26,6 +29,7 @@ const icon = (kind) => {
 
 function miracleCopy() {
   return `<div class="stronghold-card-copy" aria-hidden="true">
+    <div class="stronghold-tag-markers"><span class="stronghold-tag-marker is-primary tag-新生">${TAG_ICON['新生']}</span><span class="stronghold-tag-marker is-secondary tag-新生">${TAG_ICON['新生']}</span></div>
     <h3>拆毀堅固營壘</h3>
     <div class="stronghold-timing">應對</div>
     <div class="stronghold-rule-region"><div class="stronghold-rule-lines">當你即將受到具有<span class="stronghold-count">2</span>項及以上效果的<span class="stronghold-term">${icon('disaster')}<b>災難</b></span>時，你可以打出此牌：選擇其中<span class="stronghold-count">1</span>項效果，使其對你<span class="stronghold-term">${icon('shield')}<b>無效</b></span>；其餘效果正常結算。結算後，你棄置<span class="stronghold-count">1${icon('card')}</span>，然後抽<span class="stronghold-ending"><span class="stronghold-count">1${icon('card')}</span>。</span></div></div>
@@ -44,8 +48,45 @@ function escapeHtml(value) {
   return String(value).replace(/[&<>"]/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[character]));
 }
 
-function genericTag(definition, category) {
-  return definition.tags.filter(tag => tag !== category).join(' · ');
+const RESPONSE = '應對';
+const TAG_PRIORITY = Object.freeze({
+  // 三標籤卡：使命在這張牌中是結果，而非主要操作，因此暫不印在卡面。
+  '恰如飛鳥經過': Object.freeze(['共鳴', '流轉']),
+  // 雙標籤卡亦在此明示主、次關係，避免資料陣列順序成為視覺規則。
+  '於水中重生': Object.freeze(['流轉', '新生']),
+  '行向水深之處': Object.freeze(['洞察', '新生']),
+  '方舟之外': Object.freeze(['掠奪', '群體']),
+  '瘟疫': Object.freeze(['蔓延', '單體']),
+});
+
+const TAG_ICON = Object.freeze({
+  '新生': '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="tag-fill" d="M10 2.2a2.8 2.8 0 0 1 4 0l7.8 7.8a2.8 2.8 0 0 1 0 4L14 21.8a2.8 2.8 0 0 1-4 0L2.2 14a2.8 2.8 0 0 1 0-4Z"/></svg>',
+  '熄滅': '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 2.2a2.8 2.8 0 0 1 4 0l7.8 7.8a2.8 2.8 0 0 1 0 4L14 21.8a2.8 2.8 0 0 1-4 0L2.2 14a2.8 2.8 0 0 1 0-4Z"/><path class="tag-cutout" d="m12 7 5 5-5 5-5-5Z"/></svg>',
+  '流轉': '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8.5A7.5 7.5 0 0 1 18.2 6M18.2 6v4M18.2 6h-4M18 15.5A7.5 7.5 0 0 1 5.8 18M5.8 18v-4M5.8 18h4"/></svg>',
+  '洞察': '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.4-5.5 9.5-5.5 9.5 5.5 9.5 5.5-3.4 5.5-9.5 5.5S2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="2.6"/><path d="M12 2.2v1.6M4.3 5.4l1.1 1.1M19.7 5.4l-1.1 1.1"/></svg>',
+  '庇護': '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11.4 18.8C6.2 18.4 3.8 14.4 3.5 8.8c3.1.2 5.9 1.1 7.9 4.3M12.6 18.8c5.2-.4 7.6-4.4 7.9-10-3.1.2-5.9 1.1-7.9 4.3M12 9v10"/></svg>',
+  '共鳴': '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8.5" cy="12" r="5.4"/><circle cx="15.5" cy="12" r="5.4"/></svg>',
+  '火種': '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="tag-fill" d="M13.2 2.5c.5 4-2.2 5.1-3.5 7.7-.9-1-1.3-2.3-1-3.8-2.8 2.2-4.6 5.2-4.6 8.4 0 4.2 3.4 7.2 7.8 7.2s7.8-3.1 7.8-7.4c0-4.2-2.2-8.5-6.4-12.1ZM12 19.1c-1.8 0-3.1-1.2-3.1-3.1 0-1.8 1.3-3.2 3.4-5.3.1 1.4.9 2.1 1.7 2.7.9.8 1.3 1.6 1.3 2.6 0 1.9-1.3 3.1-3.3 3.1Z"/></svg>',
+  '使命': '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="tag-fill" d="m12 2.4 2.2 6.1 6.1 2.2-6.1 2.2-2.2 6.7-2.2-6.7-6.1-2.2 6.1-2.2Z"/></svg>',
+  '掠奪': '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5v8.2a5.8 5.8 0 0 0 5.8 5.8H14"/><path d="m8 12 2.1 2.1M10 8.5l2.1 2.1M12.5 6l2.1 2.1M15 7.2v5.1"/><path d="m14 19 3-3m0 0-3-3m3 3H7"/></svg>',
+  '重構': '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8V4h4M12 4h8v8M20 16v4h-4M12 20H4v-8"/><path d="m8 11 2-2m4 6 2-2M7 16a6.2 6.2 0 0 0 10-2M17 8A6.2 6.2 0 0 0 7 10"/></svg>',
+  '蔓延': '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="12" r="2"/><circle cx="17.5" cy="6" r="2"/><circle cx="17.5" cy="18" r="2"/><path d="M7.8 11 15.7 7M7.8 13l7.9 4"/></svg>',
+  '崩解': '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="m12 3.5-1 5 3 1-3 3 2 3-1 5M4.5 12l4 1-1 3 4-3 3 2 1 4"/></svg>',
+  '單體': '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="2.5"/><path d="M7.5 20c.2-4 2-6.2 4.5-6.2s4.3 2.2 4.5 6.2"/></svg>',
+  '多體': '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="8" r="2.2"/><circle cx="16" cy="8" r="2.2"/><path d="M3.8 19c.2-3.6 1.7-5.5 4.2-5.5s4 1.9 4.2 5.5M11.8 19c.2-3.6 1.7-5.5 4.2-5.5s4 1.9 4.2 5.5"/></svg>',
+  '群體': '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="8" r="2"/><circle cx="12" cy="6.5" r="2.3"/><circle cx="18" cy="8" r="2"/><path d="M2.5 19c.2-3.5 1.5-5.2 3.5-5.2s3.3 1.7 3.5 5.2M7.6 19c.2-3.8 1.7-5.7 4.4-5.7s4.2 1.9 4.4 5.7M14.5 19c.2-3.5 1.5-5.2 3.5-5.2s3.3 1.7 3.5 5.2"/></svg>',
+});
+
+function visualTags(definition) {
+  const source = TAG_PRIORITY[definition.name] ?? definition.tags.filter(tag => tag !== RESPONSE);
+  return source.filter(tag => tag !== RESPONSE && TAG_ICON[tag]).slice(0, 2);
+}
+
+function tagMarkers(definition, classPrefix) {
+  const tags = visualTags(definition);
+  if (!tags.length) return '';
+  const placed = tags.length === 1 ? [tags[0], tags[0]] : tags;
+  return `<div class="${classPrefix}-tag-markers">${placed.map((tag, index) => `<span class="${classPrefix}-tag-marker ${index === 0 ? 'is-primary' : 'is-secondary'} tag-${tag}" aria-label="${tag}">${TAG_ICON[tag]}</span>`).join('')}</div>`;
 }
 
 const cardCount = (amount, ending = '') => `<span class="stronghold-count">${amount}${icon('card')}${ending}</span>`;
@@ -65,20 +106,20 @@ function newbornEffect(definitionId, fallback) {
 
 function genericCopy(style) {
   const definition = style.definition;
-  const category = style.kind === 'miracle' ? NEW_LIFE : EXTINGUISH;
-  const tag = genericTag(definition, category);
+  const timing = definition.tags.includes(RESPONSE) ? RESPONSE : '';
   const effect = newbornEffect(definition.definitionId, definition.text);
   const density = definition.text.length > 130 ? 'ultra-dense' : definition.text.length > 82 ? 'dense' : '';
   if (style.kind === 'miracle') {
-    return `<div class="stronghold-card-copy generic-card-copy ${density} ${effect.layout}${tag ? '' : ' no-subtag'}" aria-hidden="true">
+    return `<div class="stronghold-card-copy generic-card-copy ${density} ${effect.layout}${timing ? '' : ' no-subtag'}" aria-hidden="true">
+      ${tagMarkers(definition, 'stronghold')}
       <h3>${escapeHtml(definition.name)}</h3>
-      <div class="stronghold-timing">${escapeHtml(tag)}</div>
+      ${timing ? `<div class="stronghold-timing">${timing}</div>` : ''}
       <div class="stronghold-rule-region"><div class="stronghold-rule-lines">${effect.html}</div></div>
     </div>`;
   }
   return `<div class="ashes-card-copy generic-card-copy ${density}" aria-hidden="true">
+    ${tagMarkers(definition, 'ashes')}
     <h3>${escapeHtml(definition.name)}</h3>
-    <div class="ashes-tag">${escapeHtml(tag)}</div>
     <div class="ashes-rule-region"><div class="ashes-rule-lines">${escapeHtml(definition.text)}</div></div>
   </div>`;
 }
