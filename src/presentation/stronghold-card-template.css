@@ -1,22 +1,22 @@
 .stronghold-template-card,.ashes-template-card{position:relative;isolation:isolate;overflow:hidden;container-type:inline-size;aspect-ratio:63/88;border-radius:7px}
 .stronghold-template-card{background:#08c79c url("assets/miracles/miracle.png") center/100% 100% no-repeat;color:#064b40}
-.ashes-template-card{background:#8750eb url("assets/disasters/disater.png") center/100% 100% no-repeat;color:#fff8ff}
+.ashes-template-card{background:#8750eb url("assets/disasters/disater.png") center/100% 100% no-repeat;color:#35104f}
 .stronghold-template-card .stronghold-card-copy,.ashes-template-card .ashes-card-copy{position:absolute;inset:0;z-index:2;pointer-events:none;font-family:"Noto Sans TC",system-ui,sans-serif;text-align:left;text-shadow:0 1px 0 #ffffff38}
-.stronghold-card-copy{color:#064b40}.ashes-card-copy{color:#fff8ff;text-shadow:0 1px 2px #3e0968b8,0 0 8px #3e09684d}
+.stronghold-card-copy{color:#064b40}.ashes-card-copy{color:#35104f;text-shadow:none}
 .stronghold-card-copy h3,.ashes-card-copy h3{position:absolute;top:17.5%;left:14%;right:6%;margin:0;font-family:"Noto Serif TC",serif;font-size:8.8cqw;line-height:1.12;font-weight:900;letter-spacing:.04em;text-align:center}
-.stronghold-card-copy h3{color:#074c40}.ashes-card-copy h3{color:#fffaff;text-shadow:0 2px 3px #3a075fb3}
+.stronghold-card-copy h3{color:#074c40}.ashes-card-copy h3{color:#2b073f;text-shadow:none}
 .stronghold-timing{position:absolute;top:28.5%;left:14%;right:6%;text-align:center;font-size:5.4cqw;line-height:1;font-weight:900;letter-spacing:.14em;color:#064b40}
 .stronghold-rule-lines{position:absolute;top:38%;left:9.5%;width:15.4em;max-width:81%;font-size:5.25cqw;line-height:1.6;letter-spacing:0;font-weight:400;white-space:normal;word-break:normal;line-break:strict;overflow-wrap:normal}
 .stronghold-rule-lines .stronghold-term,.stronghold-rule-lines .stronghold-count{display:inline-block;white-space:nowrap;margin-inline:.12em}
 .stronghold-rule-lines b,.stronghold-rule-lines .stronghold-count{font-weight:900;color:#034a3f}
 .stronghold-rule-lines .stronghold-term .card-template-icon,.stronghold-rule-lines .stronghold-count .card-template-icon{color:#034a3f}
 .stronghold-ending{white-space:nowrap}
-.ashes-tag{position:absolute;top:28.5%;left:14%;right:6%;text-align:center;font-size:5.4cqw;line-height:1;font-weight:900;letter-spacing:.14em;color:#fffaff;text-shadow:0 1px 3px #3a075fb3}
-.ashes-rule-lines{position:absolute;top:40.5%;left:9.5%;width:15.4em;max-width:81%;font-size:5.25cqw;line-height:1.6;letter-spacing:0;font-weight:400;white-space:normal;word-break:normal;line-break:strict;overflow-wrap:normal;color:#fff8ff}
-.ashes-number{display:inline-block;white-space:nowrap;font-weight:900;color:#ffffff;text-shadow:0 1px 3px #30034fcc}
+.ashes-tag{position:absolute;top:28.5%;left:14%;right:6%;text-align:center;font-size:5.4cqw;line-height:1;font-weight:900;letter-spacing:.14em;color:#2b073f;text-shadow:none}
+.ashes-rule-lines{position:absolute;top:40.5%;left:9.5%;width:15.4em;max-width:81%;font-size:5.25cqw;line-height:1.6;letter-spacing:0;font-weight:400;white-space:normal;word-break:normal;line-break:strict;overflow-wrap:normal;color:#35104f}
+.ashes-number{display:inline-block;white-space:nowrap;font-weight:900;color:#2b073f;text-shadow:none}
 .card-template-icon{display:inline-block;width:1.05em;height:1.05em;vertical-align:-.15em;margin:0 .05em;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .disaster-icon{fill:currentColor;stroke:none}.shield-icon{color:#075347}.card-count-icon{stroke-width:2.5}
-.fire-icon{fill:currentColor;stroke:none;width:1em;height:1em;vertical-align:-.14em;margin:0 .08em 0 .12em;color:#fff8ff;filter:drop-shadow(0 1px 1px #30034f9c)}
+.fire-icon{fill:currentColor;stroke:none;width:1em;height:1em;vertical-align:-.14em;margin:0 .08em 0 .12em;color:#2b073f;filter:none}
 .hand .card.stronghold-template-card .card-art,.hand .card.ashes-template-card .card-art{width:100%!important;height:100%!important;object-fit:fill!important;border-radius:7px!important}
 .hand .card.stronghold-template-card,.hand .card.ashes-template-card{overflow:hidden}
 .detail-special-template{width:min(250px,58vw)!important;height:auto!important;max-height:none!important;justify-self:center;filter:drop-shadow(0 28px 34px rgba(0,0,0,.72))!important;border-radius:14px!important}
