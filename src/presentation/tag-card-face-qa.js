@@ -3,7 +3,10 @@ import { getNormalActions } from '../game/game.js';
 
 const query = new URLSearchParams(globalThis.location?.search ?? '');
 const ACTIVE = query.get('qa') === 'tag-card-faces';
-const TAGS = new Set(['新生', '熄滅']);
+const REVIEW_IDS = new Set([
+  'miracle-01', 'miracle-02', 'miracle-03',
+  'miracle-18', 'miracle-19', 'miracle-20',
+]);
 
 function take(state, definitionId) {
   const zones = [state.deck, state.discardPile, state.playedArea, state.removedForRound];
@@ -24,12 +27,12 @@ function setup() {
 
   controller.cancelTimer?.();
   state.deck.push(...human.hand.splice(0));
-  const definitions = CARD_DEFINITIONS.filter(definition => definition.tags?.some(tag => TAGS.has(tag)));
+  const definitions = CARD_DEFINITIONS.filter(definition => REVIEW_IDS.has(definition.definitionId));
   const cards = definitions.map(definition => take(state, definition.definitionId)).filter(Boolean);
   human.hand.push(...cards);
   state.currentPlayer = human.playerId;
   state.qaSeed = 'tag-card-faces';
-  controller.logAi?.(`卡面檢視：已將 ${cards.length} 張帶有「新生」或「熄滅」標籤的牌發至你的手牌。`);
+  controller.logAi?.(`卡面檢視：已將 ${cards.length} 張「新生」神蹟發至你的手牌。`);
   controller.safeRender?.(getNormalActions(state));
 }
 
