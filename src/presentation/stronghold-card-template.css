@@ -1,22 +1,27 @@
-.stronghold-template-card{position:relative;isolation:isolate;overflow:hidden;container-type:inline-size;background:#08c79c url("assets/miracles/miracle%20test.png") center/100% 100% no-repeat;color:#064b40;aspect-ratio:63/88;border-radius:7px}
-.stronghold-template-card .stronghold-card-copy{position:absolute;inset:0;z-index:2;pointer-events:none;font-family:"Noto Sans TC",system-ui,sans-serif;color:#064b40;text-align:left;text-shadow:0 1px 0 #ffffff38}
-.stronghold-card-copy h3{position:absolute;top:17.5%;left:14%;right:6%;margin:0;font-family:"Noto Serif TC",serif;font-size:8.8cqw;line-height:1.12;font-weight:900;letter-spacing:.04em;text-align:center;color:#074c40}
+.stronghold-template-card,.ashes-template-card{position:relative;isolation:isolate;overflow:hidden;container-type:inline-size;aspect-ratio:63/88;border-radius:7px}
+.stronghold-template-card{background:#08c79c url("assets/miracles/miracle.png") center/100% 100% no-repeat;color:#064b40}
+.ashes-template-card{background:#8b59ef url("assets/disasters/disasters.png") center/100% 100% no-repeat;color:#331058}
+.stronghold-template-card .stronghold-card-copy,.ashes-template-card .ashes-card-copy{position:absolute;inset:0;z-index:2;pointer-events:none;font-family:"Noto Sans TC",system-ui,sans-serif;text-align:left;text-shadow:0 1px 0 #ffffff38}
+.stronghold-card-copy{color:#064b40}.ashes-card-copy{color:#331058}
+.stronghold-card-copy h3,.ashes-card-copy h3{position:absolute;top:17.5%;left:14%;right:6%;margin:0;font-family:"Noto Serif TC",serif;font-size:8.8cqw;line-height:1.12;font-weight:900;letter-spacing:.04em;text-align:center}
+.stronghold-card-copy h3{color:#074c40}.ashes-card-copy h3{color:#37105f}
 .stronghold-timing{position:absolute;top:28.5%;left:14%;right:6%;text-align:center;font-size:5.4cqw;line-height:1;font-weight:900;letter-spacing:.14em;color:#064b40}
 .stronghold-rule-lines{position:absolute;top:38%;left:9.5%;width:15.4em;max-width:81%;font-size:5.25cqw;line-height:1.6;letter-spacing:0;font-weight:400;white-space:normal;word-break:normal;line-break:strict;overflow-wrap:normal}
 .stronghold-rule-lines .stronghold-term,.stronghold-rule-lines .stronghold-count{display:inline-block;white-space:nowrap;margin-inline:.12em}
 .stronghold-rule-lines b,.stronghold-rule-lines .stronghold-count{font-weight:900;color:#034a3f}
-.stronghold-rule-lines .stronghold-term .stronghold-icon,.stronghold-rule-lines .stronghold-count .stronghold-icon{color:#034a3f}
-.stronghold-icon{display:inline-block;width:1.05em;height:1.05em;vertical-align:-.15em;margin:0 .05em;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.stronghold-claw{color:#075347;fill:currentColor;stroke:none}.stronghold-shield{color:#075347}.stronghold-card-icon{color:#087563;stroke-width:2.5}
-.hand .card.stronghold-template-card .card-art{width:100%!important;height:100%!important;object-fit:fill!important;border-radius:7px!important}
-.hand .card.stronghold-template-card{overflow:hidden}
-.detail-stronghold-template{width:min(250px,58vw)!important;height:auto!important;max-height:none!important;justify-self:center;filter:drop-shadow(0 28px 34px rgba(0,0,0,.72))!important;border-radius:14px!important}
-.detail-stronghold-template .stronghold-card-copy{font-size:initial}
-.reaction-stronghold-template{flex:0 0 95px;width:95px;height:133px;border-radius:7px}
-@media(max-width:720px){.detail-stronghold-template{width:min(230px,70vw)!important}}
+.stronghold-rule-lines .stronghold-term .card-template-icon,.stronghold-rule-lines .stronghold-count .card-template-icon{color:#034a3f}
 .stronghold-ending{white-space:nowrap}
-
-/* 新生標記：獨立於底圖的程式菱形，可隨卡片尺寸縮放。 */
+.ashes-rule-lines{position:absolute;top:36%;left:10.5%;width:15.4em;max-width:79%;font-size:5.65cqw;line-height:1.62;letter-spacing:0;font-weight:400;white-space:normal;word-break:normal;line-break:strict;overflow-wrap:normal;color:#35105e}
+.ashes-number{display:inline-block;white-space:nowrap;font-weight:900;color:#2c084f}
+.card-template-icon{display:inline-block;width:1.05em;height:1.05em;vertical-align:-.15em;margin:0 .05em;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.disaster-icon{fill:currentColor;stroke:none}.shield-icon{color:#075347}.card-count-icon{stroke-width:2.5}
+.hand .card.stronghold-template-card .card-art,.hand .card.ashes-template-card .card-art{width:100%!important;height:100%!important;object-fit:fill!important;border-radius:7px!important}
+.hand .card.stronghold-template-card,.hand .card.ashes-template-card{overflow:hidden}
+.detail-special-template{width:min(250px,58vw)!important;height:auto!important;max-height:none!important;justify-self:center;filter:drop-shadow(0 28px 34px rgba(0,0,0,.72))!important;border-radius:14px!important}
+.reaction-stronghold-template{flex:0 0 95px;width:95px;height:133px;border-radius:7px}
+.table-card-template{width:100%;height:auto;max-height:100%;border-radius:7px}
+.table-card-template .stronghold-card-copy h3,.table-card-template .ashes-card-copy h3{font-size:9.2cqw}
+@media(max-width:720px){.detail-special-template{width:min(230px,70vw)!important}}
+/* 新生標記：獨立於底圖，只有拆毀堅固營壘使用。 */
 .stronghold-card-copy::before,.stronghold-card-copy::after{content:"";position:absolute;width:7.2%;height:8.2%;background:center/100% 100% no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath fill='%23006b58' d='M45 5 Q50 0 55 5 L95 45 Q100 50 95 55 L55 95 Q50 100 45 95 L5 55 Q0 50 5 45 Z'/%3E%3C/svg%3E");transform:translate(-50%,-50%);pointer-events:none}
-.stronghold-card-copy::before{left:85.8%;top:10.6%}
-.stronghold-card-copy::after{left:13.4%;top:88.3%}
+.stronghold-card-copy::before{left:85.8%;top:10.6%}.stronghold-card-copy::after{left:13.4%;top:88.3%}
