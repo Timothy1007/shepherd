@@ -12,6 +12,9 @@
 .stronghold-rule-lines b,.stronghold-rule-lines .stronghold-count{font-weight:900;color:#034a3f}
 .stronghold-rule-lines .stronghold-term .card-template-icon,.stronghold-rule-lines .stronghold-count .card-template-icon{color:#034a3f}
 .stronghold-ending{white-space:nowrap}
+.generic-card-copy.dense .stronghold-rule-lines,.generic-card-copy.dense .ashes-rule-lines{font-size:4.45cqw;line-height:1.5}
+.generic-card-copy.ultra-dense .stronghold-rule-lines,.generic-card-copy.ultra-dense .ashes-rule-lines{font-size:3.75cqw;line-height:1.42}
+.generic-card-copy.no-subtag .stronghold-rule-lines{top:32%}
 .ashes-tag{position:absolute;top:28.5%;left:14%;right:6%;text-align:center;font-size:5.4cqw;line-height:1;font-weight:900;letter-spacing:.14em;color:#2b073f;text-shadow:none}
 .ashes-rule-lines{position:absolute;top:40.5%;left:9.5%;width:15.4em;max-width:81%;font-size:5.25cqw;line-height:1.6;letter-spacing:0;font-weight:400;white-space:normal;word-break:normal;line-break:strict;overflow-wrap:normal;color:#35104f}
 .ashes-number{display:inline-block;white-space:nowrap;font-weight:900;color:#2b073f;text-shadow:none}
