@@ -101,7 +101,8 @@ const fireWord = () => `<span class="card-inline-term">${icon('fire')}<b>火種<
 const disasterWord = () => `<span class="stronghold-term">${icon('disaster')}<b>災難</b></span>`;
 
 function formatRuleText(text) {
-  let value = escapeHtml(text).replace('【應對】', '');
+  let value = escapeHtml(text).replace('【應對】', '').replace('【負面】', '').trim();
+  if (value && !/[。！？]$/.test(value)) value += '。';
   const inserts = [];
   const insert = (html) => {
     const token = `\uE000${String.fromCharCode(65 + inserts.length)}\uE001`;
@@ -128,6 +129,7 @@ function newbornEffect(definitionId, fallback) {
     'miracle-01': { layout: 'layout-brief', html: `改變<b>出牌方向</b>，然後抽${cardCount(1, '。')}` },
     'miracle-02': { layout: 'layout-standard', html: `將此牌置於你的<b>效果區</b>。你下一張成功打出的物資牌數字 <b>+3</b>，且可超過原本的數字上限。成功打出物資牌後，<span class="keep-end">棄置此牌。</span>` },
     'miracle-03': { layout: 'layout-standard', html: `將此牌置於你的<b>效果區</b>。你下一張成功打出的物資牌<b>無視出牌限制</b>。成功打出物資牌後，<span class="keep-end">棄置此牌。</span>` },
+    'miracle-04': { layout: 'layout-brief', html: `棄置全部手牌，然後抽取等量${icon('card')}。` },
     'miracle-18': { layout: 'layout-long', html: `當你即將因${disasterWord()}效果失去${fireWord()}時，你可以打出此牌：正常失去${fireWord()}後，你每實際失去 <b>3</b>${fireWord()}，抽${cardCount(1)}，最多抽${cardCount(2, '。')}` },
     'miracle-20': { layout: 'layout-long', html: `當你的手牌數量或${fireWord()}即將因其他牌或人物效果從 <b>1</b> 以上降至 <b>0</b> 時，你可以打出此牌：選擇其中一項，使其保留 <b>1</b>。此效果不能用於支付代價、<b>整備</b>或其他由你主動選擇的<span class="keep-end">消耗。</span>` },
   };
@@ -137,6 +139,7 @@ function newbornEffect(definitionId, fallback) {
 function genericCopy(style) {
   const definition = style.definition;
   const timing = definition.tags.includes(RESPONSE) ? RESPONSE : '';
+  const status = timing || (definition.negative ? '負面' : '');
   const effect = newbornEffect(definition.definitionId, definition.text);
   const density = definition.text.length > 130 ? 'ultra-dense' : definition.text.length > 82 ? 'dense' : '';
   if (style.kind === 'miracle') {
@@ -150,7 +153,8 @@ function genericCopy(style) {
   return `<div class="ashes-card-copy generic-card-copy ${density}" aria-hidden="true">
     ${tagMarkers(definition, 'ashes')}
     <h3>${escapeHtml(definition.name)}</h3>
-    <div class="ashes-rule-region"><div class="ashes-rule-lines">${escapeHtml(definition.text)}</div></div>
+    ${status ? `<div class="ashes-tag">${status}</div>` : ''}
+    <div class="ashes-rule-region"><div class="ashes-rule-lines">${formatRuleText(definition.text)}</div></div>
   </div>`;
 }
 
