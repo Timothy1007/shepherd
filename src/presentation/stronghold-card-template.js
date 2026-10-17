@@ -137,7 +137,7 @@ function newbornEffect(definitionId, fallback) {
     'miracle-22': { layout: 'layout-standard', html: `選擇<b>1</b>名玩家，棄置其<b>效果區</b>中的<b>1</b>張持續${disasterWord()}牌，或清除其<b>1</b>個<b>負面</b>。<span class="keep-end">成功時，得<b>2</b>${fireWord()}。</span>` },
   };
   if (definitionId === 'miracle-17') {
-    const copy = formatRuleText(fallback.replace('，或少棄置', '。§或少棄置'))
+    const copy = formatRuleText(fallback.replace('，或少棄置', '，或§少棄置'))
       .replace('§', '<span class="rule-next-line">') + '</span>';
     return { layout: 'layout-redline', html: copy };
   }
