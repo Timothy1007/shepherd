@@ -11,10 +11,12 @@
 .stronghold-rule-lines b,.stronghold-rule-lines .stronghold-count{font-weight:900;color:#034a3f}
 .stronghold-rule-lines .stronghold-term .card-template-icon,.stronghold-rule-lines .stronghold-count .card-template-icon{color:#034a3f}
 .stronghold-ending{white-space:nowrap}
-.ashes-rule-lines{position:absolute;top:36%;left:10.5%;width:15.4em;max-width:79%;font-size:5.65cqw;line-height:1.62;letter-spacing:0;font-weight:500;white-space:normal;word-break:normal;line-break:strict;overflow-wrap:normal;color:#fff8ff}
+.ashes-tag{position:absolute;top:28.5%;left:14%;right:6%;text-align:center;font-size:5.4cqw;line-height:1;font-weight:900;letter-spacing:.14em;color:#fffaff;text-shadow:0 1px 3px #3a075fb3}
+.ashes-rule-lines{position:absolute;top:40.5%;left:9.5%;width:15.4em;max-width:81%;font-size:5.25cqw;line-height:1.6;letter-spacing:0;font-weight:400;white-space:normal;word-break:normal;line-break:strict;overflow-wrap:normal;color:#fff8ff}
 .ashes-number{display:inline-block;white-space:nowrap;font-weight:900;color:#ffffff;text-shadow:0 1px 3px #30034fcc}
 .card-template-icon{display:inline-block;width:1.05em;height:1.05em;vertical-align:-.15em;margin:0 .05em;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .disaster-icon{fill:currentColor;stroke:none}.shield-icon{color:#075347}.card-count-icon{stroke-width:2.5}
+.fire-icon{fill:currentColor;stroke:none;width:1em;height:1em;vertical-align:-.14em;margin:0 .08em 0 .12em;color:#fff8ff;filter:drop-shadow(0 1px 1px #30034f9c)}
 .hand .card.stronghold-template-card .card-art,.hand .card.ashes-template-card .card-art{width:100%!important;height:100%!important;object-fit:fill!important;border-radius:7px!important}
 .hand .card.stronghold-template-card,.hand .card.ashes-template-card{overflow:hidden}
 .detail-special-template{width:min(250px,58vw)!important;height:auto!important;max-height:none!important;justify-self:center;filter:drop-shadow(0 28px 34px rgba(0,0,0,.72))!important;border-radius:14px!important}
