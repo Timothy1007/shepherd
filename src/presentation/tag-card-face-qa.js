@@ -4,10 +4,10 @@ import { getNormalActions } from '../game/game.js';
 const query = new URLSearchParams(globalThis.location?.search ?? '');
 const ACTIVE = query.get('qa') === 'tag-card-faces';
 const REVIEW_IDS = new Set([
-  'miracle-01', 'miracle-02', 'miracle-03', 'miracle-18', 'miracle-19', 'miracle-20',
-  // 標籤圖案測試：雙標籤、應對文字、三標籤取兩個高權重，以及災難範圍。
-  'miracle-04', 'miracle-07', 'miracle-10', 'miracle-16', 'miracle-17',
-  'disaster-01', 'disaster-09',
+  // 已測過的新生／熄滅卡不重送；只檢視尚未更新卡背與內文的已實裝卡。
+  'miracle-04', 'miracle-05', 'miracle-06', 'miracle-07', 'miracle-08',
+  'miracle-09', 'miracle-10', 'miracle-13', 'miracle-16', 'miracle-17', 'miracle-22',
+  'disaster-01', 'disaster-02', 'disaster-08', 'disaster-09',
 ]);
 
 function take(state, definitionId) {
@@ -34,7 +34,7 @@ function setup() {
   human.hand.push(...cards);
   state.currentPlayer = human.playerId;
   state.qaSeed = 'tag-card-faces';
-  controller.logAi?.(`卡面檢視：已將 ${cards.length} 張神蹟／災難發至你的手牌；測試雙標籤、應對文字與三標籤取前兩個圖案。`);
+  controller.logAi?.(`卡面檢視：已將 ${cards.length} 張已實裝、尚未更新卡背與內文的神蹟／災難發至你的手牌。已測過的卡不重送。`);
   controller.safeRender?.(getNormalActions(state));
 }
 
