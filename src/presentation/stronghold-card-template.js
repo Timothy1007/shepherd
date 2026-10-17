@@ -1,6 +1,6 @@
 const CARD_STYLES = Object.freeze({
   '拆毀堅固營壘': Object.freeze({ kind: 'miracle', background: 'assets/miracles/miracle.png' }),
-  '灰與燼': Object.freeze({ kind: 'disaster', background: 'assets/disasters/disater2.png' }),
+  '灰與燼': Object.freeze({ kind: 'disaster', background: 'assets/disasters/disater3.png' }),
 });
 
 const icon = (kind) => {
