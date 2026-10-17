@@ -1,16 +1,18 @@
 import { CARD_DEFINITIONS } from '../game/cards.js';
 
 const NEW_LIFE = '新生';
-const EXTINGUISH = '熄滅';
+const NEW_LIFE_REVIEW_IDS = new Set([
+  'miracle-01', 'miracle-02', 'miracle-03',
+  'miracle-18', 'miracle-19', 'miracle-20',
+]);
 const CARD_STYLES = Object.freeze(Object.fromEntries(
   CARD_DEFINITIONS
-    .filter(definition => definition.tags?.includes(NEW_LIFE) || definition.tags?.includes(EXTINGUISH))
+    .filter(definition => NEW_LIFE_REVIEW_IDS.has(definition.definitionId))
     .map(definition => {
-      const kind = definition.tags.includes(NEW_LIFE) ? 'miracle' : 'disaster';
       return [definition.name, Object.freeze({
         definition,
-        kind,
-        background: kind === 'miracle' ? 'assets/miracles/miracle.png' : 'assets/disasters/disater3.png',
+        kind: 'miracle',
+        background: 'assets/miracles/miracle.png',
       })];
     })
 ));
@@ -46,6 +48,13 @@ function genericTag(definition, category) {
   return definition.tags.filter(tag => tag !== category).join(' · ');
 }
 
+function emphasizeEffect(text) {
+  const safe = escapeHtml(text);
+  return safe
+    .replace(/(改變出牌方向|置於你的效果區|無視出牌限制|即將因災難效果失去火種|手牌數量或火種|保留1)/g, '<b class="card-keyword">$1</b>')
+    .replace(/(\+3|抽1張牌|最多抽2張牌)/g, '<b class="card-number">$1</b>');
+}
+
 function genericCopy(style) {
   const definition = style.definition;
   const category = style.kind === 'miracle' ? NEW_LIFE : EXTINGUISH;
@@ -55,7 +64,7 @@ function genericCopy(style) {
     return `<div class="stronghold-card-copy generic-card-copy ${density}${tag ? '' : ' no-subtag'}" aria-hidden="true">
       <h3>${escapeHtml(definition.name)}</h3>
       <div class="stronghold-timing">${escapeHtml(tag)}</div>
-      <div class="stronghold-rule-lines">${escapeHtml(definition.text)}</div>
+      <div class="stronghold-rule-lines">${emphasizeEffect(definition.text)}</div>
     </div>`;
   }
   return `<div class="ashes-card-copy generic-card-copy ${density}" aria-hidden="true">
