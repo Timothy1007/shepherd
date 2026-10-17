@@ -131,7 +131,7 @@ function newbornEffect(definitionId, fallback) {
     'miracle-03': { layout: 'layout-standard', html: `將此牌置於你的<b>效果區</b>。你下一張成功打出的物資牌<b>無視出牌限制</b>。成功打出物資牌後，<span class="keep-end">棄置此牌。</span>` },
     'miracle-04': { layout: 'layout-brief', html: `棄置全部手牌，然後抽取等量${icon('card')}。` },
     'miracle-07': { layout: 'layout-deep-insight', html: `<span class="rule-sentence">依序展示<b>牌庫</b>頂的牌，直到展示出<b>3</b>種不同牌型、共展示<b>5</b>張，或展示到<b>死亡牌</b>。</span><span class="rule-sentence">未展示死亡牌時，選擇其中<b>1</b>張加入手牌；其餘以隨機順序置於<b>牌庫</b>底。展示到死亡牌時，依死亡規則處理；已展示的正常牌隨機置於<b>牌庫</b>底，不取得牌。</span>` },
-    'miracle-09': { layout: 'layout-redline', html: formatRuleText(fallback) },
+    'miracle-09': { layout: 'layout-redline', html: formatRuleText(fallback.replace('然後你棄置此牌', '然後你棄§置此牌')).replace('§', '<span class="rule-next-line">') + '</span>' },
     'miracle-18': { layout: 'layout-long', html: `當你即將因${disasterWord()}效果失去${fireWord()}時，你可以打出此牌：正常失去${fireWord()}後，你每實際失去 <b>3</b>${fireWord()}，抽${cardCount(1)}，最多抽${cardCount(2, '。')}` },
     'miracle-20': { layout: 'layout-long', html: `當你的手牌數量或${fireWord()}即將因其他牌或人物效果從 <b>1</b> 以上降至 <b>0</b> 時，你可以打出此牌：選擇其中一項，使其保留 <b>1</b>。此效果不能用於支付代價、<b>整備</b>或其他由你主動選擇的<span class="keep-end">消耗。</span>` },
     'miracle-22': { layout: 'layout-standard', html: `選擇<b>1</b>名玩家，棄置其<b>效果區</b>中的<b>1</b>張持續${disasterWord()}牌，或清除其<b>1</b>個<b>負面</b>。<span class="keep-end">成功時，得<b>2</b>${fireWord()}。</span>` },
