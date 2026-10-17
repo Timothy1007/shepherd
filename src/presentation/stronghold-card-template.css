@@ -3,6 +3,7 @@
 .ashes-template-card{background:#8750eb url("assets/disasters/disater.png") center/100% 100% no-repeat;color:#35104f}
 .stronghold-template-card .stronghold-card-copy,.ashes-template-card .ashes-card-copy{position:absolute;inset:0;z-index:2;pointer-events:none;font-family:"Noto Sans TC",system-ui,sans-serif;text-align:left;text-shadow:0 1px 0 #ffffff38}
 .stronghold-card-copy{color:#064b40}.ashes-card-copy{color:#35104f;text-shadow:none}
+.ashes-template-card .ashes-card-copy,.ashes-template-card .ashes-card-copy *{text-shadow:none!important}
 .stronghold-card-copy h3,.ashes-card-copy h3{position:absolute;top:17.5%;left:14%;right:6%;margin:0;font-family:"Noto Serif TC",serif;font-size:8.8cqw;line-height:1.12;font-weight:900;letter-spacing:.04em;text-align:center}
 .stronghold-card-copy h3{color:#074c40}.ashes-card-copy h3{color:#2b073f;text-shadow:none}
 .stronghold-timing{position:absolute;top:28.5%;left:14%;right:6%;text-align:center;font-size:5.4cqw;line-height:1;font-weight:900;letter-spacing:.14em;color:#064b40}
