@@ -48,32 +48,32 @@ function genericTag(definition, category) {
   return definition.tags.filter(tag => tag !== category).join(' · ');
 }
 
-const cardCount = (amount) => `<span class="stronghold-count">${amount}${icon('card')}</span>`;
-const cardWord = () => `<span class="card-inline-term">${icon('card')}</span>`;
+const cardCount = (amount, ending = '') => `<span class="stronghold-count">${amount}${icon('card')}${ending}</span>`;
 const fireWord = () => `<span class="card-inline-term">${icon('fire')}<b>火種</b></span>`;
 const disasterWord = () => `<span class="stronghold-term">${icon('disaster')}<b>災難</b></span>`;
 
 function newbornEffect(definitionId, fallback) {
   const effects = {
-    'miracle-01': `改變<b>出牌方向</b>，然後抽${cardCount(1)}。`,
-    'miracle-02': `將此${cardWord()}置於你的<b>效果區</b>。你下一張成功打出的物資${cardWord()}數字 <b>+3</b>，且可超過原本的數字上限。成功打出該物資${cardWord()}後，棄置此${cardWord()}。`,
-    'miracle-03': `將此${cardWord()}置於你的<b>效果區</b>。你下一張成功打出的物資${cardWord()}<b>無視出牌限制</b>。成功打出該物資${cardWord()}後，棄置此${cardWord()}。`,
-    'miracle-18': `當你即將因${disasterWord()}效果失去${fireWord()}時，你可以打出此${cardWord()}：正常失去${fireWord()}後，你每實際失去 <b>3</b> 點${fireWord()}，抽${cardCount(1)}，最多抽${cardCount(2)}。`,
-    'miracle-20': `當你的手${cardWord()}數量或${fireWord()}即將因其他${cardWord()}或人物效果從 <b>1</b> 以上降至 <b>0</b> 時，你可以打出此${cardWord()}：選擇其中一項，使其保留 <b>1</b>。此效果不能用於支付代價、<b>整備</b>或其他由你主動選擇的消耗。`,
+    'miracle-01': { layout: 'layout-brief', html: `改變<b>出牌方向</b>，然後抽${cardCount(1, '。')}` },
+    'miracle-02': { layout: 'layout-standard', html: `將此牌置於你的<b>效果區</b>。你下一張成功打出的物資牌數字 <b>+3</b>，且可超過原本的數字上限。成功打出物資牌後，<span class="keep-end">棄置此牌。</span>` },
+    'miracle-03': { layout: 'layout-standard', html: `將此牌置於你的<b>效果區</b>。你下一張成功打出的物資牌<b>無視出牌限制</b>。成功打出物資牌後，<span class="keep-end">棄置此牌。</span>` },
+    'miracle-18': { layout: 'layout-long', html: `當你即將因${disasterWord()}效果失去${fireWord()}時，你可以打出此牌：正常失去${fireWord()}後，你每實際失去 <b>3</b> 點${fireWord()}，抽${cardCount(1)}，最多抽${cardCount(2, '。')}` },
+    'miracle-20': { layout: 'layout-long', html: `當你的手牌數量或${fireWord()}即將因其他牌或人物效果從 <b>1</b> 以上降至 <b>0</b> 時，你可以打出此牌：選擇其中一項，使其保留 <b>1</b>。此效果不能用於支付代價、<b>整備</b>或其他由你主動選擇的<span class="keep-end">消耗。</span>` },
   };
-  return effects[definitionId] ?? escapeHtml(fallback);
+  return effects[definitionId] ?? { layout: '', html: escapeHtml(fallback) };
 }
 
 function genericCopy(style) {
   const definition = style.definition;
   const category = style.kind === 'miracle' ? NEW_LIFE : EXTINGUISH;
   const tag = genericTag(definition, category);
+  const effect = newbornEffect(definition.definitionId, definition.text);
   const density = definition.text.length > 130 ? 'ultra-dense' : definition.text.length > 82 ? 'dense' : '';
   if (style.kind === 'miracle') {
-    return `<div class="stronghold-card-copy generic-card-copy ${density}${tag ? '' : ' no-subtag'}" aria-hidden="true">
+    return `<div class="stronghold-card-copy generic-card-copy ${density} ${effect.layout}${tag ? '' : ' no-subtag'}" aria-hidden="true">
       <h3>${escapeHtml(definition.name)}</h3>
       <div class="stronghold-timing">${escapeHtml(tag)}</div>
-      <div class="stronghold-rule-region"><div class="stronghold-rule-lines">${newbornEffect(definition.definitionId, definition.text)}</div></div>
+      <div class="stronghold-rule-region"><div class="stronghold-rule-lines">${effect.html}</div></div>
     </div>`;
   }
   return `<div class="ashes-card-copy generic-card-copy ${density}" aria-hidden="true">
