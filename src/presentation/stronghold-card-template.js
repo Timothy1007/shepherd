@@ -1,16 +1,20 @@
 import { CARD_DEFINITIONS } from '../game/cards.js';
 
 const NEW_LIFE = '新生';
-const CARD_FACE_REVIEW_IDS = new Set([
-  // 既有的新生卡：一併保留，讓舊版排版可與標籤圖案同場比較。
-  'miracle-01', 'miracle-02', 'miracle-03', 'miracle-18', 'miracle-19', 'miracle-20',
-  // 標籤圖案測試組：雙標籤、應對，以及三標籤僅取兩個主權重。
-  'miracle-04', 'miracle-07', 'miracle-10', 'miracle-16', 'miracle-17',
-  'disaster-01', 'disaster-09',
+const REVIEWED_FACE_IDS = new Set([
+  // 已由玩家看過的卡面，保留既有新版外觀，但不再放進本次 QA 手牌。
+  'miracle-01', 'miracle-02', 'miracle-03', 'miracle-18', 'miracle-19', 'miracle-20', 'disaster-07',
+]);
+const IMPLEMENTED_FACE_IDS = new Set([
+  ...REVIEWED_FACE_IDS,
+  // 本次只補齊這些已實裝、尚未換新卡背與內文的牌。
+  'miracle-04', 'miracle-05', 'miracle-06', 'miracle-07', 'miracle-08',
+  'miracle-09', 'miracle-10', 'miracle-13', 'miracle-16', 'miracle-17', 'miracle-22',
+  'disaster-01', 'disaster-02', 'disaster-08', 'disaster-09',
 ]);
 const CARD_STYLES = Object.freeze(Object.fromEntries(
   CARD_DEFINITIONS
-    .filter(definition => CARD_FACE_REVIEW_IDS.has(definition.definitionId))
+    .filter(definition => IMPLEMENTED_FACE_IDS.has(definition.definitionId))
     .map(definition => {
       return [definition.name, Object.freeze({
         definition,
@@ -38,6 +42,7 @@ function miracleCopy() {
 
 function disasterCopy() {
   return `<div class="ashes-card-copy" aria-hidden="true">
+    <div class="ashes-tag-markers"><span class="ashes-tag-marker is-primary tag-熄滅">${TAG_ICON['熄滅']}</span><span class="ashes-tag-marker is-secondary tag-熄滅">${TAG_ICON['熄滅']}</span></div>
     <h3>灰與燼</h3>
     <div class="ashes-tag">群體</div>
     <div class="ashes-rule-region"><div class="ashes-rule-lines">每名玩家減少 <span class="ashes-number">4</span>${icon('fire')}<b>火種</b>。直到本輪結束，所有玩家因神蹟效果獲得的${icon('fire')}<b>火種</b> - <span class="ashes-number">2</span>，最低為 <span class="ashes-number">0</span>。</div></div>
@@ -83,6 +88,8 @@ function visualTags(definition) {
 }
 
 function tagMarkers(definition, classPrefix) {
+  // 標籤圖案尚未進入本次「內容補齊」工作；已看過的卡面維持原樣即可。
+  if (!REVIEWED_FACE_IDS.has(definition.definitionId)) return '';
   const tags = visualTags(definition);
   if (!tags.length) return '';
   const placed = tags.length === 1 ? [tags[0], tags[0]] : tags;
@@ -93,6 +100,29 @@ const cardCount = (amount, ending = '') => `<span class="stronghold-count">${amo
 const fireWord = () => `<span class="card-inline-term">${icon('fire')}<b>火種</b></span>`;
 const disasterWord = () => `<span class="stronghold-term">${icon('disaster')}<b>災難</b></span>`;
 
+function formatRuleText(text) {
+  let value = escapeHtml(text).replace('【應對】', '');
+  const inserts = [];
+  const insert = (html) => {
+    const token = `\uE000${String.fromCharCode(65 + inserts.length)}\uE001`;
+    inserts.push([token, html]);
+    return token;
+  };
+  // 只在真正抽／棄牌的敘述放牌圖示；其他「牌」不濫用圖示。
+  value = value
+    .replace(/抽取(等量)的牌/g, (_, amount) => `抽取${amount}${insert(icon('card'))}`)
+    .replace(/抽(\d+)張牌/g, (_, amount) => `抽${insert(cardCount(amount))}`)
+    .replace(/棄置(\d+)張手牌/g, (_, amount) => `棄置${insert(cardCount(amount))}手牌`)
+    .replace(/棄置(\d+)張；/g, (_, amount) => `棄置${insert(cardCount(amount))}；`);
+  value = value
+    .replace(/(\d+)/g, '<b>$1</b>')
+    .replace(/使命進度|效果區|牌庫|棄牌區|死亡牌|群羊牌|物資牌/g, '<b>$&</b>')
+    .replace(/災難/g, disasterWord())
+    .replace(/火種/g, fireWord());
+  for (const [token, html] of inserts) value = value.replace(token, html);
+  return value;
+}
+
 function newbornEffect(definitionId, fallback) {
   const effects = {
     'miracle-01': { layout: 'layout-brief', html: `改變<b>出牌方向</b>，然後抽${cardCount(1, '。')}` },
@@ -101,7 +131,7 @@ function newbornEffect(definitionId, fallback) {
     'miracle-18': { layout: 'layout-long', html: `當你即將因${disasterWord()}效果失去${fireWord()}時，你可以打出此牌：正常失去${fireWord()}後，你每實際失去 <b>3</b>${fireWord()}，抽${cardCount(1)}，最多抽${cardCount(2, '。')}` },
     'miracle-20': { layout: 'layout-long', html: `當你的手牌數量或${fireWord()}即將因其他牌或人物效果從 <b>1</b> 以上降至 <b>0</b> 時，你可以打出此牌：選擇其中一項，使其保留 <b>1</b>。此效果不能用於支付代價、<b>整備</b>或其他由你主動選擇的<span class="keep-end">消耗。</span>` },
   };
-  return effects[definitionId] ?? { layout: '', html: escapeHtml(fallback) };
+  return effects[definitionId] ?? { layout: '', html: formatRuleText(fallback) };
 }
 
 function genericCopy(style) {
