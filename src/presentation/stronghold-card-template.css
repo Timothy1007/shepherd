@@ -7,22 +7,24 @@
 .stronghold-card-copy h3,.ashes-card-copy h3{position:absolute;top:17.5%;left:14%;right:6%;margin:0;font-family:"Noto Serif TC",serif;font-size:8.8cqw;line-height:1.12;font-weight:900;letter-spacing:.04em;text-align:center}
 .stronghold-card-copy h3{color:#074c40}.ashes-card-copy h3{color:#2b073f;text-shadow:none}
 .stronghold-timing{position:absolute;top:28.5%;left:14%;right:6%;text-align:center;font-size:5.4cqw;line-height:1;font-weight:900;letter-spacing:.14em;color:#064b40}
-.stronghold-rule-lines{position:absolute;top:38%;left:9.5%;width:15.4em;max-width:81%;font-size:5.25cqw;line-height:1.6;letter-spacing:0;font-weight:400;white-space:normal;word-break:normal;line-break:strict;overflow-wrap:normal}
-.stronghold-rule-lines .stronghold-term,.stronghold-rule-lines .stronghold-count{display:inline-block;white-space:nowrap;margin-inline:.12em}
+.stronghold-rule-region,.ashes-rule-region{position:absolute;left:9.5%;right:9.5%;bottom:11%;display:flex;align-items:center}
+.stronghold-rule-region{top:37%}.ashes-rule-region{top:39%}
+.stronghold-rule-lines{position:static;width:100%;max-width:none;font-size:5.25cqw;line-height:1.6;letter-spacing:0;font-weight:400;white-space:normal;word-break:normal;line-break:strict;overflow-wrap:normal}
+.stronghold-rule-lines .stronghold-term,.stronghold-rule-lines .stronghold-count,.stronghold-rule-lines .card-inline-term{display:inline-block;white-space:nowrap;margin-inline:.12em}
 .stronghold-rule-lines b,.stronghold-rule-lines .stronghold-count{font-weight:900;color:#034a3f}
-.generic-card-copy .card-keyword{font-weight:900;color:#034a3f}
-.generic-card-copy .card-number{font-weight:900;color:#075d4f}
-.stronghold-rule-lines .stronghold-term .card-template-icon,.stronghold-rule-lines .stronghold-count .card-template-icon{color:#034a3f}
+.stronghold-rule-lines .stronghold-term .card-template-icon,.stronghold-rule-lines .stronghold-count .card-template-icon,.stronghold-rule-lines .card-inline-term .card-template-icon{color:#034a3f}
+.stronghold-rule-lines .card-inline-term{font-weight:900;color:#034a3f}
 .stronghold-ending{white-space:nowrap}
 .generic-card-copy.dense .stronghold-rule-lines,.generic-card-copy.dense .ashes-rule-lines{font-size:4.45cqw;line-height:1.5}
 .generic-card-copy.ultra-dense .stronghold-rule-lines,.generic-card-copy.ultra-dense .ashes-rule-lines{font-size:3.75cqw;line-height:1.42}
-.generic-card-copy.no-subtag .stronghold-rule-lines{top:32%}
+.generic-card-copy.no-subtag .stronghold-rule-region{top:30%}
 .ashes-tag{position:absolute;top:28.5%;left:14%;right:6%;text-align:center;font-size:5.4cqw;line-height:1;font-weight:900;letter-spacing:.14em;color:#2b073f;text-shadow:none}
-.ashes-rule-lines{position:absolute;top:40.5%;left:9.5%;width:15.4em;max-width:81%;font-size:5.25cqw;line-height:1.6;letter-spacing:0;font-weight:400;white-space:normal;word-break:normal;line-break:strict;overflow-wrap:normal;color:#35104f}
+.ashes-rule-lines{position:static;width:100%;max-width:none;font-size:5.25cqw;line-height:1.6;letter-spacing:0;font-weight:400;white-space:normal;word-break:normal;line-break:strict;overflow-wrap:normal;color:#35104f}
 .ashes-number{display:inline-block;white-space:nowrap;font-weight:900;color:#2b073f;text-shadow:none}
 .card-template-icon{display:inline-block;width:1.05em;height:1.05em;vertical-align:-.15em;margin:0 .05em;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .disaster-icon{fill:currentColor;stroke:none}.shield-icon{color:#075347}.card-count-icon{stroke-width:2.5}
 .fire-icon{fill:currentColor;stroke:none;width:1em;height:1em;vertical-align:-.14em;margin:0 .08em 0 .12em;color:#2b073f;filter:none}
+.stronghold-template-card .fire-icon{color:#034a3f}
 .hand .card.stronghold-template-card .card-art,.hand .card.ashes-template-card .card-art{width:100%!important;height:100%!important;object-fit:fill!important;border-radius:7px!important}
 .hand .card.stronghold-template-card,.hand .card.ashes-template-card{overflow:hidden}
 .detail-special-template{width:min(250px,58vw)!important;height:auto!important;max-height:none!important;justify-self:center;filter:drop-shadow(0 28px 34px rgba(0,0,0,.72))!important;border-radius:14px!important}
