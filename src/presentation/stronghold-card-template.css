@@ -9,7 +9,7 @@
 .stronghold-timing{position:absolute;top:28.5%;left:14%;right:6%;text-align:center;font-size:5.4cqw;line-height:1;font-weight:900;letter-spacing:.14em;color:#064b40}
 .stronghold-rule-region,.ashes-rule-region{position:absolute;left:9.5%;right:9.5%;bottom:12%;display:flex;align-items:flex-start}
 .stronghold-rule-region{top:42%}.ashes-rule-region{top:42%}
-.stronghold-rule-lines{position:static;width:100%;max-width:none;font-size:5.25cqw;line-height:1.6;letter-spacing:0;font-weight:400;white-space:normal;word-break:normal;line-break:strict;overflow-wrap:normal}
+.stronghold-rule-lines{position:static;width:100%;max-width:none;font-size:5.25cqw;line-height:1.6;letter-spacing:0;font-weight:400;white-space:normal;word-break:normal;line-break:strict;overflow-wrap:normal;text-wrap:pretty}
 .stronghold-rule-lines .stronghold-term,.stronghold-rule-lines .stronghold-count,.stronghold-rule-lines .card-inline-term{display:inline-block;white-space:nowrap;margin-inline:.12em}
 .stronghold-rule-lines b,.stronghold-rule-lines .stronghold-count{font-weight:900;color:#034a3f}
 .stronghold-rule-lines .stronghold-term .card-template-icon,.stronghold-rule-lines .stronghold-count .card-template-icon,.stronghold-rule-lines .card-inline-term .card-template-icon{color:#034a3f}
@@ -21,16 +21,15 @@
 .generic-card-copy.layout-standard .stronghold-rule-region{top:42%;bottom:12%}
 .generic-card-copy.layout-long .stronghold-rule-region{top:42%;bottom:12%}
 .generic-card-copy.layout-long .stronghold-rule-lines{font-size:4.7cqw;line-height:1.56}
-.generic-card-copy.pending-card-face .stronghold-rule-region,.generic-card-copy.pending-card-face .ashes-rule-region{left:14%;right:14%;bottom:15%}
-.generic-card-copy.layout-deep-insight .stronghold-rule-region{top:35.5%;bottom:15%;align-items:flex-start}
-.generic-card-copy.layout-deep-insight .stronghold-rule-lines{font-size:4.15cqw;line-height:1.46}
+.generic-card-copy.layout-deep-insight .stronghold-rule-region{top:36%;bottom:14%;align-items:flex-start}
+.generic-card-copy.layout-deep-insight .stronghold-rule-lines{font-size:3.75cqw;line-height:1.45}
+.generic-card-copy.layout-deep-insight .rule-sentence{display:block;margin:0 0 .32em}
 .generic-card-copy.dense .stronghold-rule-lines,.generic-card-copy.dense .ashes-rule-lines{font-size:4.45cqw;line-height:1.5}
 .generic-card-copy.ultra-dense .stronghold-rule-lines,.generic-card-copy.ultra-dense .ashes-rule-lines{font-size:3.75cqw;line-height:1.42}
-.generic-card-copy.layout-deep-insight .stronghold-rule-lines{font-size:4.15cqw;line-height:1.46}
 /* 沒有時機文字的牌，正文仍從左上深色弧框下緣開始，不提早塞到標題下。 */
 .generic-card-copy.no-subtag:not(.layout-brief):not(.layout-standard) .stronghold-rule-region{top:42%}
 .ashes-tag{position:absolute;top:28.5%;left:14%;right:6%;text-align:center;font-size:5.4cqw;line-height:1;font-weight:900;letter-spacing:.14em;color:#2b073f;text-shadow:none}
-.ashes-rule-lines{position:static;width:100%;max-width:none;font-size:5.25cqw;line-height:1.6;letter-spacing:0;font-weight:400;white-space:normal;word-break:normal;line-break:strict;overflow-wrap:normal;color:#35104f}
+.ashes-rule-lines{position:static;width:100%;max-width:none;font-size:5.25cqw;line-height:1.6;letter-spacing:0;font-weight:400;white-space:normal;word-break:normal;line-break:strict;overflow-wrap:normal;text-wrap:pretty;color:#35104f}
 .ashes-number{display:inline-block;white-space:nowrap;font-weight:900;color:#2b073f;text-shadow:none}
 .card-template-icon{display:inline-block;width:1.05em;height:1.05em;vertical-align:-.15em;margin:0 .05em;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .disaster-icon{fill:currentColor;stroke:none}.shield-icon{color:#075347}.card-count-icon{stroke-width:2.5}
