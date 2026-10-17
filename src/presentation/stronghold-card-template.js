@@ -130,6 +130,7 @@ function newbornEffect(definitionId, fallback) {
     'miracle-02': { layout: 'layout-standard', html: `將此牌置於你的<b>效果區</b>。你下一張成功打出的物資牌數字 <b>+3</b>，且可超過原本的數字上限。成功打出物資牌後，<span class="keep-end">棄置此牌。</span>` },
     'miracle-03': { layout: 'layout-standard', html: `將此牌置於你的<b>效果區</b>。你下一張成功打出的物資牌<b>無視出牌限制</b>。成功打出物資牌後，<span class="keep-end">棄置此牌。</span>` },
     'miracle-04': { layout: 'layout-brief', html: `棄置全部手牌，然後抽取等量${icon('card')}。` },
+    'miracle-07': { layout: 'layout-deep-insight', html: `依序展示<b>牌庫</b>頂的牌，直到展示出<b>3</b>種不同牌型、共展示<b>5</b>張，或展示到<b>死亡牌</b>。未展示死亡牌時，選擇其中<b>1</b>張加入手牌；其餘以隨機順序置於<b>牌庫</b>底。展示到死亡牌時，依死亡規則處理；已展示的正常牌隨機置於<b>牌庫</b>底，不取得牌。` },
     'miracle-18': { layout: 'layout-long', html: `當你即將因${disasterWord()}效果失去${fireWord()}時，你可以打出此牌：正常失去${fireWord()}後，你每實際失去 <b>3</b>${fireWord()}，抽${cardCount(1)}，最多抽${cardCount(2, '。')}` },
     'miracle-20': { layout: 'layout-long', html: `當你的手牌數量或${fireWord()}即將因其他牌或人物效果從 <b>1</b> 以上降至 <b>0</b> 時，你可以打出此牌：選擇其中一項，使其保留 <b>1</b>。此效果不能用於支付代價、<b>整備</b>或其他由你主動選擇的<span class="keep-end">消耗。</span>` },
   };
@@ -143,14 +144,16 @@ function genericCopy(style) {
   const effect = newbornEffect(definition.definitionId, definition.text);
   const density = definition.text.length > 130 ? 'ultra-dense' : definition.text.length > 82 ? 'dense' : '';
   if (style.kind === 'miracle') {
-    return `<div class="stronghold-card-copy generic-card-copy ${density} ${effect.layout}${timing ? '' : ' no-subtag'}" aria-hidden="true">
+    const pending = REVIEWED_FACE_IDS.has(definition.definitionId) ? '' : ' pending-card-face';
+    return `<div class="stronghold-card-copy generic-card-copy ${density} ${effect.layout}${timing ? '' : ' no-subtag'}${pending}" aria-hidden="true">
       ${tagMarkers(definition, 'stronghold')}
       <h3>${escapeHtml(definition.name)}</h3>
       ${timing ? `<div class="stronghold-timing">${timing}</div>` : ''}
       <div class="stronghold-rule-region"><div class="stronghold-rule-lines">${effect.html}</div></div>
     </div>`;
   }
-  return `<div class="ashes-card-copy generic-card-copy ${density}" aria-hidden="true">
+  const pending = REVIEWED_FACE_IDS.has(definition.definitionId) ? '' : ' pending-card-face';
+  return `<div class="ashes-card-copy generic-card-copy ${density}${pending}" aria-hidden="true">
     ${tagMarkers(definition, 'ashes')}
     <h3>${escapeHtml(definition.name)}</h3>
     ${status ? `<div class="ashes-tag">${status}</div>` : ''}
