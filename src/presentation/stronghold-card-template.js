@@ -5,6 +5,7 @@ const CARD_STYLES = Object.freeze({
 
 const icon = (kind) => {
   if (kind === 'disaster') return '<svg class="card-template-icon disaster-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5H21L12 21Z"/></svg>';
+  if (kind === 'fire') return '<svg class="card-template-icon fire-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M13.2 2.5c.5 4-2.2 5.1-3.5 7.7-.9-1-1.3-2.3-1-3.8-2.8 2.2-4.6 5.2-4.6 8.4 0 4.2 3.4 7.2 7.8 7.2s7.8-3.1 7.8-7.4c0-4.2-2.2-8.5-6.4-12.1ZM12 19.1c-1.8 0-3.1-1.2-3.1-3.1 0-1.8 1.3-3.2 3.4-5.3.1 1.4.9 2.1 1.7 2.7.9.8 1.3 1.6 1.3 2.6 0 1.9-1.3 3.1-3.3 3.1Z"/></svg>';
   if (kind === 'shield') return '<svg class="card-template-icon shield-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 20 6v5.3c0 4.7-3.1 7.9-8 10.1-4.9-2.2-8-5.4-8-10.1V6l8-3Z"/><path d="m6 18 12-12"/></svg>';
   return '<svg class="card-template-icon card-count-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 18H4a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h11a1 1 0 0 1 1 1v2"/><rect x="7" y="6" width="13" height="16" rx="1.5"/></svg>';
 };
@@ -20,7 +21,8 @@ function miracleCopy() {
 function disasterCopy() {
   return `<div class="ashes-card-copy" aria-hidden="true">
     <h3>灰與燼</h3>
-    <div class="ashes-rule-lines">每名玩家失去 <span class="ashes-number">4</span> 點火種。直到本輪結束，所有玩家因神蹟效果獲得的火種減少 <span class="ashes-number">2</span> 點，最低為 <span class="ashes-number">0</span>。</div>
+    <div class="ashes-tag">群體</div>
+    <div class="ashes-rule-lines">每名玩家減少 <span class="ashes-number">4</span>${icon('fire')}火種。直到本輪結束，所有玩家因神蹟效果獲得的${icon('fire')}火種 - <span class="ashes-number">2</span>，最低為 <span class="ashes-number">0</span>。</div>
   </div>`;
 }
 
