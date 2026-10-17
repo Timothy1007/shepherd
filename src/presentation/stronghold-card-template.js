@@ -28,7 +28,7 @@ function miracleCopy() {
   return `<div class="stronghold-card-copy" aria-hidden="true">
     <h3>拆毀堅固營壘</h3>
     <div class="stronghold-timing">應對</div>
-    <div class="stronghold-rule-lines">當你即將受到具有2項及以上效果的<span class="stronghold-term">${icon('disaster')}<b>災難</b></span>時，你可以打出此牌：選擇其中1項效果，使其對你<span class="stronghold-term">${icon('shield')}<b>無效</b></span>；其餘效果正常結算。結算後，你棄置<span class="stronghold-count">1${icon('card')}</span>，然後抽<span class="stronghold-ending"><span class="stronghold-count">1${icon('card')}</span>。</span></div>
+    <div class="stronghold-rule-region"><div class="stronghold-rule-lines">當你即將受到具有<span class="stronghold-count">2</span>項及以上效果的<span class="stronghold-term">${icon('disaster')}<b>災難</b></span>時，你可以打出此牌：選擇其中<span class="stronghold-count">1</span>項效果，使其對你<span class="stronghold-term">${icon('shield')}<b>無效</b></span>；其餘效果正常結算。結算後，你棄置<span class="stronghold-count">1${icon('card')}</span>，然後抽<span class="stronghold-ending"><span class="stronghold-count">1${icon('card')}</span>。</span></div></div>
   </div>`;
 }
 
@@ -36,7 +36,7 @@ function disasterCopy() {
   return `<div class="ashes-card-copy" aria-hidden="true">
     <h3>灰與燼</h3>
     <div class="ashes-tag">群體</div>
-    <div class="ashes-rule-lines">每名玩家減少 <span class="ashes-number">4</span>${icon('fire')}火種。直到本輪結束，所有玩家因神蹟效果獲得的${icon('fire')}火種 - <span class="ashes-number">2</span>，最低為 <span class="ashes-number">0</span>。</div>
+    <div class="ashes-rule-region"><div class="ashes-rule-lines">每名玩家減少 <span class="ashes-number">4</span>${icon('fire')}<b>火種</b>。直到本輪結束，所有玩家因神蹟效果獲得的${icon('fire')}<b>火種</b> - <span class="ashes-number">2</span>，最低為 <span class="ashes-number">0</span>。</div></div>
   </div>`;
 }
 
@@ -48,11 +48,20 @@ function genericTag(definition, category) {
   return definition.tags.filter(tag => tag !== category).join(' · ');
 }
 
-function emphasizeEffect(text) {
-  const safe = escapeHtml(text);
-  return safe
-    .replace(/(改變出牌方向|置於你的效果區|無視出牌限制|即將因災難效果失去火種|手牌數量或火種|保留1)/g, '<b class="card-keyword">$1</b>')
-    .replace(/(\+3|抽1張牌|最多抽2張牌)/g, '<b class="card-number">$1</b>');
+const cardCount = (amount) => `<span class="stronghold-count">${amount}${icon('card')}</span>`;
+const cardWord = () => `<span class="card-inline-term">${icon('card')}</span>`;
+const fireWord = () => `<span class="card-inline-term">${icon('fire')}<b>火種</b></span>`;
+const disasterWord = () => `<span class="stronghold-term">${icon('disaster')}<b>災難</b></span>`;
+
+function newbornEffect(definitionId, fallback) {
+  const effects = {
+    'miracle-01': `改變<b>出牌方向</b>，然後抽${cardCount(1)}。`,
+    'miracle-02': `將此${cardWord()}置於你的<b>效果區</b>。你下一張成功打出的物資${cardWord()}數字 <b>+3</b>，且可超過原本的數字上限。成功打出該物資${cardWord()}後，棄置此${cardWord()}。`,
+    'miracle-03': `將此${cardWord()}置於你的<b>效果區</b>。你下一張成功打出的物資${cardWord()}<b>無視出牌限制</b>。成功打出該物資${cardWord()}後，棄置此${cardWord()}。`,
+    'miracle-18': `當你即將因${disasterWord()}效果失去${fireWord()}時，你可以打出此${cardWord()}：正常失去${fireWord()}後，你每實際失去 <b>3</b> 點${fireWord()}，抽${cardCount(1)}，最多抽${cardCount(2)}。`,
+    'miracle-20': `當你的手${cardWord()}數量或${fireWord()}即將因其他${cardWord()}或人物效果從 <b>1</b> 以上降至 <b>0</b> 時，你可以打出此${cardWord()}：選擇其中一項，使其保留 <b>1</b>。此效果不能用於支付代價、<b>整備</b>或其他由你主動選擇的消耗。`,
+  };
+  return effects[definitionId] ?? escapeHtml(fallback);
 }
 
 function genericCopy(style) {
@@ -64,13 +73,13 @@ function genericCopy(style) {
     return `<div class="stronghold-card-copy generic-card-copy ${density}${tag ? '' : ' no-subtag'}" aria-hidden="true">
       <h3>${escapeHtml(definition.name)}</h3>
       <div class="stronghold-timing">${escapeHtml(tag)}</div>
-      <div class="stronghold-rule-lines">${emphasizeEffect(definition.text)}</div>
+      <div class="stronghold-rule-region"><div class="stronghold-rule-lines">${newbornEffect(definition.definitionId, definition.text)}</div></div>
     </div>`;
   }
   return `<div class="ashes-card-copy generic-card-copy ${density}" aria-hidden="true">
     <h3>${escapeHtml(definition.name)}</h3>
     <div class="ashes-tag">${escapeHtml(tag)}</div>
-    <div class="ashes-rule-lines">${escapeHtml(definition.text)}</div>
+    <div class="ashes-rule-region"><div class="ashes-rule-lines">${escapeHtml(definition.text)}</div></div>
   </div>`;
 }
 
