@@ -173,8 +173,8 @@ function genericCopy(style) {
   </div>`;
 }
 
-function copyFor(style) {
-  if (style.tagFacePreview) {
+function copyFor(style, { detail = false } = {}) {
+  if (style.tagFacePreview && !detail) {
     return '<div class="tag-only-card-copy" aria-label="新生"><span class="tag-face-symbol tag-face-symbol--rebirth" aria-hidden="true"></span></div>';
   }
   if (style.definition.name === '拆毀堅固營壘') return miracleCopy();
@@ -193,13 +193,12 @@ function mountHand(image, style) {
 }
 
 function mountDetail(image, style) {
-  // 此次只驗證手牌收合狀態；詳情仍保留既有完整卡名與效果內容。
-  if (style.tagFacePreview) return;
   if (image.dataset.specialCardTemplate === 'true') return;
   const card = document.createElement('div');
-  card.className = `detail-card-art ${templateClass(style)} detail-special-template`;
+  card.className = `detail-card-art ${templateClass(style)} detail-special-template${style.tagFacePreview ? ' tag-face-detail-preview' : ''}${style.tagFacePreview && style.definition.tags.includes(RESPONSE) ? ' tag-face-detail-response' : ''}`;
   card.dataset.specialCardTemplate = 'true';
-  card.innerHTML = copyFor(style);
+  if (style.tagFacePreview) card.style.setProperty('--card-template-art', `url("${style.background}")`);
+  card.innerHTML = copyFor(style, { detail: true });
   image.replaceWith(card);
 }
 
@@ -217,6 +216,7 @@ function mountTable(image, style) {
   const card = document.createElement('div');
   card.className = `table-card-template ${templateClass(style)}`;
   card.dataset.specialCardTemplate = 'true';
+  if (style.tagFacePreview) card.style.setProperty('--card-template-art', `url("${style.background}")`);
   card.innerHTML = copyFor(style);
   image.replaceWith(card);
 }
