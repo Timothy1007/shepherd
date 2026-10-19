@@ -1,6 +1,7 @@
 import { CARD_DEFINITIONS } from '../game/cards.js';
 
 const NEW_LIFE = '新生';
+const isRebirthFacePreview = new URLSearchParams(globalThis.location?.search ?? '').get('qa') === 'rebirth-card-face';
 const REVIEWED_FACE_IDS = new Set([
   // 已由玩家看過的卡面，保留既有新版外觀，但不再放進本次 QA 手牌。
   'miracle-01', 'miracle-02', 'miracle-03', 'miracle-18', 'miracle-19', 'miracle-20', 'disaster-07',
@@ -16,10 +17,14 @@ const CARD_STYLES = Object.freeze(Object.fromEntries(
   CARD_DEFINITIONS
     .filter(definition => IMPLEMENTED_FACE_IDS.has(definition.definitionId))
     .map(definition => {
+      const isRebirthPreview = isRebirthFacePreview && definition.tags.includes(NEW_LIFE);
       return [definition.name, Object.freeze({
         definition,
         kind: definition.kind,
-        background: definition.kind === 'miracle' ? 'assets/miracles/miracle.png' : 'assets/disasters/disater3.png',
+        tagFacePreview: isRebirthPreview,
+        background: isRebirthPreview
+          ? `assets/miracles/miracal-Rebirth${definition.tags.includes('應對') ? '-Response' : ''}.png`
+          : definition.kind === 'miracle' ? 'assets/miracles/miracle.png' : 'assets/disasters/disater3.png',
       })];
     })
 ));
@@ -169,6 +174,9 @@ function genericCopy(style) {
 }
 
 function copyFor(style) {
+  if (style.tagFacePreview) {
+    return '<div class="tag-only-card-copy" aria-label="新生"><span class="tag-face-symbol tag-face-symbol--rebirth" aria-hidden="true"></span></div>';
+  }
   if (style.definition.name === '拆毀堅固營壘') return miracleCopy();
   if (style.definition.name === '灰與燼') return disasterCopy();
   return genericCopy(style);
@@ -185,6 +193,8 @@ function mountHand(image, style) {
 }
 
 function mountDetail(image, style) {
+  // 此次只驗證手牌收合狀態；詳情仍保留既有完整卡名與效果內容。
+  if (style.tagFacePreview) return;
   if (image.dataset.specialCardTemplate === 'true') return;
   const card = document.createElement('div');
   card.className = `detail-card-art ${templateClass(style)} detail-special-template`;
