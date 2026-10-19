@@ -3,8 +3,10 @@
 .ashes-template-card{background:#8750eb var(--card-template-art,url("assets/disasters/disater3.png")) center/100% 100% no-repeat;color:#35104f}
 .stronghold-template-card .stronghold-card-copy,.ashes-template-card .ashes-card-copy{position:absolute;inset:0;z-index:2;pointer-events:none;font-family:"Noto Sans TC",system-ui,sans-serif;text-align:left;text-shadow:0 1px 0 #ffffff38}
 .tag-only-card-copy{position:absolute;inset:0;z-index:2;pointer-events:none}
-/* 新生的「核心被重新填滿」：使用實心、圓角菱形，僅置於卡面中央。 */
-.tag-face-symbol--rebirth{position:absolute;left:50%;top:58%;width:31%;aspect-ratio:1;transform:translate(-50%,-50%) rotate(45deg);border-radius:17%;background:#006b58}
+/* 卡面只負責標籤辨識：中央主圖騰，右上／左下保留主要與次要標籤。 */
+.tag-face-symbol{position:absolute;left:50%;top:56%;width:32%;aspect-ratio:1;transform:translate(-50%,-50%);display:grid;place-items:center}
+.tag-face-symbol svg{display:block;width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 2px 1px #0002)}
+.tag-face-symbol .tag-fill{fill:currentColor;stroke:none}
 .stronghold-card-copy{color:#064b40}.ashes-card-copy{color:#35104f;text-shadow:none}
 .ashes-template-card .ashes-card-copy,.ashes-template-card .ashes-card-copy *{text-shadow:none!important}
 .stronghold-card-copy h3,.ashes-card-copy h3{position:absolute;top:17.5%;left:14%;right:6%;margin:0;font-family:"Noto Serif TC",serif;font-size:8.8cqw;line-height:1.12;font-weight:900;letter-spacing:.04em;text-align:center}
