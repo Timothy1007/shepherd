@@ -7,7 +7,6 @@ let hoverTimer=null;
 const SWITCH_DELAY_MS=40;
 const CLEAR_DELAY_MS=55;
 const HYSTERESIS_PX=14;
-const LOWER_EDGE_GUARD=0.24;
 
 function setHover(card){
   if(hoveredCard===card)return;
@@ -22,8 +21,8 @@ function clearHover(delay=0){
   hoverTimer=setTimeout(()=>setHover(null),delay);
 }
 function isInHoverBand(card,x,y){
-  const rect=card.getBoundingClientRect(),bottomGuard=Math.max(24,rect.height*LOWER_EDGE_GUARD);
-  return x>=rect.left+6&&x<=rect.right-6&&y>=rect.top-8&&y<=rect.bottom-bottomGuard;
+  const rect=card.getBoundingClientRect();
+  return x>=rect.left+6&&x<=rect.right-6&&y>=rect.top-6&&y<=rect.bottom-6;
 }
 function nearestCardForPoint(x,y){
   const cards=[...hand()?.querySelectorAll('.card:not(.drag-source):not(.click-preview)')??[]];
@@ -70,9 +69,8 @@ function cancelSelectionWhenIdle(){
   settleHand();
 }
 
-// The lower quarter of each fanned card is deliberately not a hover target.
-// This preserves a stable interaction band above the overlap seam, then uses
-// horizontal proximity + hysteresis to switch cards without fluttering.
+// Flat cards use a stable centre-based hover region. In the 30% overlap area,
+// the closest centre owns hover; hysteresis prevents flicker at the boundary.
 document.addEventListener('pointermove',event=>{
   const host=hand();
   const directCard=event.target?.closest?.('#hand .card:not(.drag-source):not(.click-preview)');
@@ -88,8 +86,7 @@ document.addEventListener('pointermove',event=>{
   // card rises outside the hand container's geometric box in the nine-zone UI.
   // Keep horizontal proximity as the overlap fallback, so neighbouring cards
   // still switch smoothly rather than fluttering at their shared edges.
-  const directEligible=directCard&&isInHoverBand(directCard,event.clientX,event.clientY);
-  const nearest=directEligible?{card:directCard,distance:0}:nearestCardForPoint(event.clientX,event.clientY);
+  const nearest=nearestCardForPoint(event.clientX,event.clientY);
   requestHover(nearest?.card?{...nearest,x:event.clientX}:null);
 },{passive:true});
 document.addEventListener('pointerout',event=>{
