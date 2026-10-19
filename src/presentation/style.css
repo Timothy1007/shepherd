@@ -26,10 +26,8 @@
 /* 非模態卡牌預覽：僅位於遊戲根容器內，絕不建立視覺遮罩。 */
 #card-inspector[hidden]{display:none!important}
 #card-inspector{position:absolute;inset:0;z-index:900;pointer-events:none;background:transparent}
-#card-inspector-dismiss{position:absolute;inset:0;z-index:1;pointer-events:auto;background:transparent}
 #card-inspector-content{position:absolute;left:50%;top:47%;z-index:2;pointer-events:none;opacity:0;transform:translate(-50%,-45%) scale(.85);transition:opacity .15s ease-out,transform .2s cubic-bezier(.175,.885,.32,1.275);background:transparent}
 #card-inspector-content.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
-#card-inspector.drag-mode #card-inspector-dismiss{pointer-events:none}
 #card-inspector-content.drag-mode{left:25%;transform:translate(-50%,-50%) scale(.9);transition:opacity .1s ease-out,transform .12s ease-out}
 #card-inspector-card{pointer-events:none;background:transparent}
 #card-inspector-card .detail-showcase{min-height:0;padding:0;background:transparent;perspective:1100px}
