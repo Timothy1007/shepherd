@@ -166,3 +166,55 @@ test('round-end Plague expires and card location invariant survives', () => {
   assert.equal(locations.length, Object.keys(state.cardRegistry).length);
   assert.equal(new Set(locations).size, locations.length);
 });
+
+test('蟲災只能指定其他玩家，並進入指定玩家的效果區', () => {
+  let state = createGame({ seed: 'insect-preview' });
+  state.currentPlayer = 'player-1';
+  const insect = state.players[0].hand.find((card) => card.definitionId === 'disaster-06');
+  const actions = getNormalActions(state).filter((action) => action.instanceId === insect.instanceId);
+  assert.deepEqual(new Set(actions.map((action) => action.targetPlayerId)), new Set(['player-2', 'player-3', 'player-4']));
+  state = act(state, actions.find((action) => action.targetPlayerId === 'player-2'));
+  const effect = state.players[1].effects.find((card) => card.definitionId === 'disaster-06');
+  assert.ok(effect);
+  assert.equal(effect.effectSourcePlayerId, 'player-1');
+  assert.equal(effect.effectOwnerPlayerId, 'player-2');
+  assert.equal(state.playedArea.some((card) => card.definitionId === 'disaster-06'), false);
+});
+
+test('蟲災只降低糧食的出牌判定，不降低使命進度', () => {
+  let state = createGame({ seed: 'insect-food' });
+  state.currentPlayer = 'player-1';
+  const insect = state.players[0].hand.find((card) => card.definitionId === 'disaster-06');
+  state = act(state, getNormalActions(state).find((action) => action.instanceId === insect.instanceId && action.targetPlayerId === 'player-2'));
+  const target = prepareHand(state, 'player-2', ['food-5']);
+  target.mission = { sheep: 9, food: 9, money: 9 };
+  target.missionProgress = { sheep: 0, food: 0, money: 0 };
+  state.currentResource = null;
+  const food = target.hand[0];
+  state = act(state, getNormalActions(state).find((action) => action.instanceId === food.instanceId && action.type === 'playResource'));
+  assert.equal(state.currentResource.baseNumber, 5);
+  assert.equal(state.currentResource.numberPenalty, 2);
+  assert.equal(state.currentResource.number, 3);
+  assert.equal(state.players[1].missionProgress.food, 5);
+});
+
+test('雨幕之下可以清除蟲災，蟲災也會在回合結束時棄置', () => {
+  let state = createGame({ seed: 'insect-cleanse' });
+  const insect = take(state, 'disaster-06');
+  state.players[1].effects.push({ ...insect, effectSourcePlayerId: 'player-1', effectOwnerPlayerId: 'player-2' });
+  prepareHand(state, 'player-1', ['miracle-22']);
+  const rain = state.players[0].hand[0];
+  state = act(state, getNormalActions(state).find((action) => action.instanceId === rain.instanceId && action.targetPlayerId === 'player-2'));
+  assert.equal(state.players[1].effects.some((card) => card.definitionId === 'disaster-06'), false);
+  assert.ok(state.discardPile.some((card) => card.definitionId === 'disaster-06'));
+
+  state = createGame({ seed: 'insect-round-end' });
+  state.currentPlayer = 'player-1';
+  const roundInsect = state.players[0].hand.find((card) => card.definitionId === 'disaster-06');
+  state = act(state, getNormalActions(state).find((action) => action.instanceId === roundInsect.instanceId && action.targetPlayerId === 'player-2'));
+  state.round = 7;
+  state.players.forEach((player, index) => { player.hasNormalAction = index === 0; });
+  state = settleRound(state).state;
+  assert.equal(state.players.every((player) => player.effects.every((card) => card.definitionId !== 'disaster-06')), true);
+  assert.ok(state.discardPile.some((card) => card.definitionId === 'disaster-06'));
+});
