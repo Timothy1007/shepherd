@@ -67,7 +67,7 @@ function rebuildDetailShowcase() {
   if (!detailContent) return;
   const image = detailContent.querySelector('.detail-card-art');
   const copy = detailContent.querySelector('.detail-copy');
-  if (!image || !copy || detailContent.querySelector('.detail-showcase')) return;
+  if (!image || detailContent.querySelector('.detail-showcase')) return;
 
   const showcase = document.createElement('div');
   showcase.className = 'detail-showcase';
@@ -76,7 +76,8 @@ function rebuildDetailShowcase() {
   image.replaceWith(showcase);
   card.append(image);
   showcase.append(card);
-  detailContent.insertBefore(showcase, copy);
+  if (copy) detailContent.insertBefore(showcase, copy);
+  else detailContent.append(showcase);
   bindFoil(card);
 }
 
