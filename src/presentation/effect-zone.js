@@ -9,11 +9,13 @@ const seatByPlayer = {
   'player-3': '#seat-top',
   'player-4': '#seat-right',
 };
+const presentationImage = definition => definition.definitionId === 'disaster-06' ? 'assets/disasters/disater-Reforge.png' : definition.image;
 
 // app.js keeps a stable manual-preview seed. Route that seed to the card that
 // is currently under manual QA so older fixtures do not keep reappearing.
 GameController.prototype.start = function startCurrentManualQa(seed) {
-  return originalStart.call(this, seed === 'recovery-preview' ? 'victory-preview' : seed);
+  const qa = new URLSearchParams(globalThis.location?.search ?? '').get('qa');
+  return originalStart.call(this, seed === 'recovery-preview' ? (qa === 'insect' ? 'insect-preview' : 'victory-preview') : seed);
 };
 
 function openEffectDetail(card) {
@@ -24,7 +26,7 @@ function openEffectDetail(card) {
   const tags = definition.tags?.length ? definition.tags.join('｜') : '持續效果';
   const kind = definition.kind === 'disaster' ? '災難' : '神蹟';
   content.innerHTML = `
-    <img class="detail-card-art" src="${definition.image}" alt="${definition.name}">
+    <img class="detail-card-art" src="${presentationImage(definition)}" alt="${definition.name}">
     <div class="detail-copy">
       <span class="eyebrow">${kind} · ${tags}${definition.negative ? '｜負面' : ''}</span>
       <h2>${definition.name}</h2>
@@ -52,8 +54,8 @@ function renderEffectZone(player) {
     item.type = 'button';
     item.title = `${definition.name}\n${definition.text ?? ''}`;
     item.setAttribute('aria-label', `${definition.name}：${definition.text ?? ''}`);
-    const badge = definition.definitionId === 'miracle-02' ? '<b>+3</b>' : definition.definitionId === 'miracle-09' ? '<b>使命+2</b>' : definition.definitionId === 'miracle-13' ? '<b>抽+1</b>' : definition.definitionId === 'disaster-09' ? '<b>-2</b>' : '';
-    item.innerHTML = `<img src="${definition.image}" alt="${definition.name}"><span>${definition.name}</span>${badge}`;
+    const badge = definition.definitionId === 'miracle-02' ? '<b>+3</b>' : definition.definitionId === 'miracle-09' ? '<b>使命+2</b>' : definition.definitionId === 'miracle-13' ? '<b>抽+1</b>' : ['disaster-06','disaster-09'].includes(definition.definitionId) ? '<b>-2</b>' : '';
+    item.innerHTML = `<img src="${presentationImage(definition)}" alt="${definition.name}"><span>${definition.name}</span>${badge}`;
     item.addEventListener('click', (event) => {
       event.preventDefault();
       event.stopPropagation();
