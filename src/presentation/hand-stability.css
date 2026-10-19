@@ -1,10 +1,14 @@
 .hand .card{transition:transform .24s cubic-bezier(.2,.75,.2,1),filter .2s,opacity .18s}
 
+/* Flat hand layout: no fan angle or vertical stair-step. Cards overlap by
+   roughly 30% of their own width, which remains readable without edge fights. */
+.hand .card{--r:0deg!important;--y:0px!important;margin-inline:clamp(-38px,-2.55vw,-26px)!important;transform-origin:50% 100%}
+
 /* The script owns hover. Native :hover on overlapping fan cards makes shared
    lower edges switch every frame and produces visible jitter. */
 .hand .card.hand-hover:not(.selected):not(.inspecting):not(.click-preview){
   z-index:20;
-  transform:translateY(-46px) rotate(0) rotateX(0) scale(1.13)!important;
+  transform:translateY(-46px) rotate(0) scale(1.13)!important;
   filter:brightness(1.08);
 }
 .hand .card.illegal.hand-hover:not(.selected):not(.inspecting):not(.click-preview){filter:saturate(.75) brightness(.82)}
@@ -13,7 +17,7 @@
    deliberate hand-hover hit test below. */
 .hand .card:hover:not(.hand-hover):not(.selected):not(.inspecting):not(.click-preview){
   z-index:auto;
-  transform:translateY(var(--y)) rotate(var(--r)) rotateX(10deg)!important;
+  transform:translateY(var(--y)) rotate(var(--r))!important;
   filter:none!important;
 }
 .hand .card.illegal:hover:not(.hand-hover):not(.selected):not(.inspecting):not(.click-preview){filter:saturate(.55) brightness(.65)!important}
@@ -44,6 +48,6 @@
 /* A cancelled pointer interaction should visually settle automatically instead
    of waiting for another hover/pointer event to repair the card. */
 .hand.hand-settling .card{
-  transform:translateY(var(--y)) rotate(var(--r)) rotateX(10deg)!important;
+  transform:translateY(var(--y)) rotate(var(--r))!important;
   transition:transform .17s cubic-bezier(.2,.8,.2,1),filter .16s,opacity .16s!important;
 }
