@@ -1,7 +1,18 @@
 import { CARD_DEFINITIONS } from '../game/cards.js';
 
 const NEW_LIFE = '新生';
-const isRebirthFacePreview = new URLSearchParams(globalThis.location?.search ?? '').get('qa') === 'rebirth-card-face';
+const FACE_SCOPE_TAGS = new Set(['應對', '單體', '多體', '群體']);
+const FACE_TAG_FILES = Object.freeze({
+  '新生': 'Rebirth', '流轉': 'Flux', '洞察': 'Insight', '庇護': 'Sanctuary', '共鳴': 'Resonance', '火種': 'Ember', '使命': 'Mission',
+  '重構': 'Reforge', '掠奪': 'Plunder', '熄滅': 'Extinction', '蔓延': 'Spread', '崩解': 'Collapse',
+});
+function primaryFaceTag(definition) { return definition.tags.find(tag => !FACE_SCOPE_TAGS.has(tag) && FACE_TAG_FILES[tag]); }
+function cardFaceAsset(definition) {
+  const tag = primaryFaceTag(definition), file = FACE_TAG_FILES[tag];
+  if (!file) return definition.image;
+  const response = definition.tags.includes('應對') ? '-Response' : '';
+  return definition.kind === 'miracle' ? `assets/miracles/miracal-${file}${response}.png` : `assets/disasters/disater-${file}${response}.png`;
+}
 const REVIEWED_FACE_IDS = new Set([
   // 已由玩家看過的卡面，保留既有新版外觀，但不再放進本次 QA 手牌。
   'miracle-01', 'miracle-02', 'miracle-03', 'miracle-18', 'miracle-19', 'miracle-20', 'disaster-06', 'disaster-07',
@@ -17,15 +28,11 @@ const CARD_STYLES = Object.freeze(Object.fromEntries(
   CARD_DEFINITIONS
     .filter(definition => IMPLEMENTED_FACE_IDS.has(definition.definitionId))
     .map(definition => {
-      const isRebirthPreview = isRebirthFacePreview && definition.tags.includes(NEW_LIFE);
       return [definition.name, Object.freeze({
         definition,
         kind: definition.kind,
-        tagFacePreview: isRebirthPreview,
-        background: isRebirthPreview
-          ? `assets/miracles/miracal-Rebirth${definition.tags.includes('應對') ? '-Response' : ''}.png`
-          : definition.definitionId === 'disaster-06' ? 'assets/disasters/disater-Reforge.png'
-          : definition.kind === 'miracle' ? 'assets/miracles/miracle.png' : 'assets/disasters/disater3.png',
+        tagFacePreview: true,
+        background: cardFaceAsset(definition),
       })];
     })
 ));
@@ -95,8 +102,6 @@ function visualTags(definition) {
 }
 
 function tagMarkers(definition, classPrefix) {
-  // 標籤圖案尚未進入本次「內容補齊」工作；已看過的卡面維持原樣即可。
-  if (!REVIEWED_FACE_IDS.has(definition.definitionId)) return '';
   const tags = visualTags(definition);
   if (!tags.length) return '';
   const placed = tags.length === 1 ? [tags[0], tags[0]] : tags;
@@ -177,7 +182,8 @@ function genericCopy(style) {
 
 function copyFor(style, { detail = false } = {}) {
   if (style.tagFacePreview) {
-    return '<div class="tag-only-card-copy" aria-label="新生"><span class="tag-face-symbol tag-face-symbol--rebirth" aria-hidden="true"></span></div>';
+    const tags = visualTags(style.definition), primary = tags[0] ?? NEW_LIFE, prefix = style.kind === 'miracle' ? 'stronghold' : 'ashes';
+    return `<div class="tag-only-card-copy" aria-label="${primary}"><span class="tag-face-symbol tag-${primary}" aria-hidden="true">${TAG_ICON[primary]}</span>${tagMarkers(style.definition, prefix)}</div>`;
   }
   if (style.definition.name === '拆毀堅固營壘') return miracleCopy();
   if (style.definition.name === '灰與燼') return disasterCopy();
