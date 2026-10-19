@@ -1,4 +1,4 @@
-.hand .card{transition:transform .24s cubic-bezier(.2,.75,.2,1),filter .2s,opacity .18s}
+.hand .card{transition:transform .24s cubic-bezier(.2,.75,.2,1),filter .2s,opacity .18s;filter:drop-shadow(0 14px 15px rgba(0,0,0,.62))!important}
 
 /* Flat hand layout: no fan angle or vertical stair-step. Cards overlap by
    roughly 20% of their own width, keeping each card clearly readable. */
@@ -10,7 +10,7 @@
 .hand .card.hand-hover:not(.selected):not(.inspecting):not(.click-preview){
   z-index:20;
   transform:translateY(-46px) rotate(0) scale(1.13)!important;
-  filter:brightness(1.08);
+  filter:brightness(1.08) drop-shadow(0 18px 18px rgba(0,0,0,.72))!important;
 }
 .hand .card.illegal.hand-hover:not(.selected):not(.inspecting):not(.click-preview){filter:saturate(.75) brightness(.82)}
 
