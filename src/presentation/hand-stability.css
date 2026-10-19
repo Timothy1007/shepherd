@@ -2,14 +2,20 @@
 
 /* Flat hand layout: no fan angle or vertical stair-step. Cards overlap by
    roughly 20% of their own width, keeping each card clearly readable. */
-.hand .card{--r:0deg!important;--y:0px!important;margin:0 0 0 -20px!important;transform-origin:50% 100%;filter:drop-shadow(0 15px 13px rgba(0,0,0,.82)) drop-shadow(0 4px 3px rgba(0,0,0,.5))!important}
+.hand .card{--r:0deg!important;--y:0px!important;margin:0 0 0 -20px!important;transform-origin:50% 100%;box-shadow:0 16px 22px rgba(0,0,0,.78),0 4px 7px rgba(0,0,0,.48)!important;filter:drop-shadow(0 15px 13px rgba(0,0,0,.82)) drop-shadow(0 4px 3px rgba(0,0,0,.5))!important}
 .hand .card:first-child{margin-left:0!important}
+
+/* A restrained arc preserves stable hit testing while restoring the natural
+   silhouette of cards held in the hand. */
+.hand .card:nth-child(1){--r:-7deg!important;--y:12px!important}.hand .card:nth-child(2){--r:-4deg!important;--y:5px!important}.hand .card:nth-child(3){--r:-2deg!important;--y:1px!important}.hand .card:nth-child(4){--r:0deg!important;--y:0!important}.hand .card:nth-child(5){--r:2deg!important;--y:1px!important}.hand .card:nth-child(6){--r:4deg!important;--y:5px!important}.hand .card:nth-child(7){--r:7deg!important;--y:12px!important}.hand .card:nth-child(n+8){--r:8deg!important;--y:15px!important}
+.hand .card:first-child:nth-last-child(1){--r:0deg!important;--y:0!important}.hand .card:first-child:nth-last-child(2){--r:-2deg!important;--y:2px!important}.hand .card:nth-child(2):last-child{--r:2deg!important;--y:2px!important}.hand .card:first-child:nth-last-child(3){--r:-3deg!important;--y:4px!important}.hand .card:nth-child(2):nth-last-child(2){--r:0deg!important;--y:0!important}.hand .card:nth-child(3):last-child{--r:3deg!important;--y:4px!important}
 
 /* The script owns hover. Native :hover on overlapping fan cards makes shared
    lower edges switch every frame and produces visible jitter. */
 .hand .card.hand-hover:not(.selected):not(.inspecting):not(.click-preview){
   z-index:20;
   transform:translateY(-46px) rotate(0) scale(1.13)!important;
+  box-shadow:0 24px 28px rgba(0,0,0,.9),0 7px 9px rgba(0,0,0,.55)!important;
   filter:brightness(1.08) drop-shadow(0 20px 20px rgba(0,0,0,.85)) drop-shadow(0 5px 4px rgba(0,0,0,.5))!important;
 }
 .hand .card.illegal.hand-hover:not(.selected):not(.inspecting):not(.click-preview){filter:saturate(.75) brightness(.82)}
