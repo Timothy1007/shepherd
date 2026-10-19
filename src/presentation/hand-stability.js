@@ -7,6 +7,7 @@ let hoverTimer=null;
 const SWITCH_DELAY_MS=40;
 const CLEAR_DELAY_MS=55;
 const HYSTERESIS_PX=14;
+const LOWER_EDGE_GUARD=0.24;
 
 function setHover(card){
   if(hoveredCard===card)return;
@@ -20,10 +21,15 @@ function clearHover(delay=0){
   if(!delay){setHover(null);return;}
   hoverTimer=setTimeout(()=>setHover(null),delay);
 }
-function nearestCardForX(x){
+function isInHoverBand(card,x,y){
+  const rect=card.getBoundingClientRect(),bottomGuard=Math.max(24,rect.height*LOWER_EDGE_GUARD);
+  return x>=rect.left+6&&x<=rect.right-6&&y>=rect.top-8&&y<=rect.bottom-bottomGuard;
+}
+function nearestCardForPoint(x,y){
   const cards=[...hand()?.querySelectorAll('.card:not(.drag-source):not(.click-preview)')??[]];
-  if(!cards.length)return null;
-  return cards.reduce((best,card)=>{
+  const eligible=cards.filter(card=>isInHoverBand(card,x,y));
+  if(!eligible.length)return null;
+  return eligible.reduce((best,card)=>{
     const rect=card.getBoundingClientRect(),distance=Math.abs(x-(rect.left+rect.width/2));
     return !best||distance<best.distance?{card,distance}:best;
   },null);
@@ -64,16 +70,27 @@ function cancelSelectionWhenIdle(){
   settleHand();
 }
 
-// Horizontal proximity + hysteresis keeps neighbouring overlapped cards from
-// fighting over hover. A clicked preview temporarily owns its own hit area; once
-// the pointer leaves it, normal hover selection resumes immediately.
+// The lower quarter of each fanned card is deliberately not a hover target.
+// This preserves a stable interaction band above the overlap seam, then uses
+// horizontal proximity + hysteresis to switch cards without fluttering.
 document.addEventListener('pointermove',event=>{
   const host=hand();
   const directCard=event.target?.closest?.('#hand .card:not(.drag-source):not(.click-preview)');
   if(!host||(!host.matches(':hover')&&!directCard)){clearHover(CLEAR_DELAY_MS);return;}
-  // A Blindness pile is layered on top of the hand area. It must own the pointer\n  // completely; otherwise this fallback promotes the nearest ordinary card.\n  const pile=document.elementFromPoint(event.clientX,event.clientY)?.closest?.('.blindness-pile');\n  if(pile&&host.contains(pile)){clearHover();return;}\n  const preview=host.querySelector('.card.click-preview');
+  // A Blindness pile is layered on top of the hand area.  It must own the
+  // pointer completely; otherwise the horizontal fallback below promotes the
+  // nearest ordinary card (usually the leftmost one) at the same time.
+  const pile=document.elementFromPoint(event.clientX,event.clientY)?.closest?.('.blindness-pile');
+  if(pile&&host.contains(pile)){clearHover();return;}
+  const preview=host.querySelector('.card.click-preview');
   if(preview&&preview.matches(':hover')){clearHover();return;}
-  // Prefer the actual button below the pointer. This remains reliable when a\n  // card rises outside the hand container's geometric box in the nine-zone UI.\n  // Keep horizontal proximity as the overlap fallback, so neighbouring cards\n  // still switch smoothly rather than fluttering at their shared edges.\n  const nearest=directCard?{card:directCard,distance:0}:{...nearestCardForX(event.clientX)};\n  requestHover(nearest?.card?{...nearest,x:event.clientX}:null);
+  // Prefer the actual button below the pointer.  This remains reliable when a
+  // card rises outside the hand container's geometric box in the nine-zone UI.
+  // Keep horizontal proximity as the overlap fallback, so neighbouring cards
+  // still switch smoothly rather than fluttering at their shared edges.
+  const directEligible=directCard&&isInHoverBand(directCard,event.clientX,event.clientY);
+  const nearest=directEligible?{card:directCard,distance:0}:nearestCardForPoint(event.clientX,event.clientY);
+  requestHover(nearest?.card?{...nearest,x:event.clientX}:null);
 },{passive:true});
 document.addEventListener('pointerout',event=>{
   const host=hand();
