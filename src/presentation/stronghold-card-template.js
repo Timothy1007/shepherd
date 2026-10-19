@@ -174,7 +174,7 @@ function genericCopy(style) {
 }
 
 function copyFor(style, { detail = false } = {}) {
-  if (style.tagFacePreview && !detail) {
+  if (style.tagFacePreview) {
     return '<div class="tag-only-card-copy" aria-label="新生"><span class="tag-face-symbol tag-face-symbol--rebirth" aria-hidden="true"></span></div>';
   }
   if (style.definition.name === '拆毀堅固營壘') return miracleCopy();
