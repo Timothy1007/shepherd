@@ -26,7 +26,7 @@
 /* 非模態卡牌預覽：僅位於遊戲根容器內，絕不建立視覺遮罩。 */
 #card-inspector[hidden]{display:none!important}
 #card-inspector{position:absolute;inset:0;z-index:900;pointer-events:none;background:transparent}
-#card-inspector-content{position:absolute;left:50%;top:47%;z-index:2;pointer-events:none;opacity:0;transform:translate(-50%,-45%) scale(.85);transition:opacity .15s ease-out,transform .2s cubic-bezier(.175,.885,.32,1.275);background:transparent}
+#card-inspector-content{position:absolute;left:50%;top:47%;z-index:2;display:flex;align-items:center;gap:24px;pointer-events:none;opacity:0;transform:translate(-50%,-45%) scale(.85);transition:opacity .15s ease-out,transform .2s cubic-bezier(.175,.885,.32,1.275);background:transparent}
 #card-inspector-content.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
 #card-inspector-content.drag-mode{left:25%;transform:translate(-50%,-50%) scale(.9);transition:opacity .1s ease-out,transform .12s ease-out}
 #card-inspector-card{pointer-events:none;background:transparent}
@@ -34,4 +34,5 @@
 #card-inspector-card .detail-foil-card{width:min(225px,18.75vw)!important;max-height:70vh;pointer-events:none}
 #card-inspector-card .detail-special-template{width:100%!important;max-height:70vh!important}
 #card-inspector-card .detail-card-art{max-height:70vh!important}
-@media(max-width:800px){#card-inspector-content{top:43%}#card-inspector-content.drag-mode{left:27%}#card-inspector-card .detail-foil-card{width:min(195px,42vw)!important;max-height:62vh}}
+#card-inspector-text{width:min(310px,25vw);pointer-events:auto;color:#efe8d5;text-shadow:0 2px 8px #000c}.inspector-tabs{display:flex;gap:18px;border-bottom:1px solid #e6ddc955;padding:0 3px 8px;margin-bottom:15px}.tab-btn{max-width:64%;overflow:hidden;padding:4px 1px 8px;border:0;border-bottom:3px solid transparent;background:transparent;color:#9b978d;font:700 20px/1.15 Georgia,"Noto Serif TC",serif;white-space:nowrap;text-overflow:ellipsis;cursor:pointer;transition:color .2s,border-color .2s}.tab-btn:hover{color:#d9d2bf}.tab-btn.active{color:#fff8e5;border-bottom-color:#9ee7b2}.tab-content{min-height:112px}.tab-pane{display:none;color:#ddd7c8;font-size:15px;line-height:1.72;animation:inspectorPaneIn .22s ease}.tab-pane.active{display:block}.tab-pane p{margin:0}@keyframes inspectorPaneIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:800px){#card-inspector-content{top:43%;gap:14px}#card-inspector-content.drag-mode{left:27%}#card-inspector-card .detail-foil-card{width:min(195px,42vw)!important;max-height:62vh}#card-inspector-text{width:min(220px,42vw)}.tab-btn{font-size:16px}.tab-pane{font-size:13px}}
