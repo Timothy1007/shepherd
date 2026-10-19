@@ -9,13 +9,24 @@ const seatByPlayer = {
   'player-3': '#seat-top',
   'player-4': '#seat-right',
 };
-const presentationImage = definition => definition.definitionId === 'disaster-06' ? 'assets/disasters/disater-Reforge.png' : definition.image;
+const FACE_SCOPE_TAGS = new Set(['應對', '單體', '多體', '群體']);
+const FACE_TAG_FILES = Object.freeze({'新生':'Rebirth','流轉':'Flux','洞察':'Insight','庇護':'Sanctuary','共鳴':'Resonance','火種':'Ember','使命':'Mission','重構':'Reforge','掠奪':'Plunder','熄滅':'Extinction','蔓延':'Spread','崩解':'Collapse'});
+const presentationImage = definition => { const tag=definition.tags?.find(item=>!FACE_SCOPE_TAGS.has(item)&&FACE_TAG_FILES[item]),file=FACE_TAG_FILES[tag]; if(!file)return definition.image;const response=definition.tags?.includes('應對')?'-Response':'';return definition.kind==='miracle'?`assets/miracles/miracal-${file}${response}.png`:`assets/disasters/disater-${file}${response}.png`; };
 
 // app.js keeps a stable manual-preview seed. Route that seed to the card that
 // is currently under manual QA so older fixtures do not keep reappearing.
 GameController.prototype.start = function startCurrentManualQa(seed) {
   const qa = new URLSearchParams(globalThis.location?.search ?? '').get('qa');
-  return originalStart.call(this, seed === 'recovery-preview' ? (qa === 'insect' ? 'insect-preview' : 'victory-preview') : seed);
+  const state = originalStart.call(this, seed === 'recovery-preview' ? (qa === 'insect' ? 'insect-preview' : 'victory-preview') : seed);
+  if (qa === 'insect' && state?.round === 1) {
+    const human = state.players.find(player => player.type === 'human');
+    for (const definitionId of ['miracle-06', 'miracle-07']) {
+      if (human?.hand.some(card => card.definitionId === definitionId)) continue;
+      const index = state.deck.findIndex(card => card.definitionId === definitionId);
+      if (index >= 0) human.hand.push(state.deck.splice(index, 1)[0]);
+    }
+  }
+  return state;
 };
 
 function openEffectDetail(card) {
