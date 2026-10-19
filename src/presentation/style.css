@@ -29,7 +29,7 @@
 #card-inspector-dismiss{position:absolute;inset:0;z-index:1;pointer-events:auto;background:transparent}
 #card-inspector-card{position:absolute;left:50%;top:47%;z-index:2;pointer-events:none;transform:translate(-50%,-50%);background:transparent}
 #card-inspector-card .detail-showcase{min-height:0;padding:0;background:transparent;perspective:1100px}
-#card-inspector-card .detail-foil-card{width:min(300px,25vw)!important;max-height:70vh;pointer-events:none}
+#card-inspector-card .detail-foil-card{width:min(225px,18.75vw)!important;max-height:70vh;pointer-events:none}
 #card-inspector-card .detail-special-template{width:100%!important;max-height:70vh!important}
 #card-inspector-card .detail-card-art{max-height:70vh!important}
-@media(max-width:800px){#card-inspector-card{top:43%}#card-inspector-card .detail-foil-card{width:min(260px,56vw)!important;max-height:62vh}}
+@media(max-width:800px){#card-inspector-card{top:43%}#card-inspector-card .detail-foil-card{width:min(195px,42vw)!important;max-height:62vh}}
