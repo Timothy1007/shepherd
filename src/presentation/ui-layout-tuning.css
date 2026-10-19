@@ -76,6 +76,7 @@
 @media(min-width:1001px){.seat-left .mission-progress,.human-meta .mission-progress{justify-content:flex-start}.seat-right .mission-progress{justify-content:flex-end}}
 
 /* Visual-only: keep the existing corruption slot and turn only its indicator into a diamond. */
+.resource-status-current{position:fixed!important;z-index:20500!important;right:18px!important;top:114px!important;left:auto!important;transform:none!important;text-align:right!important}
 @media(min-width:1001px){
   .corruption-hud{position:absolute!important;z-index:41!important;left:calc(var(--gx) * 3)!important;top:calc(var(--gy) * .8)!important;display:grid!important;place-items:center;width:36px;height:36px;min-height:0!important;margin:0!important;padding:0!important;border:1px solid #c16b5f!important;border-radius:0!important;background:#24100ed9!important;box-shadow:0 4px 14px #0009!important;clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);transform:translate(-50%,-50%)!important}
   .corruption-hud:before,.corruption-hud span{display:none!important}
