@@ -1,5 +1,5 @@
 .stronghold-template-card,.ashes-template-card{position:relative;isolation:isolate;overflow:hidden;container-type:inline-size;aspect-ratio:63/88;border-radius:7px}
-.stronghold-template-card{background:#08c79c url("assets/miracles/miracle.png") center/100% 100% no-repeat;color:#064b40}
+.stronghold-template-card{background:#08c79c var(--card-template-art,url("assets/miracles/miracle.png")) center/100% 100% no-repeat;color:#064b40}
 .ashes-template-card{background:#8750eb url("assets/disasters/disater3.png") center/100% 100% no-repeat;color:#35104f}
 .stronghold-template-card .stronghold-card-copy,.ashes-template-card .ashes-card-copy{position:absolute;inset:0;z-index:2;pointer-events:none;font-family:"Noto Sans TC",system-ui,sans-serif;text-align:left;text-shadow:0 1px 0 #ffffff38}
 .tag-only-card-copy{position:absolute;inset:0;z-index:2;pointer-events:none}
@@ -43,6 +43,10 @@
 .hand .card.stronghold-template-card .card-art,.hand .card.ashes-template-card .card-art{width:100%!important;height:100%!important;object-fit:fill!important;border-radius:7px!important}
 .hand .card.stronghold-template-card,.hand .card.ashes-template-card{overflow:hidden}
 .detail-special-template{width:min(250px,58vw)!important;height:auto!important;max-height:none!important;justify-self:center;filter:drop-shadow(0 28px 34px rgba(0,0,0,.72))!important;border-radius:14px!important}
+/* 詳情不是舊卡面：沿用同一張標籤背景，再疊上完整的卡名與效果。 */
+.detail-special-template.tag-face-detail-preview .stronghold-card-copy{background:none}
+.detail-special-template.tag-face-detail-response .stronghold-rule-region{bottom:23%}
+.detail-special-template.tag-face-detail-response .stronghold-rule-lines{font-size:4.55cqw;line-height:1.5}
 .reaction-stronghold-template{flex:0 0 95px;width:95px;height:133px;border-radius:7px}
 .table-card-template{width:100%;height:auto;max-height:100%;border-radius:7px}
 .table-card-template .stronghold-card-copy h3,.table-card-template .ashes-card-copy h3{font-size:9.2cqw}
