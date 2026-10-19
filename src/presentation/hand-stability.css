@@ -2,7 +2,7 @@
 
 /* Flat hand layout: no fan angle or vertical stair-step. Cards overlap by
    roughly 20% of their own width, keeping each card clearly readable. */
-.hand .card{--r:0deg!important;--y:0px!important;margin:0 0 0 clamp(-26px,-1.7vw,-18px)!important;transform-origin:50% 100%}
+.hand .card{--r:0deg!important;--y:0px!important;margin:0 0 0 -20px!important;transform-origin:50% 100%;filter:drop-shadow(0 15px 13px rgba(0,0,0,.82)) drop-shadow(0 4px 3px rgba(0,0,0,.5))!important}
 .hand .card:first-child{margin-left:0!important}
 
 /* The script owns hover. Native :hover on overlapping fan cards makes shared
@@ -10,7 +10,7 @@
 .hand .card.hand-hover:not(.selected):not(.inspecting):not(.click-preview){
   z-index:20;
   transform:translateY(-46px) rotate(0) scale(1.13)!important;
-  filter:brightness(1.08) drop-shadow(0 18px 18px rgba(0,0,0,.72))!important;
+  filter:brightness(1.08) drop-shadow(0 20px 20px rgba(0,0,0,.85)) drop-shadow(0 5px 4px rgba(0,0,0,.5))!important;
 }
 .hand .card.illegal.hand-hover:not(.selected):not(.inspecting):not(.click-preview){filter:saturate(.75) brightness(.82)}
 
