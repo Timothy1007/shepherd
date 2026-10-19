@@ -1,5 +1,6 @@
 import { GameController } from '../controller/game-controller.js';
 import { getDefinition } from '../game/cards.js';
+import { getNormalActions } from '../game/game.js';
 
 const originalSafeRender = GameController.prototype.safeRender;
 const originalStart = GameController.prototype.start;
@@ -20,11 +21,13 @@ GameController.prototype.start = function startCurrentManualQa(seed) {
   const state = originalStart.call(this, seed === 'recovery-preview' ? (qa === 'insect' ? 'insect-preview' : 'victory-preview') : seed);
   if (qa === 'insect' && state?.round === 1) {
     const human = state.players.find(player => player.type === 'human');
+    let changed = false;
     for (const definitionId of ['miracle-06', 'miracle-07']) {
       if (human?.hand.some(card => card.definitionId === definitionId)) continue;
       const index = state.deck.findIndex(card => card.definitionId === definitionId);
-      if (index >= 0) human.hand.push(state.deck.splice(index, 1)[0]);
+      if (index >= 0) { human.hand.push(state.deck.splice(index, 1)[0]); changed = true; }
     }
+    if (changed) this.safeRender(getNormalActions(state));
   }
   return state;
 };
