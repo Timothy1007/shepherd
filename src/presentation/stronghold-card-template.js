@@ -4,7 +4,7 @@ const NEW_LIFE = '新生';
 const isRebirthFacePreview = new URLSearchParams(globalThis.location?.search ?? '').get('qa') === 'rebirth-card-face';
 const REVIEWED_FACE_IDS = new Set([
   // 已由玩家看過的卡面，保留既有新版外觀，但不再放進本次 QA 手牌。
-  'miracle-01', 'miracle-02', 'miracle-03', 'miracle-18', 'miracle-19', 'miracle-20', 'disaster-07',
+  'miracle-01', 'miracle-02', 'miracle-03', 'miracle-18', 'miracle-19', 'miracle-20', 'disaster-06', 'disaster-07',
 ]);
 const IMPLEMENTED_FACE_IDS = new Set([
   ...REVIEWED_FACE_IDS,
@@ -24,6 +24,7 @@ const CARD_STYLES = Object.freeze(Object.fromEntries(
         tagFacePreview: isRebirthPreview,
         background: isRebirthPreview
           ? `assets/miracles/miracal-Rebirth${definition.tags.includes('應對') ? '-Response' : ''}.png`
+          : definition.definitionId === 'disaster-06' ? 'assets/disasters/disater-Reforge.png'
           : definition.kind === 'miracle' ? 'assets/miracles/miracle.png' : 'assets/disasters/disater3.png',
       })];
     })
@@ -67,6 +68,7 @@ const TAG_PRIORITY = Object.freeze({
   '行向水深之處': Object.freeze(['洞察', '新生']),
   '方舟之外': Object.freeze(['掠奪', '群體']),
   '瘟疫': Object.freeze(['蔓延', '單體']),
+  '蟲災': Object.freeze(['重構', '單體']),
 });
 
 const TAG_ICON = Object.freeze({
@@ -188,6 +190,7 @@ function mountHand(image, style) {
   if (!card || card.dataset.specialCardTemplate === 'true') return;
   card.dataset.specialCardTemplate = 'true';
   card.classList.add(templateClass(style));
+  card.style.setProperty('--card-template-art', `url("${style.background}")`);
   image.src = style.background;
   image.insertAdjacentHTML('afterend', copyFor(style));
 }
@@ -197,7 +200,7 @@ function mountDetail(image, style) {
   const card = document.createElement('div');
   card.className = `detail-card-art ${templateClass(style)} detail-special-template${style.tagFacePreview ? ' tag-face-detail-preview' : ''}${style.tagFacePreview && style.definition.tags.includes(RESPONSE) ? ' tag-face-detail-response' : ''}`;
   card.dataset.specialCardTemplate = 'true';
-  if (style.tagFacePreview) card.style.setProperty('--card-template-art', `url("${style.background}")`);
+  card.style.setProperty('--card-template-art', `url("${style.background}")`);
   card.innerHTML = copyFor(style, { detail: true });
   image.replaceWith(card);
 }
@@ -216,7 +219,7 @@ function mountTable(image, style) {
   const card = document.createElement('div');
   card.className = `table-card-template ${templateClass(style)}`;
   card.dataset.specialCardTemplate = 'true';
-  if (style.tagFacePreview) card.style.setProperty('--card-template-art', `url("${style.background}")`);
+  card.style.setProperty('--card-template-art', `url("${style.background}")`);
   card.innerHTML = copyFor(style);
   image.replaceWith(card);
 }
