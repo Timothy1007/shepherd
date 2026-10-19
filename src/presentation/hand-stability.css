@@ -1,8 +1,8 @@
 .hand .card{transition:transform .24s cubic-bezier(.2,.75,.2,1),filter .2s,opacity .18s}
 
 /* Flat hand layout: no fan angle or vertical stair-step. Cards overlap by
-   roughly 30% of their own width, which remains readable without edge fights. */
-.hand .card{--r:0deg!important;--y:0px!important;margin:0 0 0 clamp(-38px,-2.55vw,-26px)!important;transform-origin:50% 100%}
+   roughly 20% of their own width, keeping each card clearly readable. */
+.hand .card{--r:0deg!important;--y:0px!important;margin:0 0 0 clamp(-26px,-1.7vw,-18px)!important;transform-origin:50% 100%}
 .hand .card:first-child{margin-left:0!important}
 
 /* The script owns hover. Native :hover on overlapping fan cards makes shared
