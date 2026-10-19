@@ -1,5 +1,6 @@
 const hand = document.querySelector('#hand');
 const detailContent = document.querySelector('#detail-content');
+const inspectorContent = document.querySelector('#card-inspector-card');
 let activeCard = null;
 
 function resetTilt(card) {
@@ -63,11 +64,11 @@ function markPrototypeCard() {
   bindFoil(activeCard);
 }
 
-function rebuildDetailShowcase() {
-  if (!detailContent) return;
-  const image = detailContent.querySelector('.detail-card-art');
-  const copy = detailContent.querySelector('.detail-copy');
-  if (!image || detailContent.querySelector('.detail-showcase')) return;
+function rebuildDetailShowcase(host) {
+  if (!host) return;
+  const image = host.querySelector('.detail-card-art');
+  const copy = host.querySelector('.detail-copy');
+  if (!image || host.querySelector('.detail-showcase')) return;
 
   const showcase = document.createElement('div');
   showcase.className = 'detail-showcase';
@@ -76,11 +77,12 @@ function rebuildDetailShowcase() {
   image.replaceWith(showcase);
   card.append(image);
   showcase.append(card);
-  if (copy) detailContent.insertBefore(showcase, copy);
-  else detailContent.append(showcase);
+  if (copy) host.insertBefore(showcase, copy);
+  else host.append(showcase);
   bindFoil(card);
 }
 
 new MutationObserver(markPrototypeCard).observe(hand, { childList: true });
-if (detailContent) new MutationObserver(rebuildDetailShowcase).observe(detailContent, { childList: true, subtree: false });
+if (detailContent) new MutationObserver(() => rebuildDetailShowcase(detailContent)).observe(detailContent, { childList: true, subtree: false });
+if (inspectorContent) new MutationObserver(() => rebuildDetailShowcase(inspectorContent)).observe(inspectorContent, { childList: true, subtree: false });
 markPrototypeCard();
