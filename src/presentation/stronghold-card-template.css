@@ -3,8 +3,11 @@
 .ashes-template-card{background:#8750eb var(--card-template-art,url("assets/disasters/disater3.png")) center/100% 100% no-repeat;color:#35104f}
 .stronghold-template-card .stronghold-card-copy,.ashes-template-card .ashes-card-copy{position:absolute;inset:0;z-index:2;pointer-events:none;font-family:"Noto Sans TC",system-ui,sans-serif;text-align:left;text-shadow:0 1px 0 #ffffff38}
 .tag-only-card-copy{position:absolute;inset:0;z-index:2;pointer-events:none}
+/* 新圖騰不是覆蓋舊圖騰：先以卡背中央的原色清掉既有印刷，再放上新 SVG。 */
+.tag-only-card-copy:has(.tag-face-symbol--insight)::before,.tag-only-card-copy:has(.tag-face-symbol--sanctuary)::before,.tag-only-card-copy:has(.tag-face-symbol--flux)::before,.tag-only-card-copy:has(.tag-face-symbol--spread)::before{content:"";position:absolute;left:8%;right:8%;top:38%;bottom:14%;z-index:1;background:#00c797}
+.ashes-template-card .tag-only-card-copy:has(.tag-face-symbol--spread)::before{background:#8750eb}
 /* 統一圖騰系統：所有標籤都是圓潤的實心幾何，靠裁切／留白形成意象。 */
-.tag-face-symbol{position:absolute;left:50%;top:56%;transform:translate(-50%,-50%);display:block;background:currentColor;color:#006b58;filter:drop-shadow(0 2px 1px #0002)}
+.tag-face-symbol{position:absolute;left:50%;top:56%;z-index:2;transform:translate(-50%,-50%);display:block;background:currentColor;color:#006b58;filter:drop-shadow(0 2px 1px #0002)}
 .ashes-template-card .tag-face-symbol{color:#2b073f}
 .tag-face-symbol--rebirth{width:29%;aspect-ratio:1;border-radius:22%;transform:translate(-50%,-50%) rotate(45deg)}
 /* 洞察：被挖空瞳孔的圓角橢圓。 */
@@ -25,9 +28,16 @@
 .tag-face-symbol--mission{width:28%;aspect-ratio:1;border-radius:36%;transform:translate(-50%,-50%) rotate(45deg);-webkit-mask:conic-gradient(#000 0 23%,transparent 23% 27%,#000 27% 48%,transparent 48% 52%,#000 52% 73%,transparent 73% 77%,#000 77%);mask:conic-gradient(#000 0 23%,transparent 23% 27%,#000 27% 48%,transparent 48% 52%,#000 52% 73%,transparent 73% 77%,#000 77%)}
 .tag-face-symbol--plunder{width:35%;height:23%;border-radius:999px;transform:translate(-50%,-50%) rotate(-18deg);-webkit-mask:linear-gradient(135deg,#000 0 65%,transparent 66%);mask:linear-gradient(135deg,#000 0 65%,transparent 66%)}
 .tag-face-symbol--spread{width:29%;aspect-ratio:1;border-radius:50%;box-shadow:14px -10px 0 -4px currentColor,14px 10px 0 -4px currentColor}
-/* 四個已確認的識別圖騰：不使用外框或尖角，維持單色圓潤剪影。 */
+/* 四個參考圖騰只顯示 SVG 本體：先清除舊的幾何底形與偽元素，再放大剪影。 */
 .tag-face-symbol--insight,.tag-face-symbol--sanctuary,.tag-face-symbol--spread,.tag-face-symbol--flux{background:none;-webkit-mask:none;mask:none;box-shadow:none;border-radius:0;transform:translate(-50%,-50%)}
-.tag-face-symbol--insight{width:42%;height:30%}.tag-face-symbol--sanctuary{width:34%;height:39%}.tag-face-symbol--spread{width:34%;height:38%}.tag-face-symbol--flux{width:38%;height:38%}
+.tag-face-symbol--insight{width:58%;height:39%;top:53%}
+.tag-face-symbol--sanctuary{width:50%;height:54%;top:54%}
+.tag-face-symbol--spread{width:51%;height:54%;top:54%}
+.tag-face-symbol--flux{width:55%;height:54%;top:54%}
+/* 參考圖本身是亮色剪影；不能再用卡背同色，否則會和既有印刷圖案融在一起。 */
+.tag-face-symbol--insight,.tag-face-symbol--sanctuary,.tag-face-symbol--spread,.tag-face-symbol--flux{color:#f3fff9;filter:drop-shadow(0 2px 2px rgba(0,0,0,.24))}
+.ashes-template-card .tag-face-symbol--insight,.ashes-template-card .tag-face-symbol--sanctuary,.ashes-template-card .tag-face-symbol--spread,.ashes-template-card .tag-face-symbol--flux{color:#fff8ff}
+.tag-face-symbol--flux::before,.tag-face-symbol--flux::after{display:none}
 .tag-face-symbol--insight svg,.tag-face-symbol--sanctuary svg,.tag-face-symbol--spread svg,.tag-face-symbol--flux svg{display:block;width:100%;height:100%;overflow:visible}
 .stronghold-card-copy{color:#064b40}.ashes-card-copy{color:#35104f;text-shadow:none}
 .ashes-template-card .ashes-card-copy,.ashes-template-card .ashes-card-copy *{text-shadow:none!important}
