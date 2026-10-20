@@ -1,1 +1,4 @@
-sed: can't read public/assets/tag-glyphs/3-ouroboros.svg: No such file or directory
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <path d="M67.2 25.4 A30 30 0 1 1 32.8 25.4" fill="none" stroke="currentColor" stroke-width="12" stroke-linecap="round"/>
+  <path d="M34 15 L34 35 L52 25 Z" fill="currentColor" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/>
+</svg>
