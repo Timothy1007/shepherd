@@ -31,8 +31,8 @@
 .tag-face-symbol--flux{width:55%;height:54%;top:54%}
 .tag-face-symbol--collapse{width:57%;height:57%;top:54%;background:none;border-radius:0;transform:translate(-50%,-50%);box-shadow:none}
 .tag-face-symbol--collapse svg{display:block;width:100%;height:100%;overflow:visible}
-.tag-face-symbol--reforge{width:100%;height:100%;top:50%;background:none;-webkit-mask:none;mask:none;border-radius:0;transform:translate(-50%,-50%);box-shadow:none}
-.tag-face-symbol--reforge svg{position:absolute;left:50%;top:50%;display:block;overflow:visible;transform:translate(-50%,-50%)}
+/* 重構：回復圓潤的分段環，尺寸與新生同級，位置沿用主圖騰較下方的中心。 */
+.tag-face-symbol--reforge{width:29%;aspect-ratio:1;border-radius:30%;-webkit-mask:radial-gradient(circle at 50% 50%,transparent 0 25%,#000 27%),conic-gradient(#000 0 20%,transparent 20% 30%,#000 30% 45%,transparent 45% 55%,#000 55% 70%,transparent 70% 80%,#000 80%);-webkit-mask-composite:source-in;mask:radial-gradient(circle at 50% 50%,transparent 0 25%,#000 27%),conic-gradient(#000 0 20%,transparent 20% 30%,#000 30% 45%,transparent 45% 55%,#000 55% 70%,transparent 70% 80%,#000 80%);mask-composite:intersect}
 /* 本次上傳的正式 SVG 作遮罩；顏色完全由卡片類型決定。 */
 .tag-face-symbol--insight{background:currentColor;-webkit-mask:url("assets/tag-glyphs/1-eye.svg") center/contain no-repeat;mask:url("assets/tag-glyphs/1-eye.svg") center/contain no-repeat}
 .tag-face-symbol--sanctuary{background:currentColor;-webkit-mask:url("assets/tag-glyphs/2-antlers.svg") center/contain no-repeat;mask:url("assets/tag-glyphs/2-antlers.svg") center/contain no-repeat}
