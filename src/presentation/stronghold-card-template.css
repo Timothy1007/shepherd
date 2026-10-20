@@ -38,9 +38,12 @@
 .tag-face-symbol--insight{width:36.25%;height:auto;aspect-ratio:1;top:56%;background:none;-webkit-mask:none;mask:none;border-radius:0;transform:translate(-50%,-50%);box-shadow:none}
 .tag-face-symbol--insight svg{position:absolute;inset:0;display:block;overflow:visible}
 /* 洞察由手牌主渲染器直接放置，避免舊模板延遲掛載時遺失圖騰。 */
+.card:has(.runtime-tag-glyph),.table-card-visual:has(.runtime-tag-glyph){overflow:hidden;isolation:isolate}
 .runtime-tag-glyph{position:absolute;left:50%;top:56%;z-index:12;display:block;width:36.25%;aspect-ratio:1;transform:translate(-50%,-50%);color:#006b58;pointer-events:none;filter:drop-shadow(0 2px 1px #0002)}
 .runtime-tag-glyph.is-disaster,.ashes-template-card .runtime-tag-glyph{color:#4a1f64}
 .runtime-tag-glyph svg{display:block;width:100%;height:100%;overflow:visible}
+/* SVG 的 viewBox 留白會吃掉視覺尺寸；新生需放大到與原本 29% CSS 菱形相同。 */
+.runtime-tag-glyph--rebirth{width:52%;top:56%}
 .inspector-card-face{position:relative;display:block;width:100%;height:auto;aspect-ratio:63/88}
 .inspector-card-face>img{display:block;width:100%;height:100%;object-fit:contain;border-radius:inherit}
 /* 本次上傳的正式 SVG 作遮罩；顏色完全由卡片類型決定。 */
