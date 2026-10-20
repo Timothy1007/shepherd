@@ -37,6 +37,9 @@
 /* 洞察：回到與新生相同的 29% 安全框與位置，改由內嵌 SVG 繪製。 */
 .tag-face-symbol--insight{width:36.25%;height:auto;aspect-ratio:1;top:56%;background:none;-webkit-mask:none;mask:none;border-radius:0;transform:translate(-50%,-50%);box-shadow:none}
 .tag-face-symbol--insight svg{position:absolute;inset:0;display:block;overflow:visible}
+/* 庇護：兩片不同高度的圓潤葉片；不用舊鹿角遮罩，以免覆蓋內嵌 SVG。 */
+.tag-face-symbol--sanctuary{width:36.25%;height:auto;aspect-ratio:1;top:56%;background:none;-webkit-mask:none;mask:none;border-radius:0;transform:translate(-50%,-50%);box-shadow:none}
+.tag-face-symbol--sanctuary svg{position:absolute;inset:0;display:block;overflow:visible}
 /* 洞察由手牌主渲染器直接放置，避免舊模板延遲掛載時遺失圖騰。 */
 .card:has(.runtime-tag-glyph),.table-card-visual:has(.runtime-tag-glyph){overflow:hidden;isolation:isolate}
 .runtime-tag-glyph{position:absolute;left:50%;top:56%;z-index:12;display:block;width:36.25%;aspect-ratio:1;transform:translate(-50%,-50%);color:#006b58;pointer-events:none;filter:drop-shadow(0 2px 1px #0002)}
