@@ -3,10 +3,28 @@
 .ashes-template-card{background:#8750eb var(--card-template-art,url("assets/disasters/disater3.png")) center/100% 100% no-repeat;color:#35104f}
 .stronghold-template-card .stronghold-card-copy,.ashes-template-card .ashes-card-copy{position:absolute;inset:0;z-index:2;pointer-events:none;font-family:"Noto Sans TC",system-ui,sans-serif;text-align:left;text-shadow:0 1px 0 #ffffff38}
 .tag-only-card-copy{position:absolute;inset:0;z-index:2;pointer-events:none}
-/* 卡面只負責標籤辨識：中央主圖騰，右上／左下保留主要與次要標籤。 */
-.tag-face-symbol{position:absolute;left:50%;top:56%;width:32%;aspect-ratio:1;transform:translate(-50%,-50%);display:grid;place-items:center}
-.tag-face-symbol svg{display:block;width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 2px 1px #0002)}
-.tag-face-symbol .tag-fill{fill:currentColor;stroke:none}
+/* 統一圖騰系統：所有標籤都是圓潤的實心幾何，靠裁切／留白形成意象。 */
+.tag-face-symbol{position:absolute;left:50%;top:56%;transform:translate(-50%,-50%);display:block;background:currentColor;color:#006b58;filter:drop-shadow(0 2px 1px #0002)}
+.ashes-template-card .tag-face-symbol{color:#2b073f}
+.tag-face-symbol--rebirth{width:29%;aspect-ratio:1;border-radius:22%;transform:translate(-50%,-50%) rotate(45deg)}
+/* 洞察：被挖空瞳孔的圓角橢圓。 */
+.tag-face-symbol--insight{width:39%;height:22%;border-radius:999px;-webkit-mask:radial-gradient(circle at 50% 50%,transparent 0 18%,#000 20%);mask:radial-gradient(circle at 50% 50%,transparent 0 18%,#000 20%)}
+/* 重構：四段圓角環，中央留白、段與段之間有等距切口。 */
+.tag-face-symbol--reforge{width:32%;aspect-ratio:1;border-radius:30%;-webkit-mask:radial-gradient(circle at 50% 50%,transparent 0 25%,#000 27%),conic-gradient(#000 0 20%,transparent 20% 30%,#000 30% 45%,transparent 45% 55%,#000 55% 70%,transparent 70% 80%,#000 80%);-webkit-mask-composite:source-in;mask:radial-gradient(circle at 50% 50%,transparent 0 25%,#000 27%),conic-gradient(#000 0 20%,transparent 20% 30%,#000 30% 45%,transparent 45% 55%,#000 55% 70%,transparent 70% 80%,#000 80%);mask-composite:intersect}
+/* 崩解：被三道圓潤缺口切開的圓盤。 */
+.tag-face-symbol--collapse{width:33%;aspect-ratio:1;border-radius:44%;-webkit-mask:conic-gradient(#000 0 27%,transparent 27% 35%,#000 35% 60%,transparent 60% 68%,#000 68% 92%,transparent 92%);mask:conic-gradient(#000 0 27%,transparent 27% 35%,#000 35% 60%,transparent 60% 68%,#000 68% 92%,transparent 92%)}
+/* 熄滅：空心的圓角菱形。 */
+.tag-face-symbol--extinction{width:30%;aspect-ratio:1;border-radius:22%;transform:translate(-50%,-50%) rotate(45deg);-webkit-mask:radial-gradient(closest-side,transparent 0 54%,#000 57%);mask:radial-gradient(closest-side,transparent 0 54%,#000 57%)}
+/* 流轉：兩條圓端弧帶，保留簡單的循環意象。 */
+.tag-face-symbol--flux{width:34%;height:23%;border-radius:999px;transform:translate(-50%,-50%) rotate(-30deg)}
+.tag-face-symbol--flux::before,.tag-face-symbol--flux::after{content:'';position:absolute;width:70%;height:55%;border-radius:999px;background:currentColor}.tag-face-symbol--flux::before{left:-8%;top:-72%;transform:rotate(60deg)}.tag-face-symbol--flux::after{right:-8%;bottom:-72%;transform:rotate(60deg)}
+/* 庇護、共鳴、火種、使命、掠奪、蔓延皆維持同一組圓角體塊語言。 */
+.tag-face-symbol--sanctuary{width:33%;height:30%;border-radius:48% 48% 26% 26%;-webkit-mask:radial-gradient(circle at 50% 40%,transparent 0 23%,#000 25%);mask:radial-gradient(circle at 50% 40%,transparent 0 23%,#000 25%)}
+.tag-face-symbol--resonance{width:25%;aspect-ratio:1;border-radius:50%;box-shadow:15px 0 0 currentColor}
+.tag-face-symbol--ember{width:25%;height:34%;border-radius:58% 42% 58% 42%;transform:translate(-50%,-50%) rotate(45deg)}
+.tag-face-symbol--mission{width:28%;aspect-ratio:1;border-radius:36%;transform:translate(-50%,-50%) rotate(45deg);-webkit-mask:conic-gradient(#000 0 23%,transparent 23% 27%,#000 27% 48%,transparent 48% 52%,#000 52% 73%,transparent 73% 77%,#000 77%);mask:conic-gradient(#000 0 23%,transparent 23% 27%,#000 27% 48%,transparent 48% 52%,#000 52% 73%,transparent 73% 77%,#000 77%)}
+.tag-face-symbol--plunder{width:35%;height:23%;border-radius:999px;transform:translate(-50%,-50%) rotate(-18deg);-webkit-mask:linear-gradient(135deg,#000 0 65%,transparent 66%);mask:linear-gradient(135deg,#000 0 65%,transparent 66%)}
+.tag-face-symbol--spread{width:29%;aspect-ratio:1;border-radius:50%;box-shadow:14px -10px 0 -4px currentColor,14px 10px 0 -4px currentColor}
 .stronghold-card-copy{color:#064b40}.ashes-card-copy{color:#35104f;text-shadow:none}
 .ashes-template-card .ashes-card-copy,.ashes-template-card .ashes-card-copy *{text-shadow:none!important}
 .stronghold-card-copy h3,.ashes-card-copy h3{position:absolute;top:17.5%;left:14%;right:6%;margin:0;font-family:"Noto Serif TC",serif;font-size:8.8cqw;line-height:1.12;font-weight:900;letter-spacing:.04em;text-align:center}
