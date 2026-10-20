@@ -99,6 +99,8 @@ const TAG_ICON = Object.freeze({
 // 主圖騰用使用者本次提供的原始 SVG；遮罩允許神蹟／災難共用同一圖案而保留不同顏色。
 const TAG_FACE_GLYPH = Object.freeze({
   '洞察': '', '庇護': '', '蔓延': '', '流轉': '',
+  // 重構：上下兩條圓角折帶彼此咬合，中央留出菱形空隙。
+  '重構': '<svg viewBox="0 0 100 100" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"><path d="M21 42 50 21 79 42"/><path d="M21 58 50 79 79 58"/></g></svg>',
   // 崩解：相連但失衡的圓角方塊，保留「結構正在破裂」而非尖銳碎片的意象。
   '崩解': '<svg viewBox="0 0 100 100" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"><path d="M31 43H46V66M62 43H79V66M70 78V87"/></g><g fill="currentColor"><rect x="36" y="10" width="24" height="24" rx="7"/><rect x="10" y="31" width="34" height="34" rx="8"/><rect x="36" y="61" width="28" height="28" rx="8"/><rect x="56" y="31" width="31" height="34" rx="8"/><rect x="72" y="61" width="28" height="28" rx="8"/><rect x="61" y="81" width="22" height="19" rx="7"/></g></svg>',
 });
