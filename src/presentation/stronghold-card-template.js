@@ -99,8 +99,8 @@ const TAG_ICON = Object.freeze({
 // 主圖騰用使用者本次提供的原始 SVG；遮罩允許神蹟／災難共用同一圖案而保留不同顏色。
 const TAG_FACE_GLYPH = Object.freeze({
   '洞察': '', '庇護': '', '蔓延': '', '流轉': '',
-  // 重構：上下兩塊圓角菱形語彙，留出較大的中央空洞。
-  '重構': '<svg viewBox="0 0 100 100" fill="currentColor" aria-hidden="true" style="width: 100%; height: 100%;"><path d="M50 12Q52 12 55 15L86 45Q90 50 86 55L76 64Q72 68 68 64L50 45L32 64Q28 68 24 64L14 55Q10 50 14 45L45 15Q48 12 50 12Z"/><path d="M50 88Q48 88 45 85L14 55Q10 50 14 45L24 36Q28 32 32 36L50 55L68 36Q72 32 76 36L86 45Q90 50 86 55L55 85Q52 88 50 88Z"/></svg>',
+  // 重構：與新生一致的圓角菱形；中央挖空的菱形固定為外形約 2/5。
+  '重構': '<svg viewBox="0 0 100 100" fill="currentColor" fill-rule="evenodd" aria-hidden="true" style="width: 100%; height: 100%;"><path d="M50 8L83 41Q92 50 83 59L59 83Q50 92 41 83L17 59Q8 50 17 41L41 17Q50 8 59 17Z M50 33L64 47Q67 50 64 53L53 64Q50 67 47 64L36 53Q33 50 36 47L47 36Q50 33 53 36Z"/></svg>',
   // 崩解：相連但失衡的圓角方塊，保留「結構正在破裂」而非尖銳碎片的意象。
   '崩解': '<svg viewBox="0 0 100 100" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"><path d="M31 43H46V66M62 43H79V66M70 78V87"/></g><g fill="currentColor"><rect x="36" y="10" width="24" height="24" rx="7"/><rect x="10" y="31" width="34" height="34" rx="8"/><rect x="36" y="61" width="28" height="28" rx="8"/><rect x="56" y="31" width="31" height="34" rx="8"/><rect x="72" y="61" width="28" height="28" rx="8"/><rect x="61" y="81" width="22" height="19" rx="7"/></g></svg>',
 });
