@@ -99,7 +99,7 @@ const TAG_ICON = Object.freeze({
 // 主圖騰用使用者本次提供的原始 SVG；遮罩允許神蹟／災難共用同一圖案而保留不同顏色。
 const TAG_FACE_GLYPH = Object.freeze({
   // 洞察：圓潤的實心眼形，中央只留一個小圓孔，避免瞳孔過大。
-  '洞察': '<svg viewBox="0 0 100 100" fill="currentColor" fill-rule="evenodd" aria-hidden="true" style="width: 100%; height: 100%;"><path d="M8 50C26 14 74 14 92 50C74 86 26 86 8 50Z M50 40A10 10 0 1 0 50 60A10 10 0 1 0 50 40Z"/></svg>',
+  '洞察': '<svg viewBox="0 0 100 100" fill="currentColor" fill-rule="evenodd" aria-hidden="true" style="width: 100%; height: 100%;"><path d="M18 43C34 22 68 22 84 47C85 49 85 51 84 53C68 78 34 78 18 57C14 53 14 47 18 43Z M50 40A10 10 0 1 0 50 60A10 10 0 1 0 50 40Z"/></svg>',
   '庇護': '', '蔓延': '', '流轉': '',
   // 重構：外圈放大，中央挖空維持與新生基準相同的絕對視覺尺寸。
   '重構': '<svg viewBox="0 0 100 100" fill="currentColor" fill-rule="evenodd" aria-hidden="true" style="width: 100%; height: 100%;"><path d="M50 8L83 41Q92 50 83 59L59 83Q50 92 41 83L17 59Q8 50 17 41L41 17Q50 8 59 17Z M50 36.4L61.4 47.8Q63.6 50 61.4 52.2L52.2 61.4Q50 63.6 47.8 61.4L38.6 52.2Q36.4 50 38.6 47.8L47.8 38.6Q50 36.4 52.2 38.6Z"/></svg>',
