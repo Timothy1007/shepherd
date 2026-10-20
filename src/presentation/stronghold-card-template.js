@@ -96,6 +96,14 @@ const TAG_ICON = Object.freeze({
   '群體': '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="8" r="2"/><circle cx="12" cy="6.5" r="2.3"/><circle cx="18" cy="8" r="2"/><path d="M2.5 19c.2-3.5 1.5-5.2 3.5-5.2s3.3 1.7 3.5 5.2M7.6 19c.2-3.8 1.7-5.7 4.4-5.7s4.2 1.9 4.4 5.7M14.5 19c.2-3.5 1.5-5.2 3.5-5.2s3.3 1.7 3.5 5.2"/></svg>',
 });
 
+// 只為卡面主圖騰使用：保留參考圖的辨識核心，但統一成牧羊人的單色、圓端剪影。
+const TAG_FACE_GLYPH = Object.freeze({
+  '洞察': '<svg viewBox="0 0 100 70" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M5 35C19 15 35 8 50 8s31 7 45 27C81 55 65 62 50 62S19 55 5 35Zm45-13-7 8 7 8 7-8-7-8Z"/></svg>',
+  '庇護': '<svg viewBox="0 0 100 100" aria-hidden="true"><path fill="currentColor" d="M47 88c-7 0-11-4-11-10V57L22 46c-6-5-7-13-3-19 3 7 8 9 13 5l-7-12c-3-6-2-12 2-16 1 8 5 12 10 11l-1-9c0-4 3-6 6-8 1 7 4 12 9 14v34l13-12 1-17c1-9 7-15 13-18-4 8-3 14 2 18 5-5 10-5 14-1-7 3-11 8-12 15l-9 10c-4 5-10 7-17 5v13c0 6-4 10-11 10Z"/></svg>',
+  '蔓延': '<svg viewBox="0 0 100 100" aria-hidden="true"><path d="M26 27c12-14 34-12 46 0" fill="none" stroke="currentColor" stroke-width="15" stroke-linecap="round"/><path d="M20 53c16 15 44 14 60-2" fill="none" stroke="currentColor" stroke-width="15" stroke-linecap="round"/><path d="M28 78c14 12 32 12 45 0" fill="none" stroke="currentColor" stroke-width="15" stroke-linecap="round"/><circle cx="31" cy="26" r="2.5" fill="#0000" stroke="currentColor" stroke-width="0"/></svg>',
+  '流轉': '<svg viewBox="0 0 100 100" aria-hidden="true"><path fill="currentColor" d="M18 34c13-15 38-18 58-7 8 4 10 12 7 20-2-10-9-13-17-10-14 5-26 8-40 6l-8-1c-5-1-5-5 0-8Zm64 32c-13 15-38 18-58 7-8-4-10-12-7-20 2 10 9 13 17 10 14-5 26-8 40-6l8 1c5 1 5 5 0 8Z"/><circle cx="35" cy="34" r="3.2" fill="#0000"/></svg>',
+});
+
 function visualTags(definition) {
   const source = TAG_PRIORITY[definition.name] ?? definition.tags.filter(tag => tag !== RESPONSE);
   return source.filter(tag => tag !== RESPONSE && TAG_ICON[tag]).slice(0, 2);
@@ -183,7 +191,7 @@ function genericCopy(style) {
 function copyFor(style, { detail = false } = {}) {
   if (style.tagFacePreview) {
     const tags = visualTags(style.definition), primary = tags[0] ?? NEW_LIFE, shape = FACE_TAG_FILES[primary]?.toLowerCase() ?? 'rebirth';
-    return `<div class="tag-only-card-copy" aria-label="${primary}"><span class="tag-face-symbol tag-face-symbol--${shape}" aria-hidden="true"></span></div>`;
+    return `<div class="tag-only-card-copy" aria-label="${primary}"><span class="tag-face-symbol tag-face-symbol--${shape}" aria-hidden="true">${TAG_FACE_GLYPH[primary] ?? ''}</span></div>`;
   }
   if (style.definition.name === '拆毀堅固營壘') return miracleCopy();
   if (style.definition.name === '灰與燼') return disasterCopy();
