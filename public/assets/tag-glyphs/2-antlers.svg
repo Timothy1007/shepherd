@@ -1,1 +1,6 @@
-sed: can't read public/assets/tag-glyphs/2-antlers.svg: No such file or directory
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <g fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M50 86 V58"/><path d="M50 58 C46 42 24 40 24 16"/><path d="M35 40 C28 40 18 36 16 28"/>
+    <path d="M50 58 C50 50 44 44 44 32"/><path d="M50 58 C54 42 76 40 76 16"/><path d="M65 40 C72 40 82 36 84 28"/><path d="M50 58 C50 50 56 44 56 32"/>
+  </g>
+</svg>
