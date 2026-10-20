@@ -22,7 +22,7 @@ GameController.prototype.start = function startCurrentManualQa(seed) {
   if (qa === 'insect' && state?.round === 1) {
     const human = state.players.find(player => player.type === 'human');
     let changed = false;
-    for (const definitionId of ['miracle-06', 'miracle-07']) {
+    for (const definitionId of ['miracle-06', 'miracle-22', 'disaster-09', 'miracle-04']) {
       if (human?.hand.some(card => card.definitionId === definitionId)) continue;
       const index = state.deck.findIndex(card => card.definitionId === definitionId);
       if (index >= 0) { human.hand.push(state.deck.splice(index, 1)[0]); changed = true; }
