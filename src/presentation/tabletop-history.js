@@ -3,6 +3,7 @@ const centerPlay = document.querySelector('#drop-zone');
 const status = document.querySelector('#status');
 const roundDisplay = document.querySelector('#round-display');
 const instruction = document.querySelector('#instruction');
+import { getDefinition } from '../game/cards.js';
 
 if (tableCard && centerPlay && status && roundDisplay) {
   const pile = document.createElement('div');
@@ -16,6 +17,7 @@ if (tableCard && centerPlay && status && roundDisplay) {
   let lastRound = null;
   let disposed = false;
   let finalSnapshotEmitted = false;
+  let renderedPlayedIds = [];
 
   const rotations = [-8, 5, -3, 7, -5, 4];
   const offsets = [[-26, 12], [18, 7], [-6, -4], [24, 10], [-20, 5], [8, -6]];
@@ -57,6 +59,43 @@ if (tableCard && centerPlay && status && roundDisplay) {
     tableCard.classList.add('pile-source-hidden');
   }
 
+  function capturePlayedCard(card) {
+    const definition = getDefinition(card);
+    const visual = document.createElement('span');
+    visual.className = 'table-card-visual pile-card';
+    const image = document.createElement('img');
+    image.src = globalThis.__shepherdCardFaceAsset?.(definition) ?? definition.image;
+    image.alt = `目前出牌：${definition.name}`;
+    visual.append(image);
+    const glyph = globalThis.__shepherdCardFaceGlyph?.(definition);
+    if (glyph) visual.insertAdjacentHTML('beforeend', glyph);
+
+    const slot = playSequence % offsets.length;
+    const [x, y] = offsets[slot];
+    visual.style.setProperty('--pile-x', `${x}px`);
+    visual.style.setProperty('--pile-y', `${y}px`);
+    visual.style.setProperty('--pile-r', `${rotations[slot]}deg`);
+    playSequence += 1;
+    snapshots.push(visual);
+    while (snapshots.length > 3) snapshots.shift();
+    renderPile();
+    tableCard.classList.add('pile-source-hidden');
+  }
+
+  function syncPlayedCards() {
+    const played = globalThis.__shepherdController?.state?.playedArea;
+    if (!Array.isArray(played)) return false;
+    const ids = played.map(card => card.instanceId);
+    const unchanged = ids.length === renderedPlayedIds.length && ids.every((id, index) => id === renderedPlayedIds[index]);
+    if (unchanged) return true;
+    const commonPrefix = ids.every((id, index) => index >= renderedPlayedIds.length || id === renderedPlayedIds[index]);
+    if (!commonPrefix || ids.length < renderedPlayedIds.length) clearPile();
+    const start = commonPrefix ? renderedPlayedIds.length : 0;
+    played.slice(start).forEach(capturePlayedCard);
+    renderedPlayedIds = ids;
+    return true;
+  }
+
   function readRound() {
     const match = roundDisplay.textContent?.match(/第\s*(\d+)\s*\/\s*7\s*輪/);
     return match ? Number(match[1]) : null;
@@ -95,10 +134,11 @@ if (tableCard && centerPlay && status && roundDisplay) {
       clearPile();
       lastPlayedCount = 0;
       finalSnapshotEmitted = false;
+      renderedPlayedIds = [];
     }
     if (round !== null) lastRound = round;
 
-    if (playedCount !== null) {
+    if (!syncPlayedCards() && playedCount !== null) {
       // A restart or QA fixture can begin with an already-played card. Resetting the
       // visual cache first lets that opening card go through the same pile path as a
       // normal play instead of leaving a non-interactive source card on the table.
