@@ -25,6 +25,10 @@
 .tag-face-symbol--mission{width:28%;aspect-ratio:1;border-radius:36%;transform:translate(-50%,-50%) rotate(45deg);-webkit-mask:conic-gradient(#000 0 23%,transparent 23% 27%,#000 27% 48%,transparent 48% 52%,#000 52% 73%,transparent 73% 77%,#000 77%);mask:conic-gradient(#000 0 23%,transparent 23% 27%,#000 27% 48%,transparent 48% 52%,#000 52% 73%,transparent 73% 77%,#000 77%)}
 .tag-face-symbol--plunder{width:35%;height:23%;border-radius:999px;transform:translate(-50%,-50%) rotate(-18deg);-webkit-mask:linear-gradient(135deg,#000 0 65%,transparent 66%);mask:linear-gradient(135deg,#000 0 65%,transparent 66%)}
 .tag-face-symbol--spread{width:29%;aspect-ratio:1;border-radius:50%;box-shadow:14px -10px 0 -4px currentColor,14px 10px 0 -4px currentColor}
+/* 四個已確認的識別圖騰：不使用外框或尖角，維持單色圓潤剪影。 */
+.tag-face-symbol--insight,.tag-face-symbol--sanctuary,.tag-face-symbol--spread,.tag-face-symbol--flux{background:none;-webkit-mask:none;mask:none;box-shadow:none;border-radius:0;transform:translate(-50%,-50%)}
+.tag-face-symbol--insight{width:42%;height:30%}.tag-face-symbol--sanctuary{width:34%;height:39%}.tag-face-symbol--spread{width:34%;height:38%}.tag-face-symbol--flux{width:38%;height:38%}
+.tag-face-symbol--insight svg,.tag-face-symbol--sanctuary svg,.tag-face-symbol--spread svg,.tag-face-symbol--flux svg{display:block;width:100%;height:100%;overflow:visible}
 .stronghold-card-copy{color:#064b40}.ashes-card-copy{color:#35104f;text-shadow:none}
 .ashes-template-card .ashes-card-copy,.ashes-template-card .ashes-card-copy *{text-shadow:none!important}
 .stronghold-card-copy h3,.ashes-card-copy h3{position:absolute;top:17.5%;left:14%;right:6%;margin:0;font-family:"Noto Serif TC",serif;font-size:8.8cqw;line-height:1.12;font-weight:900;letter-spacing:.04em;text-align:center}
