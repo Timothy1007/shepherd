@@ -3,8 +3,17 @@ import { getNormalActions } from '../game/game.js';
 
 const query = new URLSearchParams(globalThis.location?.search ?? '');
 const MODE = query.get('qa');
-const ACTIVE = MODE === 'tag-card-faces' || MODE === 'rebirth-card-face' || MODE === 'insight-card-face';
-const REVIEW_IDS = new Set(MODE === 'insight-card-face' ? [
+const TAG_GLYPH_CARDS = Object.freeze({
+  Rebirth: 'miracle-01', Flux: 'miracle-04', Insight: 'miracle-06', Sanctuary: 'miracle-22',
+  Resonance: 'miracle-10', Ember: 'miracle-05', Mission: 'miracle-09', Reforge: 'disaster-06',
+  Plunder: 'disaster-01', Extinction: 'disaster-07', Spread: 'disaster-09', Collapse: 'disaster-15',
+});
+const TAG_GLYPH_LABELS = Object.freeze({Rebirth:'新生',Flux:'流轉',Insight:'洞察',Sanctuary:'庇護',Resonance:'共鳴',Ember:'火種',Mission:'使命',Reforge:'重構',Plunder:'掠奪',Extinction:'熄滅',Spread:'蔓延',Collapse:'崩解'});
+const GLYPH_KEY = query.get('tag');
+const ACTIVE = MODE === 'tag-card-faces' || MODE === 'rebirth-card-face' || MODE === 'insight-card-face' || (MODE === 'tag-glyph' && Boolean(TAG_GLYPH_CARDS[GLYPH_KEY]));
+const REVIEW_IDS = new Set(MODE === 'tag-glyph' ? [
+  TAG_GLYPH_CARDS[GLYPH_KEY],
+] : MODE === 'insight-card-face' ? [
   // 洞察圖騰測試：三張洞察神蹟，直接確認眼睛卡面。
   'miracle-06', 'miracle-07', 'miracle-08',
 ] : MODE === 'rebirth-card-face' ? [
@@ -40,7 +49,9 @@ function setup() {
   human.hand.push(...cards);
   state.currentPlayer = human.playerId;
   state.qaSeed = 'tag-card-faces';
-  const message = MODE === 'insight-card-face'
+  const message = MODE === 'tag-glyph'
+    ? `${TAG_GLYPH_LABELS[GLYPH_KEY]}圖騰單獨測試：已將《${cards[0] ? CARD_DEFINITIONS.find(definition => definition.definitionId === cards[0].definitionId)?.name : '測試牌'}》發至你的手牌；本局只保留這一張牌。`
+    : MODE === 'insight-card-face'
     ? `洞察卡面測試：已將 ${cards.length} 張洞察神蹟發至你的手牌；中央圖騰為圓潤眼形。`
     : MODE === 'rebirth-card-face'
     ? `新生卡面測試：已將 ${cards.length} 張新生神蹟發至你的手牌；前四張為一般版，後三張為應對版。`
