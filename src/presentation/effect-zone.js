@@ -73,7 +73,7 @@ function renderEffectZone(player) {
     item.title = `${definition.name}\n${definition.text ?? ''}`;
     item.setAttribute('aria-label', `${definition.name}：${definition.text ?? ''}`);
     const badge = definition.definitionId === 'miracle-02' ? '<b>+3</b>' : definition.definitionId === 'miracle-09' ? '<b>使命+2</b>' : definition.definitionId === 'miracle-13' ? '<b>抽+1</b>' : ['disaster-06','disaster-09'].includes(definition.definitionId) ? '<b>-2</b>' : '';
-    item.innerHTML = `<img src="${presentationImage(definition)}" alt="${definition.name}">${globalThis.__shepherdCardFaceGlyph?.(definition)??''}<span>${definition.name}</span>${badge}`;
+    item.innerHTML = `<img src="${presentationImage(definition)}" alt="${definition.name}">${globalThis.__shepherdCardFaceGlyph?.(definition)??''}<span class="effect-mini-name">${definition.name}</span>${badge}`;
     item.addEventListener('click', (event) => {
       event.preventDefault();
       event.stopPropagation();
