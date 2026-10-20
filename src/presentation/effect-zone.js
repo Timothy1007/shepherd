@@ -33,6 +33,10 @@ GameController.prototype.start = function startCurrentManualQa(seed) {
 };
 
 function openEffectDetail(card) {
+  if (typeof globalThis.__shepherdOpenCardInspector === 'function') {
+    globalThis.__shepherdOpenCardInspector(card);
+    return;
+  }
   const definition = getDefinition(card);
   const overlay = document.querySelector('#detail-overlay');
   const content = document.querySelector('#detail-content');
