@@ -31,8 +31,8 @@
 .tag-face-symbol--flux{width:55%;height:54%;top:54%}
 .tag-face-symbol--collapse{width:57%;height:57%;top:54%;background:none;border-radius:0;transform:translate(-50%,-50%);box-shadow:none}
 .tag-face-symbol--collapse svg{display:block;width:100%;height:100%;overflow:visible}
-/* 重構：上下兩塊相扣而分離，中央留空；尺寸與位置參照新生。 */
-.tag-face-symbol--reforge{width:34%;aspect-ratio:1;top:56%;background:none;-webkit-mask:none;mask:none;border-radius:0;transform:translate(-50%,-50%);box-shadow:none}
+/* 重構：尺寸、位置與新生一致；中央空區由 SVG 挖空。 */
+.tag-face-symbol--reforge{width:29%;aspect-ratio:1;top:56%;background:none;-webkit-mask:none;mask:none;border-radius:0;transform:translate(-50%,-50%);box-shadow:none}
 .tag-face-symbol--reforge svg{position:absolute;inset:0;display:block;overflow:visible}
 /* 本次上傳的正式 SVG 作遮罩；顏色完全由卡片類型決定。 */
 .tag-face-symbol--insight{background:currentColor;-webkit-mask:url("assets/tag-glyphs/1-eye.svg") center/contain no-repeat;mask:url("assets/tag-glyphs/1-eye.svg") center/contain no-repeat}
