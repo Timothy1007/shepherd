@@ -98,14 +98,10 @@ const TAG_ICON = Object.freeze({
 
 // 只為卡面主圖騰使用：依使用者提供的參考圖重繪為單色剪影；不額外混入其他幾何語言。
 const TAG_FACE_GLYPH = Object.freeze({
-  // 洞察：杏仁眼、圓形虹膜，以及參考圖中央的四角星瞳。
-  '洞察': '<svg viewBox="0 0 120 78" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M4 39C22 17 40 8 60 8s38 9 56 31C98 61 80 70 60 70S22 61 4 39Zm56-19a19 19 0 1 0 0 38 19 19 0 0 0 0-38Zm0 9 7 5-3 8 3 7-7-3-7 3 3-7-3-8 7-5Z"/></svg>',
-  // 庇護：左右對稱的鹿角枝椏，從一條向下收束的樹幹長出。
-  '庇護': '<svg viewBox="0 0 100 110" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"><path d="M50 96V61C42 51 31 50 24 41 17 32 18 20 22 13"/><path d="M50 61c8-10 19-11 26-20 7-9 6-21 2-28"/><path d="M31 48 18 47 12 37M37 55 28 66 17 66M25 41 31 29 28 18M69 48 82 47 88 37M63 55 72 66 83 66M75 41 69 29 72 18"/></g></svg>',
-  // 蔓延：參考圖的三段肥厚蟲身，上下各自保留斷開與起伏。
-  '蔓延': '<svg viewBox="0 0 110 110" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round"><path d="M30 27c12-14 34-13 47-2"/><path d="M22 53c-4 14 17 22 37 16 16-5 29-14 31-3"/><path d="M28 82c14 13 37 14 56 1"/></g><circle cx="30" cy="27" r="3" fill="currentColor"/></svg>',
-  // 流轉：兩隻首尾相逐的魚；眼與尾鰭保留，辨識重點不再抽象成弧帶。
-  '流轉': '<svg viewBox="0 0 110 110" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M19 39c5-17 24-25 43-20 13 3 22 11 27 22l9-7-1 17-16-6 7-4c-8-10-22-15-35-12-11 2-20 7-26 14l-8-4Zm72 32c-5 17-24 25-43 20-13-3-22-11-27-22l-9 7 1-17 16 6-7 4c8 10 22 15 35 12 11-2 20-7 26-14l8 4Z"/><circle cx="62" cy="30" r="3.5" fill="#0a554a"/><circle cx="48" cy="80" r="3.5" fill="#0a554a"/></svg>',
+  '洞察': '<svg viewBox="0 0 100 100" aria-hidden="true"><path d="M14 50 C32 22 68 22 86 50 C68 78 32 78 14 50 Z" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/><circle cx="50" cy="50" r="11" fill="currentColor"/></svg>',
+  '庇護': '<svg viewBox="0 0 100 100" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><path d="M50 86 V58"/><path d="M50 58 C46 42 24 40 24 16"/><path d="M35 40 C28 40 18 36 16 28"/><path d="M50 58 C50 50 44 44 44 32"/><path d="M50 58 C54 42 76 40 76 16"/><path d="M65 40 C72 40 82 36 84 28"/><path d="M50 58 C50 50 56 44 56 32"/></g></svg>',
+  '蔓延': '<svg viewBox="0 0 100 100" aria-hidden="true"><path d="M67.2 25.4 A30 30 0 1 1 32.8 25.4" fill="none" stroke="currentColor" stroke-width="12" stroke-linecap="round"/><path d="M34 15 L34 35 L52 25 Z" fill="currentColor" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/></svg>',
+  '流轉': '<svg viewBox="0 0 100 100" aria-hidden="true"><mask id="pisces-mask"><rect width="100" height="100" fill="#fff"/><g fill="none" stroke="#000" stroke-width="5"><path d="M50 4 V10 A20 20 0 0 1 50 50 A20 20 0 0 0 50 90 V96"/></g><circle cx="50" cy="30" r="5.5" fill="#000"/><circle cx="50" cy="70" r="5.5" fill="#000"/></mask><circle cx="50" cy="50" r="40" fill="currentColor" mask="url(#pisces-mask)"/></svg>',
 });
 
 function visualTags(definition) {
