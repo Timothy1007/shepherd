@@ -80,7 +80,7 @@ function rebuildDetailShowcase(host) {
     const glyph = document.createElement('span');
     glyph.className = 'runtime-tag-glyph runtime-tag-glyph--insight';
     glyph.setAttribute('aria-hidden', 'true');
-    glyph.innerHTML = '<svg viewBox="0 0 100 100" fill="currentColor" fill-rule="evenodd"><path d="M8 50C26 14 74 14 92 50C74 86 26 86 8 50Z M50 40A10 10 0 1 0 50 60A10 10 0 1 0 50 40Z"/></svg>';
+    glyph.innerHTML = '<svg viewBox="0 0 100 100" fill="currentColor" fill-rule="evenodd"><path d="M18 43C34 22 68 22 84 47C85 49 85 51 84 53C68 78 34 78 18 57C14 53 14 47 18 43Z M50 40A10 10 0 1 0 50 60A10 10 0 1 0 50 40Z"/></svg>';
     card.append(glyph);
   }
   showcase.append(card);
