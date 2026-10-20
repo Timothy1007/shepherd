@@ -31,13 +31,9 @@
 .tag-face-symbol--sanctuary{width:50%;height:54%;top:54%}
 .tag-face-symbol--spread{width:51%;height:54%;top:54%}
 .tag-face-symbol--flux{width:55%;height:54%;top:54%}
-/* 設計師提供的正式圖騰以 mask 載入；背景色即為圖騰顏色。 */
-.tag-face-symbol--insight{background:currentColor;-webkit-mask:url("assets/tag-glyphs/1-eye.svg") center/contain no-repeat;mask:url("assets/tag-glyphs/1-eye.svg") center/contain no-repeat}
-.tag-face-symbol--sanctuary{background:currentColor;-webkit-mask:url("assets/tag-glyphs/2-antlers.svg") center/contain no-repeat;mask:url("assets/tag-glyphs/2-antlers.svg") center/contain no-repeat}
-.tag-face-symbol--spread{background:currentColor;-webkit-mask:url("assets/tag-glyphs/3-ouroboros.svg") center/contain no-repeat;mask:url("assets/tag-glyphs/3-ouroboros.svg") center/contain no-repeat}
-.tag-face-symbol--flux{background:currentColor;-webkit-mask:url("assets/tag-glyphs/4-pisces.svg") center/contain no-repeat;mask:url("assets/tag-glyphs/4-pisces.svg") center/contain no-repeat}
-/* 與新生菱形相同：只有純 SVG 圖騰，不帶底板、不使用貼圖。 */
-.tag-face-symbol--insight,.tag-face-symbol--sanctuary,.tag-face-symbol--spread,.tag-face-symbol--flux{color:#006b58;filter:drop-shadow(0 2px 1px #0002)}
+/* 圖騰直接內嵌在卡牌 DOM：不靠外部 mask，因此不會出現空白卡。 */
+.tag-face-symbol--insight,.tag-face-symbol--sanctuary,.tag-face-symbol--spread,.tag-face-symbol--flux{background:none;color:#006b58;filter:drop-shadow(0 2px 1px #0002)}
+.tag-face-symbol--insight svg,.tag-face-symbol--sanctuary svg,.tag-face-symbol--spread svg,.tag-face-symbol--flux svg{display:block;width:100%;height:100%;overflow:visible}
 .ashes-template-card .tag-face-symbol--insight,.ashes-template-card .tag-face-symbol--sanctuary,.ashes-template-card .tag-face-symbol--spread,.ashes-template-card .tag-face-symbol--flux{color:#2b073f}
 .tag-face-symbol--flux::before,.tag-face-symbol--flux::after{display:none}
 .stronghold-card-copy{color:#064b40}.ashes-card-copy{color:#35104f;text-shadow:none}
