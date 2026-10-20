@@ -3,8 +3,11 @@ import { getNormalActions } from '../game/game.js';
 
 const query = new URLSearchParams(globalThis.location?.search ?? '');
 const MODE = query.get('qa');
-const ACTIVE = MODE === 'tag-card-faces' || MODE === 'rebirth-card-face';
-const REVIEW_IDS = new Set(MODE === 'rebirth-card-face' ? [
+const ACTIVE = MODE === 'tag-card-faces' || MODE === 'rebirth-card-face' || MODE === 'insight-card-face';
+const REVIEW_IDS = new Set(MODE === 'insight-card-face' ? [
+  // 洞察圖騰測試：三張洞察神蹟，直接確認眼睛卡面。
+  'miracle-06', 'miracle-07', 'miracle-08',
+] : MODE === 'rebirth-card-face' ? [
   // 新生圖騰測試：四張一般牌、三張應對牌，僅檢視新卡面與中心圖騰。
   'miracle-01', 'miracle-02', 'miracle-03', 'miracle-13',
   'miracle-18', 'miracle-19', 'miracle-20',
@@ -37,7 +40,9 @@ function setup() {
   human.hand.push(...cards);
   state.currentPlayer = human.playerId;
   state.qaSeed = 'tag-card-faces';
-  const message = MODE === 'rebirth-card-face'
+  const message = MODE === 'insight-card-face'
+    ? `洞察卡面測試：已將 ${cards.length} 張洞察神蹟發至你的手牌；中央圖騰為圓潤眼形。`
+    : MODE === 'rebirth-card-face'
     ? `新生卡面測試：已將 ${cards.length} 張新生神蹟發至你的手牌；前四張為一般版，後三張為應對版。`
     : `卡面檢視第一批：已將 ${cards.length} 張卡發至你的手牌；僅含行向水深之處、勝利歸於我們、替罪羊、雨幕之下。`;
   controller.logAi?.(message);
