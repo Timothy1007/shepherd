@@ -35,10 +35,10 @@
 .tag-face-symbol--reforge{width:36.25%;aspect-ratio:1;top:56%;background:none;-webkit-mask:none;mask:none;border-radius:0;transform:translate(-50%,-50%);box-shadow:none}
 .tag-face-symbol--reforge svg{position:absolute;inset:0;display:block;overflow:visible}
 /* 洞察：回到與新生相同的 29% 安全框與位置，改由內嵌 SVG 繪製。 */
-.tag-face-symbol--insight{width:29%;height:auto;aspect-ratio:1;top:56%;background:none;-webkit-mask:none;mask:none;border-radius:0;transform:translate(-50%,-50%);box-shadow:none}
+.tag-face-symbol--insight{width:36.25%;height:auto;aspect-ratio:1;top:56%;background:none;-webkit-mask:none;mask:none;border-radius:0;transform:translate(-50%,-50%);box-shadow:none}
 .tag-face-symbol--insight svg{position:absolute;inset:0;display:block;overflow:visible}
 /* 洞察由手牌主渲染器直接放置，避免舊模板延遲掛載時遺失圖騰。 */
-.runtime-tag-glyph--insight{position:absolute;left:50%;top:56%;z-index:12;display:block;width:29%;aspect-ratio:1;transform:translate(-50%,-50%);color:#006b58;pointer-events:none;filter:drop-shadow(0 2px 1px #0002)}
+.runtime-tag-glyph--insight{position:absolute;left:50%;top:56%;z-index:12;display:block;width:36.25%;aspect-ratio:1;transform:translate(-50%,-50%);color:#006b58;pointer-events:none;filter:drop-shadow(0 2px 1px #0002)}
 .ashes-template-card .runtime-tag-glyph--insight{color:#4a1f64}
 .runtime-tag-glyph--insight svg{display:block;width:100%;height:100%;overflow:visible}
 .inspector-card-face{position:relative;display:block;width:100%;height:auto;aspect-ratio:63/88}
