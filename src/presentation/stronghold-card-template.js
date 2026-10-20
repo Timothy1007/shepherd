@@ -98,10 +98,10 @@ const TAG_ICON = Object.freeze({
 
 // 只為卡面主圖騰使用：依使用者提供的參考圖重繪為單色剪影；不額外混入其他幾何語言。
 const TAG_FACE_GLYPH = Object.freeze({
-  '洞察': '<svg viewBox="0 0 100 100" aria-hidden="true"><path d="M14 50 C32 22 68 22 86 50 C68 78 32 78 14 50 Z" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/><circle cx="50" cy="50" r="11" fill="currentColor"/></svg>',
-  '庇護': '<svg viewBox="0 0 100 100" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><path d="M50 86 V58"/><path d="M50 58 C46 42 24 40 24 16"/><path d="M35 40 C28 40 18 36 16 28"/><path d="M50 58 C50 50 44 44 44 32"/><path d="M50 58 C54 42 76 40 76 16"/><path d="M65 40 C72 40 82 36 84 28"/><path d="M50 58 C50 50 56 44 56 32"/></g></svg>',
-  '蔓延': '<svg viewBox="0 0 100 100" aria-hidden="true"><path d="M67.2 25.4 A30 30 0 1 1 32.8 25.4" fill="none" stroke="currentColor" stroke-width="12" stroke-linecap="round"/><path d="M34 15 L34 35 L52 25 Z" fill="currentColor" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/></svg>',
-  '流轉': '<svg viewBox="0 0 100 100" aria-hidden="true"><mask id="pisces-mask"><rect width="100" height="100" fill="#fff"/><g fill="none" stroke="#000" stroke-width="5"><path d="M50 4 V10 A20 20 0 0 1 50 50 A20 20 0 0 0 50 90 V96"/></g><circle cx="50" cy="30" r="5.5" fill="#000"/><circle cx="50" cy="70" r="5.5" fill="#000"/></mask><circle cx="50" cy="50" r="40" fill="currentColor" mask="url(#pisces-mask)"/></svg>',
+  '洞察': '',
+  '庇護': '',
+  '蔓延': '',
+  '流轉': '',
 });
 
 function visualTags(definition) {
