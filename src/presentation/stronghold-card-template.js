@@ -99,8 +99,7 @@ const TAG_ICON = Object.freeze({
 // 主圖騰用使用者本次提供的原始 SVG；遮罩允許神蹟／災難共用同一圖案而保留不同顏色。
 const TAG_FACE_GLYPH = Object.freeze({
   '洞察': '', '庇護': '', '蔓延': '', '流轉': '',
-  // 重構：單一圓角菱形，以遮罩挖出水平 Z 字切口；不是兩個圖形重疊。
-  '重構': '<svg viewBox="0 0 100 100" aria-hidden="true"><mask id="reforge-cut"><rect width="100" height="100" fill="#fff"/><path d="M12 43H39c2.3 0 3.7 1.1 5.3 2.8L50 51l5.7-5.2C57.3 44.1 58.7 43 61 43h27v14H61c-2.3 0-3.7-1.1-5.3-2.8L50 49l-5.7 5.2C42.7 55.9 41.3 57 39 57H12Z" fill="#000"/></mask><rect x="24" y="24" width="52" height="52" rx="10" fill="currentColor" mask="url(#reforge-cut)" transform="rotate(45 50 50)"/></svg>',
+  '重構': '<svg viewBox="0 0 100 100" fill="currentColor" style="width: 50%; height: 50%; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.2));" aria-hidden="true"><path d="M 50 15 L 85 50 L 72 63 L 50 41 L 28 63 L 15 50 Z"/><path d="M 50 85 L 15 50 L 28 37 L 50 59 L 72 37 L 85 50 Z"/></svg>',
   // 崩解：相連但失衡的圓角方塊，保留「結構正在破裂」而非尖銳碎片的意象。
   '崩解': '<svg viewBox="0 0 100 100" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"><path d="M31 43H46V66M62 43H79V66M70 78V87"/></g><g fill="currentColor"><rect x="36" y="10" width="24" height="24" rx="7"/><rect x="10" y="31" width="34" height="34" rx="8"/><rect x="36" y="61" width="28" height="28" rx="8"/><rect x="56" y="31" width="31" height="34" rx="8"/><rect x="72" y="61" width="28" height="28" rx="8"/><rect x="61" y="81" width="22" height="19" rx="7"/></g></svg>',
 });
@@ -192,8 +191,7 @@ function genericCopy(style) {
 function copyFor(style, { detail = false } = {}) {
   if (style.tagFacePreview) {
     const tags = visualTags(style.definition), primary = tags[0] ?? NEW_LIFE, shape = FACE_TAG_FILES[primary]?.toLowerCase() ?? 'rebirth';
-    const glyph = (TAG_FACE_GLYPH[primary] ?? '').replaceAll('reforge-cut', `${style.definition.definitionId}-reforge-cut`);
-    return `<div class="tag-only-card-copy" aria-label="${primary}"><span class="tag-face-symbol tag-face-symbol--${shape}" aria-hidden="true">${glyph}</span></div>`;
+    return `<div class="tag-only-card-copy" aria-label="${primary}"><span class="tag-face-symbol tag-face-symbol--${shape}" aria-hidden="true">${TAG_FACE_GLYPH[primary] ?? ''}</span></div>`;
   }
   if (style.definition.name === '拆毀堅固營壘') return miracleCopy();
   if (style.definition.name === '灰與燼') return disasterCopy();
