@@ -204,6 +204,8 @@ function templateClass(style) { return style.kind === 'miracle' ? 'stronghold-te
 
 function mountHand(image, style) {
   const card = image.closest('.card');
+  // 洞察由主手牌渲染器直接插入圖騰，不再被舊模板的非同步掛載流程覆蓋。
+  if (card?.querySelector('[data-runtime-face-glyph]')) return;
   if (!card || card.dataset.specialCardTemplate === 'true') return;
   card.dataset.specialCardTemplate = 'true';
   card.classList.add(templateClass(style));
