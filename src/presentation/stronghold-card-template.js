@@ -96,12 +96,16 @@ const TAG_ICON = Object.freeze({
   '群體': '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="8" r="2"/><circle cx="12" cy="6.5" r="2.3"/><circle cx="18" cy="8" r="2"/><path d="M2.5 19c.2-3.5 1.5-5.2 3.5-5.2s3.3 1.7 3.5 5.2M7.6 19c.2-3.8 1.7-5.7 4.4-5.7s4.2 1.9 4.4 5.7M14.5 19c.2-3.5 1.5-5.2 3.5-5.2s3.3 1.7 3.5 5.2"/></svg>',
 });
 
-// 只為卡面主圖騰使用：保留參考圖的辨識核心，但統一成牧羊人的單色、圓端剪影。
+// 只為卡面主圖騰使用：依使用者提供的參考圖重繪為單色剪影；不額外混入其他幾何語言。
 const TAG_FACE_GLYPH = Object.freeze({
-  '洞察': '<svg viewBox="0 0 100 70" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M5 35C19 15 35 8 50 8s31 7 45 27C81 55 65 62 50 62S19 55 5 35Zm45-13-7 8 7 8 7-8-7-8Z"/></svg>',
-  '庇護': '<svg viewBox="0 0 100 100" aria-hidden="true"><path fill="currentColor" d="M47 88c-7 0-11-4-11-10V57L22 46c-6-5-7-13-3-19 3 7 8 9 13 5l-7-12c-3-6-2-12 2-16 1 8 5 12 10 11l-1-9c0-4 3-6 6-8 1 7 4 12 9 14v34l13-12 1-17c1-9 7-15 13-18-4 8-3 14 2 18 5-5 10-5 14-1-7 3-11 8-12 15l-9 10c-4 5-10 7-17 5v13c0 6-4 10-11 10Z"/></svg>',
-  '蔓延': '<svg viewBox="0 0 100 100" aria-hidden="true"><path d="M26 27c12-14 34-12 46 0" fill="none" stroke="currentColor" stroke-width="15" stroke-linecap="round"/><path d="M20 53c16 15 44 14 60-2" fill="none" stroke="currentColor" stroke-width="15" stroke-linecap="round"/><path d="M28 78c14 12 32 12 45 0" fill="none" stroke="currentColor" stroke-width="15" stroke-linecap="round"/><circle cx="31" cy="26" r="2.5" fill="#0000" stroke="currentColor" stroke-width="0"/></svg>',
-  '流轉': '<svg viewBox="0 0 100 100" aria-hidden="true"><path fill="currentColor" d="M18 34c13-15 38-18 58-7 8 4 10 12 7 20-2-10-9-13-17-10-14 5-26 8-40 6l-8-1c-5-1-5-5 0-8Zm64 32c-13 15-38 18-58 7-8-4-10-12-7-20 2 10 9 13 17 10 14-5 26-8 40-6l8 1c5 1 5 5 0 8Z"/><circle cx="35" cy="34" r="3.2" fill="#0000"/></svg>',
+  // 洞察：杏仁眼、圓形虹膜，以及參考圖中央的四角星瞳。
+  '洞察': '<svg viewBox="0 0 120 78" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M4 39C22 17 40 8 60 8s38 9 56 31C98 61 80 70 60 70S22 61 4 39Zm56-19a19 19 0 1 0 0 38 19 19 0 0 0 0-38Zm0 9 7 5-3 8 3 7-7-3-7 3 3-7-3-8 7-5Z"/></svg>',
+  // 庇護：左右對稱的鹿角枝椏，從一條向下收束的樹幹長出。
+  '庇護': '<svg viewBox="0 0 100 110" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"><path d="M50 96V61C42 51 31 50 24 41 17 32 18 20 22 13"/><path d="M50 61c8-10 19-11 26-20 7-9 6-21 2-28"/><path d="M31 48 18 47 12 37M37 55 28 66 17 66M25 41 31 29 28 18M69 48 82 47 88 37M63 55 72 66 83 66M75 41 69 29 72 18"/></g></svg>',
+  // 蔓延：參考圖的三段肥厚蟲身，上下各自保留斷開與起伏。
+  '蔓延': '<svg viewBox="0 0 110 110" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round"><path d="M30 27c12-14 34-13 47-2"/><path d="M22 53c-4 14 17 22 37 16 16-5 29-14 31-3"/><path d="M28 82c14 13 37 14 56 1"/></g><circle cx="30" cy="27" r="3" fill="currentColor"/></svg>',
+  // 流轉：兩隻首尾相逐的魚；眼與尾鰭保留，辨識重點不再抽象成弧帶。
+  '流轉': '<svg viewBox="0 0 110 110" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M19 39c5-17 24-25 43-20 13 3 22 11 27 22l9-7-1 17-16-6 7-4c-8-10-22-15-35-12-11 2-20 7-26 14l-8-4Zm72 32c-5 17-24 25-43 20-13-3-22-11-27-22l-9 7 1-17 16 6-7 4c8 10 22 15 35 12 11-2 20-7 26-14l8 4Z"/><circle cx="62" cy="30" r="3.5" fill="#0a554a"/><circle cx="48" cy="80" r="3.5" fill="#0a554a"/></svg>',
 });
 
 function visualTags(definition) {
