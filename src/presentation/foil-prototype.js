@@ -76,11 +76,20 @@ function rebuildDetailShowcase(host) {
   card.className = 'detail-foil-card';
   image.replaceWith(showcase);
   card.append(image);
-  if (host.dataset.faceGlyph === 'insight') {
+  const glyphs = Object.freeze({
+    '新生': '<svg viewBox="0 0 100 100" fill="currentColor"><rect x="23" y="23" width="54" height="54" rx="10" transform="rotate(45 50 50)"/></svg>',
+    '熄滅': '<svg viewBox="0 0 100 100" fill="currentColor" fill-rule="evenodd"><rect x="21" y="21" width="58" height="58" rx="10" transform="rotate(45 50 50)"/><rect x="38" y="38" width="24" height="24" rx="4" transform="rotate(45 50 50)" fill="#0c1717"/></svg>',
+    '洞察': '<svg viewBox="0 0 100 100" fill="currentColor" fill-rule="evenodd"><path d="M18 43C34 22 68 22 84 47C85 49 85 51 84 53C68 78 34 78 18 57C14 53 14 47 18 43Z M50 40A10 10 0 1 0 50 60A10 10 0 1 0 50 40Z"/></svg>',
+    '庇護': '<svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"><path d="M48 80C25 77 17 58 17 35c17 1 29 9 35 26M52 80c23-3 31-22 31-45-17 1-29 9-35 26M50 47v34"/></svg>',
+    '重構': '<svg viewBox="0 0 100 100" fill="currentColor" fill-rule="evenodd"><path d="M50 8L83 41Q92 50 83 59L59 83Q50 92 41 83L17 59Q8 50 17 41L41 17Q50 8 59 17Z M50 36.4L61.4 47.8Q63.6 50 61.4 52.2L52.2 61.4Q50 63.6 47.8 61.4L38.6 52.2Q36.4 50 38.6 47.8L47.8 38.6Q50 36.4 52.2 38.6Z"/></svg>',
+    '崩解': '<svg viewBox="0 0 100 100" fill="currentColor"><rect x="36" y="10" width="24" height="24" rx="7"/><rect x="10" y="31" width="34" height="34" rx="8"/><rect x="36" y="61" width="28" height="28" rx="8"/><rect x="56" y="31" width="31" height="34" rx="8"/><rect x="72" y="61" width="28" height="28" rx="8"/><rect x="61" y="81" width="22" height="19" rx="7"/></svg>',
+  });
+  const tag = host.dataset.faceGlyph, glyph = glyphs[tag];
+  if (glyph) {
     const glyph = document.createElement('span');
-    glyph.className = 'runtime-tag-glyph runtime-tag-glyph--insight';
+    glyph.className = `runtime-tag-glyph runtime-tag-glyph--${tag === '新生' ? 'rebirth' : tag === '熄滅' ? 'extinction' : tag === '洞察' ? 'insight' : tag === '庇護' ? 'sanctuary' : tag === '重構' ? 'reforge' : 'collapse'}${host.dataset.faceGlyphTone === 'disaster' ? ' is-disaster' : ''}`;
     glyph.setAttribute('aria-hidden', 'true');
-    glyph.innerHTML = '<svg viewBox="0 0 100 100" fill="currentColor" fill-rule="evenodd"><path d="M18 43C34 22 68 22 84 47C85 49 85 51 84 53C68 78 34 78 18 57C14 53 14 47 18 43Z M50 40A10 10 0 1 0 50 60A10 10 0 1 0 50 40Z"/></svg>';
+    glyph.innerHTML = glyphs[tag];
     card.append(glyph);
   }
   showcase.append(card);
