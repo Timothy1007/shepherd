@@ -76,6 +76,13 @@ function rebuildDetailShowcase(host) {
   card.className = 'detail-foil-card';
   image.replaceWith(showcase);
   card.append(image);
+  if (host.dataset.faceGlyph === 'insight') {
+    const glyph = document.createElement('span');
+    glyph.className = 'runtime-tag-glyph runtime-tag-glyph--insight';
+    glyph.setAttribute('aria-hidden', 'true');
+    glyph.innerHTML = '<svg viewBox="0 0 100 100" fill="currentColor" fill-rule="evenodd"><path d="M8 50C26 14 74 14 92 50C74 86 26 86 8 50Z M50 40A10 10 0 1 0 50 60A10 10 0 1 0 50 40Z"/></svg>';
+    card.append(glyph);
+  }
   showcase.append(card);
   if (copy) host.insertBefore(showcase, copy);
   else host.append(showcase);
