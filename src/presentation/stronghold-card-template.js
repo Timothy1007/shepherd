@@ -99,7 +99,7 @@ const TAG_ICON = Object.freeze({
 // 主圖騰用使用者本次提供的原始 SVG；遮罩允許神蹟／災難共用同一圖案而保留不同顏色。
 const TAG_FACE_GLYPH = Object.freeze({
   '洞察': '', '庇護': '', '蔓延': '', '流轉': '',
-  '重構': '<svg viewBox="0 0 100 100" fill="currentColor" style="width: 50%; height: 50%; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.2));" aria-hidden="true"><path d="M 50 15 L 85 50 L 72 63 L 50 41 L 28 63 L 15 50 Z"/><path d="M 50 85 L 15 50 L 28 37 L 50 59 L 72 37 L 85 50 Z"/></svg>',
+  '重構': '<svg viewBox="0 0 100 100" fill="currentColor" aria-hidden="true" style="width: 100%; height: 100%;"><!-- 上半部 --><path d="M 50 15 L 85 50 L 72 63 L 50 41 L 28 63 L 15 50 Z" /><!-- 下半部 --><path d="M 50 85 L 15 50 L 28 37 L 50 59 L 72 37 L 85 50 Z" /></svg>',
   // 崩解：相連但失衡的圓角方塊，保留「結構正在破裂」而非尖銳碎片的意象。
   '崩解': '<svg viewBox="0 0 100 100" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"><path d="M31 43H46V66M62 43H79V66M70 78V87"/></g><g fill="currentColor"><rect x="36" y="10" width="24" height="24" rx="7"/><rect x="10" y="31" width="34" height="34" rx="8"/><rect x="36" y="61" width="28" height="28" rx="8"/><rect x="56" y="31" width="31" height="34" rx="8"/><rect x="72" y="61" width="28" height="28" rx="8"/><rect x="61" y="81" width="22" height="19" rx="7"/></g></svg>',
 });
