@@ -10,7 +10,6 @@ function primaryFaceTag(definition) { return definition.tags.find(tag => !FACE_S
 function cardFaceAsset(definition) {
   const tag = primaryFaceTag(definition), file = FACE_TAG_FILES[tag];
   if (!file) return definition.image;
-  if (definition.kind === 'miracle' && tag === '洞察' && !definition.tags.includes('應對')) return 'assets/miracles/miracal-Insight-clean.png';
   const response = definition.tags.includes('應對') ? '-Response' : '';
   return definition.kind === 'miracle' ? `assets/miracles/miracal-${file}${response}.png` : `assets/disasters/disater-${file}${response}.png`;
 }
