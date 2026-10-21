@@ -11,16 +11,17 @@ const TAG_GLYPH_CARDS = Object.freeze({
 const TAG_GLYPH_LABELS = Object.freeze({Rebirth:'新生',Flux:'流轉',Insight:'洞察',Sanctuary:'庇護',Resonance:'共鳴',Ember:'火種',Mission:'使命',Reforge:'重構',Plunder:'掠奪',Extinction:'熄滅',Spread:'蔓延',Collapse:'崩解'});
 const GLYPH_KEY = query.get('tag');
 const ART_BATCH_SIZE = 6;
-const ART_DEFINITIONS = CARD_DEFINITIONS.filter(definition =>
-  definition.kind === 'miracle' || definition.kind === 'disaster'
-).sort((a, b) => {
-  if (a.kind !== b.kind) return a.kind === 'miracle' ? -1 : 1;
-  return Number(a.definitionId.split('-')[1]) - Number(b.definitionId.split('-')[1]);
+const ART_BATCHES = ['miracle', 'disaster'].flatMap(kind => {
+  const definitions = CARD_DEFINITIONS.filter(d => d.kind === kind)
+    .sort((a, b) => Number(a.definitionId.split('-')[1]) - Number(b.definitionId.split('-')[1]));
+  const batches = [];
+  for (let i = 0; i < definitions.length; i += ART_BATCH_SIZE) batches.push(definitions.slice(i, i + ART_BATCH_SIZE));
+  return batches;
 });
-const ART_BATCH_COUNT = Math.ceil(ART_DEFINITIONS.length / ART_BATCH_SIZE);
+const ART_BATCH_COUNT = ART_BATCHES.length;
 const requestedBatch = Number(query.get('batch') ?? 1);
 const ART_BATCH = Number.isInteger(requestedBatch) && requestedBatch >= 1 && requestedBatch <= ART_BATCH_COUNT ? requestedBatch : 1;
-const ART_BATCH_DEFINITIONS = ART_DEFINITIONS.slice((ART_BATCH - 1) * ART_BATCH_SIZE, ART_BATCH * ART_BATCH_SIZE);
+const ART_BATCH_DEFINITIONS = ART_BATCHES[ART_BATCH - 1] ?? [];
 
 const ACTIVE = MODE === 'art-batch' || MODE === 'tag-card-faces' || MODE === 'rebirth-card-face' || MODE === 'insight-card-face' || (MODE === 'tag-glyph' && Boolean(TAG_GLYPH_CARDS[GLYPH_KEY]));
 const REVIEW_IDS = new Set(MODE === 'art-batch' ? ART_BATCH_DEFINITIONS.map(definition => definition.definitionId) : MODE === 'tag-glyph' ? [
