@@ -1,6 +1,1 @@
-<svg viewBox="0 0 100 100" fill="currentColor" aria-hidden="true">
-  <path d="M50 17C57 24 60 31 60 38C60 45 56 50 50 54C44 50 40 45 40 38C40 31 43 24 50 17Z"/>
-  <path d="M18 39C30 37 40 40 47 48C51 53 53 59 53 66C43 66 35 63 29 57C23 51 19 45 18 39Z"/>
-  <path d="M82 39C70 37 60 40 53 48C49 53 47 59 47 66C57 66 65 63 71 57C77 51 81 45 82 39Z"/>
-  <path d="M28 72C35 78 42 82 50 82C58 82 65 78 72 72C70 80 62 87 50 90C38 87 30 80 28 72Z"/>
-</svg>
+<svg viewBox="0 0 100 100" fill="currentColor" aria-hidden="true"><rect x="23" y="23" width="54" height="54" rx="10" transform="rotate(45 50 50)"/></svg>
