@@ -1,1 +1,180 @@
-IyDjgIrniafnvorkurrvvJrojZLph47kuYvmrYzjgIvplovnmbzkuqTmjqXljIUKCiMjIOWFiOWBmumAmeS7tuS6i++8mumAo+aOpeato+eiuueahCBHaXRIdWIKCi0gUmVwb3NpdG9yee+8mmBodHRwczovL2dpdGh1Yi5jb20vVGltb3RoeTEwMDcvc2hlcGhlcmQuZ2l0YAotIOato+W8j+mWi+eZvOWIhuaUr++8mmBtYWluYAotIOebruWJjeS7pSAqKlYxIOeahOmBiuaIsuimj+WJh+iIh+WvpuS9nCoqIOeCuua6lu+8m2B2Mi9gIOaYr+mBjuWOu+eahOWvpumpl++8j+S/neeVmeWFp+Wuue+8jOS4jeWPr+eVtuS9nOato+W8j+imj+WJh+S+hua6kO+8jOS5n+S4jeimgeaKiiBWMiDnmoToiIogVUkg5oiW6YKP6Lyv55u05o6l6KaG6JOL5Zue5Li756iL5byP44CCCgrmnKzmqZ/llZ/li5XvvIhXaW5kb3dzIFBvd2VyU2hlbGzvvInvvJoKCmBgYHBvd2Vyc2hlbGwKZ2l0IHB1bGwgb3JpZ2luIG1haW4KbnBtLmNtZCBydW4gYnVpbGQKbnBtLmNtZCBydW4gcHJldmlldwpgYGAKCuiri+S9v+eUqCBgbnBtLmNtZGDvvIzkuI3opoHnm7TmjqXnlKggYG5wbWDvvJvkvb/nlKjogIXnmoQgUG93ZXJTaGVsbCDmnIPlm6Dln7fooYzljp/liYfmk4vkvY8gYG5wbS5wczFg44CCCgojIyDnlbbliY3lj6/nlKjni4DmhYsKCi0g5Li756iL5byP77yaYHNyYy9gCi0g55Wr6Z2i5YWl5Y+j77yaYHNyYy9wcmVzZW50YXRpb24vaW5kZXguaHRtbGAKLSDkuLvnlavpnaLpgo/ovK/vvJpgc3JjL3ByZXNlbnRhdGlvbi9hcHAuanNgCi0g5Li75qij5byP77yaYHNyYy9wcmVzZW50YXRpb24vc3R5bGUuY3NzYO+8jOWPpuacieWkmuWAi+eNqOeriyBwcmVzZW50YXRpb24gQ1NTIC8gSlMg5qih57WE44CCCi0g6Z2c5oWL6IOM5pmv77yaYHB1YmxpYy9hc3NldHMvYmFja2dyb3VuZC5wbmdg44CC5Li755Wr6Z2i5b+F6aCI5L+d55WZ77yaCgpgYGBodG1sCjxpbWcgY2xhc3M9ImJhdHRsZS1iYWNrZ3JvdW5kIiBzcmM9ImFzc2V0cy9iYWNrZ3JvdW5kLnBuZyIgYWx0PSIiIGFyaWEtaGlkZGVuPSJ0cnVlIj4KYGBgCgotIOWfuuacrOmpl+itie+8mmBucG0gcnVuIGJ1aWxkICYmIG5wbSB0ZXN0YAotIOebruWJjea4rOippu+8mioqMjA2IOmghemAmumBjioq44CCCgojIyDlt7LlrozmiJDnmoTmoLjlv4PpgYrmiLLlhaflrrkKCi0g5Zub5Lq677yI55yf5Lq6ICsg5LiJ5ZCNIEFJ77yJ5Ye654mM44CB54mp6LOH5YWL5Yi244CB56We6Lmf77yP54G96Zuj44CB5pWI5p6c5Y2A44CB5oeJ5bCN44CB5qOE54mM44CB54mM5bqr44CB5oiw5rOB57SA6YyE44CCCi0gNyDovKrniK3lsYDjgIHkvb/lkb3jgIHkvb/lvpLjgIHmrbvkuqHniYzvvI/mrbvkuqHovKrjgIHltKnlo57lgLzjgIIKLSDlt7LlrozmiJDkuKbmuKzoqablpJrlgIvlr6nliKTvvJrlgr7opoYgSS9JSeOAgeWIhuijgiBJL0lJ44CB5aSx5bqPIEkvSUnjgIHokpnolL0gSS9JSeOAgeayiea3quetieOAggotIOW3suWujOaIkOWkmuW8teelnui5n++8j+eBvembo+WPiuWFtuaHieWwje+8m+WMheaLrOOAiueBsOiIh+eHvOOAi+OAgeOAiuaLhuavgOWgheWbuueahOeHn+WjmOOAi+OAgeOAiui2iumBjumVt+WknOOAi+OAgeOAiuabv+e9que+iuOAi+OAgeOAiuifsueBveOAi+OAgeOAiumbqOW5leS5i+S4i+OAi+OAgeOAiueEmuWfjuS5i+eBq+OAi+etieOAggotIOacgOaWsOWNoeeJjOmWi+eZvO+8mmDon7Lngb1gIOW3sua4rOWujO+8m+S4i+S4gOW8teimgeWBmu+8j+mpl+itieeahOaYryAqKuOAiueEmuWfjuS5i+eBq+OAiyoq77yI5bSp6Kej5qiZ57Gk77yJ44CCCgojIyDnlavpnaLoiIfkupLli5XlhbHorZjvvIjkuI3lj6/oh6rooYzmjqjnv7vvvIkKCiMjIyDmiLDloLTphY3nva4KCueVq+mdouS7pSAx4oCTOSDljYDnkIbop6PvvJoKCjEuIOWgtOWcsOWQjeeoseOAgeiPseW9ouW0qeWjnuWAvOOAgei8quasoeOAgeWvqeWIpOOAggoyLiBOUEMgMyDos4foqIrjgIIKMy4gTlBDIDMg5pWI5p6c5Y2A44CCCjQuIE5QQyAxIOizh+ioiuiIh+aViOaenOWNgOOAggo1LiDkuK3lpK7lt7Llh7rniYzljYDvvIjmnIDlpJrkv53nlZnmnIDov5EgMyDlvLXvvInvvIznm67liY3nianos4fjgIIKNi4gTlBDIDIg6LOH6KiK6IiH5pWI5p6c5Y2A44CCCjcuIOeOqeWutuizh+ioiuiIh+aViOaenOWNgOOAggo4LiDnjqnlrrbmiYvniYzjgIIKOS4g5Y+z5YG05oiw5rOB57SA6YyE6IiH5pKk6Zui44CCCgrniYzluqvjgIHmo4TniYzoiIfnm67liY3nianos4fnm67liY3mlL7lnKjlj7PkuIrpn7PmlYjplovpl5zkuIvmlrnvvJvkuI3opoHmnKroqI7oq5blsLHph43mlrDnp7vliLDkuK3lpK7jgIIKCiMjIyDmiYvniYwKCi0g5omL54mM55uu5YmN6KaB5o6hICoq5bmz5pW054mM5YiX77yL5bCR6YeP6YeN55aKKirvvIzkuI3mmK/lpKfluYXmiYflvaLjgIIKLSDllq7lvLXpu57mk4rvvJrplovllZ/pnZ7mqKHmhYvljaHniYzpoJDopr3jgIIKLSDplbfmjInvvJrlkIzmqKPog73nnIvoqbPmg4XvvJvmi5bmm7PvvI/nlKnlkJHkuK3lpK7lj6/lh7rniYzjgIIKLSDpgbjlj5bpgo/ovK/vvJrpmZDpgbggMSDlvLXmmYLvvIzpu57lj6bkuIDlvLXnm7TmjqXmj5vpgbjvvJvpmZDpgbjlpJrlvLXmu7/poY3mmYLvvIzpu57mlrDniYznm7TmjqXnp7vpmaTmnIDml6npgbjnmoTkuIDlvLXkuKbpgbjlhaXmlrDniYzvvJvlho3mrKHpu57lt7LpgbjniYzlj6/lj5bmtojjgIIKLSDkuI3lj6/ngrrkuobllq7lvLXmuKzoqabniYzmlLnli5Xlhajln58gYC5oYW5kYOOAgWAuY2FyZGAg5L2N572u5oiWIHRyYW5zZm9ybe+8jOWQpuWJh+W+iOWuueaYk+aKiueJjOaOqOWIsOeVq+mdouWkluOAggoKIyMjIOWNoeeJjOips+aDhemgkOimvQoKLSAqKuemgeatoiBtb2RhbCAvIGRpYWxvZyAvIOWFqOieouW5leaal+W5lSAvIGJhY2tkcm9wLWZpbHRlcuOAgioqCi0gYCNjYXJkLWluc3BlY3RvcmAg5b+F6aCI5pivIGAuZGlzcHV0ZS1zaGVsbGAg5YWn55qE57WV5bCN5a6a5L2N6Z2e5qih5oWL5bGk44CCCi0g5pS+5aSn5Y2h6IiH5paH5a2X5Y2A5rWu5Zyo5aC05LiK77yM6IOM5pmv5LuN5riF5qWa5Y+v6KaL77yb6bue5ZCM5LiA5by15oiW56m655m96JmV6Zec6ZaJ77yM5LiU6Zec6ZaJ5LqL5Lu25LiN5Y+v5YaS5rOh5Yiw5oiw5aC05pON5L2c44CCCi0g5pS+5aSn5Y2h5L+d55WZ5YG9IDNEIOaZg+WLleaViOaenOOAggoKIyMg5Y2h54mM576O6KGT6IiH5qiZ57Gk54++5rOBCgojIyMg5qC45b+D5Y6f5YmHCgotIOelnui5n++8j+eBvembo+WcqOaJi+eJjOiIh+WgtOS4iiAqKuS4jeaUvuaViOaenOaWh+Wtlyoq77yb5Li76KaB5bGV56S65bCN5oeJ5qiZ57Gk5bqV5ZyW6IiH5Lit5aSu5ZyW6aiw44CCCi0g5Zau6bue5b6M55qE5Y2h54mM6Kmz5oOF77yM5omN55So5Y+z5YG05YiG6aCB6aGv56S65Y2h5ZCN77yP5pWI5p6c77yM5Lul5Y+K5qiZ57Gk6Kqq5piO44CCCi0g54mM6Z2i5LiA6Ie05bC65a+454K6IDYzIMOXIDg4IOavlOS+i+OAggotIOWclumosOmiqOagvO+8muS4reWkruOAgeW5vuS9leWMluOAgeWck+a9pO+8jOS4jeimgeWwlumKs+aIluikh+mbnOe3mueov++8m+Wkp+Wwj+OAgeimluimuuS9jee9rueahuS7peOAjOaWsOeUn+OAjeWck+inkuiPseW9oueCuuWfuua6luOAggotIOWclumosOmhj+iJsu+8muelnui5n+a3see2oOiJsuOAgeeBvembo+a3see0q+iJsuOAggotIGDmh4nlsI1gIOaYr+aWh+Wtl+mhnuWei++8jOS4jeaYr+WclumosOOAggotIOmbmeaomeexpO+8muWPs+S4iu+8j+W3puS4i+aYr+acquS+huaWueWQke+8m+ebruWJjeWFiOS7peasiumHjeacgOmrmOeahOS4reWkruWclumosOeCuuS4u+OAguS4ieaomeexpOWPqumhr+ekuuasiumHjeacgOmrmOWFqeWAi+OAggoKIyMjIOW3suacieWclumosOWwjeaHiQoKfCDmqJnnsaQgfCDlnJbpqLDmlrnlkJEgfAp8IC0tLSB8IC0tLSB8Cnwg5paw55SfIFJlYmlydGggfCDlnJPop5Llr6blv4Poj7HlvaIgfAp8IOeGhOa7hSBFeHRpbmN0aW9uIHwg5ZyT6KeS56m65b+D6I+x5b2iIHwKfCDmtJ7lr58gSW5zaWdodCB8IOWck+a9pOecvOedmyB8Cnwg5bqH6K23IFNhbmN0dWFyeSB8IOWFqeeJh+S4jeetieWkp+eahOWck+a9pOe/vO+8j+iRiSB8Cnwg6YeN5qeLIFJlZm9yZ2UgfCDlnJPop5Loj7HlvaLlpJbnkrDvvIvkuK3plpPmjJbnqbogfAp8IOW0qeinoyBDb2xsYXBzZSB8IOS6kuebuOmAo+e1kOeahOWck+inkuaWueWhiiB8Cnwg5rWB6L2JIEZsdXggfCDlvoXlvoznuozlrprmoYggfAp8IOiUk+W7tiBTcHJlYWQgfCDlvoXlvoznuozlrprmoYggfAp8IOWFsemztCBSZXNvbmFuY2UgfCDlvoXlvoznuozlrprmoYggfAp8IOeBq+eoriBFbWJlciB8IOW+heW+jOe6jOWumuahiCB8Cnwg5L2/5ZG9IE1pc3Npb24gfCDlvoXlvoznuozlrprmoYggfAp8IOaOoOWlqiBQbHVuZGVyIHwg5b6F5b6M57qM5a6a5qGIIHwKCuebuOmXnOmCj+i8r++8mmBzcmMvcHJlc2VudGF0aW9uL2FwcC5qc2Ag55qEIGBUQUdfRkFDRV9GSUxFU2DjgIFgVEFHX0ZBQ0VfU1ZHU2DjgIIKCiMjIyDluoforbfmuKzoqabniYznibnliKXms6jmhI8KCi0g5ris6Kmm57ay5Z2A77yaYGh0dHA6Ly9sb2NhbGhvc3Q6NDE3My8/cWE9dGFnLWdseXBoJnRhZz1TYW5jdHVhcnlgCi0g54mM6Z2i5qqU77yaYHB1YmxpYy9hc3NldHMvbWlyYWNsZXMvbWlyYWNhbC1TYW5jdHVhcnkuc3ZnYAotIOmAmeWAiyBTVkcgKirlv4XpoIjoh6rljIXlkKsqKu+8jOS4jeimgeS7pSBTVkcg55qEIGA8aW1hZ2UgaHJlZj0ibWlyYWNhbC1SZWJpcnRoLnBuZyI+YCDljrvltYzlpZflj6bkuIDlvLUgUE5H77yb6YKj56iu5L2c5rOV5pu+6YCg5oiQ54CP6Ka95Zmo5Y+q6aGv56S65Y2K5by177yP56m655m944CCCi0g5bqH6K235ZyW6aiw5pys6Lqr5L2/55SoIGBUQUdfRkFDRV9TVkdTLuW6h+itt2DvvIzkvb/nlKjogIXlt7Lnorroqo3lnJbpqLDmlrnlkJHlj6/mjqXlj5fjgIIKCiMjIOWNoeeJjOaWh+ahiOaOkueJiOimj+WJh++8iOips+aDhemdouadv++8j+acquS+huiLpemHjeWVn+aWh+Wtl+WNoemdouaZgu+8iQoKLSDnn63mlofmoYjmjqHoppboprrnva7kuK3vvIzkuI3mmK/mqZ/morDlvI/luqfmqJnnva7kuK3jgIIKLSDplbfmlofmoYjnmoTnrKzkuIDooYzpq5jluqblpKfntITlsI3pvYrlt6bkuIrmt7HntqDmoYbkuIvnt6PvvJvkuI3opoHlo5PliLDljaHpnaLnmoTmt7HoibLpgormoYbjgIIKLSDmr4/ooYzku6XntIQgMTUg5YCL5Lit5paH5a2X54K65Y+D6ICD77yM5L2G6KaB5L6d6Kqe5Y+l6Kq/5pW077ya5LiN6KaB6K6T5Y+l6Jmf44CB5Zau5YCL5a2X44CB5oiW44CM572u44CN6YCZ6aGe5bC+5a2X5Zau542o5LiA6KGM44CCCi0g54Gr56iu44CB54mM44CB5qOE572u44CB54Sh5pWI44CB54G96Zuj562J5bey5a6a576p5qaC5b+16KaB55So5ZyW56S677yb5Y+q5pyJ5bCI5pyJ5ZCN6Kme44CB5pW45a2X6IiH5oyH5a6a6Zec6Y215a2X5Yqg57KX44CCCi0g44CM5YWN55ar44CN6IiH5bi2IEEvQiDpgbjpoIXnmoTjgIzpgbjmk4fjgI3ngrrlsIjmnInlkI3oqZ7vvIzopoHliqDnspfjgIIKLSDooYzot53lv4XpoIjkuIDoh7TvvIzkuI3og73lm6Dmlrflj6XogIzmlLnororjgIIKCiMjIOWbuuWumumWi+eZvOa1geeoi++8iOWLmeW/hemBteWuiO+8iQoKMS4gKirlhYjnorroqo3ku7vli5nnr4TlnI0qKu+8mumCj+i8r+OAgeWWruW8tee+juihk+OAgea4rOippuWxgOOAgeWFqOWfnyBVSSDmmK/kuI3lkIznr4TlnI3jgILmspLmnInmmI7norropoHmsYLmmYLvvIzkuI3lj6/poIbmiYvmlLnlhbbku5bljYDloYrjgIIKMi4gKirljaHniYzvvI/lnJbpqLDmlLnli5XkuIDlvovplovllq7njaggUUEg5bGAKirvvJrlj6rnmbwgMSDlvLXnm67mqJnniYzliLDnjqnlrrbmiYvkuIrvvJvkuI3opoHnlKjmraPluLjlsI3lsYDku6Pmm7/jgIIKMy4gKirlhYjlgZrnlavpnaLpqZfmlLbvvIzlho3lgZrnqIvlvI/pqZforYkqKu+8muaqouafpeWNoeaYr+WQpuWujOaVtOWPr+imi+OAgeiDjOaZr+aYr+WQpuS7jeWtmOWcqOOAgeWclumosOaYr+WQpuWcqOeJjOmdouS4iuOAgeaJi+eJjOS6kuWLleaYr+WQpuato+W4uO+8m+S4jeiDveWPqueciyBidWlsZC90ZXN0IOe2oOeHiOOAggo0LiDlho3ot5HvvJoKCiAgIGBgYGJhc2gKICAgbnBtIHJ1biBidWlsZCAmJiBucG0gdGVzdAogICBgYGAKCjUuIOWbnuWgseWFp+WuueW/hemgiOWMheWQq++8muaUueS6huS7gOm6vOOAgea4rOippue2suWdgOOAgea4rOippuaHieingOWvn+S7gOm6vOOAgeaYr+WQpuW9semfv+mCj+i8r+OAggo2LiDkvb/nlKjogIXnorroqo3lvozmiY3mk7TlpKfliLDlhajljaHvvI/lhajln58gVUnjgIIKNy4g5q+P5qyh5ZCM5q2l5YiwIGBtYWluYCDliY3vvIzpgb/lhY3opobok4vkvb/nlKjogIXlt7LmnInnmoTmnKrmj5DkuqTorormm7TvvJvlj6rog73norDmnKzmrKHku7vli5nmtonlj4rnmoTmqpTmoYjjgIIKCiMjIOS4i+S4gOS9jemWi+eZvOiAheeahOesrOS4gOWAi+W7uuitsOWLleS9nAoK5LiN6KaB56uL5Yi75aKe5Yqg5paw5ZyW6aiw5oiW5aSn5pS5IFVJ44CC5YWI6KuL5L2/55So6ICF5Zyo5pyA5paw54mI5pys56K66KqN77yaCgoxLiDpnZzmhYvog4zmma/lt7Lpoa/npLrjgIIKMi4g5bqH6K235Zau5by1IFFBIOeJjOWujOaVtOS9jeaWvOW6lemDqOaJi+eJjOWIl+OAggozLiDllq7pu57luoforbfniYzlvozvvIzlnJbpqLDjgIHniYzpnaLoiIfpnZ7mqKHmhYvoqbPmg4XpoJDopr3pg73mraPluLjjgIIKCueiuuiqjeW+jO+8jOWGjeWbnuWIsOOAiueEmuWfjuS5i+eBq+OAi+eahOeNqOeri+a4rOippueSsOWig+iIh+W0qeino+WclumosOiqv+aVtOOAggo=
+# 《牧羊人：荒野之歌》開發交接包
+
+## 先做這件事：連接正確的 GitHub
+
+- Repository：`https://github.com/Timothy1007/shepherd.git`
+- 正式開發分支：`main`
+- 目前以 **V1 的遊戲規則與實作** 為準；`v2/` 是過去的實驗／保留內容，不可當作正式規則來源，也不要把 V2 的舊 UI 或邏輯直接覆蓋回主程式。
+
+本機啟動（Windows PowerShell）：
+
+```powershell
+git pull origin main
+npm.cmd run build
+npm.cmd run preview
+```
+
+請使用 `npm.cmd`，不要直接用 `npm`；使用者的 PowerShell 會因執行原則擋住 `npm.ps1`。
+
+## 當前可用狀態
+
+- 主程式：`src/`
+- 畫面入口：`src/presentation/index.html`
+- 主畫面邏輯：`src/presentation/app.js`
+- 主樣式：`src/presentation/style.css`，另有多個獨立 presentation CSS / JS 模組。
+- 靜態背景：`public/assets/background.png`。主畫面必須保留：
+
+```html
+<img class="battle-background" src="assets/background.png" alt="" aria-hidden="true">
+```
+
+- 基本驗證：`npm run build && npm test`
+- 目前測試：**206 項通過**。
+
+## 已完成的核心遊戲內容
+
+- 四人（真人 + 三名 AI）出牌、物資克制、神蹟／災難、效果區、應對、棄牌、牌庫、戰況紀錄。
+- 7 輪爭局、使命、使徒、死亡牌／死亡輪、崩壞值。
+- 已完成並測試多個審判：傾覆 I/II、分裂 I/II、失序 I/II、蒙蔽 I/II、沉淪等。
+- 已完成多張神蹟／災難及其應對；包括《灰與燼》、《拆毀堅固的營壘》、《越過長夜》、《替罪羊》、《蟲災》、《雨幕之下》、《焚城之火》等。
+- 最新卡牌開發：`蟲災` 已測完；下一張要做／驗證的是 **《焚城之火》**（崩解標籤）。
+
+## 畫面與互動共識（不可自行推翻）
+
+### 戰場配置
+
+畫面以 1–9 區理解：
+
+1. 場地名稱、菱形崩壞值、輪次、審判。
+2. NPC 3 資訊。
+3. NPC 3 效果區。
+4. NPC 1 資訊與效果區。
+5. 中央已出牌區（最多保留最近 3 張），目前物資。
+6. NPC 2 資訊與效果區。
+7. 玩家資訊與效果區。
+8. 玩家手牌。
+9. 右側戰況紀錄與撤離。
+
+牌庫、棄牌與目前物資目前放在右上音效開關下方；不要未討論就重新移到中央。
+
+### 手牌
+
+- 手牌目前要採 **平整牌列＋少量重疊**，不是大幅扇形。
+- 單張點擊：開啟非模態卡牌預覽。
+- 長按：同樣能看詳情；拖曳／甩向中央可出牌。
+- 選取邏輯：限選 1 張時，點另一張直接換選；限選多張滿額時，點新牌直接移除最早選的一張並選入新牌；再次點已選牌可取消。
+- 不可為了單張測試牌改動全域 `.hand`、`.card` 位置或 transform，否則很容易把牌推到畫面外。
+
+### 卡牌詳情預覽
+
+- **禁止 modal / dialog / 全螢幕暗幕 / backdrop-filter。**
+- `#card-inspector` 必須是 `.dispute-shell` 內的絕對定位非模態層。
+- 放大卡與文字區浮在場上，背景仍清楚可見；點同一張或空白處關閉，且關閉事件不可冒泡到戰場操作。
+- 放大卡保留偽 3D 晃動效果。
+
+## 卡牌美術與標籤現況
+
+### 核心原則
+
+- 神蹟／災難在手牌與場上 **不放效果文字**；主要展示對應標籤底圖與中央圖騰。
+- 單點後的卡牌詳情，才用右側分頁顯示卡名／效果，以及標籤說明。
+- 牌面一致尺寸為 63 × 88 比例。
+- 圖騰風格：中央、幾何化、圓潤，不要尖銳或複雜線稿；大小、視覺位置皆以「新生」圓角菱形為基準。
+- 圖騰顏色：神蹟深綠色、災難深紫色。
+- `應對` 是文字類型，不是圖騰。
+- 雙標籤：右上／左下是未來方向；目前先以權重最高的中央圖騰為主。三標籤只顯示權重最高兩個。
+
+### 已有圖騰對應
+
+| 標籤 | 圖騰方向 |
+| --- | --- |
+| 新生 Rebirth | 圓角實心菱形 |
+| 熄滅 Extinction | 圓角空心菱形 |
+| 洞察 Insight | 圓潤眼睛 |
+| 庇護 Sanctuary | 兩片不等大的圓潤翼／葉 |
+| 重構 Reforge | 圓角菱形外環＋中間挖空 |
+| 崩解 Collapse | 互相連結的圓角方塊 |
+| 流轉 Flux | 待後續定案 |
+| 蔓延 Spread | 待後續定案 |
+| 共鳴 Resonance | 待後續定案 |
+| 火種 Ember | 待後續定案 |
+| 使命 Mission | 待後續定案 |
+| 掠奪 Plunder | 待後續定案 |
+
+相關邏輯：`src/presentation/app.js` 的 `TAG_FACE_FILES`、`TAG_FACE_SVGS`。
+
+### 庇護測試牌特別注意
+
+- 測試網址：`http://localhost:4173/?qa=tag-glyph&tag=Sanctuary`
+- 牌面檔：`public/assets/miracles/miracal-Sanctuary.svg`
+- 這個 SVG **必須自包含**，不要以 SVG 的 `<image href="miracal-Rebirth.png">` 去嵌套另一張 PNG；那種作法曾造成瀏覽器只顯示半張／空白。
+- 庇護圖騰本身使用 `TAG_FACE_SVGS.庇護`，使用者已確認圖騰方向可接受。
+
+## 卡牌文案排版規則（詳情面板／未來若重啟文字卡面時）
+
+- 短文案採視覺置中，不是機械式座標置中。
+- 長文案的第一行高度大約對齊左上深綠框下緣；不要壓到卡面的深色邊框。
+- 每行以約 15 個中文字為參考，但要依語句調整：不要讓句號、單個字、或「置」這類尾字單獨一行。
+- 火種、牌、棄置、無效、災難等已定義概念要用圖示；只有專有名詞、數字與指定關鍵字加粗。
+- 「免疫」與帶 A/B 選項的「選擇」為專有名詞，要加粗。
+- 行距必須一致，不能因斷句而改變。
+
+## 固定開發流程（務必遵守）
+
+1. **先確認任務範圍**：邏輯、單張美術、測試局、全域 UI 是不同範圍。沒有明確要求時，不可順手改其他區塊。
+2. **卡牌／圖騰改動一律開單獨 QA 局**：只發 1 張目標牌到玩家手上；不要用正常對局代替。
+3. **先做畫面驗收，再做程式驗證**：檢查卡是否完整可見、背景是否仍存在、圖騰是否在牌面上、手牌互動是否正常；不能只看 build/test 綠燈。
+4. 再跑：
+
+   ```bash
+   npm run build && npm test
+   ```
+
+5. 回報內容必須包含：改了什麼、測試網址、測試應觀察什麼、是否影響邏輯。
+6. 使用者確認後才擴大到全卡／全域 UI。
+7. 每次同步到 `main` 前，避免覆蓋使用者已有的未提交變更；只能碰本次任務涉及的檔案。
+
+## 下一位開發者的第一個建議動作
+
+不要立刻增加新圖騰或大改 UI。先請使用者在最新版本確認：
+
+1. 靜態背景已顯示。
+2. 庇護單張 QA 牌完整位於底部手牌列。
+3. 單點庇護牌後，圖騰、牌面與非模態詳情預覽都正常。
+
+確認後，再回到《焚城之火》的獨立測試環境與崩解圖騰調整。
+
+
+## 正式開發 SOP：神蹟／災難底圖遷移與圖騰（2026-10-20 補充）
+
+### 這一輪唯一任務：先全面換新底圖，不重做圖騰
+- 以 `main` V1 為正式基準，`v2` 僅供參考，不允許覆蓋 V1。
+- 所有已實裝的神蹟與災難，先用上傳的新版 PNG 底圖取代舊卡號美術；背景、中央場地、手牌手勢、卡牌效果、回合／AI 邏輯不在本輪修改範圍。
+- **不得在本輪新增、重畫、改變圖騰**。目前既有圖騰若仍疊加，須於底圖驗收時記錄，圖騰修正另開任務。
+- 新資源位於 `public/assets/miracles` 和 `public/assets/disasters`；注意現有素材檔名拼字就是 `miracal`／`disater`，不可自動「改正」拼字造成路徑失效。
+- 神蹟一般版：`assets/miracles/miracal-${Tag}.png`；神蹟應對版：`assets/miracles/miracal-${Tag}-Response.png`。
+- 災難一般版：`assets/disasters/disater-${Tag}.png`；災難應對版：`assets/disasters/disater-${Tag}-Response.png`。
+- 主題 Tag 對照：新生 Rebirth、流轉 Flux、洞察 Insight、庇護 Sanctuary、共鳴 Resonance、火種 Ember、使命 Mission、重構 Reforge、掠奪 Plunder、熄滅 Extinction、蔓延 Spread、崩解 Collapse。
+- `應對`、`單體`、`多體`、`群體`、`負面` 等為結構標籤，不作為底圖英文檔名；有多個主題標籤時，依規則資料中既定的第一個主題標籤決定底圖，不私自變更優先順序。
+- 換圖應覆蓋真人手牌、AI 公開手牌、中央出牌堆、效果區、歷史紀錄、非模態卡牌詳情和所有 QA 檢視入口。不能讓各入口各自任意硬編路徑。
+- 先查素材是否存在及可載入；任一目標素材不存在則停止遷移該張，回報缺檔，不可默默回退舊底圖後聲稱全部完成。
+
+### 工作流程與關卡
+1. **先盤點**：讀本交接文件、確認 remote/main SHA、working tree、目標檔案及所有路徑引用；保留現行可用的 QA 入口。
+2. **限定差異**：一張圖騰、一個 QA 目標；批量底圖替換屬獨立主題，不能混入圖騰／全域 UI 調整。若改動會影響其他邏輯，必須主動告警、說明風險，提出更小的替代方案並等使用者決定。
+3. **安全實作**：先獨立分支修改；不得直接 push/main 或隨意回退已有提交。保存可比對的改動清單。禁止把 HTML、CSS、JS 或 SVG 的 Base64 文字直接寫回原始碼檔案。
+4. **先畫面驗收**：先在單張 QA 開啟 `?qa=tag-glyph&tag=Sanctuary`、`?qa=tag-glyph&tag=Collapse`、`?qa=tag-glyph&tag=Ember`、`?qa=tag-glyph&tag=Rebirth` 等代表牌；背景正常、底部僅一張完整目標牌、點擊可預覽、非模態詳情和卡名／效果正常。再用正常對局檢查手牌、中央、AI、效果區、歷史牌堆；檢視瀏覽器 Network 不得有新圖 404。
+5. **視覺驗收通過後**，Windows PowerShell 執行 `npm.cmd run build`、`npm.cmd test`（不要直接用 `npm`）。若沒有瀏覽器實測證據，不能聲稱已通過畫面驗收。
+6. **最後同步**：測試全部通過且使用者確認後才允許同步正式 `main`。每次交付必須附改動內容、測試網址、觀察重點、本地執行指令、build/test 結果及 commit SHA。
+7. **清除舊資源另立任務**：先檢查所有原始碼、測試、建置輸出及相依引用都不再需要 `miracle-01.png`／`disaster-01.png` 這類舊卡號檔案，再獨立刪除。只刪真正未引用的舊圖，不刪新 PNG，不把刪檔混進底圖替換提交。
+
+### 提醒機制（不能一味配合高風險修改）
+若需求會牽動規則、回合流程、全部 UI、改動其他類別底圖、要求跳過驗收、提前刪檔或把圖騰直接烙入底圖，先指出風險與替代方案，取得共識才繼續。原則：**只改被要求的層，不動其他層；先驗收、再建置測試、最後同步**。
+
+
+### 全卡底圖批次 QA（2026-10-21）
+- 專用入口：`?qa=art-batch&batch=N`，按照「神蹟優先、災難其次；同類依卡牌編號遞增」排列，每批最多 6 張，不混入物資牌。
+- 所有已實裝的神蹟／災難都從正式 `CARD_DEFINITIONS` 動態建立驗收清單，不另外維護易過期的卡號名單。
+- 僅此模式隱藏圖騰呈現，正式對局與原本單張圖騰 QA 完全不受影響。以第一個主題標籤選底圖，只有含「應對」標籤的卡使用 `-Response`。單體／多體／群體／負面均不影響底圖。
+- 本模式只置換真人玩家手牌及當前回合的測試狀態，不修改正常發牌規則或全域手牌 CSS；每批由使用者實際檢視底圖與非模態詳情。
+- 批次視覺驗收完成後，再執行 `npm.cmd run build` 與 `npm.cmd test`，兩項通過後才能合併 `main` 或清理舊圖。
