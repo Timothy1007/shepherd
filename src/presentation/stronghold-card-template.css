@@ -47,6 +47,11 @@
 .runtime-tag-glyph svg{display:block;width:100%;height:100%;overflow:visible}
 /* SVG 的 viewBox 留白會吃掉視覺尺寸；新生需放大到與原本 29% CSS 菱形相同。 */
 .runtime-tag-glyph--rebirth{width:52%;top:56%}
+.runtime-tag-glyph--flux{width:34%;height:23%;aspect-ratio:auto;top:56%;border-radius:999px;background:currentColor;transform:translate(-50%,-50%) rotate(-30deg)}
+.runtime-tag-glyph--flux::before,.runtime-tag-glyph--flux::after{content:'';position:absolute;width:70%;height:55%;border-radius:999px;background:currentColor}
+.runtime-tag-glyph--flux::before{left:-8%;top:-72%;transform:rotate(60deg)}
+.runtime-tag-glyph--flux::after{right:-8%;bottom:-72%;transform:rotate(60deg)}
+.runtime-tag-glyph--flux svg{display:none}
 .inspector-card-face{position:relative;display:block;width:100%;height:auto;aspect-ratio:63/88}
 .inspector-card-face>img{display:block;width:100%;height:100%;object-fit:contain;border-radius:inherit}
 /* 本次上傳的正式 SVG 作遮罩；顏色完全由卡片類型決定。 */
