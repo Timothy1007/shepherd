@@ -35,6 +35,9 @@ const REVIEW_IDS = new Set(MODE === 'art-batch' ? ART_BATCH_DEFINITIONS.map(defi
 ] : MODE === 'resonance-card-face' ? [
   // 共鳴主標籤：兩張神蹟。
   'miracle-09', 'miracle-10',
+] : MODE === 'ember-card-face' ? [
+  // 火種圖騰測試：只發《如風吹來》一張，並在本 QA 強制以火種作為主圖騰。
+  'miracle-05',
 ] : MODE === 'plunder-card-face' ? [
   // 掠奪主標籤：兩張災難。
   'disaster-01', 'disaster-02',
@@ -93,6 +96,8 @@ function setup() {
     ? `庇護卡面測試：已將《雨幕之下》發至你的手牌；圖騰使用已確認的雙葉庇護符號。`
     : MODE === 'resonance-card-face'
     ? `共鳴卡面測試：已將 ${cards.length} 張主標籤為共鳴的神蹟發至你的手牌；圖騰使用已確認的有機共鳴符號。`
+    : MODE === 'ember-card-face'
+    ? `火種卡面測試：只發《如風吹來》一張；本 QA 強制顯示火種主圖騰。`
     : MODE === 'plunder-card-face'
     ? `掠奪卡面測試：已將 ${cards.length} 張主標籤為掠奪的災難發至你的手牌；圖騰使用已確認的流線勾形符號。`
     : MODE === 'rebirth-card-face'
