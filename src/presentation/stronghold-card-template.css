@@ -14,8 +14,9 @@
 /* 熄滅：空心的圓角菱形。 */
 .tag-face-symbol--extinction{width:30%;aspect-ratio:1;border-radius:22%;transform:translate(-50%,-50%) rotate(45deg);-webkit-mask:radial-gradient(closest-side,transparent 0 54%,#000 57%);mask:radial-gradient(closest-side,transparent 0 54%,#000 57%)}
 /* 流轉：兩條圓端弧帶，保留簡單的循環意象。 */
-.tag-face-symbol--flux{width:34%;height:23%;border-radius:999px;transform:translate(-50%,-50%) rotate(-30deg)}
-.tag-face-symbol--flux::before,.tag-face-symbol--flux::after{content:'';position:absolute;width:70%;height:55%;border-radius:999px;background:currentColor}.tag-face-symbol--flux::before{left:-8%;top:-72%;transform:rotate(60deg)}.tag-face-symbol--flux::after{right:-8%;bottom:-72%;transform:rotate(60deg)}
+.tag-face-symbol--flux{width:36%;height:auto;aspect-ratio:1;top:56%;background:none;border-radius:0;transform:translate(-50%,-50%);-webkit-mask:none;mask:none}
+.tag-face-symbol--flux::before,.tag-face-symbol--flux::after{display:none}
+.tag-face-symbol--flux svg{display:block;width:100%;height:100%;overflow:visible}
 /* 庇護、共鳴、火種、使命、掠奪、蔓延皆維持同一組圓角體塊語言。 */
 .tag-face-symbol--sanctuary{width:33%;height:30%;border-radius:48% 48% 26% 26%;-webkit-mask:radial-gradient(circle at 50% 40%,transparent 0 23%,#000 25%);mask:radial-gradient(circle at 50% 40%,transparent 0 23%,#000 25%)}
 .tag-face-symbol--resonance{width:25%;aspect-ratio:1;border-radius:50%;box-shadow:15px 0 0 currentColor}
@@ -47,12 +48,15 @@
 .runtime-tag-glyph svg{display:block;width:100%;height:100%;overflow:visible}
 /* SVG 的 viewBox 留白會吃掉視覺尺寸；新生需放大到與原本 29% CSS 菱形相同。 */
 .runtime-tag-glyph--rebirth{width:52%;top:56%}
+.runtime-tag-glyph--flux{width:36%;height:auto;aspect-ratio:1;top:56%;background:none;border-radius:0;transform:translate(-50%,-50%)}
+.runtime-tag-glyph--flux::before,.runtime-tag-glyph--flux::after{display:none}
+.runtime-tag-glyph--flux svg{display:block;width:100%;height:100%;overflow:visible}
 .inspector-card-face{position:relative;display:block;width:100%;height:auto;aspect-ratio:63/88}
 .inspector-card-face>img{display:block;width:100%;height:100%;object-fit:contain;border-radius:inherit}
 /* 本次上傳的正式 SVG 作遮罩；顏色完全由卡片類型決定。 */
 .tag-face-symbol--sanctuary{background:currentColor;-webkit-mask:url("assets/tag-glyphs/2-antlers.svg") center/contain no-repeat;mask:url("assets/tag-glyphs/2-antlers.svg") center/contain no-repeat}
 .tag-face-symbol--spread{background:currentColor;-webkit-mask:url("assets/tag-glyphs/3-ouroboros.svg") center/contain no-repeat;mask:url("assets/tag-glyphs/3-ouroboros.svg") center/contain no-repeat}
-.tag-face-symbol--flux{background:currentColor;-webkit-mask:url("assets/tag-glyphs/4-pisces.svg") center/contain no-repeat;mask:url("assets/tag-glyphs/4-pisces.svg") center/contain no-repeat}
+
 .tag-face-symbol--sanctuary,.tag-face-symbol--spread,.tag-face-symbol--flux{color:#006b58;filter:drop-shadow(0 2px 1px #0002)}
 .ashes-template-card .tag-face-symbol--sanctuary,.ashes-template-card .tag-face-symbol--spread,.ashes-template-card .tag-face-symbol--flux{color:#2b073f}
 .tag-face-symbol--flux::before,.tag-face-symbol--flux::after{display:none}

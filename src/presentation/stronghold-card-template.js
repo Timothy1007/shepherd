@@ -3,7 +3,7 @@ import { CARD_DEFINITIONS } from '../game/cards.js';
 const NEW_LIFE = '新生';
 const FACE_SCOPE_TAGS = new Set(['應對', '單體', '多體', '群體']);
 const FACE_TAG_FILES = Object.freeze({
-  '新生': 'Rebirth', '流轉': 'Flux', '洞察': 'Insight', '庇護': 'Sanctuary', '共鳴': 'Resonance', '火種': 'Ember', '使命': 'Mission',
+  '新生': 'Rebirth', '流轉': '<svg viewBox="0 0 100 100" fill="currentColor" aria-hidden="true"><path d="M98.58 66.25L96.64 59.92L93.67 56.20L89.41 53.99L84.88 54.13L80.62 57.02L75.19 66.94L69.12 73.55L62.02 77.41L53.23 78.51L45.99 76.72L41.86 74.24L38.11 70.52L34.37 62.81L34.11 56.06L32.04 59.09L30.88 64.46L31.14 70.52L32.56 75.76L35.66 81.68L39.66 86.91L45.09 91.87L50.65 95.32L62.14 98.48L69.38 98.35L74.94 97.11L82.56 93.66L87.34 90.22L91.73 85.67L95.61 79.75L98.19 72.73Z"/><path d="M56.33 35.54L51.42 32.51L46.12 30.72L41.09 30.03L33.33 30.44L25.97 32.64L18.86 36.09L9.69 44.08L5.94 49.45L3.10 55.79L1.42 63.22L1.29 69.83L3.88 80.99L6.59 86.09L10.21 90.22L14.34 92.84L19.25 93.80L23.64 92.84L28.55 88.98L30.49 84.99L30.75 81.82L26.36 69.42L25.58 64.60L26.10 58.40L27.91 53.31L34.63 44.63L43.80 38.84L48.45 37.60L53.23 37.60L60.08 40.63Z"/><path d="M42.12 2.34L36.95 4.82L32.82 8.68L30.36 14.05L30.49 18.87L32.30 22.45L35.92 25.21L48.45 26.31L57.62 29.06L62.40 32.37L66.80 37.88L69.25 45.04L69.51 52.75L67.96 58.26L64.99 63.77L61.11 68.04L57.62 70.25L62.02 69.83L65.89 68.04L70.28 64.60L74.94 58.95L78.42 52.34L81.40 39.81L81.27 33.20L79.97 27.00L74.29 14.88L70.41 10.33L64.86 5.92L60.21 3.58L52.97 1.65L47.42 1.38Z"/></svg>', '洞察': 'Insight', '庇護': 'Sanctuary', '共鳴': 'Resonance', '火種': 'Ember', '使命': 'Mission',
   '重構': 'Reforge', '掠奪': 'Plunder', '熄滅': 'Extinction', '蔓延': 'Spread', '崩解': 'Collapse',
 });
 function primaryFaceTag(definition) { return definition.tags.find(tag => !FACE_SCOPE_TAGS.has(tag) && FACE_TAG_FILES[tag]); }
@@ -100,7 +100,7 @@ const TAG_ICON = Object.freeze({
 const TAG_FACE_GLYPH = Object.freeze({
   // 洞察：圓潤的實心眼形，中央只留一個小圓孔，避免瞳孔過大。
   '洞察': '<svg viewBox="0 0 100 100" fill="currentColor" fill-rule="evenodd" aria-hidden="true" style="width: 100%; height: 100%;"><path d="M18 43C34 22 68 22 84 47C85 49 85 51 84 53C68 78 34 78 18 57C14 53 14 47 18 43Z M50 40A10 10 0 1 0 50 60A10 10 0 1 0 50 40Z"/></svg>',
-  '庇護': '<svg viewBox="0 0 100 100" fill="currentColor" aria-hidden="true" style="width:100%;height:100%"><path d="M45 81C25 80 14 66 14 46V29C32 29 45 43 45 61Z"/><path d="M52 81C73 80 86 63 86 40V13C66 13 52 29 52 52Z"/></svg>', '蔓延': '', '流轉': '',
+  '庇護': '<svg viewBox="0 0 100 100" fill="currentColor" aria-hidden="true" style="width:100%;height:100%"><path d="M45 81C25 80 14 66 14 46V29C32 29 45 43 45 61Z"/><path d="M52 81C73 80 86 63 86 40V13C66 13 52 29 52 52Z"/></svg>', '蔓延': '', '流轉': '<svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="15" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M50 19C66 19 78 29 79 42C70 38 61 39 53 45"/><path d="M50 19C66 19 78 29 79 42C70 38 61 39 53 45" transform="rotate(120 50 50)"/><path d="M50 19C66 19 78 29 79 42C70 38 61 39 53 45" transform="rotate(240 50 50)"/></svg>',
   // 重構：外圈放大，中央挖空維持與新生基準相同的絕對視覺尺寸。
   '重構': '<svg viewBox="0 0 100 100" fill="currentColor" fill-rule="evenodd" aria-hidden="true" style="width: 100%; height: 100%;"><path d="M50 8L83 41Q92 50 83 59L59 83Q50 92 41 83L17 59Q8 50 17 41L41 17Q50 8 59 17Z M50 36.4L61.4 47.8Q63.6 50 61.4 52.2L52.2 61.4Q50 63.6 47.8 61.4L38.6 52.2Q36.4 50 38.6 47.8L47.8 38.6Q50 36.4 52.2 38.6Z"/></svg>',
   // 崩解：相連但失衡的圓角方塊，保留「結構正在破裂」而非尖銳碎片的意象。
