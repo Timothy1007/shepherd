@@ -215,6 +215,10 @@ function mountHand(image, style) {
 }
 
 function mountDetail(image, style) {
+  // Non-modal card inspector is owned exclusively by app.js runtime rendering.
+  // Never let the legacy template observer replace or append content inside it,
+  // otherwise the inspector can end up with two glyph renderers.
+  if (image.closest('#card-inspector')) return;
   if (image.dataset.runtimeInspectorFace === 'true') return;
   if (image.dataset.specialCardTemplate === 'true') return;
   const card = document.createElement('div');
@@ -247,7 +251,7 @@ function mountTable(image, style) {
 function applyTemplates() {
   for (const [name, style] of Object.entries(CARD_STYLES)) {
     document.querySelectorAll(`.card .card-art[alt="${name}"]`).forEach((image) => mountHand(image, style));
-    document.querySelectorAll(`.detail-card-art[alt="${name}"]`).forEach((image) => mountDetail(image, style));
+    document.querySelectorAll(`.detail-card-art[alt="${name}"]:not(#card-inspector .detail-card-art)`).forEach((image) => mountDetail(image, style));
     document.querySelectorAll(`#table-card img[alt*="${name}"]`).forEach((image) => mountTable(image, style));
   }
   document.querySelectorAll('#stronghold-overlay img[src$="miracle-19.png"]').forEach(mountReaction);
