@@ -101,6 +101,13 @@ const TAG_FACE_GLYPH = Object.freeze({
   // 洞察：圓潤的實心眼形，中央只留一個小圓孔，避免瞳孔過大。
   '洞察': '<svg viewBox="0 0 100 100" fill="currentColor" fill-rule="evenodd" aria-hidden="true" style="width: 100%; height: 100%;"><path d="M18 43C34 22 68 22 84 47C85 49 85 51 84 53C68 78 34 78 18 57C14 53 14 47 18 43Z M50 40A10 10 0 1 0 50 60A10 10 0 1 0 50 40Z"/></svg>',
   '庇護': '<svg viewBox="0 0 100 100" fill="currentColor" aria-hidden="true" style="width:100%;height:100%"><path d="M45 81C25 80 14 66 14 46V29C32 29 45 43 45 61Z"/><path d="M52 81C73 80 86 63 86 40V13C66 13 52 29 52 52Z"/></svg>', '蔓延': '', '流轉': '<svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="15" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M50 19C66 19 78 29 79 42C70 38 61 39 53 45"/><path d="M50 19C66 19 78 29 79 42C70 38 61 39 53 45" transform="rotate(120 50 50)"/><path d="M50 19C66 19 78 29 79 42C70 38 61 39 53 45" transform="rotate(240 50 50)"/></svg>',
+  '掠奪': '<svg viewBox="0 0 100 100" fill="currentColor" fill-rule="evenodd" aria-hidden="true">
+  <path d="M35 14C49 16 63 24 70 36C73 28 69 21 60 14C75 18 87 29 90 45C93 59 88 70 77 78C80 68 76 59 67 54C57 48 46 44 36 39C26 34 20 27 20 18C26 25 31 31 38 34C45 37 52 36 59 33C54 24 46 18 35 14Z"/>
+  <path d="M52 49C58 49 63 52 66 58C61 60 56 60 52 58C48 56 46 53 46 49C48 50 50 50 52 49Z"/>
+  <path d="M29 47C27 56 29 64 34 71C42 82 56 86 72 83C80 82 87 79 93 75C93 82 91 87 86 91C73 97 57 97 44 91C32 86 25 76 24 63C24 56 26 51 29 47Z
+           M34 70C46 80 63 84 82 79C74 85 62 88 50 86C43 84 38 78 34 70Z
+           M36 76C46 85 59 90 74 89C67 94 57 96 48 93C42 89 38 83 36 76Z"/>
+</svg>',
   // 重構：外圈放大，中央挖空維持與新生基準相同的絕對視覺尺寸。
   '重構': '<svg viewBox="0 0 100 100" fill="currentColor" fill-rule="evenodd" aria-hidden="true" style="width: 100%; height: 100%;"><path d="M50 8L83 41Q92 50 83 59L59 83Q50 92 41 83L17 59Q8 50 17 41L41 17Q50 8 59 17Z M50 36.4L61.4 47.8Q63.6 50 61.4 52.2L52.2 61.4Q50 63.6 47.8 61.4L38.6 52.2Q36.4 50 38.6 47.8L47.8 38.6Q50 36.4 52.2 38.6Z"/></svg>',
   // 崩解：相連但失衡的圓角方塊，保留「結構正在破裂」而非尖銳碎片的意象。
