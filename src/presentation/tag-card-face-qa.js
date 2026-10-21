@@ -23,12 +23,15 @@ const requestedBatch = Number(query.get('batch') ?? 1);
 const ART_BATCH = Number.isInteger(requestedBatch) && requestedBatch >= 1 && requestedBatch <= ART_BATCH_COUNT ? requestedBatch : 1;
 const ART_BATCH_DEFINITIONS = ART_BATCHES[ART_BATCH - 1] ?? [];
 
-const ACTIVE = MODE === 'art-batch' || MODE === 'tag-card-faces' || MODE === 'rebirth-card-face' || MODE === 'flux-card-face' || MODE === 'insight-card-face' || (MODE === 'tag-glyph' && Boolean(TAG_GLYPH_CARDS[GLYPH_KEY]));
+const ACTIVE = MODE === 'art-batch' || MODE === 'tag-card-faces' || MODE === 'rebirth-card-face' || MODE === 'flux-card-face' || MODE === 'insight-card-face' || MODE === 'sanctuary-card-face' || (MODE === 'tag-glyph' && Boolean(TAG_GLYPH_CARDS[GLYPH_KEY]));
 const REVIEW_IDS = new Set(MODE === 'art-batch' ? ART_BATCH_DEFINITIONS.map(definition => definition.definitionId) : MODE === 'flux-card-face' ? ['miracle-04','miracle-05'] : MODE === 'tag-glyph' ? [
   TAG_GLYPH_CARDS[GLYPH_KEY],
 ] : MODE === 'insight-card-face' ? [
   // 洞察圖騰測試：三張洞察神蹟，直接確認眼睛卡面。
   'miracle-06', 'miracle-07', 'miracle-08',
+] : MODE === 'sanctuary-card-face' ? [
+  // 庇護主標籤目前僅《雨幕之下》。
+  'miracle-22',
 ] : MODE === 'rebirth-card-face' ? [
   // 新生圖騰測試：四張一般牌、三張應對牌，僅檢視新卡面與中心圖騰。
   'miracle-01', 'miracle-02', 'miracle-03', 'miracle-13',
@@ -80,6 +83,8 @@ function setup() {
     ? `${TAG_GLYPH_LABELS[GLYPH_KEY]}圖騰單獨測試：已將《${cards[0] ? CARD_DEFINITIONS.find(definition => definition.definitionId === cards[0].definitionId)?.name : '測試牌'}》發至你的手牌；本局只保留這一張牌。`
     : MODE === 'insight-card-face'
     ? `洞察卡面測試：已將 ${cards.length} 張洞察神蹟發至你的手牌；中央圖騰為圓潤眼形。`
+    : MODE === 'sanctuary-card-face'
+    ? `庇護卡面測試：已將《雨幕之下》發至你的手牌；圖騰使用已確認的雙葉庇護符號。`
     : MODE === 'rebirth-card-face'
     ? `新生卡面測試：已將 ${cards.length} 張新生神蹟發至你的手牌；前四張為一般版，後三張為應對版。`
     : `卡面檢視第一批：已將 ${cards.length} 張卡發至你的手牌；僅含行向水深之處、勝利歸於我們、替罪羊、雨幕之下。`;
