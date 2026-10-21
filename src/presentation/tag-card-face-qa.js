@@ -23,7 +23,7 @@ const requestedBatch = Number(query.get('batch') ?? 1);
 const ART_BATCH = Number.isInteger(requestedBatch) && requestedBatch >= 1 && requestedBatch <= ART_BATCH_COUNT ? requestedBatch : 1;
 const ART_BATCH_DEFINITIONS = ART_BATCHES[ART_BATCH - 1] ?? [];
 
-const ACTIVE = MODE === 'art-batch' || MODE === 'tag-card-faces' || MODE === 'rebirth-card-face' || MODE === 'flux-card-face' || MODE === 'insight-card-face' || MODE === 'sanctuary-card-face' || MODE === 'resonance-card-face' || MODE === 'plunder-card-face' || (MODE === 'tag-glyph' && Boolean(TAG_GLYPH_CARDS[GLYPH_KEY]));
+const ACTIVE = MODE === 'art-batch' || MODE === 'tag-card-faces' || MODE === 'rebirth-card-face' || MODE === 'flux-card-face' || MODE === 'insight-card-face' || MODE === 'sanctuary-card-face' || MODE === 'resonance-card-face' || MODE === 'ember-card-face' || MODE === 'plunder-card-face' || (MODE === 'tag-glyph' && Boolean(TAG_GLYPH_CARDS[GLYPH_KEY]));
 const REVIEW_IDS = new Set(MODE === 'art-batch' ? ART_BATCH_DEFINITIONS.map(definition => definition.definitionId) : MODE === 'flux-card-face' ? ['miracle-04','miracle-05'] : MODE === 'tag-glyph' ? [
   TAG_GLYPH_CARDS[GLYPH_KEY],
 ] : MODE === 'insight-card-face' ? [
