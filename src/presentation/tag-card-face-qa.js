@@ -23,8 +23,8 @@ const requestedBatch = Number(query.get('batch') ?? 1);
 const ART_BATCH = Number.isInteger(requestedBatch) && requestedBatch >= 1 && requestedBatch <= ART_BATCH_COUNT ? requestedBatch : 1;
 const ART_BATCH_DEFINITIONS = ART_BATCHES[ART_BATCH - 1] ?? [];
 
-const ACTIVE = MODE === 'art-batch' || MODE === 'tag-card-faces' || MODE === 'rebirth-card-face' || MODE === 'flux-card-face' || MODE === 'insight-card-face' || MODE === 'sanctuary-card-face' || MODE === 'resonance-card-face' || MODE === 'plunder-card-face' || (MODE === 'tag-glyph' && Boolean(TAG_GLYPH_CARDS[GLYPH_KEY]));
-const REVIEW_IDS = new Set(MODE === 'art-batch' ? ART_BATCH_DEFINITIONS.map(definition => definition.definitionId) : MODE === 'flux-card-face' ? ['miracle-04','miracle-05'] : MODE === 'tag-glyph' ? [
+const ACTIVE = MODE === 'art-batch' || MODE === 'tag-card-faces' || MODE === 'tag-glyphs' || MODE === 'rebirth-card-face' || MODE === 'flux-card-face' || MODE === 'insight-card-face' || MODE === 'sanctuary-card-face' || MODE === 'resonance-card-face' || MODE === 'plunder-card-face' || (MODE === 'tag-glyph' && Boolean(TAG_GLYPH_CARDS[GLYPH_KEY]));
+const REVIEW_IDS = new Set(MODE === 'art-batch' ? ART_BATCH_DEFINITIONS.map(definition => definition.definitionId) : MODE === 'tag-glyphs' ? Object.values(TAG_GLYPH_CARDS) : MODE === 'flux-card-face' ? ['miracle-04','miracle-05'] : MODE === 'tag-glyph' ? [
   TAG_GLYPH_CARDS[GLYPH_KEY],
 ] : MODE === 'insight-card-face' ? [
   // 洞察圖騰測試：三張洞察神蹟，直接確認眼睛卡面。
@@ -85,6 +85,8 @@ function setup() {
     ? `底圖批次驗收 ${ART_BATCH}/${ART_BATCH_COUNT}：只發 ${cards.length} 張（${ART_BATCH_DEFINITIONS.map(d => d.name).join('、')}），圖騰僅在本 QA 模式隱藏；請檢查新 PNG 和應對卡背。`
     : MODE === 'flux-card-face'
     ? `流轉卡面測試：已將 ${cards.length} 張主標籤為流轉的神蹟發至你的手牌；兩張共用既有圓端循環圖騰規格。`
+    : MODE === 'tag-glyphs'
+    ? `全標籤圖騰檢視：已將 ${cards.length} 張目前已實裝標籤的代表牌發至你的手牌，每個主題標籤各一張。此局只供比較卡面與中央圖騰；火種、使命、蔓延目前尚未有 runtime SVG，會保留空白中央區。`
     : MODE === 'tag-glyph'
     ? `${TAG_GLYPH_LABELS[GLYPH_KEY]}圖騰單獨測試：已將《${cards[0] ? CARD_DEFINITIONS.find(definition => definition.definitionId === cards[0].definitionId)?.name : '測試牌'}》發至你的手牌；本局只保留這一張牌。`
     : MODE === 'insight-card-face'
