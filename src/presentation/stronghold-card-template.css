@@ -36,7 +36,7 @@
 .tag-face-symbol--reforge{width:36.25%;aspect-ratio:1;top:56%;background:none;-webkit-mask:none;mask:none;border-radius:0;transform:translate(-50%,-50%);box-shadow:none}
 .tag-face-symbol--reforge svg{position:absolute;inset:0;display:block;overflow:visible}
 /* 洞察：回到與新生相同的 29% 安全框與位置，改由內嵌 SVG 繪製。 */
-.tag-face-symbol--insight{width:36.25%;height:auto;aspect-ratio:1;top:56%;background:none;-webkit-mask:none;mask:none;border-radius:0;transform:translate(-50%,-50%);box-shadow:none}
+.tag-face-symbol--insight{width:46%;height:auto;aspect-ratio:1;top:56%;background:none;-webkit-mask:none;mask:none;border-radius:0;transform:translate(-50%,-50%);box-shadow:none}
 .tag-face-symbol--insight svg{position:absolute;inset:0;display:block;overflow:visible}
 /* 庇護：兩片不同高度的圓潤葉片；不用舊鹿角遮罩，以免覆蓋內嵌 SVG。 */
 .tag-face-symbol--sanctuary{width:36.25%;height:auto;aspect-ratio:1;top:56%;background:none;-webkit-mask:none;mask:none;border-radius:0;transform:translate(-50%,-50%);box-shadow:none}
@@ -48,6 +48,7 @@
 .runtime-tag-glyph svg{display:block;width:100%;height:100%;overflow:visible}
 /* SVG 的 viewBox 留白會吃掉視覺尺寸；新生需放大到與原本 29% CSS 菱形相同。 */
 .runtime-tag-glyph--rebirth{width:52%;top:56%}
+.runtime-tag-glyph--insight{width:46%;top:56%}
 .runtime-tag-glyph--flux{width:36%;height:auto;aspect-ratio:1;top:56%;background:none;border-radius:0;transform:translate(-50%,-50%)}
 .runtime-tag-glyph--flux::before,.runtime-tag-glyph--flux::after{display:none}
 .runtime-tag-glyph--flux svg{display:block;width:100%;height:100%;overflow:visible}
