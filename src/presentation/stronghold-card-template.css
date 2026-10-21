@@ -10,7 +10,6 @@
 /* 洞察：被挖空瞳孔的圓角橢圓。 */
 .tag-face-symbol--insight{width:39%;height:22%;border-radius:999px;-webkit-mask:radial-gradient(circle at 50% 50%,transparent 0 18%,#000 20%);mask:radial-gradient(circle at 50% 50%,transparent 0 18%,#000 20%)}
 /* 崩解：被三道圓潤缺口切開的圓盤。 */
-.tag-face-symbol--collapse{width:33%;aspect-ratio:1;border-radius:44%;-webkit-mask:conic-gradient(#000 0 27%,transparent 27% 35%,#000 35% 60%,transparent 60% 68%,#000 68% 92%,transparent 92%);mask:conic-gradient(#000 0 27%,transparent 27% 35%,#000 35% 60%,transparent 60% 68%,#000 68% 92%,transparent 92%)}
 /* 熄滅：空心的圓角菱形。 */
 .tag-face-symbol--extinction{width:30%;aspect-ratio:1;border-radius:22%;transform:translate(-50%,-50%) rotate(45deg);-webkit-mask:radial-gradient(closest-side,transparent 0 54%,#000 57%);mask:radial-gradient(closest-side,transparent 0 54%,#000 57%)}
 /* 流轉：兩條圓端弧帶，保留簡單的循環意象。 */
@@ -33,8 +32,6 @@
 .tag-face-symbol--sanctuary{width:50%;height:54%;top:54%}
 .tag-face-symbol--spread{width:51%;height:54%;top:54%}
 .tag-face-symbol--flux{width:55%;height:54%;top:54%}
-.tag-face-symbol--collapse{width:57%;height:57%;top:54%;background:none;border-radius:0;transform:translate(-50%,-50%);box-shadow:none}
-.tag-face-symbol--collapse svg{display:block;width:100%;height:100%;overflow:visible}
 /* 重構：外圈比新生放大 1/4；中央空區由 SVG 維持原本絕對尺寸。 */
 .tag-face-symbol--reforge{width:36.25%;aspect-ratio:1;top:56%;background:none;-webkit-mask:none;mask:none;border-radius:0;transform:translate(-50%,-50%);box-shadow:none}
 .tag-face-symbol--reforge svg{position:absolute;inset:0;display:block;overflow:visible}
@@ -122,3 +119,7 @@
 .stronghold-tag-marker .tag-fill,.ashes-tag-marker .tag-fill{fill:currentColor;stroke:none}
 .tag-新生{color:#006b58}.tag-熄滅{color:#2b073f}.tag-流轉{color:#006b58}.tag-洞察{color:#006b58}.tag-庇護{color:#006b58}.tag-共鳴{color:#006b58}.tag-火種{color:#006b58}.tag-使命{color:#006b58}
 .ashes-tag-marker{color:#2b073f}.ashes-tag-marker.tag-單體,.ashes-tag-marker.tag-多體,.ashes-tag-marker.tag-群體{color:#2b073f}.ashes-tag-marker.tag-掠奪,.ashes-tag-marker.tag-重構,.ashes-tag-marker.tag-蔓延,.ashes-tag-marker.tag-崩解{color:#2b073f}
+
+.runtime-tag-glyph--collapse{width:50%;top:55%;aspect-ratio:1}
+.tag-face-symbol--collapse{width:50%;height:auto;aspect-ratio:1;top:55%;background:none;border-radius:0;box-shadow:none;transform:translate(-50%,-50%);-webkit-mask:none;mask:none}
+.tag-face-symbol--collapse svg{display:block;width:100%;height:100%;overflow:visible}
