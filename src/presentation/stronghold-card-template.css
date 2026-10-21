@@ -14,7 +14,7 @@
 /* 熄滅：空心的圓角菱形。 */
 .tag-face-symbol--extinction{width:30%;aspect-ratio:1;border-radius:22%;transform:translate(-50%,-50%) rotate(45deg);-webkit-mask:radial-gradient(closest-side,transparent 0 54%,#000 57%);mask:radial-gradient(closest-side,transparent 0 54%,#000 57%)}
 /* 流轉：兩條圓端弧帶，保留簡單的循環意象。 */
-.tag-face-symbol--flux{width:38%;height:auto;aspect-ratio:1;top:56%;background:none;border-radius:0;transform:translate(-50%,-50%)}
+.tag-face-symbol--flux{width:36%;height:auto;aspect-ratio:1;top:56%;background:none;border-radius:0;transform:translate(-50%,-50%)}
 .tag-face-symbol--flux::before,.tag-face-symbol--flux::after{display:none}
 .tag-face-symbol--flux svg{display:block;width:100%;height:100%;overflow:visible}
 /* 庇護、共鳴、火種、使命、掠奪、蔓延皆維持同一組圓角體塊語言。 */
@@ -48,7 +48,7 @@
 .runtime-tag-glyph svg{display:block;width:100%;height:100%;overflow:visible}
 /* SVG 的 viewBox 留白會吃掉視覺尺寸；新生需放大到與原本 29% CSS 菱形相同。 */
 .runtime-tag-glyph--rebirth{width:52%;top:56%}
-.runtime-tag-glyph--flux{width:38%;height:auto;aspect-ratio:1;top:56%;background:none;border-radius:0;transform:translate(-50%,-50%)}
+.runtime-tag-glyph--flux{width:36%;height:auto;aspect-ratio:1;top:56%;background:none;border-radius:0;transform:translate(-50%,-50%)}
 .runtime-tag-glyph--flux::before,.runtime-tag-glyph--flux::after{display:none}
 .runtime-tag-glyph--flux svg{display:block;width:100%;height:100%;overflow:visible}
 .inspector-card-face{position:relative;display:block;width:100%;height:auto;aspect-ratio:63/88}
