@@ -1,0 +1,19 @@
+name: Game Build and Tests
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [qa/base-art-migration-20261020]
+  workflow_dispatch:
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build
+        run: npm run build
+      - name: Tests
+        run: npm test
