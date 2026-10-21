@@ -96,7 +96,7 @@ npm.cmd run preview
 | 崩解 Collapse | 互相連結的圓角方塊 |
 | 流轉 Flux | 待後續定案 |
 | 蔓延 Spread | 待後續定案 |
-| 共鳴 Resonance | 待後續定案 |
+| 共鳴 Resonance | 有機環狀群體圖騰＋外圍節點；已依參考圖定案 |
 | 火種 Ember | 待後續定案 |
 | 使命 Mission | 待後續定案 |
 | 掠奪 Plunder | 待後續定案 |
