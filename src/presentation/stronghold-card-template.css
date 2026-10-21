@@ -51,13 +51,13 @@
 .runtime-tag-glyph svg{display:block;width:100%;height:100%;overflow:visible}
 /* SVG 的 viewBox 留白會吃掉視覺尺寸；新生需放大到與原本 29% CSS 菱形相同。 */
 .runtime-tag-glyph--rebirth{width:52%;top:56%}
-.runtime-tag-glyph--extinction{width:60%;top:56%}
+.runtime-tag-glyph--extinction{width:46%;top:56%}
 .runtime-tag-glyph--reforge{width:52%;top:56%}
 .runtime-tag-glyph--collapse{width:46%;top:56%}
-.runtime-tag-glyph--insight{width:55%;top:56%}
+.runtime-tag-glyph--insight{width:46%;top:56%}
 .runtime-tag-glyph--sanctuary{width:55%;top:54%;aspect-ratio:1}
 .runtime-tag-glyph--resonance{width:50%;top:55%;aspect-ratio:1}
-.runtime-tag-glyph--plunder{left:53%;width:62%;top:55%;aspect-ratio:1;transform:translate(-50%,-50%) scaleY(.95)}
+.runtime-tag-glyph--plunder{left:53%;width:46%;top:55%;aspect-ratio:1;transform:translate(-50%,-50%) scaleY(.95)}
 .runtime-tag-glyph--flux{width:49%;height:auto;aspect-ratio:1;top:56%;background:none;border-radius:0;transform:translate(-50%,-50%)}
 .runtime-tag-glyph--flux::before,.runtime-tag-glyph--flux::after{display:none}
 .runtime-tag-glyph--flux svg{display:block;width:100%;height:100%;overflow:visible}
