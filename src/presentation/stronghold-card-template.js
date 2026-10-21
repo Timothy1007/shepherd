@@ -82,7 +82,7 @@ const TAG_ICON = Object.freeze({
   '新生': '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="tag-fill" d="M10 2.2a2.8 2.8 0 0 1 4 0l7.8 7.8a2.8 2.8 0 0 1 0 4L14 21.8a2.8 2.8 0 0 1-4 0L2.2 14a2.8 2.8 0 0 1 0-4Z"/></svg>',
   '熄滅': '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 2.2a2.8 2.8 0 0 1 4 0l7.8 7.8a2.8 2.8 0 0 1 0 4L14 21.8a2.8 2.8 0 0 1-4 0L2.2 14a2.8 2.8 0 0 1 0-4Z"/><path class="tag-cutout" d="m12 7 5 5-5 5-5-5Z"/></svg>',
   '流轉': '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8.5A7.5 7.5 0 0 1 18.2 6M18.2 6v4M18.2 6h-4M18 15.5A7.5 7.5 0 0 1 5.8 18M5.8 18v-4M5.8 18h4"/></svg>',
-  '洞察': '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.4-5.5 9.5-5.5 9.5 5.5 9.5 5.5-3.4 5.5-9.5 5.5S2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="2.6"/><path d="M12 2.2v1.6M4.3 5.4l1.1 1.1M19.7 5.4l-1.1 1.1"/></svg>',
+  '洞察': '<svg viewBox="0 0 529 290" fill="currentColor" aria-hidden="true"><path d="M0 139 L1 152 L20 171 L81 219 L124 246 L164 266 L200 279 L222 283 L224 285 L257 289 L299 288 L337 279 L381 258 L384 248 L378 237 L332 191 L323 178 L313 155 L313 134 L331 89 L332 79 L329 76 L323 76 L275 95 L252 95 L251 93 L244 92 L219 78 L196 56 L193 49 L193 42 L199 32 L205 28 L235 17 L260 14 L287 17 L312 25 L345 45 L365 65 L377 82 L390 112 L394 136 L393 164 L386 187 L386 198 L390 206 L401 217 L413 224 L432 225 L442 221 L506 172 L525 155 L528 149 L528 140 L525 135 L507 118 L451 73 L409 46 L383 32 L343 15 L304 4 L271 0 L228 1 L190 10 L149 29 L144 37 L144 44 L193 95 L202 107 L213 130 L215 151 L194 207 L198 213 L205 213 L206 211 L252 194 L266 193 L283 197 L311 213 L332 234 L334 242 L332 252 L322 261 L292 272 L255 274 L229 269 L200 256 L180 242 L157 217 L141 188 L133 156 L133 134 L142 94 L138 84 L124 70 L115 65 L91 65 L78 73 L27 112 Z"/></svg>',
   '庇護': '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11.4 18.8C6.2 18.4 3.8 14.4 3.5 8.8c3.1.2 5.9 1.1 7.9 4.3M12.6 18.8c5.2-.4 7.6-4.4 7.9-10-3.1.2-5.9 1.1-7.9 4.3M12 9v10"/></svg>',
   '共鳴': '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8.5" cy="12" r="5.4"/><circle cx="15.5" cy="12" r="5.4"/></svg>',
   '火種': '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="tag-fill" d="M13.2 2.5c.5 4-2.2 5.1-3.5 7.7-.9-1-1.3-2.3-1-3.8-2.8 2.2-4.6 5.2-4.6 8.4 0 4.2 3.4 7.2 7.8 7.2s7.8-3.1 7.8-7.4c0-4.2-2.2-8.5-6.4-12.1ZM12 19.1c-1.8 0-3.1-1.2-3.1-3.1 0-1.8 1.3-3.2 3.4-5.3.1 1.4.9 2.1 1.7 2.7.9.8 1.3 1.6 1.3 2.6 0 1.9-1.3 3.1-3.3 3.1Z"/></svg>',
@@ -215,6 +215,10 @@ function mountHand(image, style) {
 }
 
 function mountDetail(image, style) {
+  // Non-modal card inspector is owned exclusively by app.js runtime rendering.
+  // Never let the legacy template observer replace or append content inside it,
+  // otherwise the inspector can end up with two glyph renderers.
+  if (image.closest('#card-inspector')) return;
   if (image.dataset.runtimeInspectorFace === 'true') return;
   if (image.dataset.specialCardTemplate === 'true') return;
   const card = document.createElement('div');
@@ -247,7 +251,7 @@ function mountTable(image, style) {
 function applyTemplates() {
   for (const [name, style] of Object.entries(CARD_STYLES)) {
     document.querySelectorAll(`.card .card-art[alt="${name}"]`).forEach((image) => mountHand(image, style));
-    document.querySelectorAll(`.detail-card-art[alt="${name}"]`).forEach((image) => mountDetail(image, style));
+    document.querySelectorAll(`.detail-card-art[alt="${name}"]:not(#card-inspector .detail-card-art)`).forEach((image) => mountDetail(image, style));
     document.querySelectorAll(`#table-card img[alt*="${name}"]`).forEach((image) => mountTable(image, style));
   }
   document.querySelectorAll('#stronghold-overlay img[src$="miracle-19.png"]').forEach(mountReaction);
