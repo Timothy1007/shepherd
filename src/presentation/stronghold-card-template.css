@@ -26,14 +26,11 @@
 .tag-face-symbol--ember{width:25%;height:34%;border-radius:58% 42% 58% 42%;transform:translate(-50%,-50%) rotate(45deg)}
 .tag-face-symbol--mission{width:28%;aspect-ratio:1;border-radius:36%;transform:translate(-50%,-50%) rotate(45deg);-webkit-mask:conic-gradient(#000 0 23%,transparent 23% 27%,#000 27% 48%,transparent 48% 52%,#000 52% 73%,transparent 73% 77%,#000 77%);mask:conic-gradient(#000 0 23%,transparent 23% 27%,#000 27% 48%,transparent 48% 52%,#000 52% 73%,transparent 73% 77%,#000 77%)}
 .tag-face-symbol--plunder{width:50%;height:auto;aspect-ratio:1;top:55%;background:none;border-radius:0;box-shadow:none;transform:translate(-50%,-50%);-webkit-mask:none;mask:none}
-.tag-face-symbol--spread{width:29%;aspect-ratio:1;background:none;border-radius:0;box-shadow:none}
 /* 四個參考圖騰只顯示 SVG 本體：先清除舊的幾何底形與偽元素，再放大剪影。 */
 .tag-face-symbol--insight,.tag-face-symbol--sanctuary,.tag-face-symbol--spread,.tag-face-symbol--flux{background:none;-webkit-mask:none;mask:none;box-shadow:none;border-radius:0;transform:translate(-50%,-50%)}
 .tag-face-symbol--insight{width:58%;height:39%;top:53%}
 .tag-face-symbol--sanctuary{width:50%;height:54%;top:54%}
-.tag-face-symbol--spread{width:46%;height:auto;aspect-ratio:1;top:56%}
-.tag-face-symbol--flux{width:55%;height:54%;top:54%}\n.tag-face-symbol--spread svg{position:absolute;inset:0;display:block;width:100%;height:100%;overflow:visible}
-.tag-face-symbol--collapse{width:57%;height:57%;top:54%;background:none;border-radius:0;transform:translate(-50%,-50%);box-shadow:none}
+.tag-face-symbol--flux{width:55%;height:54%;top:54%}\n.tag-face-symbol--collapse{width:57%;height:57%;top:54%;background:none;border-radius:0;transform:translate(-50%,-50%);box-shadow:none}
 .tag-face-symbol--collapse svg{display:block;width:100%;height:100%;overflow:visible}
 /* 重構：外圈比新生放大 1/4；中央空區由 SVG 維持原本絕對尺寸。 */
 .tag-face-symbol--reforge{width:36.25%;aspect-ratio:1;top:56%;background:none;-webkit-mask:none;mask:none;border-radius:0;transform:translate(-50%,-50%);box-shadow:none}
@@ -62,8 +59,6 @@
 .inspector-card-face>img{display:block;width:100%;height:100%;object-fit:contain;border-radius:inherit}
 /* 本次上傳的正式 SVG 作遮罩；顏色完全由卡片類型決定。 */
 .tag-face-symbol--sanctuary{background:none;-webkit-mask:none;mask:none}
-.tag-face-symbol--spread{background:currentColor;-webkit-mask:url("assets/tag-glyphs/3-ouroboros.svg") center/contain no-repeat;mask:url("assets/tag-glyphs/3-ouroboros.svg") center/contain no-repeat}
-
 .tag-face-symbol--sanctuary,.tag-face-symbol--spread,.tag-face-symbol--flux{color:#006b58;filter:drop-shadow(0 2px 1px #0002)}
 .ashes-template-card .tag-face-symbol--sanctuary,.ashes-template-card .tag-face-symbol--spread,.ashes-template-card .tag-face-symbol--flux{color:#2b073f}
 .tag-face-symbol--flux::before,.tag-face-symbol--flux::after{display:none}
@@ -122,3 +117,7 @@
 .stronghold-tag-marker .tag-fill,.ashes-tag-marker .tag-fill{fill:currentColor;stroke:none}
 .tag-新生{color:#006b58}.tag-熄滅{color:#2b073f}.tag-流轉{color:#006b58}.tag-洞察{color:#006b58}.tag-庇護{color:#006b58}.tag-共鳴{color:#006b58}.tag-火種{color:#006b58}.tag-使命{color:#006b58}
 .ashes-tag-marker{color:#2b073f}.ashes-tag-marker.tag-單體,.ashes-tag-marker.tag-多體,.ashes-tag-marker.tag-群體{color:#2b073f}.ashes-tag-marker.tag-掠奪,.ashes-tag-marker.tag-重構,.ashes-tag-marker.tag-蔓延,.ashes-tag-marker.tag-崩解{color:#2b073f}
+
+.runtime-tag-glyph--spread{width:52%;top:55%;aspect-ratio:1}
+.tag-face-symbol--spread{width:52%;height:auto;aspect-ratio:1;top:55%;background:none;border-radius:0;box-shadow:none;transform:translate(-50%,-50%);-webkit-mask:none;mask:none}
+.tag-face-symbol--spread svg{display:block;width:100%;height:100%;overflow:visible}
