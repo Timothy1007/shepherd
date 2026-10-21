@@ -1,1 +1,4 @@
-<svg viewBox="0 0 100 100" fill="currentColor" aria-hidden="true"><path d="M28 28Q24 28 24 32V56C24 70 34 78 49 80V50C48 41 39 31 28 28Z"/><path d="M72 20Q76 20 76 24V50C76 66 66 77 51 80V50C51 36 60 23 72 20Z"/></svg>
+<svg viewBox="0 0 100 100" fill="currentColor" aria-hidden="true">
+  <path d="M50 16C70 16 86 34 86 58V74C86 78 83 81 79 81H67V61C67 49 60 40 50 40C40 40 33 49 33 61V81H21C17 81 14 78 14 74V58C14 34 30 16 50 16Z"/>
+  <rect x="43" y="54" width="14" height="20" rx="7"/>
+</svg>
