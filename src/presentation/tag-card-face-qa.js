@@ -23,7 +23,7 @@ const requestedBatch = Number(query.get('batch') ?? 1);
 const ART_BATCH = Number.isInteger(requestedBatch) && requestedBatch >= 1 && requestedBatch <= ART_BATCH_COUNT ? requestedBatch : 1;
 const ART_BATCH_DEFINITIONS = ART_BATCHES[ART_BATCH - 1] ?? [];
 
-const ACTIVE = MODE === 'art-batch' || MODE === 'tag-card-faces' || MODE === 'rebirth-card-face' || MODE === 'flux-card-face' || MODE === 'insight-card-face' || MODE === 'sanctuary-card-face' || MODE === 'resonance-card-face' || MODE === 'plunder-card-face' || (MODE === 'tag-glyph' && Boolean(TAG_GLYPH_CARDS[GLYPH_KEY]));
+const ACTIVE = MODE === 'art-batch' || MODE === 'tag-card-faces' || MODE === 'rebirth-card-face' || MODE === 'flux-card-face' || MODE === 'insight-card-face' || MODE === 'sanctuary-card-face' || MODE === 'resonance-card-face' || MODE === 'plunder-card-face' || MODE === 'collapse-card-face' || (MODE === 'tag-glyph' && Boolean(TAG_GLYPH_CARDS[GLYPH_KEY]));
 const REVIEW_IDS = new Set(MODE === 'art-batch' ? ART_BATCH_DEFINITIONS.map(definition => definition.definitionId) : MODE === 'flux-card-face' ? ['miracle-04','miracle-05'] : MODE === 'tag-glyph' ? [
   TAG_GLYPH_CARDS[GLYPH_KEY],
 ] : MODE === 'insight-card-face' ? [
@@ -38,6 +38,9 @@ const REVIEW_IDS = new Set(MODE === 'art-batch' ? ART_BATCH_DEFINITIONS.map(defi
 ] : MODE === 'plunder-card-face' ? [
   // 掠奪主標籤：兩張災難。
   'disaster-01', 'disaster-02',
+] : MODE === 'collapse-card-face' ? [
+  // 崩解主標籤目前為《焚城之火》。
+  'disaster-15',
 ] : MODE === 'rebirth-card-face' ? [
   // 新生圖騰測試：四張一般牌、三張應對牌，僅檢視新卡面與中心圖騰。
   'miracle-01', 'miracle-02', 'miracle-03', 'miracle-13',
@@ -95,6 +98,8 @@ function setup() {
     ? `共鳴卡面測試：已將 ${cards.length} 張主標籤為共鳴的神蹟發至你的手牌；圖騰使用已確認的有機共鳴符號。`
     : MODE === 'plunder-card-face'
     ? `掠奪卡面測試：已將 ${cards.length} 張主標籤為掠奪的災難發至你的手牌；圖騰使用已確認的流線勾形符號。`
+    : MODE === 'collapse-card-face'
+    ? `崩解卡面測試：已將《焚城之火》發至你的手牌；中央圖騰使用圓角方塊錯位崩解符號。`
     : MODE === 'rebirth-card-face'
     ? `新生卡面測試：已將 ${cards.length} 張新生神蹟發至你的手牌；前四張為一般版，後三張為應對版。`
     : `卡面檢視第一批：已將 ${cards.length} 張卡發至你的手牌；僅含行向水深之處、勝利歸於我們、替罪羊、雨幕之下。`;
