@@ -58,11 +58,11 @@ function take(state, definitionId) {
 }
 
 function setup() {
-  if (!ACTIVE) return;
+  if (!ACTIVE) return true;
   const controller = globalThis.__shepherdController;
   const state = controller?.state;
   const human = state?.players.find(player => player.type === 'human');
-  if (!controller || !state || !human) return;
+  if (!controller || !state || !human) return false;
 
   controller.cancelTimer?.();
   if (MODE === 'art-batch') {
@@ -102,6 +102,12 @@ function setup() {
     : `卡面檢視第一批：已將 ${cards.length} 張卡發至你的手牌；僅含行向水深之處、勝利歸於我們、替罪羊、雨幕之下。`;
   controller.logAi?.(message);
   controller.safeRender?.(getNormalActions(state));
+  return true;
 }
 
-setup();
+function startWhenGameIsReady(attempt = 0) {
+  if (setup() || attempt >= 120) return;
+  globalThis.setTimeout(() => startWhenGameIsReady(attempt + 1), 16);
+}
+
+startWhenGameIsReady();
