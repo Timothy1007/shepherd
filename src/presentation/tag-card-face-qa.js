@@ -8,6 +8,7 @@ const TAG_GLYPH_CARDS = Object.freeze({
   Resonance: 'miracle-10', Ember: 'miracle-05', Mission: 'miracle-09', Reforge: 'disaster-06',
   Plunder: 'disaster-01', Extinction: 'disaster-07', Spread: 'disaster-09', Collapse: 'disaster-15',
 });
+const IMPLEMENTED_TAG_GLYPH_KEYS = Object.freeze(['Rebirth', 'Flux', 'Insight', 'Sanctuary', 'Resonance', 'Reforge', 'Plunder', 'Extinction', 'Collapse']);
 const TAG_GLYPH_LABELS = Object.freeze({Rebirth:'新生',Flux:'流轉',Insight:'洞察',Sanctuary:'庇護',Resonance:'共鳴',Ember:'火種',Mission:'使命',Reforge:'重構',Plunder:'掠奪',Extinction:'熄滅',Spread:'蔓延',Collapse:'崩解'});
 const GLYPH_KEY = query.get('tag');
 const ART_BATCH_SIZE = 6;
@@ -24,7 +25,7 @@ const ART_BATCH = Number.isInteger(requestedBatch) && requestedBatch >= 1 && req
 const ART_BATCH_DEFINITIONS = ART_BATCHES[ART_BATCH - 1] ?? [];
 
 const ACTIVE = MODE === 'art-batch' || MODE === 'tag-card-faces' || MODE === 'tag-glyphs' || MODE === 'rebirth-card-face' || MODE === 'flux-card-face' || MODE === 'insight-card-face' || MODE === 'sanctuary-card-face' || MODE === 'resonance-card-face' || MODE === 'plunder-card-face' || (MODE === 'tag-glyph' && Boolean(TAG_GLYPH_CARDS[GLYPH_KEY]));
-const REVIEW_IDS = new Set(MODE === 'art-batch' ? ART_BATCH_DEFINITIONS.map(definition => definition.definitionId) : MODE === 'tag-glyphs' ? Object.values(TAG_GLYPH_CARDS) : MODE === 'flux-card-face' ? ['miracle-04','miracle-05'] : MODE === 'tag-glyph' ? [
+const REVIEW_IDS = new Set(MODE === 'art-batch' ? ART_BATCH_DEFINITIONS.map(definition => definition.definitionId) : MODE === 'tag-glyphs' ? IMPLEMENTED_TAG_GLYPH_KEYS.map(key => TAG_GLYPH_CARDS[key]) : MODE === 'flux-card-face' ? ['miracle-04','miracle-05'] : MODE === 'tag-glyph' ? [
   TAG_GLYPH_CARDS[GLYPH_KEY],
 ] : MODE === 'insight-card-face' ? [
   // 洞察圖騰測試：三張洞察神蹟，直接確認眼睛卡面。
@@ -86,7 +87,7 @@ function setup() {
     : MODE === 'flux-card-face'
     ? `流轉卡面測試：已將 ${cards.length} 張主標籤為流轉的神蹟發至你的手牌；兩張共用既有圓端循環圖騰規格。`
     : MODE === 'tag-glyphs'
-    ? `全標籤圖騰檢視：已將 ${cards.length} 張目前已實裝標籤的代表牌發至你的手牌，每個主題標籤各一張。此局只供比較卡面與中央圖騰；火種、使命、蔓延目前尚未有 runtime SVG，會保留空白中央區。`
+    ? `已實裝圖騰檢視：已將 ${cards.length} 張代表牌發至你的手牌；只包含目前正式卡面會顯示 runtime SVG 的標籤。`
     : MODE === 'tag-glyph'
     ? `${TAG_GLYPH_LABELS[GLYPH_KEY]}圖騰單獨測試：已將《${cards[0] ? CARD_DEFINITIONS.find(definition => definition.definitionId === cards[0].definitionId)?.name : '測試牌'}》發至你的手牌；本局只保留這一張牌。`
     : MODE === 'insight-card-face'
