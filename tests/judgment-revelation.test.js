@@ -12,7 +12,8 @@ test('揭露 I 對重新整備的正常抽牌建立公開紀錄，並切換至�
   assert.equal(state.activeJudgments['資訊'], 'revelation-2');
   assert.equal(state.lastRevelation.playerId, 'player-1');
   assert.equal(state.lastRevelation.source, 'redraw');
-  assert.equal(state.lastRevelation.cardIds.length, 7);
+  assert.equal(state.lastRevelation.cardIds.length, 2);
+  assert.equal(state.lastRevelation.definitionIds.length, 2);
 });
 
 test('揭露 II 保留所有玩家的完整手牌供介面公開呈現', () => {

@@ -53,7 +53,7 @@ test('在黎明前叩門 enters effect zone, adds one effect draw, then requires
   assert.equal(new Set(locations).size, locations.length);
 });
 
-test('redraw is not an effect draw and does not consume 在黎明前叩門', () => {
+test('整備固定抽兩張，不觸發或消耗在黎明前叩門', () => {
   let state = createGame({ seed: 'dawn-redraw' });
   state = playFromHuman(state, 'miracle-13');
   const player = state.players[0];
@@ -68,7 +68,7 @@ test('redraw is not an effect draw and does not consume 在黎明前叩門', () 
   state = result.state;
   assert.equal(state.pendingEffectDiscard, null);
   assert.ok(state.players[0].effects.some(card => card.definitionId === 'miracle-13'));
-  assert.equal(state.players[0].hand.length, 1);
+  assert.equal(state.players[0].hand.length, 2);
 });
 
 test('adding a card to hand through 所望之實底 is not treated as drawing', () => {
