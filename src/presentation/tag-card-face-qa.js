@@ -88,6 +88,8 @@ function setup() {
     ? `流轉卡面測試：已將 ${cards.length} 張主標籤為流轉的神蹟發至你的手牌；兩張共用既有圓端循環圖騰規格。`
     : MODE === 'tag-glyphs'
     ? `已實裝圖騰檢視：已將 ${cards.length} 張代表牌發至你的手牌；只包含目前正式卡面會顯示 runtime SVG 的標籤。`
+    : MODE === 'tag-glyph' && GLYPH_KEY === 'Ember'
+    ? `火種圖騰單獨測試：使用《如風吹來》預覽火種卡面；正常對局此牌仍以流轉為主標籤。`
     : MODE === 'tag-glyph'
     ? `${TAG_GLYPH_LABELS[GLYPH_KEY]}圖騰單獨測試：已將《${cards[0] ? CARD_DEFINITIONS.find(definition => definition.definitionId === cards[0].definitionId)?.name : '測試牌'}》發至你的手牌；本局只保留這一張牌。`
     : MODE === 'insight-card-face'
