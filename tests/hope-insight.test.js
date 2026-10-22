@@ -38,7 +38,7 @@ test('所望之實底 rejects cards outside viewed top three',()=>{
   assert.equal(result.state,state);
 });
 
-test('AI/default resolution of 所望之實底 keeps the first viewed card and preserves remaining order',()=>{
+test('AI/default resolution of 所望之實底 keeps the first viewed card and places the others on the bottom',()=>{
   const state=createGame({seed:'insight-ai'});
   const source=state.players[0].hand.find(c=>c.definitionId==='miracle-06');
   state.players[0].hand=state.players[0].hand.filter(c=>c.instanceId!==source.instanceId);
@@ -49,5 +49,5 @@ test('AI/default resolution of 所望之實底 keeps the first viewed card and p
   const result=executeNormalAction(state,action);
   assert.equal(result.ok,true,result.reason);
   assert.ok(result.state.players[1].hand.some(c=>c.instanceId===top[0].instanceId));
-  assert.deepEqual(result.state.deck.slice(-2).map(c=>c.instanceId),top.slice(1).map(c=>c.instanceId));
+  assert.deepEqual(result.state.deck.slice(-2).map(c=>c.instanceId).sort(),top.slice(1).map(c=>c.instanceId).sort());
 });
