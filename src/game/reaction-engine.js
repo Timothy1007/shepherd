@@ -32,8 +32,8 @@ export function disasterTargetIds(state,action){
 export function reactionOptionsFor(state,action,responderId,{previewState=null}={}){
   const disaster=disasterForAction(state,action),responder=playerById(state,responderId);
   if(!disaster||!responder)return[];
-  // Fruit uses staged reaction windows in game.js; avoid the immediate-preview handlers.
-  if(disaster.definition.definitionId==='disaster-04')return[];
+  // Fruit and Reflection use staged reaction windows in game.js.
+  if(['disaster-04','disaster-05'].includes(disaster.definition.definitionId))return[];
   const targetIds=disasterTargetIds(state,action),handIds=new Set(responder.hand.map(card=>card.definitionId)),options=[];
   // 焚城 may pause for an effect-card choice; its reaction continuation is not yet supported.
   if(disaster.definition.definitionId==='disaster-15')return options;
