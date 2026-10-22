@@ -8,7 +8,7 @@ const TAG_GLYPH_CARDS = Object.freeze({
   Resonance: 'miracle-10', Ember: 'miracle-05', Mission: 'miracle-09', Reforge: 'disaster-06',
   Plunder: 'disaster-01', Extinction: 'disaster-07', Spread: 'disaster-09', Collapse: 'disaster-15',
 });
-const IMPLEMENTED_TAG_GLYPH_KEYS = Object.freeze(['Rebirth', 'Flux', 'Insight', 'Sanctuary', 'Resonance', 'Reforge', 'Plunder', 'Extinction', 'Collapse']);
+const IMPLEMENTED_TAG_GLYPH_KEYS = Object.freeze(['Rebirth', 'Flux', 'Insight', 'Sanctuary', 'Resonance', 'Reforge', 'Plunder', 'Extinction', 'Spread', 'Collapse']);
 const TAG_GLYPH_LABELS = Object.freeze({Rebirth:'新生',Flux:'流轉',Insight:'洞察',Sanctuary:'庇護',Resonance:'共鳴',Ember:'火種',Mission:'使命',Reforge:'重構',Plunder:'掠奪',Extinction:'熄滅',Spread:'蔓延',Collapse:'崩解'});
 const GLYPH_KEY = query.get('tag');
 const ART_BATCH_SIZE = 6;
