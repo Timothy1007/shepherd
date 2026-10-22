@@ -34,7 +34,7 @@ GameController.prototype.start = function startCurrentManualQa(seed) {
 
 function openEffectDetail(card) {
   if (typeof globalThis.__shepherdOpenCardInspector === 'function') {
-    globalThis.__shepherdOpenCardInspector(card);
+    globalThis.__shepherdOpenCardInspector(card, { inEffectZone: true });
     return;
   }
   const definition = getDefinition(card);
@@ -49,7 +49,7 @@ function openEffectDetail(card) {
       <span class="eyebrow">${kind} · ${tags}${definition.negative ? '｜負面' : ''}</span>
       <h2>${definition.name}</h2>
       <p>此牌目前正在效果區持續生效。</p>
-      <p class="detail-note">${definition.text ?? ''}</p>
+      <p class="detail-note">${definition.effectText ?? definition.text ?? ''}</p>
     </div>`;
   overlay.hidden = false;
 }
@@ -70,8 +70,8 @@ function renderEffectZone(player) {
     const item = document.createElement('button');
     item.className = `effect-mini effect-${definition.kind}${definition.negative ? ' effect-negative' : ''}`;
     item.type = 'button';
-    item.title = `${definition.name}\n${definition.text ?? ''}`;
-    item.setAttribute('aria-label', `${definition.name}：${definition.text ?? ''}`);
+    item.title = `${definition.name}\n${definition.effectText ?? definition.text ?? ''}`;
+    item.setAttribute('aria-label', `${definition.name}：${definition.effectText ?? definition.text ?? ''}`);
     const badge = definition.definitionId === 'miracle-02' ? '<b>+3</b>' : definition.definitionId === 'miracle-09' ? '<b>使命+2</b>' : definition.definitionId === 'miracle-13' ? '<b>抽+1</b>' : ['disaster-06','disaster-09'].includes(definition.definitionId) ? '<b>-2</b>' : '';
     item.innerHTML = `<img src="${presentationImage(definition)}" alt="${definition.name}">${globalThis.__shepherdCardFaceGlyph?.(definition)??''}<span class="effect-mini-name">${definition.name}</span>${badge}`;
     item.addEventListener('click', (event) => {
