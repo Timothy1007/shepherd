@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createGame,getNormalActions,executeNormalAction} from '../src/game/game.js';
 function act(s,a){const r=executeNormalAction(s,a);assert.equal(r.ok,true,r.reason);return r.state;}
-function play(s,choice){const a=getNormalActions(s).find(a=>a.instanceId==='miracle-14#qa'&&a.targetPlayerId==='player-2');assert.ok(a);return act(s,{...a,choice});}
+function play(s,choice){const a=getNormalActions(s).find(a=>a.instanceId==='miracle-14#1'&&a.targetPlayerId==='player-2');assert.ok(a);return act(s,{...a,choice});}
 function reward(s){const a=getNormalActions(s)[0];assert.equal(a.type,'resolveDivisionRecipient');return act(s,a);}
 function effect(s,owner,id){for(const z of [s.deck,...s.players.map(p=>p.hand)]){const i=z.findIndex(c=>c.definitionId===id);if(i>=0){owner.effects.push(z.splice(i,1)[0]);return;}}throw Error('missing '+id);}
 test('自己抽牌，對方選擇使命增加三點',()=>{let s=createGame({seed:'overflow-test'});s=play(s,'draw');assert.equal(s.players[0].hand.length,1);assert.equal(s.pendingMissionReward.entries[0].playerId,'player-2');const type=getNormalActions(s)[0].recipientPlayerId;s=reward(s);assert.equal(s.players[1].missionProgress[type],3);assert.equal(s.pendingOverflow,null);});
@@ -12,3 +12,5 @@ test('對方黎明抽牌後由對方棄牌',()=>{let s=createGame({seed:'overflo
 test('傾覆 II 將使命進度變動改為一點',()=>{let s=createGame({seed:'overflow-test'});s.activeJudgments={'異變':'overturn-2'};s=play(s,'mission');const type=getNormalActions(s)[0].recipientPlayerId;s=reward(s);assert.equal(s.players[0].missionProgress[type],1);});
 test('沒有未完成的使命時繼續結算，不會卡住',()=>{let s=createGame({seed:'overflow-test'});s.players[1].missionProgress={...s.players[1].mission};s=play(s,'draw');assert.equal(s.players[0].hand.length,1);assert.equal(s.pendingOverflow,null);});
 test('抽到死亡牌時先完成另一項使命選擇',()=>{let s=createGame({seed:'overflow-test'});const i=s.deck.findIndex(c=>c.definitionId==='death');assert.ok(i>=0);s.deck.unshift(s.deck.splice(i,1)[0]);s=play(s,'draw');assert.equal(s.phase,'deathPending');assert.ok(s.pendingMissionReward);s=reward(s);assert.equal(s.pendingOverflow,null);assert.equal(s.phase,'deathRound');});
+
+test('正式牌庫含一張杯滿盈溢',()=>{const s=createGame({seed:'ordinary'});assert.equal(Object.values(s.cardRegistry).filter(id=>id==='miracle-14').length,1);});

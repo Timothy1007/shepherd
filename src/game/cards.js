@@ -3,7 +3,7 @@ export const MIRACLE_CORRUPTION = Object.freeze({
   '回轉歸向': 2, '行曠野之路': 2, '荊棘冠冕': 3, '於水中重生': 3,
   '如風吹來': 1, '所望之實底': 1, '行向水深之處': 3, '拆毀後重建': 2,
   '勝利歸於我們': 3, '恰如飛鳥經過': 2, '窄門與窄路': 3, '分杯之火': 1,
-  '在黎明前叩門': 1, '杯滿盈溢': 2, '三股合成繩': 3, '越過長夜': 1,
+  '在黎明前叩門': 1, '杯滿盈溢': 2, '三股合成繩': 3, '三股合成的繩子': 3, '越過長夜': 1,
   '替罪羊': 3, '空墳墓': 2, '拆毀堅固營壘': 2, '勝過死亡': 2,
   '焚而不毀荊棘': 2, '焚而不毀的荊棘': 2, '雨幕之下': 1, '第二次生命': 2, '劫後餘生': 3,
 });
@@ -52,6 +52,7 @@ Object.freeze({definitionId:'miracle-08',kind:'miracle',name:'拆毀後重建',t
 Object.freeze({definitionId:'miracle-09',kind:'miracle',name:'勝利歸於我們',tags:Object.freeze(['共鳴','使命']),text:'你選擇1名其他玩家，並將此牌置於你的效果區。本輪結算時，若你或該玩家成為使徒，你與該玩家各選擇1種尚未完成的使命物資，使該物資的使命進度+2，然後你棄置此牌。',image:'assets/miracles/miracle-09.png',copies:1}),
 Object.freeze({definitionId:'miracle-10',kind:'miracle',name:'恰如飛鳥經過',tags:Object.freeze(['共鳴','流轉','使命']),text:'你選擇1名其他玩家。若你與該玩家皆有手牌，你們各選擇1張手牌並同時展示。若雙方皆同意，則交換這2張牌；若任一方不同意，則收回展示的牌。若交換的牌型不同，你與該玩家各選擇1種尚未完成的使命物資，使該物資的使命進度+2。',image:'assets/miracles/miracle-10.png',copies:1}),
 Object.freeze({definitionId:'miracle-12',kind:'miracle',name:'分杯之火',tags:Object.freeze(['共鳴','火種']),text:'你支付6點火種。若如此做，選擇1名其他玩家，使其獲得3點火種，然後你抽1張牌。',image:'assets/miracles/miracal-Resonance.png',copies:1}),
+Object.freeze({definitionId:'miracle-14',kind:'miracle',name:'杯滿盈溢',tags:Object.freeze(['共鳴','使命']),text:'你選擇1名其他玩家。然後你選擇：抽1張牌；或選擇1種尚未完成的使命物資，使該物資的使命進度+3。該玩家獲得你未選擇的另一項效果。',image:'assets/miracles/miracal-Resonance.png',copies:1}),
 Object.freeze({definitionId:'miracle-13',kind:'miracle',name:'在黎明前叩門',tags:Object.freeze(['新生']),text:'將此牌置於你的效果區。你下一次因效果抽牌時，抽牌數量+1。抽牌後，你棄置1張手牌，然後棄置此牌。',image:'assets/miracles/miracle-13.png',copies:1}),
 Object.freeze({definitionId:'miracle-16',kind:'miracle',cardType:'miracle',reaction:true,name:'越過長夜',tags:Object.freeze(['應對','庇護']),text:'【應對】當你即將受到災難效果時，你可以打出此牌：你免疫該次效果。',image:'assets/miracles/miracle-16.png',copies:1}),
 Object.freeze({definitionId:'miracle-17',kind:'miracle',cardType:'miracle',reaction:true,name:'替罪羊',tags:Object.freeze(['應對','共鳴']),text:'【應對】當另一名玩家成為災難目標時，你可以打出此牌：將該災難對他的效果轉移給你，且你不能免疫。若你因此實際失去火種或棄置至少1張手牌，將此牌置於你的效果區。你下一次受到災難效果時，你選擇：少失去4點火種，或少棄置1張手牌。成功後，棄置此牌。',image:'assets/miracles/miracle-17.png',copies:1}),
@@ -69,6 +70,6 @@ Object.freeze({definitionId:'disaster-08',kind:'disaster',name:'積財寶在地�
 Object.freeze({definitionId:'disaster-09',kind:'disaster',name:'瘟疫',tags:Object.freeze(['單體','蔓延']),negative:true,duration:'round',text:'【負面】放置於任意玩家的效果區。本輪內，你成功打出的群羊牌數字-2，最低為0。成功打出群羊牌後，依出牌方向將此牌移至下一名玩家的效果區。本輪結束時，棄置此牌。',image:'assets/disasters/disaster-09.png',copies:1}),
 Object.freeze({definitionId:'disaster-15',kind:'disaster',name:'焚城之火',tags:Object.freeze(['多體','崩解']),text:'你選擇2名其他玩家；若其他玩家不足2名，則選擇所有其他玩家。這些玩家各棄置其效果區中的1張【增益】或神蹟牌；若沒有可棄置的牌，則失去6點火種。',image:'assets/disasters/disaster-15.png',copies:1})]);
 export const CARD_DEFINITIONS=Object.freeze([...RESOURCE_DEFINITIONS,...MIRACLE_DEFINITIONS,...DISASTER_DEFINITIONS]);export const DEFINITION_BY_ID=new Map(CARD_DEFINITIONS.map(d=>[d.definitionId,d]));
-export const OVERFLOW_QA_DEFINITION=Object.freeze({definitionId:'miracle-14',kind:'miracle',name:'杯滿盈溢',tags:Object.freeze(['共鳴','使命']),text:'你選擇1名其他玩家。然後你選擇：抽1張牌；或選擇1種尚未完成的使命物資，使該物資的使命進度+3。該玩家獲得你未選擇的另一項效果。',image:'assets/miracles/miracal-Resonance.png',copies:1});
-DEFINITION_BY_ID.set('miracle-14',OVERFLOW_QA_DEFINITION);
+export const ROPE_QA_DEFINITION=Object.freeze({definitionId:'miracle-15',kind:'miracle',name:'三股合成的繩子',tags:Object.freeze(['共鳴','使命']),text:'你選擇2名其他玩家；若其他玩家不足2名，則選擇所有其他玩家。所有參與玩家各選擇1張手牌並同時展示。若所有展示牌的牌型皆相同，所有參與玩家各選擇1種尚未完成的使命物資，使該物資的使命進度+3；若所有展示牌的牌型皆不同，你抽1張牌，其他參與玩家各選擇1種尚未完成的使命物資，使該物資的使命進度+2。',image:'assets/miracles/miracal-Resonance.png',copies:1});
+DEFINITION_BY_ID.set('miracle-15',ROPE_QA_DEFINITION);
 export function createResourceDeck(){const cards=[];for(const d of CARD_DEFINITIONS)for(let copy=1;copy<=d.copies;copy++)cards.push({instanceId:`${d.definitionId}#${copy}`,definitionId:d.definitionId});return cards;}export function getDefinition(card){const d=DEFINITION_BY_ID.get(card?.definitionId);if(!d)throw new Error(`Unknown card definition: ${card?.definitionId}`);return d;}export function effectiveType(card,declaredType=card?.declaredType){const d=getDefinition(card);if(d.kind!=='resource')return null;return d.type==='grace'?declaredType:d.type;}export function beats(challenger,current,reversed=false){return reversed?((challenger==='food'&&current==='sheep')||(challenger==='money'&&current==='food')||(challenger==='sheep'&&current==='money')):((challenger==='sheep'&&current==='food')||(challenger==='food'&&current==='money')||(challenger==='money'&&current==='sheep'));}export function isLegalResourcePlay(card,currentResource,declaredType,{reversed=false,invertedNumbers=false}={}){const d=getDefinition(card);if(d.kind!=='resource')return false;const type=d.type==='grace'?declaredType:d.type;if(!RESOURCE_TYPES.includes(type))return false;if(!currentResource)return true;if(type===currentResource.type)return invertedNumbers?d.number<=currentResource.number:d.number>=currentResource.number;return beats(type,currentResource.type,reversed);}
