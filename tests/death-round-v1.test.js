@@ -4,8 +4,17 @@ import { createGame, executeNormalAction, getNormalActions, listCardLocations, s
 
 function takeFromDeck(state, definitionId) {
   const index = state.deck.findIndex((card) => card.definitionId === definitionId);
-  assert.notEqual(index, -1, `Missing ${definitionId}`);
-  return state.deck.splice(index, 1)[0];
+  if (index >= 0) return state.deck.splice(index, 1)[0];
+  for (const player of state.players) {
+    const handIndex = player.hand.findIndex((card) => card.definitionId === definitionId);
+    if (handIndex >= 0) {
+      const replacement = state.deck.findIndex((card) => card.definitionId !== 'death');
+      assert.notEqual(replacement, -1, 'Missing replacement card');
+      const [card] = player.hand.splice(handIndex, 1, state.deck.splice(replacement, 1)[0]);
+      return card;
+    }
+  }
+  throw new Error(`Missing ${definitionId}`);
 }
 
 function act(state, action) {
