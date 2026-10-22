@@ -5,7 +5,7 @@ export const MIRACLE_CORRUPTION = Object.freeze({
   '勝利歸於我們': 3, '恰如飛鳥經過': 2, '窄門與窄路': 3, '分杯之火': 1,
   '在黎明前叩門': 1, '杯滿盈溢': 2, '三股合成繩': 3, '越過長夜': 1,
   '替罪羊': 3, '空墳墓': 2, '拆毀堅固營壘': 2, '勝過死亡': 2,
-  '焚而不毀荊棘': 2, '雨幕之下': 1, '第二次生命': 2, '劫後餘生': 3,
+  '焚而不毀荊棘': 2, '焚而不毀的荊棘': 2, '雨幕之下': 1, '第二次生命': 2, '劫後餘生': 3,
 });
 export const DISASTER_CORRUPTION = Object.freeze({
   '方舟之外': 3, '謊言與試探': 2, '告別舊時代': 3, '半朽蜜果': 2,
@@ -67,4 +67,7 @@ Object.freeze({definitionId:'disaster-08',kind:'disaster',name:'積財寶在地�
 Object.freeze({definitionId:'disaster-09',kind:'disaster',name:'瘟疫',tags:Object.freeze(['單體','蔓延']),negative:true,duration:'round',text:'【負面】放置於任意玩家的效果區。本輪內，你成功打出的群羊牌數字-2，最低為0。成功打出群羊牌後，依出牌方向將此牌移至下一名玩家的效果區。本輪結束時，棄置此牌。',image:'assets/disasters/disaster-09.png',copies:1}),
 Object.freeze({definitionId:'disaster-15',kind:'disaster',name:'焚城之火',tags:Object.freeze(['多體','崩解']),text:'你選擇2名其他玩家；若其他玩家不足2名，則選擇所有其他玩家。這些玩家各棄置其效果區中的1張【增益】或神蹟牌；若沒有可棄置的牌，則失去6點火種。',image:'assets/disasters/disaster-15.png',copies:1})]);
 export const CARD_DEFINITIONS=Object.freeze([...RESOURCE_DEFINITIONS,...MIRACLE_DEFINITIONS,...DISASTER_DEFINITIONS]);export const DEFINITION_BY_ID=new Map(CARD_DEFINITIONS.map(d=>[d.definitionId,d]));
+// This definition is available for the isolated QA seed only; it is not part of CARD_DEFINITIONS or the normal deck.
+export const BURNING_BUSH_QA_DEFINITION=Object.freeze({definitionId:'miracle-21',kind:'miracle',name:'焚而不毀的荊棘',tags:Object.freeze(['火種','新生']),duration:'round',text:'將此牌置於你的效果區。本輪你下一次因災難效果實際失去火種後，獲得等同此次實際失去火種一半的火種，向下取整，最多獲得4點，然後棄置此牌。',image:'assets/miracles/miracal-Ember.png',copies:1});
+DEFINITION_BY_ID.set(BURNING_BUSH_QA_DEFINITION.definitionId,BURNING_BUSH_QA_DEFINITION);
 export function createResourceDeck(){const cards=[];for(const d of CARD_DEFINITIONS)for(let copy=1;copy<=d.copies;copy++)cards.push({instanceId:`${d.definitionId}#${copy}`,definitionId:d.definitionId});return cards;}export function getDefinition(card){const d=DEFINITION_BY_ID.get(card?.definitionId);if(!d)throw new Error(`Unknown card definition: ${card?.definitionId}`);return d;}export function effectiveType(card,declaredType=card?.declaredType){const d=getDefinition(card);if(d.kind!=='resource')return null;return d.type==='grace'?declaredType:d.type;}export function beats(challenger,current,reversed=false){return reversed?((challenger==='food'&&current==='sheep')||(challenger==='money'&&current==='food')||(challenger==='sheep'&&current==='money')):((challenger==='sheep'&&current==='food')||(challenger==='food'&&current==='money')||(challenger==='money'&&current==='sheep'));}export function isLegalResourcePlay(card,currentResource,declaredType,{reversed=false,invertedNumbers=false}={}){const d=getDefinition(card);if(d.kind!=='resource')return false;const type=d.type==='grace'?declaredType:d.type;if(!RESOURCE_TYPES.includes(type))return false;if(!currentResource)return true;if(type===currentResource.type)return invertedNumbers?d.number<=currentResource.number:d.number>=currentResource.number;return beats(type,currentResource.type,reversed);}
