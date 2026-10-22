@@ -24,6 +24,6 @@ export function removeEffectByInstanceId(state, player, instanceId) {
   const index = player.effects.findIndex(card => card.instanceId === instanceId && isCleanseableEffect(card));
   if (index < 0) return null;
   const [removed] = player.effects.splice(index, 1);
-  state.discardPile.push(removed);
+  if (!removed.virtualSilverEffect) state.discardPile.push(removed);
   return removed;
 }
