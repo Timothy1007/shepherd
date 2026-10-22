@@ -91,7 +91,7 @@ test('死亡固定從牌庫底開始，且每次正常行動隱藏地向頂部�
   assert.equal(next.phase, 'playing');
 });
 
-test('死亡時鐘到達牌庫頂時，當前行動結束後進入死亡輪', () => {
+test('死亡時鐘到達牌庫頂後，仍要等待抽出才進入死亡輪', () => {
   const state = createGame({ seed: 'death-v1-clock-trigger' });
   const human = state.players[0];
   state.currentPlayer = human.playerId;
@@ -102,9 +102,9 @@ test('死亡時鐘到達牌庫頂時，當前行動結束後進入死亡輪', ()
 
   const next = act(state, getNormalActions(state).find((action) => action.type === 'playResource'));
 
-  assert.equal(next.phase, 'deathRound');
-  assert.equal(next.currentPlayer, 'player-4');
-  assert.equal(next.deck.some((card) => card.definitionId === 'death'), false);
+  assert.equal(next.phase, 'playing');
+  assert.equal(next.deck[0].definitionId, 'death');
+  assert.equal(next.death.triggered, false);
 });
 
 test('整備抽兩張後，死亡時鐘額外再隱藏推進二至四張', () => {

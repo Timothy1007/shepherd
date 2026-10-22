@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createGame, executeNormalAction, getNormalActions, listCardLocations, settleRound } from '../src/game/game.js';
+import { createGame, effectChangeAmount, executeNormalAction, getNormalActions, listCardLocations, settleRound } from '../src/game/game.js';
 import { DEFINITION_BY_ID } from '../src/game/cards.js';
 
 function take(state, definitionId, source = state.deck) {
@@ -439,7 +439,15 @@ test('card location invariant is preserved through actions', () => {
   let state = createGame({ seed: 18 });
   const expectedTotal = Object.keys(state.cardRegistry).length;
   for (let index = 0; index < 30 && !state.gameOver; index += 1) {
-    state = act(state, getNormalActions(state)[0]);
+    const action = getNormalActions(state)[0];
+    const player = state.players.find(p => p.playerId === action.playerId);
+    const card = player?.hand.find(c => c.instanceId === action.instanceId);
+    if (card?.definitionId === 'miracle-11') {
+      const choices = player.hand.filter(c => c.instanceId !== card.instanceId);
+      const target = state.players.find(p => p.playerId !== player.playerId);
+      action.gifts = choices.slice(0, Math.min(choices.length, effectChangeAmount(state, 3))).map(c => ({instanceId:c.instanceId, recipientPlayerId:target.playerId}));
+    }
+    state = act(state, action);
     const locations = listCardLocations(state);
     assert.equal(locations.length, expectedTotal);
     assert.equal(new Set(locations).size, expectedTotal);
