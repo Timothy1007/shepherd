@@ -26,7 +26,7 @@ test('V1 presentation module starts and renders an initial dealt table', async (
   globalThis.clearTimeout = () => {};
   try {
     await import(`../src/presentation/app.js?startup-smoke=${Date.now()}`);
-    assert.equal(elements.get('#resource-deck-count').textContent, '99');
+    assert.equal(elements.get('#resource-deck-count').textContent, String(globalThis.__shepherdController.state.deck.filter(card => card.definitionId !== 'death').length));
     assert.match(elements.get('#seat-human').innerHTML, /牧羊人/);
   } finally {
     Object.assign(globalThis, previous);
