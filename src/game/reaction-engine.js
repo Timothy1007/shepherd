@@ -22,6 +22,7 @@ export function disasterForAction(state,action){
 export function disasterTargetIds(state,action){
   const disaster=disasterForAction(state,action);
   if(!disaster)return[];
+  if(disaster.definition.definitionId==='disaster-03')return state.players.filter(player=>player.hand.some(card=>card.instanceId!==action.instanceId)).map(player=>player.playerId);
   if(['disaster-01','disaster-07'].includes(disaster.definition.definitionId))return state.players.map(player=>player.playerId);
   if(disaster.definition.definitionId==='disaster-02')return [...new Set(action.targetPlayerIds??[])];
   return action.targetPlayerId?[action.targetPlayerId]:[];
@@ -31,7 +32,7 @@ export function reactionOptionsFor(state,action,responderId,{previewState=null}=
   const disaster=disasterForAction(state,action),responder=playerById(state,responderId);
   if(!disaster||!responder)return[];
   const targetIds=disasterTargetIds(state,action),handIds=new Set(responder.hand.map(card=>card.definitionId)),options=[];
-  if(handIds.has(REACTION_IDS.scapegoat))for(const targetPlayerId of targetIds.filter(id=>id!==responderId))options.push({reactionId:REACTION_IDS.scapegoat,kind:'redirect',targetPlayerId});
+  if(disaster.definition.definitionId!=='disaster-03'&&handIds.has(REACTION_IDS.scapegoat))for(const targetPlayerId of targetIds.filter(id=>id!==responderId))options.push({reactionId:REACTION_IDS.scapegoat,kind:'redirect',targetPlayerId});
   if(targetIds.includes(responderId)&&handIds.has(REACTION_IDS.immunity))options.push({reactionId:REACTION_IDS.immunity,kind:'immunity'});
   if(targetIds.includes(responderId)&&handIds.has(REACTION_IDS.stronghold)&&canUseStronghold(disaster.card,responderId))options.push({reactionId:REACTION_IDS.stronghold,kind:'blockEffect',choices:strongholdChoices(disaster.card,responderId)});
   if(previewState&&targetIds.includes(responderId)){
