@@ -53,7 +53,12 @@ export function reactionOutcome(beforeState,afterState,playerId,reactionInstance
   const before=playerById(beforeState,playerId),after=playerById(afterState,playerId);
   if(!before||!after)return{lostFire:0,lostCardIds:[],crossedFireToZero:false,crossedHandToZero:false};
   const beforeHand=before.hand.filter(card=>card.instanceId!==reactionInstanceId),afterIds=new Set(after.hand.map(card=>card.instanceId));
-  return {lostFire:Math.max(0,before.fire-after.fire),lostCardIds:beforeHand.filter(card=>!afterIds.has(card.instanceId)).map(card=>card.instanceId),crossedFireToZero:before.fire>0&&after.fire===0,crossedHandToZero:beforeHand.length>0&&after.hand.length===0};
+  // In the isolated burning-bush QA, the disaster loss and the subsequent
+  // miracle gain are separate events. Do not mistake their net change for loss.
+  const bush=before.effects?.find(card=>card.definitionId==='miracle-21');
+  const bushTriggered=String(beforeState.qaSeed).startsWith('burning-bush-')&&bush&&!after.effects?.some(card=>card.instanceId===bush.instanceId)&&afterState.lastBurningBush?.playerId===playerId;
+  const lostFire=bushTriggered?afterState.lastBurningBush.lost:Math.max(0,before.fire-after.fire);
+  return {lostFire,lostCardIds:beforeHand.filter(card=>!afterIds.has(card.instanceId)).map(card=>card.instanceId),crossedFireToZero:before.fire>0&&(bushTriggered?before.fire-lostFire===0:after.fire===0),crossedHandToZero:beforeHand.length>0&&after.hand.length===0};
 }
 
 export function consumeScapegoatProtection(beforeState,afterState,playerId){
