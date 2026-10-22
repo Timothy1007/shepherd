@@ -54,3 +54,31 @@ test('通用應對視窗以災難預覽判定空墳墓與勝過死亡',()=>{
   const options=reactionOptionsFor(state,action,'player-2',{previewState:preview});
   assert.deepEqual(options.filter(option=>['miracle-18','miracle-20'].includes(option.reactionId)),[{reactionId:'miracle-18',kind:'afterFireLoss',drawCount:1},{reactionId:'miracle-20',kind:'preserveThreshold',fire:true,hand:false}]);
 });
+
+test('替罪羊不能由同次災難的目標使用，其他玩家可使用',()=>{
+ const state=createGame({seed:'reaction-window-lies'}),lies=give(state,'player-1','disaster-02');give(state,'player-2','miracle-17');give(state,'player-4','miracle-17');
+ const action=actionFor(state,'player-1',lies);action.targetPlayerIds=['player-2','player-3'];
+ assert.ok(!reactionOptionsFor(state,action,'player-2').some(o=>o.kind==='redirect'));
+ assert.ok(reactionOptionsFor(state,action,'player-4').some(o=>o.kind==='redirect'));
+});
+test('沉淪擴及的玩家不能使用替罪羊',()=>{
+ const state=createGame({seed:'reaction-window-sinking'}),treasure=give(state,'player-2','disaster-08');give(state,'player-1','miracle-17');
+ const action=actionFor(state,'player-2',treasure);action.targetPlayerId='player-2';state.activeJudgments={'災變':'sinking-1'};
+ assert.ok(disasterTargetIds(state,action).includes('player-1'));assert.ok(!reactionOptionsFor(state,action,'player-1').some(o=>o.kind==='redirect'));
+});
+test('告別舊時代有手牌者不能使用替罪羊',()=>{
+ const state=createGame({seed:'farewell-test'});give(state,'player-2','miracle-17');const action=getNormalActions(state).find(a=>a.instanceId==='disaster-03#qa');
+ assert.ok(!reactionOptionsFor(state,action,'player-2').some(o=>o.kind==='redirect'));
+});
+
+test('沉淪中轉移原目標，其他相鄰玩家仍受原效果',async()=>{
+ const {executeNormalAction}=await import('../src/game/game.js');const state=createGame({seed:'reaction-window-sinking-transfer'}),card=give(state,'player-2','disaster-08');state.players.forEach(p=>p.fire=20);state.activeJudgments={'災變':'sinking-1'};
+ const action=actionFor(state,'player-2',card);action.targetPlayerId='player-4';action.reactionRedirect={fromPlayerId:'player-2',toPlayerId:'player-4'};
+ // 原目標不能是出牌者，因此改以 player-3 出牌並指定 player-2。
+ state.currentPlayer='player-3';state.players[1].hand=state.players[1].hand.filter(c=>c.instanceId!==card.instanceId);state.players[2].hand.push(card);action.playerId='player-3';
+ const r=executeNormalAction(state,action);assert.equal(r.ok,true,r.reason);assert.deepEqual(r.state.players.map(p=>p.fire),[12,20,12,12]);
+});
+test('焚城之火辨識全部已選目標，目標本人不能使用替罪羊',()=>{
+ const state=createGame({seed:'burning-city-test'}),actor=state.players[0],card=actor.hand.find(c=>c.definitionId==='disaster-15');state.currentPlayer=actor.playerId;give(state,'player-2','miracle-17');const action=getNormalActions(state).find(a=>a.instanceId===card.instanceId&&a.targetPlayerIds?.includes('player-2'));
+ assert.ok(action);assert.ok(disasterTargetIds(state,action).includes('player-2'));assert.ok(!reactionOptionsFor(state,action,'player-2').some(o=>o.kind==='redirect'));
+});
