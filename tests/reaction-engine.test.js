@@ -67,7 +67,7 @@ test('沉淪擴及的玩家不能使用替罪羊',()=>{
  assert.ok(disasterTargetIds(state,action).includes('player-1'));assert.ok(!reactionOptionsFor(state,action,'player-1').some(o=>o.kind==='redirect'));
 });
 test('告別舊時代有手牌者不能使用替罪羊',()=>{
- const state=createGame({seed:'farewell-test'});give(state,'player-2','miracle-17');const action=getNormalActions(state).find(a=>a.instanceId==='disaster-03#qa');
+ const state=createGame({seed:'farewell-test'});give(state,'player-2','miracle-17');const action=getNormalActions(state).find(a=>a.instanceId==='disaster-03#1');
  assert.ok(!reactionOptionsFor(state,action,'player-2').some(o=>o.kind==='redirect'));
 });
 
