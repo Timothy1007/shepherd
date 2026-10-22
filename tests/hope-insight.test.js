@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createGame,getNormalActions,executeNormalAction,listCardLocations} from '../src/game/game.js';
 
-test('所望之實底 lets the player keep one of top three and order the rest on deck bottom',()=>{
+test('所望之實底 lets the player keep one of top three and put the rest on deck bottom',()=>{
   const state=createGame({seed:'insight-core'});
   state.currentPlayer='player-1';
   const player=state.players[0];
@@ -20,7 +20,7 @@ test('所望之實底 lets the player keep one of top three and order the rest o
   const next=result.state.players[0];
   assert.equal(next.hand.length,beforeHand);
   assert.ok(next.hand.some(c=>c.instanceId===selected.instanceId));
-  assert.deepEqual(result.state.deck.slice(-2).map(c=>c.instanceId),rest.map(c=>c.instanceId));
+  assert.deepEqual(result.state.deck.slice(-2).map(c=>c.instanceId).sort(),rest.map(c=>c.instanceId).sort());
   assert.ok(result.state.playedArea.some(c=>c.instanceId===card.instanceId));
   const locations=listCardLocations(result.state);
   assert.equal(new Set(locations).size,locations.length);

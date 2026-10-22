@@ -1,4 +1,4 @@
-import { createGame, executeNormalAction, getNormalActions } from '../src/game/game.js';
+import { createGame, effectChangeAmount, executeNormalAction, getNormalActions } from '../src/game/game.js';
 
 export function simulate(seed) {
   let state = createGame({ seed });
@@ -8,7 +8,11 @@ export function simulate(seed) {
     if (!available.length) throw new Error(`No action in active game for seed ${seed}`);
     let result = null;
     for (const action of available) {
-      const attempt = executeNormalAction(state, action);
+      const player=state.players.find(p=>p.playerId===action.playerId);
+      const card=player?.hand.find(c=>c.instanceId===action.instanceId);
+      const availableCards=player?.hand.filter(c=>c.instanceId!==action.instanceId)??[];
+      const gifts=card?.definitionId==='miracle-11'?availableCards.slice(0,Math.min(availableCards.length,effectChangeAmount(state,3))).map(c=>({instanceId:c.instanceId,recipientPlayerId:state.players.find(p=>p.playerId!==player.playerId).playerId})):undefined;
+      const attempt = executeNormalAction(state, gifts?{...action,gifts}:action);
       if (attempt.ok) { result = attempt; break; }
       if (attempt.reason !== 'Unsupported special card.') throw new Error(attempt.reason);
     }

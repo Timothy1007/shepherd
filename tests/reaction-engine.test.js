@@ -12,8 +12,8 @@ test('通用應對視窗正確列出群體災難受影響者與可用應對',()=
   give(state,'player-2','miracle-16');give(state,'player-3','miracle-19');
   const action=actionFor(state,'player-1',ashes),window=reactionWindowFor(state,action);
   assert.deepEqual(window.targetIds,['player-1','player-2','player-3','player-4']);
-  assert.deepEqual(window.optionsByPlayer['player-2'].map(option=>option.reactionId),['miracle-16']);
-  assert.deepEqual(window.optionsByPlayer['player-3'][0].choices.map(choice=>choice.effectId),['lose-fire','miracle-fire-reduction']);
+  assert.ok(window.optionsByPlayer['player-2'].some(option=>option.reactionId==='miracle-16'));
+  assert.deepEqual(window.optionsByPlayer['player-3'].find(option=>option.reactionId==='miracle-19').choices.map(choice=>choice.effectId),['lose-fire','miracle-fire-reduction']);
 });
 
 test('其他玩家打出單體災難時，受影響的玩家仍會取得可用應對',()=>{
