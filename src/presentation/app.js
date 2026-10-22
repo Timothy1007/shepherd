@@ -5,7 +5,7 @@ const TAG_INFO=Object.freeze({新生:'改變出牌、行動或限制，讓玩家
 const STRUCTURAL_TAGS=new Set(['應對','群體','單體','多體','負面']);
 const TAG_FACE_FILES=Object.freeze({新生:'Rebirth',流轉:'Flux',洞察:'Insight',庇護:'Sanctuary',共鳴:'Resonance',火種:'Ember',使命:'Mission',重構:'Reforge',掠奪:'Plunder',熄滅:'Extinction',蔓延:'Spread',崩解:'Collapse'});
 
-function qaFaceTag(definition){const query=new URLSearchParams(globalThis.location?.search??'');if(query.get('qa')!=='tag-glyph')return undefined;const tag=query.get('tag');if(tag==='Ember'&&definition.definitionId==='miracle-05')return '火種';if(tag==='Mission'&&definition.definitionId==='miracle-09')return '使命';return undefined;}
+function qaFaceTag(definition){const query=new URLSearchParams(globalThis.location?.search??''),mode=query.get('qa'),tag=query.get('tag');if(mode==='tag-glyphs'||(mode==='tag-glyph'&&tag==='Ember')){if(definition.definitionId==='miracle-05')return '火種';}if(mode==='tag-glyphs'||(mode==='tag-glyph'&&tag==='Mission')){if(definition.definitionId==='miracle-09')return '使命';}return undefined;}
 function faceTag(definition){return qaFaceTag(definition)??definition.tags?.find(value=>!STRUCTURAL_TAGS.has(value)&&TAG_FACE_FILES[value]);}
 function tagFaceAsset(definition){if(!['miracle','disaster'].includes(definition.kind))return definition.image;const tag=faceTag(definition),file=TAG_FACE_FILES[tag];if(!file)return definition.image;const folder=definition.kind==='miracle'?'miracles':'disasters';const prefix=definition.kind==='miracle'?'miracal':'disater';const response=definition.tags?.includes('應對')?'-Response':'';return `assets/${folder}/${prefix}-${file}${response}.png`;}
 function cardFaceMarkup(definition,title,className){return `<img class="${className}" draggable="false" src="${tagFaceAsset(definition)}" alt="${title}">`;}

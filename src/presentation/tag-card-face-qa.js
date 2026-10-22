@@ -8,7 +8,7 @@ const TAG_GLYPH_CARDS = Object.freeze({
   Resonance: 'miracle-10', Ember: 'miracle-05', Mission: 'miracle-09', Reforge: 'disaster-06',
   Plunder: 'disaster-01', Extinction: 'disaster-07', Spread: 'disaster-09', Collapse: 'disaster-15',
 });
-const IMPLEMENTED_TAG_GLYPH_KEYS = Object.freeze(['Rebirth', 'Flux', 'Insight', 'Sanctuary', 'Resonance', 'Reforge', 'Plunder', 'Extinction', 'Spread', 'Collapse']);
+const IMPLEMENTED_TAG_GLYPH_KEYS = Object.freeze(['Rebirth', 'Flux', 'Insight', 'Sanctuary', 'Resonance', 'Ember', 'Mission', 'Reforge', 'Plunder', 'Extinction', 'Spread', 'Collapse']);
 const TAG_GLYPH_LABELS = Object.freeze({Rebirth:'新生',Flux:'流轉',Insight:'洞察',Sanctuary:'庇護',Resonance:'共鳴',Ember:'火種',Mission:'使命',Reforge:'重構',Plunder:'掠奪',Extinction:'熄滅',Spread:'蔓延',Collapse:'崩解'});
 const GLYPH_KEY = query.get('tag');
 const ART_BATCH_SIZE = 6;
@@ -87,7 +87,7 @@ function setup() {
     : MODE === 'flux-card-face'
     ? `流轉卡面測試：已將 ${cards.length} 張主標籤為流轉的神蹟發至你的手牌；兩張共用既有圓端循環圖騰規格。`
     : MODE === 'tag-glyphs'
-    ? `已實裝圖騰檢視：已將 ${cards.length} 張代表牌發至你的手牌；只包含目前正式卡面會顯示 runtime SVG 的標籤。`
+    ? `12 個標籤圖騰檢視：已將 ${cards.length} 張代表牌發至你的手牌；火種與使命使用測試卡面。`
     : MODE === 'tag-glyph' && GLYPH_KEY === 'Ember'
     ? `火種圖騰單獨測試：使用《如風吹來》預覽火種卡面；正常對局此牌仍以流轉為主標籤。`
     : MODE === 'tag-glyph' && GLYPH_KEY === 'Mission'
