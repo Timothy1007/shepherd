@@ -47,3 +47,21 @@ test('焚城之火拒絕包含自己或不足兩名的目標', () => {
   assert.equal(invalid.ok, false);
   assert.match(invalid.reason, /stale or illegal/i);
 });
+
+function cleanCity() {
+  const state=createGame({seed:'burning-city-test'});
+  for(const p of state.players){p.hand=p.hand.filter(c=>c.definitionId==='disaster-15');p.effects=[];p.fire=10;}
+  state.activeJudgments={};
+  return state;
+}
+function put(p,id){p.hand.push({definitionId:id,instanceId:`${id}#fixture-${p.playerId}`});}
+function playCity(s){const city=s.players[0].hand.find(c=>c.definitionId==='disaster-15');return act(s,getNormalActions(s).find(a=>a.instanceId===city.instanceId&&a.targetPlayerIds.join(',')==='player-2,player-3'));}
+function choose(s,type,choice,targetPlayerId){return act(s,getNormalActions(s).find(a=>a.type===type&&a.choice===choice&&(!targetPlayerId||a.targetPlayerId===targetPlayerId)));}
+
+test('空手仍可被選為目標，蟲災並非增益',()=>{let s=cleanCity();s.players[1].effects.push({definitionId:'disaster-06',instanceId:'insect#fixture'});assert.equal(getNormalActions(s).filter(a=>a.instanceId===s.players[0].hand[0].instanceId).length,3);s=playCity(s);assert.equal(s.players[1].fire,4);assert.equal(s.players[1].effects.length,1);});
+for(const [judgment,fire] of [['overturn-1',7],['overturn-2',9]])test(`焚城失火遵守 ${judgment}`,()=>{let s=cleanCity();s.activeJudgments['異變']=judgment;s=playCity(s);assert.equal(s.players[1].fire,fire);assert.equal(s.players[2].fire,fire);});
+test('越過長夜只免疫自身',()=>{let s=cleanCity();put(s.players[1],'miracle-16');s=playCity(s);s=choose(s,'resolveBurningCityImmunity','use');assert.equal(s.players[1].fire,10);assert.equal(s.players[2].fire,4);});
+test('替罪羊轉移一名未受影響玩家，失火才進入效果區',()=>{let s=cleanCity();put(s.players[3],'miracle-17');put(s.players[3],'miracle-16');s=playCity(s);s=choose(s,'resolveBurningCityRedirect','use','player-2');assert.equal(s.players[1].fire,10);assert.equal(s.players[3].fire,4);assert.equal(s.players[3].effects.some(c=>c.definitionId==='miracle-17'),true);assert.equal(s.players[3].hand.some(c=>c.definitionId==='miracle-16'),true);});
+test('轉移後棄置效果區神蹟不算棄手牌，替罪羊留在已出牌區',()=>{let s=cleanCity();put(s.players[3],'miracle-17');s.players[3].effects.push({definitionId:'miracle-02',instanceId:'effect#fixture'});s=playCity(s);s=choose(s,'resolveBurningCityRedirect','use','player-2');assert.equal(s.players[3].fire,10);assert.equal(s.players[3].effects.length,0);assert.equal(s.playedArea.some(c=>c.definitionId==='miracle-17'),true);});
+test('空墳墓按實際損失抽兩張',()=>{let s=cleanCity();put(s.players[1],'miracle-18');s=playCity(s);s=choose(s,'resolveBurningCityTomb','use');assert.equal(s.players[1].fire,4);assert.equal(s.players[1].hand.length,2);});
+test('勝過死亡降低實際損失，空墳墓按減少後的損失計算',()=>{let s=cleanCity();s.players[1].fire=3;put(s.players[1],'miracle-18');put(s.players[1],'miracle-20');s=playCity(s);s=choose(s,'resolveBurningCityTomb','use');s=choose(s,'resolveBurningCityOvercome','use');assert.equal(s.players[1].fire,1);assert.equal(s.players[1].hand.length,0);});
