@@ -80,9 +80,9 @@ test('QA ashes first loses fire and its miracle reduction limits the refund',()=
   assert.equal(state.players[0].roundModifiers.miracleFireReduction,2);
 });
 
-test('normal game never contains the QA-only miracle',()=>{
+test('normal game includes the confirmed miracle once',()=>{
   const state=createGame({seed:'ordinary-game'});
-  assert.equal(Object.values(state.cardRegistry).includes('miracle-21'),false);
+  assert.equal(Object.values(state.cardRegistry).filter(id=>id==='miracle-21').length,1);
 });
 
 test('zero actual loss keeps the effect for a later disaster',()=>{
@@ -103,4 +103,41 @@ test('blocking the fire-loss part of ashes does not trigger the effect',()=>{
   state=result.state;
   assert.equal(state.players[0].fire,25);
   assert.ok(state.players[0].effects.some(card=>card.definitionId==='miracle-21'));
+});
+
+test('正式對局：荊棘在災難造成實際損失後觸發',()=>{
+  let state=activate('burning-bush-treasure');
+  state.qaSeed='ordinary-game';
+  state=attackHuman(state);
+  assert.deepEqual(state.lastBurningBush,{playerId:'player-1',lost:10,gain:4});
+  assert.equal(state.players[0].fire,19);
+});
+
+test('焚城之火先棄置唯一的荊棘，不扣火也不返還',()=>{
+  let state=createGame({seed:'burning-city-test'});
+  const bush=state.deck.find(c=>c.definitionId==='miracle-21')??state.players.flatMap(p=>p.hand).find(c=>c.definitionId==='miracle-21');
+  assert.ok(bush);
+  state.deck=state.deck.filter(c=>c.instanceId!==bush.instanceId);
+  for(const p of state.players)p.hand=p.hand.filter(c=>c.instanceId!==bush.instanceId);
+  state.players[1].effects=[bush];state.players[1].fire=20;
+  const city=state.players[0].hand.find(c=>c.definitionId==='disaster-15');
+  const action=getNormalActions(state).find(a=>a.instanceId===city.instanceId&&a.targetPlayerIds.join(',')==='player-2,player-3');
+  const result=executeNormalAction(state,action);assert.equal(result.ok,true,result.reason);
+  assert.equal(result.state.players[1].fire,20);
+  assert.ok(result.state.discardPile.some(c=>c.instanceId===bush.instanceId));
+  assert.equal(result.state.lastBurningBush,undefined);
+});
+
+test('焚城之火有多張效果牌時可選擇保留荊棘',()=>{
+  let state=createGame({seed:'burning-city-test'});
+  const bush=state.deck.find(c=>c.definitionId==='miracle-21')??state.players.flatMap(p=>p.hand).find(c=>c.definitionId==='miracle-21');assert.ok(bush);
+  state.deck=state.deck.filter(c=>c.instanceId!==bush.instanceId);for(const p of state.players)p.hand=p.hand.filter(c=>c.instanceId!==bush.instanceId);
+  state.players[1].effects.push(bush);state.players[1].fire=20;
+  const city=state.players[0].hand.find(c=>c.definitionId==='disaster-15');
+  const play=getNormalActions(state).find(a=>a.instanceId===city.instanceId&&a.targetPlayerIds.join(',')==='player-2,player-3');
+  let result=executeNormalAction(state,play);assert.equal(result.ok,true,result.reason);
+  const other=getNormalActions(result.state).find(a=>a.effectInstanceId!==bush.instanceId);assert.ok(other);
+  result=executeNormalAction(result.state,other);assert.equal(result.ok,true,result.reason);
+  assert.ok(result.state.players[1].effects.some(c=>c.instanceId===bush.instanceId));
+  assert.equal(result.state.players[1].fire,20);
 });
