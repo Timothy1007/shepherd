@@ -23,7 +23,7 @@ export function disasterTargetIds(state,action){
   const disaster=disasterForAction(state,action);
   if(!disaster)return[];
   if(disaster.definition.definitionId==='disaster-03')return state.players.filter(player=>player.hand.some(card=>card.instanceId!==action.instanceId)).map(player=>player.playerId);
-  if(['disaster-01','disaster-07','disaster-18'].includes(disaster.definition.definitionId))return state.players.map(player=>player.playerId);
+  if(['disaster-01','disaster-07','disaster-18','disaster-12'].includes(disaster.definition.definitionId))return state.players.map(player=>player.playerId);
   if(['disaster-02','disaster-15'].includes(disaster.definition.definitionId))return [...new Set(action.targetPlayerIds??[])];
   if(disaster.definition.definitionId==='disaster-08'&&action.targetPlayerId&&state.activeJudgments?.['災變']==='sinking-1'){const index=state.players.findIndex(p=>p.playerId===action.targetPlayerId);if(index>=0)return [...new Set([0,-1,1].map(offset=>state.players[(index+offset+state.players.length)%state.players.length].playerId))];}
   return action.targetPlayerId?[action.targetPlayerId]:[];
