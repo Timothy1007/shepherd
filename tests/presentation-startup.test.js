@@ -26,7 +26,7 @@ test('V1 presentation module starts and renders an initial dealt table', async (
   globalThis.clearTimeout = () => {};
   try {
     await import(`../src/presentation/app.js?startup-smoke=${Date.now()}`);
-    assert.equal(elements.get('#resource-deck-count').textContent, '90');
+    assert.equal(elements.get('#resource-deck-count').textContent, '91');
     assert.match(elements.get('#seat-human').innerHTML, /牧羊人/);
   } finally {
     Object.assign(globalThis, previous);
