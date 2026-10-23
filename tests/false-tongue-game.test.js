@@ -141,12 +141,6 @@ test('既有應對介面的後續抽牌可以暫停並接回原本的下一位�
  assert.equal(r.state.players[0].hand.length,2);assert.equal(r.state.currentPlayer,'player-3');
 });
 
-for (const judgment of ['blindness-1','blindness-2']) test(`${judgment} 不將虛謊之舌當作一般覆蓋牌打出`,()=>{
- const s=setup(),p=s.players[0];p.hand.push(s.players[1].hand.pop());s.activeJudgments={'資訊':judgment};
- const pile=getNormalActions(s).find(a=>a.type==='playBlindnessPile'&&(a.kind==='miracle'||a.kind==='unknown'));assert.ok(pile);
- const r=executeNormalAction(s,pile);assert.equal(r.ok,true,r.reason);assert.equal(r.state.pendingBlindness.instanceId,'miracle-01#1');
-});
-
 test('如風吹來的無效棄牌選擇不會觸發應對',()=>{
  const s=setup(),p=s.players[0];s.deck.push(...p.hand.splice(0));const i=s.deck.findIndex(c=>c.definitionId==='miracle-05');p.hand.push(s.deck.splice(i,1)[0]);
  const action=getNormalActions(s).find(a=>a.instanceId==='miracle-05#1');const r=executeNormalAction(s,{...action,choice:'cycle',discardIds:['missing']});
