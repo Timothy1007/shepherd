@@ -24,8 +24,8 @@ const requestedBatch = Number(query.get('batch') ?? 1);
 const ART_BATCH = Number.isInteger(requestedBatch) && requestedBatch >= 1 && requestedBatch <= ART_BATCH_COUNT ? requestedBatch : 1;
 const ART_BATCH_DEFINITIONS = ART_BATCHES[ART_BATCH - 1] ?? [];
 
-const ACTIVE = MODE === 'scapegoat-glyph' || MODE === 'sanctuary-response' || MODE === 'art-batch' || MODE === 'tag-card-faces' || MODE === 'tag-glyphs' || MODE === 'rebirth-card-face' || MODE === 'flux-card-face' || MODE === 'insight-card-face' || MODE === 'sanctuary-card-face' || MODE === 'resonance-card-face' || MODE === 'plunder-card-face' || (MODE === 'tag-glyph' && Boolean(TAG_GLYPH_CARDS[GLYPH_KEY]));
-const REVIEW_IDS = new Set(MODE === 'scapegoat-glyph' ? ['miracle-17'] : MODE === 'sanctuary-response' ? ['miracle-16'] : MODE === 'art-batch' ? ART_BATCH_DEFINITIONS.map(definition => definition.definitionId) : MODE === 'tag-glyphs' ? IMPLEMENTED_TAG_GLYPH_KEYS.map(key => TAG_GLYPH_CARDS[key]) : MODE === 'flux-card-face' ? ['miracle-04','miracle-05'] : MODE === 'tag-glyph' ? [
+const ACTIVE = MODE === 'wind-choice' || MODE === 'scapegoat-glyph' || MODE === 'sanctuary-response' || MODE === 'art-batch' || MODE === 'tag-card-faces' || MODE === 'tag-glyphs' || MODE === 'rebirth-card-face' || MODE === 'flux-card-face' || MODE === 'insight-card-face' || MODE === 'sanctuary-card-face' || MODE === 'resonance-card-face' || MODE === 'plunder-card-face' || (MODE === 'tag-glyph' && Boolean(TAG_GLYPH_CARDS[GLYPH_KEY]));
+const REVIEW_IDS = new Set(MODE === 'wind-choice' ? ['miracle-05','sheep-1','food-1','money-1'] : MODE === 'scapegoat-glyph' ? ['miracle-17'] : MODE === 'sanctuary-response' ? ['miracle-16'] : MODE === 'art-batch' ? ART_BATCH_DEFINITIONS.map(definition => definition.definitionId) : MODE === 'tag-glyphs' ? IMPLEMENTED_TAG_GLYPH_KEYS.map(key => TAG_GLYPH_CARDS[key]) : MODE === 'flux-card-face' ? ['miracle-04','miracle-05'] : MODE === 'tag-glyph' ? [
   TAG_GLYPH_CARDS[GLYPH_KEY],
 ] : MODE === 'insight-card-face' ? [
   // 洞察圖騰測試：三張洞察神蹟，直接確認眼睛卡面。
@@ -82,7 +82,9 @@ function setup() {
   human.hand.push(...cards);
   state.currentPlayer = human.playerId;
   state.qaSeed = 'tag-card-faces';
-  const message = MODE === 'scapegoat-glyph'
+  const message = MODE === 'wind-choice'
+    ? '如風吹來選擇介面測試：打出如風吹來，測試兩個效果與倒計時。'
+    : MODE === 'scapegoat-glyph'
     ? '替罪羊圖騰測試：手牌只有《替罪羊》，請檢查共鳴圓形圖騰與點擊詳情。'
     : MODE === 'sanctuary-response'
     ? '庇護應對圖騰測試：手牌只有《越過長夜》，請檢查中央圖騰與點擊詳情。'
