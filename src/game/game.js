@@ -70,13 +70,15 @@ function setupNarrowQa(state){
  for(const id of ['sheep-1','food-1','money-1']){const held=takeQaCard(state,id);if(!held)throw Error('Narrow QA missing '+id);human.hand.push(held);}human.fire=0;state.currentPlayer=human.playerId;state.currentResource=null;
 }
 function setupFarewellQa(state){
- if(!['farewell-test','farewell-immunity-test','farewell-revelation-test'].includes(state.qaSeed))return;
+ const multi=state.qaSeed.startsWith('farewell-multi-test-')||state.qaSeed.startsWith('farewell-revelation-multi-test-');
+ if(!multi&&!['farewell-test','farewell-immunity-test','farewell-revelation-test'].includes(state.qaSeed))return;
  for(const p of state.players)state.deck.push(...p.hand.splice(0));
  const human=state.players[0],actor=state.qaSeed==='farewell-immunity-test'?state.players[3]:human,card=takeQaCard(state,'disaster-03');
  if(!card)throw new Error('Farewell QA card missing');actor.hand.push(card);
  for(const [i,id] of [[0,'sheep-1'],[1,'food-1'],[2,'money-1'],[3,'sheep-2']]){const held=takeQaCard(state,id);if(!held)throw new Error('Farewell QA card missing: '+id);state.players[i].hand.push(held);}
+ if(multi)for(const [i,id] of [[0,'food-2'],[0,'money-3'],[1,'sheep-3'],[1,'money-4'],[2,'sheep-4'],[2,'food-3'],[3,'food-4'],[3,'money-2']]){const held=takeQaCard(state,id);if(!held)throw new Error('Farewell QA card missing: '+id);state.players[i].hand.push(held);}
  if(state.qaSeed==='farewell-immunity-test'){const reaction=takeQaCard(state,'miracle-16');if(!reaction)throw new Error('Farewell QA immunity missing');human.hand.push(reaction);}
- state.currentPlayer=actor.playerId;state.currentResource=null;if(state.qaSeed==='farewell-revelation-test')state.activeJudgments={'資訊':'revelation-1'};
+ state.currentPlayer=actor.playerId;state.currentResource=null;if(state.qaSeed==='farewell-revelation-test'||state.qaSeed.startsWith('farewell-revelation-multi-test-'))state.activeJudgments={'資訊':'revelation-1'};
 }
 function completeFarewell(state,transfers){
  for(const t of transfers){const from=state.players.find(p=>p.playerId===t.fromPlayerId),i=from.hand.findIndex(c=>c.instanceId===t.instanceId);t.card=from.hand.splice(i,1)[0];}
