@@ -34,6 +34,12 @@ test('在黎明前叩門 enters effect zone, adds one effect draw, then requires
   const before = state.players[0].hand.length;
 
   state = playFromHuman(state, 'miracle-01');
+  if (state.pendingFalseTongue) {
+    const pass = getNormalActions(state).find(action => action.type === 'resolveFalseTongue' && action.choice === 'pass');
+    const response = executeNormalAction(state, pass);
+    assert.equal(response.ok, true, response.reason);
+    state = response.state;
+  }
   assert.ok(state.pendingEffectDiscard);
   assert.equal(state.pendingEffectDiscard.playerId, 'player-1');
   assert.equal(state.players[0].hand.length, before - 1 + 2);
