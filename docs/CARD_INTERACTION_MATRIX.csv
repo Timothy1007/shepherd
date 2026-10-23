@@ -37,23 +37,23 @@ disaster-02,謊言與試探,直接應對候選,miracle-18,空墳墓,未記錄,�
 disaster-02,謊言與試探,直接應對候選,miracle-19,拆毀堅固營壘,未記錄,待核對適用與測試,
 disaster-02,謊言與試探,直接應對候選,miracle-20,勝過死亡,未記錄,待核對適用與測試,
 disaster-02,謊言與試探,直接應對候選,disaster-16,虛謊之舌,未記錄,待核對適用與測試,
-disaster-03,告別舊時代,單一審判,disorder-1,失序 I,是,待核對適用與測試,
-disaster-03,告別舊時代,單一審判,disorder-2,失序 II,是,待核對適用與測試,
-disaster-03,告別舊時代,單一審判,blindness-1,蒙蔽 I,是,待核對適用與測試,
-disaster-03,告別舊時代,單一審判,blindness-2,蒙蔽 II,是,待核對適用與測試,
-disaster-03,告別舊時代,單一審判,sinking-1,沉淪 I,是,待核對適用與測試,
-disaster-03,告別舊時代,單一審判,war-1,爭戰 I,是,待核對適用與測試,
-disaster-03,告別舊時代,單一審判,war-2,爭戰 II,是,待核對適用與測試,
-disaster-03,告別舊時代,單一審判,overturn-1,傾覆 I,是,待核對適用與測試,
-disaster-03,告別舊時代,單一審判,overturn-2,傾覆 II,是,待核對適用與測試,
-disaster-03,告別舊時代,單一審判,division-1,分裂 I,是,待核對適用與測試,
-disaster-03,告別舊時代,單一審判,division-2,分裂 II,是,待核對適用與測試,
-disaster-03,告別舊時代,單一審判,revelation-1,揭露 I,是,待核對適用與測試,
-disaster-03,告別舊時代,單一審判,revelation-2,揭露 II,是,待核對適用與測試,
-disaster-03,告別舊時代,直接應對候選,miracle-16,越過長夜,未記錄,待核對適用與測試,
+disaster-03,告別舊時代,單一審判,disorder-1,失序 I,是,已有局部結果斷言,tests/farewell-qa.test.js（單一審判下傳牌數量；揭露 I 另核對公開與牌位置）
+disaster-03,告別舊時代,單一審判,disorder-2,失序 II,是,已有局部結果斷言,tests/farewell-qa.test.js（單一審判下傳牌數量；揭露 I 另核對公開與牌位置）
+disaster-03,告別舊時代,單一審判,blindness-1,蒙蔽 I,是,已有局部結果斷言,tests/farewell-qa.test.js（單一審判下傳牌數量；揭露 I 另核對公開與牌位置）
+disaster-03,告別舊時代,單一審判,blindness-2,蒙蔽 II,是,已有局部結果斷言,tests/farewell-qa.test.js（單一審判下傳牌數量；揭露 I 另核對公開與牌位置）
+disaster-03,告別舊時代,單一審判,sinking-1,沉淪 I,是,已有局部結果斷言,tests/farewell-qa.test.js（單一審判下傳牌數量；揭露 I 另核對公開與牌位置）
+disaster-03,告別舊時代,單一審判,war-1,爭戰 I,是,已有局部結果斷言,tests/farewell-qa.test.js（單一審判下傳牌數量；揭露 I 另核對公開與牌位置）
+disaster-03,告別舊時代,單一審判,war-2,爭戰 II,是,已有局部結果斷言,tests/farewell-qa.test.js（單一審判下傳牌數量；揭露 I 另核對公開與牌位置）
+disaster-03,告別舊時代,單一審判,overturn-1,傾覆 I,是,已有局部結果斷言,tests/farewell-qa.test.js（單一審判下傳牌數量；揭露 I 另核對公開與牌位置）
+disaster-03,告別舊時代,單一審判,overturn-2,傾覆 II,是,已有局部結果斷言,tests/farewell-qa.test.js（單一審判下傳牌數量；揭露 I 另核對公開與牌位置）
+disaster-03,告別舊時代,單一審判,division-1,分裂 I,是,已有局部結果斷言,tests/farewell-qa.test.js（單一審判下傳牌數量；揭露 I 另核對公開與牌位置）
+disaster-03,告別舊時代,單一審判,division-2,分裂 II,是,已有局部結果斷言,tests/farewell-qa.test.js（單一審判下傳牌數量；揭露 I 另核對公開與牌位置）
+disaster-03,告別舊時代,單一審判,revelation-1,揭露 I,是,已有局部結果斷言,tests/farewell-qa.test.js（單一審判下傳牌數量；揭露 I 另核對公開與牌位置）
+disaster-03,告別舊時代,單一審判,revelation-2,揭露 II,是,已有局部結果斷言,tests/farewell-qa.test.js（單一審判下傳牌數量；揭露 I 另核對公開與牌位置）
+disaster-03,告別舊時代,直接應對候選,miracle-16,越過長夜,未記錄,已有局部結果斷言,tests/farewell-qa.test.js（單一場景檢查應對選項；未驗證完整應對結算）
 disaster-03,告別舊時代,直接應對候選,miracle-17,替罪羊,未記錄,待核對適用與測試,
-disaster-03,告別舊時代,直接應對候選,miracle-18,空墳墓,未記錄,待核對適用與測試,
-disaster-03,告別舊時代,直接應對候選,miracle-19,拆毀堅固營壘,未記錄,待核對適用與測試,
+disaster-03,告別舊時代,直接應對候選,miracle-18,空墳墓,未記錄,已有局部結果斷言,tests/farewell-qa.test.js（單一場景檢查應對選項；未驗證完整應對結算）
+disaster-03,告別舊時代,直接應對候選,miracle-19,拆毀堅固營壘,未記錄,已有局部結果斷言,tests/farewell-qa.test.js（單一場景檢查應對選項；未驗證完整應對結算）
 disaster-03,告別舊時代,直接應對候選,miracle-20,勝過死亡,未記錄,待核對適用與測試,
 disaster-03,告別舊時代,直接應對候選,disaster-16,虛謊之舌,未記錄,待核對適用與測試,
 disaster-04,半朽蜜果,單一審判,disorder-1,失序 I,是,待核對適用與測試,
@@ -88,10 +88,10 @@ disaster-05,瞳中倒影,單一審判,division-1,分裂 I,是,待核對適用與
 disaster-05,瞳中倒影,單一審判,division-2,分裂 II,是,待核對適用與測試,
 disaster-05,瞳中倒影,單一審判,revelation-1,揭露 I,是,待核對適用與測試,
 disaster-05,瞳中倒影,單一審判,revelation-2,揭露 II,是,待核對適用與測試,
-disaster-05,瞳中倒影,直接應對候選,miracle-16,越過長夜,未記錄,待核對適用與測試,
-disaster-05,瞳中倒影,直接應對候選,miracle-17,替罪羊,未記錄,待核對適用與測試,
+disaster-05,瞳中倒影,直接應對候選,miracle-16,越過長夜,未記錄,已有局部結果斷言,tests/reflection-qa.test.js（使用免疫後結算）
+disaster-05,瞳中倒影,直接應對候選,miracle-17,替罪羊,未記錄,已有局部結果斷言,tests/reflection-qa.test.js（轉移結算及既有保護）
 disaster-05,瞳中倒影,直接應對候選,miracle-18,空墳墓,未記錄,待核對適用與測試,
-disaster-05,瞳中倒影,直接應對候選,miracle-19,拆毀堅固營壘,未記錄,待核對適用與測試,
+disaster-05,瞳中倒影,直接應對候選,miracle-19,拆毀堅固營壘,未記錄,已排除：不符合觸發,tests/reflection-qa.test.js（只有棄牌一項效果，canUseStronghold 為 false）
 disaster-05,瞳中倒影,直接應對候選,miracle-20,勝過死亡,未記錄,待核對適用與測試,
 disaster-05,瞳中倒影,直接應對候選,disaster-16,虛謊之舌,未記錄,待核對適用與測試,
 disaster-06,蟲災,單一審判,disorder-1,失序 I,是,待核對適用與測試,
@@ -208,21 +208,21 @@ disaster-11,盜火,直接應對候選,miracle-18,空墳墓,未記錄,已有局�
 disaster-11,盜火,直接應對候選,miracle-19,拆毀堅固營壘,未記錄,待核對適用與測試,
 disaster-11,盜火,直接應對候選,miracle-20,勝過死亡,未記錄,待核對適用與測試,
 disaster-11,盜火,直接應對候選,disaster-16,虛謊之舌,未記錄,待核對適用與測試,
-disaster-12,哈米吉多頓,單一審判,disorder-1,失序 I,是,待核對適用與測試,
-disaster-12,哈米吉多頓,單一審判,disorder-2,失序 II,是,待核對適用與測試,
-disaster-12,哈米吉多頓,單一審判,blindness-1,蒙蔽 I,是,待核對適用與測試,
-disaster-12,哈米吉多頓,單一審判,blindness-2,蒙蔽 II,是,待核對適用與測試,
-disaster-12,哈米吉多頓,單一審判,sinking-1,沉淪 I,是,待核對適用與測試,
-disaster-12,哈米吉多頓,單一審判,war-1,爭戰 I,是,待核對適用與測試,
-disaster-12,哈米吉多頓,單一審判,war-2,爭戰 II,是,待核對適用與測試,
-disaster-12,哈米吉多頓,單一審判,overturn-1,傾覆 I,是,待核對適用與測試,
-disaster-12,哈米吉多頓,單一審判,overturn-2,傾覆 II,是,待核對適用與測試,
-disaster-12,哈米吉多頓,單一審判,division-1,分裂 I,是,待核對適用與測試,
-disaster-12,哈米吉多頓,單一審判,division-2,分裂 II,是,待核對適用與測試,
-disaster-12,哈米吉多頓,單一審判,revelation-1,揭露 I,是,待核對適用與測試,
-disaster-12,哈米吉多頓,單一審判,revelation-2,揭露 II,是,待核對適用與測試,
+disaster-12,哈米吉多頓,單一審判,disorder-1,失序 I,是,已有局部結果斷言,tests/armageddon-qa.test.js（單一審判下已出牌區棄置五張；並非所有手牌分支）
+disaster-12,哈米吉多頓,單一審判,disorder-2,失序 II,是,已有局部結果斷言,tests/armageddon-qa.test.js（單一審判下已出牌區棄置五張；並非所有手牌分支）
+disaster-12,哈米吉多頓,單一審判,blindness-1,蒙蔽 I,是,已有局部結果斷言,tests/armageddon-qa.test.js（單一審判下已出牌區棄置五張；並非所有手牌分支）
+disaster-12,哈米吉多頓,單一審判,blindness-2,蒙蔽 II,是,已有局部結果斷言,tests/armageddon-qa.test.js（單一審判下已出牌區棄置五張；並非所有手牌分支）
+disaster-12,哈米吉多頓,單一審判,sinking-1,沉淪 I,是,已有局部結果斷言,tests/armageddon-qa.test.js（單一審判下已出牌區棄置五張；並非所有手牌分支）
+disaster-12,哈米吉多頓,單一審判,war-1,爭戰 I,是,已有局部結果斷言,tests/armageddon-qa.test.js（單一審判下已出牌區棄置五張；並非所有手牌分支）
+disaster-12,哈米吉多頓,單一審判,war-2,爭戰 II,是,已有局部結果斷言,tests/armageddon-qa.test.js（單一審判下已出牌區棄置五張；並非所有手牌分支）
+disaster-12,哈米吉多頓,單一審判,overturn-1,傾覆 I,是,已有局部結果斷言,tests/armageddon-qa.test.js（單一審判下已出牌區棄置五張；並非所有手牌分支）
+disaster-12,哈米吉多頓,單一審判,overturn-2,傾覆 II,是,已有局部結果斷言,tests/armageddon-qa.test.js（單一審判下已出牌區棄置五張；並非所有手牌分支）
+disaster-12,哈米吉多頓,單一審判,division-1,分裂 I,是,已有局部結果斷言,tests/armageddon-qa.test.js（單一審判下已出牌區棄置五張；並非所有手牌分支）
+disaster-12,哈米吉多頓,單一審判,division-2,分裂 II,是,已有局部結果斷言,tests/armageddon-qa.test.js（單一審判下已出牌區棄置五張；並非所有手牌分支）
+disaster-12,哈米吉多頓,單一審判,revelation-1,揭露 I,是,已有局部結果斷言,tests/armageddon-qa.test.js（單一審判下已出牌區棄置五張；並非所有手牌分支）
+disaster-12,哈米吉多頓,單一審判,revelation-2,揭露 II,是,已有局部結果斷言,tests/armageddon-qa.test.js（單一審判下已出牌區棄置五張；並非所有手牌分支）
 disaster-12,哈米吉多頓,直接應對候選,miracle-16,越過長夜,未記錄,待核對適用與測試,
-disaster-12,哈米吉多頓,直接應對候選,miracle-17,替罪羊,未記錄,待核對適用與測試,
+disaster-12,哈米吉多頓,直接應對候選,miracle-17,替罪羊,未記錄,已有局部結果斷言,tests/armageddon-qa.test.js（受影響者不得轉移；已有保護抵減棄牌）
 disaster-12,哈米吉多頓,直接應對候選,miracle-18,空墳墓,未記錄,待核對適用與測試,
 disaster-12,哈米吉多頓,直接應對候選,miracle-19,拆毀堅固營壘,未記錄,待核對適用與測試,
 disaster-12,哈米吉多頓,直接應對候選,miracle-20,勝過死亡,未記錄,待核對適用與測試,
@@ -552,16 +552,16 @@ miracle-11,窄門與窄路,直接應對候選,miracle-20,勝過死亡,未記錄,
 miracle-11,窄門與窄路,直接應對候選,disaster-16,虛謊之舌,未記錄,已有局部結果斷言,tests/false-tongue-game.test.js
 miracle-12,分杯之火,單一審判,disorder-1,失序 I,是,待核對適用與測試,
 miracle-12,分杯之火,單一審判,disorder-2,失序 II,是,待核對適用與測試,
-miracle-12,分杯之火,單一審判,blindness-1,蒙蔽 I,是,待核對適用與測試,
-miracle-12,分杯之火,單一審判,blindness-2,蒙蔽 II,是,待核對適用與測試,
+miracle-12,分杯之火,單一審判,blindness-1,蒙蔽 I,是,已有局部結果斷言,tests/cup-qa.test.js（火種支付／獲得、抽牌揭露或蒙蔽翻牌的局部結果）
+miracle-12,分杯之火,單一審判,blindness-2,蒙蔽 II,是,已有局部結果斷言,tests/cup-qa.test.js（火種支付／獲得、抽牌揭露或蒙蔽翻牌的局部結果）
 miracle-12,分杯之火,單一審判,sinking-1,沉淪 I,是,待核對適用與測試,
 miracle-12,分杯之火,單一審判,war-1,爭戰 I,是,待核對適用與測試,
 miracle-12,分杯之火,單一審判,war-2,爭戰 II,是,待核對適用與測試,
-miracle-12,分杯之火,單一審判,overturn-1,傾覆 I,是,待核對適用與測試,
-miracle-12,分杯之火,單一審判,overturn-2,傾覆 II,是,待核對適用與測試,
+miracle-12,分杯之火,單一審判,overturn-1,傾覆 I,是,已有局部結果斷言,tests/cup-qa.test.js（火種支付／獲得、抽牌揭露或蒙蔽翻牌的局部結果）
+miracle-12,分杯之火,單一審判,overturn-2,傾覆 II,是,已有局部結果斷言,tests/cup-qa.test.js（火種支付／獲得、抽牌揭露或蒙蔽翻牌的局部結果）
 miracle-12,分杯之火,單一審判,division-1,分裂 I,是,待核對適用與測試,
 miracle-12,分杯之火,單一審判,division-2,分裂 II,是,待核對適用與測試,
-miracle-12,分杯之火,單一審判,revelation-1,揭露 I,是,待核對適用與測試,
+miracle-12,分杯之火,單一審判,revelation-1,揭露 I,是,已有局部結果斷言,tests/cup-qa.test.js（火種支付／獲得、抽牌揭露或蒙蔽翻牌的局部結果）
 miracle-12,分杯之火,單一審判,revelation-2,揭露 II,是,待核對適用與測試,
 miracle-12,分杯之火,直接應對候選,miracle-16,越過長夜,未記錄,待核對適用與測試,
 miracle-12,分杯之火,直接應對候選,miracle-17,替罪羊,未記錄,待核對適用與測試,
@@ -596,7 +596,7 @@ miracle-14,杯滿盈溢,單一審判,sinking-1,沉淪 I,是,待核對適用與�
 miracle-14,杯滿盈溢,單一審判,war-1,爭戰 I,是,待核對適用與測試,
 miracle-14,杯滿盈溢,單一審判,war-2,爭戰 II,是,待核對適用與測試,
 miracle-14,杯滿盈溢,單一審判,overturn-1,傾覆 I,是,待核對適用與測試,
-miracle-14,杯滿盈溢,單一審判,overturn-2,傾覆 II,是,待核對適用與測試,
+miracle-14,杯滿盈溢,單一審判,overturn-2,傾覆 II,是,已有局部結果斷言,tests/overflow-qa.test.js（使命進度為一）
 miracle-14,杯滿盈溢,單一審判,division-1,分裂 I,是,待核對適用與測試,
 miracle-14,杯滿盈溢,單一審判,division-2,分裂 II,是,待核對適用與測試,
 miracle-14,杯滿盈溢,單一審判,revelation-1,揭露 I,是,待核對適用與測試,
@@ -609,16 +609,16 @@ miracle-14,杯滿盈溢,直接應對候選,miracle-20,勝過死亡,未記錄,待
 miracle-14,杯滿盈溢,直接應對候選,disaster-16,虛謊之舌,未記錄,已有局部結果斷言,tests/false-tongue-game.test.js
 miracle-15,三股合成的繩子,單一審判,disorder-1,失序 I,是,待核對適用與測試,
 miracle-15,三股合成的繩子,單一審判,disorder-2,失序 II,是,待核對適用與測試,
-miracle-15,三股合成的繩子,單一審判,blindness-1,蒙蔽 I,是,待核對適用與測試,
-miracle-15,三股合成的繩子,單一審判,blindness-2,蒙蔽 II,是,待核對適用與測試,
+miracle-15,三股合成的繩子,單一審判,blindness-1,蒙蔽 I,是,已有局部結果斷言,tests/rope-qa.test.js（使命收益、抽牌揭露或展示牌型的局部結果）
+miracle-15,三股合成的繩子,單一審判,blindness-2,蒙蔽 II,是,已有局部結果斷言,tests/rope-qa.test.js（使命收益、抽牌揭露或展示牌型的局部結果）
 miracle-15,三股合成的繩子,單一審判,sinking-1,沉淪 I,是,待核對適用與測試,
 miracle-15,三股合成的繩子,單一審判,war-1,爭戰 I,是,待核對適用與測試,
 miracle-15,三股合成的繩子,單一審判,war-2,爭戰 II,是,待核對適用與測試,
 miracle-15,三股合成的繩子,單一審判,overturn-1,傾覆 I,是,待核對適用與測試,
-miracle-15,三股合成的繩子,單一審判,overturn-2,傾覆 II,是,待核對適用與測試,
+miracle-15,三股合成的繩子,單一審判,overturn-2,傾覆 II,是,已有局部結果斷言,tests/rope-qa.test.js（使命收益、抽牌揭露或展示牌型的局部結果）
 miracle-15,三股合成的繩子,單一審判,division-1,分裂 I,是,待核對適用與測試,
 miracle-15,三股合成的繩子,單一審判,division-2,分裂 II,是,待核對適用與測試,
-miracle-15,三股合成的繩子,單一審判,revelation-1,揭露 I,是,待核對適用與測試,
+miracle-15,三股合成的繩子,單一審判,revelation-1,揭露 I,是,已有局部結果斷言,tests/rope-qa.test.js（使命收益、抽牌揭露或展示牌型的局部結果）
 miracle-15,三股合成的繩子,單一審判,revelation-2,揭露 II,是,待核對適用與測試,
 miracle-15,三股合成的繩子,直接應對候選,miracle-16,越過長夜,未記錄,待核對適用與測試,
 miracle-15,三股合成的繩子,直接應對候選,miracle-17,替罪羊,未記錄,待核對適用與測試,
@@ -778,19 +778,19 @@ miracle-23,第二次生命,直接應對候選,miracle-18,空墳墓,未記錄,待
 miracle-23,第二次生命,直接應對候選,miracle-19,拆毀堅固營壘,未記錄,待核對適用與測試,
 miracle-23,第二次生命,直接應對候選,miracle-20,勝過死亡,未記錄,待核對適用與測試,
 miracle-23,第二次生命,直接應對候選,disaster-16,虛謊之舌,未記錄,已有局部結果斷言,tests/false-tongue-game.test.js
-miracle-24,劫後餘生,單一審判,disorder-1,失序 I,是,待核對適用與測試,
-miracle-24,劫後餘生,單一審判,disorder-2,失序 II,是,待核對適用與測試,
+miracle-24,劫後餘生,單一審判,disorder-1,失序 I,是,已有局部結果斷言,tests/aftermath-qa.test.js（所有玩家略過時結算完成；未驗證其他選擇）
+miracle-24,劫後餘生,單一審判,disorder-2,失序 II,是,已有局部結果斷言,tests/aftermath-qa.test.js（所有玩家略過時結算完成；未驗證其他選擇）
 miracle-24,劫後餘生,單一審判,blindness-1,蒙蔽 I,是,已有局部結果斷言,tests/aftermath-qa.test.js
 miracle-24,劫後餘生,單一審判,blindness-2,蒙蔽 II,是,已有局部結果斷言,tests/aftermath-qa.test.js
-miracle-24,劫後餘生,單一審判,sinking-1,沉淪 I,是,待核對適用與測試,
-miracle-24,劫後餘生,單一審判,war-1,爭戰 I,是,待核對適用與測試,
-miracle-24,劫後餘生,單一審判,war-2,爭戰 II,是,待核對適用與測試,
+miracle-24,劫後餘生,單一審判,sinking-1,沉淪 I,是,已有局部結果斷言,tests/aftermath-qa.test.js（所有玩家略過時結算完成；未驗證其他選擇）
+miracle-24,劫後餘生,單一審判,war-1,爭戰 I,是,已有局部結果斷言,tests/aftermath-qa.test.js（所有玩家略過時結算完成；未驗證其他選擇）
+miracle-24,劫後餘生,單一審判,war-2,爭戰 II,是,已有局部結果斷言,tests/aftermath-qa.test.js（所有玩家略過時結算完成；未驗證其他選擇）
 miracle-24,劫後餘生,單一審判,overturn-1,傾覆 I,是,已有局部結果斷言,tests/aftermath-qa.test.js
 miracle-24,劫後餘生,單一審判,overturn-2,傾覆 II,是,已有局部結果斷言,tests/aftermath-qa.test.js
 miracle-24,劫後餘生,單一審判,division-1,分裂 I,是,已有局部結果斷言,tests/aftermath-qa.test.js
 miracle-24,劫後餘生,單一審判,division-2,分裂 II,是,已有局部結果斷言,tests/aftermath-qa.test.js
 miracle-24,劫後餘生,單一審判,revelation-1,揭露 I,是,已有局部結果斷言,tests/aftermath-qa.test.js
-miracle-24,劫後餘生,單一審判,revelation-2,揭露 II,是,待核對適用與測試,
+miracle-24,劫後餘生,單一審判,revelation-2,揭露 II,是,已有局部結果斷言,tests/aftermath-qa.test.js（所有玩家略過時結算完成；未驗證其他選擇）
 miracle-24,劫後餘生,直接應對候選,miracle-16,越過長夜,未記錄,待核對適用與測試,
 miracle-24,劫後餘生,直接應對候選,miracle-17,替罪羊,未記錄,待核對適用與測試,
 miracle-24,劫後餘生,直接應對候選,miracle-18,空墳墓,未記錄,待核對適用與測試,
