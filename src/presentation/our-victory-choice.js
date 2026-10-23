@@ -12,7 +12,7 @@ function open(controller,action,token){ensureUi();const actor=controller.state.p
 GameController.prototype.act=function ourVictoryChoiceAct(action,token=this.snapshot()){
   if(action?.type==='playMiracle'){
     const player=this.state?.players.find(p=>p.playerId===action.playerId),card=player?.hand.find(c=>c.instanceId===action.instanceId);
-    if(player?.type==='human'&&card&&getDefinition(card).definitionId==='miracle-09'){
+    if(player?.type==='human'&&card&&!action.glassRandom&&getDefinition(card).definitionId==='miracle-09'){
       open(this,action,token);
       return{ok:false,pendingChoice:true,state:this.state};
     }
