@@ -86,8 +86,8 @@ function completeFarewell(state,transfers){
 function resolveFarewell(state,action){
  const immune=new Set(action.immunePlayerIds??[]),players=state.players.filter(p=>p.hand.length&&!immune.has(p.playerId)),transfers=[];
  if(players.length>=2)for(const p of players){const roll=randomInteger(state.rngState,0,p.hand.length-1);state.rngState=roll.state;const i=state.players.indexOf(p);let recipient;for(let step=1;step<=state.players.length;step++){const candidate=state.players[(i+state.direction*step+state.players.length*2)%state.players.length];if(players.includes(candidate)){recipient=candidate;break;}}const card=p.hand[roll.value];transfers.push({fromPlayerId:p.playerId,toPlayerId:recipient.playerId,instanceId:card.instanceId,definitionId:card.definitionId});}
- if(transfers.length&&state.activeJudgments?.['資訊']==='revelation-1')state.pendingFarewell={transfers,playerId:state.players.find(p=>p.type==='human')?.playerId??state.currentPlayer,resumeFromIndex:null};
- else completeFarewell(state,transfers);
+ if(transfers.length&&state.activeJudgments?.['資訊']==='revelation-1')state.lastFarewellReveal=transfers.map(({fromPlayerId,toPlayerId,instanceId,definitionId})=>({fromPlayerId,toPlayerId,instanceId,definitionId}));
+ completeFarewell(state,transfers);
 }
 function confirmFarewellMutable(state){const pending=state.pendingFarewell;if(!pending)return{error:'No farewell reveal pending.'};const resume=pending.resumeFromIndex;completeFarewell(state,pending.transfers);state.pendingFarewell=null;return{state:advanceOrSettle(state,resume)};}
 function armageddonCandidates(player){const cards=player.hand.filter(c=>!isDeathCard(c)&&getDefinition(c).kind==='resource');if(!cards.length)return [];const max=Math.max(...cards.map(c=>getDefinition(c).number));return cards.filter(c=>getDefinition(c).number===max);}
