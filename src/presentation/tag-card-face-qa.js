@@ -25,7 +25,7 @@ const ART_BATCH = Number.isInteger(requestedBatch) && requestedBatch >= 1 && req
 const ART_BATCH_DEFINITIONS = ART_BATCHES[ART_BATCH - 1] ?? [];
 
 const ACTIVE = MODE === 'wind-choice' || MODE === 'scapegoat-glyph' || MODE === 'sanctuary-response' || MODE === 'art-batch' || MODE === 'tag-card-faces' || MODE === 'tag-glyphs' || MODE === 'rebirth-card-face' || MODE === 'flux-card-face' || MODE === 'insight-card-face' || MODE === 'sanctuary-card-face' || MODE === 'resonance-card-face' || MODE === 'plunder-card-face' || (MODE === 'tag-glyph' && Boolean(TAG_GLYPH_CARDS[GLYPH_KEY]));
-const REVIEW_IDS = new Set(MODE === 'wind-choice' ? ['miracle-05','sheep-1','food-1','money-1'] : MODE === 'scapegoat-glyph' ? ['miracle-17'] : MODE === 'sanctuary-response' ? ['miracle-16'] : MODE === 'art-batch' ? ART_BATCH_DEFINITIONS.map(definition => definition.definitionId) : MODE === 'tag-glyphs' ? IMPLEMENTED_TAG_GLYPH_KEYS.map(key => TAG_GLYPH_CARDS[key]) : MODE === 'flux-card-face' ? ['miracle-04','miracle-05'] : MODE === 'tag-glyph' ? [
+const REVIEW_IDS = new Set(MODE === 'wind-choice' ? ['miracle-05','sheep-1','sheep-2','sheep-3','food-1','food-2','food-3','money-1','money-2','money-3'] : MODE === 'scapegoat-glyph' ? ['miracle-17'] : MODE === 'sanctuary-response' ? ['miracle-16'] : MODE === 'art-batch' ? ART_BATCH_DEFINITIONS.map(definition => definition.definitionId) : MODE === 'tag-glyphs' ? IMPLEMENTED_TAG_GLYPH_KEYS.map(key => TAG_GLYPH_CARDS[key]) : MODE === 'flux-card-face' ? ['miracle-04','miracle-05'] : MODE === 'tag-glyph' ? [
   TAG_GLYPH_CARDS[GLYPH_KEY],
 ] : MODE === 'insight-card-face' ? [
   // 洞察圖騰測試：三張洞察神蹟，直接確認眼睛卡面。

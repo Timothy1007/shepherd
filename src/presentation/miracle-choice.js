@@ -11,12 +11,22 @@ function ensureUi() {
   style.textContent = `
     #wind-choice-overlay[hidden]{display:none!important}
     #wind-choice-overlay{position:fixed;inset:0;z-index:30000;pointer-events:none;color:#f8f2e4}
-    .wind-panel{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);width:min(560px,90vw);max-height:78vh;overflow:auto;text-align:center;pointer-events:auto;text-shadow:0 2px 5px #000,0 0 12px #000}
-    .wind-face{display:block;position:relative;width:min(150px,20vh);aspect-ratio:63/88;margin:0 auto 8px;overflow:hidden;border-radius:9px;box-shadow:0 4px 18px #0008}
-    .wind-face>img{width:100%;height:100%;display:block;object-fit:cover}.wind-face .runtime-tag-glyph{z-index:2}
-    .wind-panel h2{font-size:22px;margin:4px}.wind-panel p{margin:5px}.wind-clock{font-weight:700;color:#ffe6a3}
-    .wind-options{display:grid;gap:6px;margin:10px auto}.wind-option,.wind-confirm button{border:1px solid #e1cf9b88;border-radius:10px;background:#14201bb8;color:#fff;padding:10px 14px;cursor:pointer;font:inherit;text-shadow:0 1px 4px #000}.wind-option:hover,.wind-confirm button:hover{background:#324538db}.wind-option strong{display:block;font-size:16px}.wind-option:disabled,.wind-confirm button:disabled{opacity:.45;cursor:not-allowed}
-    .wind-cards{display:flex;justify-content:center;flex-wrap:wrap;gap:6px;margin:8px 0}.wind-card{position:relative;width:min(68px,12vw);aspect-ratio:63/88;overflow:hidden;padding:0;border:2px solid transparent;border-radius:7px;background:#17221f;cursor:pointer}.wind-card.selected{border-color:#ffe190;transform:translateY(-4px)}.wind-card img{width:100%;height:100%;object-fit:cover}.wind-card .runtime-tag-glyph{z-index:2}.wind-confirm{display:flex;justify-content:center;gap:8px}.wind-limit{color:#ffd1bf}
+    .wind-panel{position:absolute;inset:0;pointer-events:none;text-align:center;text-shadow:0 2px 5px #000,0 0 12px #000}
+    .wind-panel h2{position:absolute;left:50%;bottom:calc(50% + min(105px,14vh) + 8px);transform:translateX(-50%);margin:0;font-size:22px;white-space:nowrap}
+    .wind-face{display:block;position:absolute;left:50%;top:50%;width:min(150px,20vh);aspect-ratio:63/88;transform:translate(-50%,-50%);perspective:900px;pointer-events:auto}
+    .wind-face .wind-tilt{width:100%;height:100%}
+    .wind-tilt{display:block;position:relative;overflow:hidden;border-radius:9px;box-shadow:0 8px 24px #0009;transform:perspective(900px) rotateX(var(--wind-rx,0deg)) rotateY(var(--wind-ry,0deg));transition:transform .12s ease-out;will-change:transform}
+    .wind-tilt>img{width:100%;height:100%;display:block;object-fit:cover}.wind-tilt .runtime-tag-glyph{z-index:2}
+    .wind-clock{position:absolute;top:12%;left:26%;font-weight:700;color:#ffe6a3;font-size:14px;white-space:nowrap}
+    .wind-options{position:absolute;top:calc(50% + min(105px,14vh) + 8px);left:50%;transform:translateX(-50%);width:min(560px,90vw);display:grid;gap:6px;pointer-events:auto}
+    .wind-option,.wind-confirm button{border:1px solid #e1cf9b88;border-radius:10px;background:#14201bb8;color:#fff;padding:10px 14px;cursor:pointer;font:inherit;text-shadow:0 1px 4px #000}.wind-option:hover,.wind-confirm button:hover{background:#324538db}.wind-option strong{display:block;font-size:16px}.wind-option:disabled,.wind-confirm button:disabled{opacity:.45;cursor:not-allowed}
+    .wind-discard-title{position:absolute;left:50%;bottom:calc(50% + min(120px,18vh) + 22px);transform:translateX(-50%);white-space:nowrap}
+    .wind-discard-title h2{position:static;transform:none;margin:0 0 5px}.wind-discard-title p{margin:4px}
+    .wind-cards{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;align-items:center;gap:14px;width:min(960px,88vw);height:min(265px,38vh);overflow-x:auto;overflow-y:hidden;padding:14px 12px;box-sizing:border-box;pointer-events:auto;scrollbar-width:thin;touch-action:pan-x;overscroll-behavior-x:contain}
+    .wind-cards::before,.wind-cards::after{content:"";margin:auto}.wind-card{flex:0 0 auto;position:relative;width:min(150px,21vh,28vw);aspect-ratio:63/88;padding:0;border:3px solid transparent;border-radius:10px;background:transparent;cursor:pointer;transition:transform .15s ease,border-color .15s ease}.wind-card.selected{border-color:#ffe190;transform:translateY(-8px)}.wind-card-face{display:block;width:100%;height:100%}.wind-card-face .wind-tilt{width:100%;height:100%}.wind-card-face .runtime-tag-glyph{z-index:2}
+    .wind-bottom{position:absolute;left:50%;top:calc(50% + min(132px,19vh) + 12px);transform:translateX(-50%);width:min(600px,90vw);pointer-events:auto}.wind-bottom p{margin:4px}.wind-confirm{display:flex;justify-content:center;gap:8px}.wind-limit{color:#ffd1bf;min-height:1.3em}
+    @media(prefers-reduced-motion:reduce){.wind-tilt{transform:none!important;transition:none!important}}
+
   `;
   document.head.append(style);
   const overlay = document.createElement('div');
@@ -40,7 +50,21 @@ function face(card, className) {
   const definition = getDefinition(card);
   const src = globalThis.__shepherdCardFaceAsset?.(definition) ?? definition.image;
   const glyph = globalThis.__shepherdCardFaceGlyph?.(definition) ?? '';
-  return `<span class="${className}"><img src="${src}" alt="${definition.name ?? ''}">${glyph}</span>`;
+  return `<span class="${className}"><span class="wind-tilt"><img src="${src}" alt="${definition.name ?? ''}">${glyph}</span></span>`;
+}
+function bindTilt(target) {
+  const tilt = target?.querySelector('.wind-tilt');
+  if (!tilt) return;
+  target.addEventListener('pointermove',event=>{
+    if(event.buttons || event.pointerType==='touch') return;
+    const rect=target.getBoundingClientRect();
+    if(!rect.width || !rect.height) return;
+    const x=Math.min(1,Math.max(0,(event.clientX-rect.left)/rect.width));
+    const y=Math.min(1,Math.max(0,(event.clientY-rect.top)/rect.height));
+    tilt.style.setProperty('--wind-rx',`${((.5-y)*18).toFixed(2)}deg`);
+    tilt.style.setProperty('--wind-ry',`${((x-.5)*22).toFixed(2)}deg`);
+  });
+  target.addEventListener('pointerleave',()=>{tilt.style.setProperty('--wind-rx','0deg');tilt.style.setProperty('--wind-ry','0deg');});
 }
 function renderChoice() {
   if (!active) return;
@@ -51,9 +75,10 @@ function renderChoice() {
   if (!card) return clear();
   const candidates = player.hand.filter(c => c.instanceId !== action.instanceId);
   const overlay = document.querySelector('#wind-choice-overlay');
-  overlay.innerHTML = `<article class="wind-panel" aria-label="如風吹來的選擇">${face(card,'wind-face')}<h2>如風吹來</h2><p class="wind-clock" aria-live="polite"></p>${stage === 'main' ? `<p>選擇一項效果</p><div class="wind-options"><button class="wind-option" data-wind="cycle" ${candidates.length?'':'disabled'}><strong>效果 1 · 流轉手牌</strong>棄置 1 至 3 張手牌，抽取等量的牌。</button><button class="wind-option" data-wind="fire"><strong>效果 2 · 守住火種</strong>不棄置手牌，獲得 4 點火種。</button></div>` : `<p>選擇 1 至 3 張手牌，然後抽取等量的牌。</p><p class="wind-count">已選 ${selected.size} / 3</p><p class="wind-limit" aria-live="polite"></p><div class="wind-cards"></div><div class="wind-confirm"><button data-wind="back">返回效果選擇</button><button data-wind="confirm" ${selected.size?'':'disabled'}>確認棄置並抽牌</button></div>`}</article>`;
+  overlay.innerHTML = `<article class="wind-panel" aria-label="如風吹來的選擇"><p class="wind-clock" aria-live="polite"></p>${stage === 'main' ? `<h2>如風吹來</h2>${face(card,'wind-face')}<div class="wind-options"><button class="wind-option" data-wind="cycle" ${candidates.length?'':'disabled'}><strong>效果 1 · 流轉手牌</strong>棄置 1 至 3 張手牌，抽取等量的牌。</button><button class="wind-option" data-wind="fire"><strong>效果 2 · 守住火種</strong>不棄置手牌，獲得 4 點火種。</button></div>` : `<div class="wind-discard-title"><h2>如風吹來</h2><p>選擇 1 至 3 張手牌，然後抽取等量的牌。</p></div><div class="wind-cards" aria-label="可選擇的手牌"></div><div class="wind-bottom"><p class="wind-count">已選 ${selected.size} / 3</p><p class="wind-limit" aria-live="polite"></p><div class="wind-confirm"><button data-wind="back">返回效果選擇</button><button data-wind="confirm" ${selected.size?'':'disabled'}>確認棄置並抽牌</button></div></div>`}</article>`;
   overlay.hidden = false;
   if (stage === 'main') {
+    bindTilt(overlay.querySelector('.wind-face'));
     overlay.querySelector('[data-wind="fire"]').onclick = () => commit({choice:'fire'});
     overlay.querySelector('[data-wind="cycle"]').onclick = () => { active.stage='discard'; renderChoice(); };
   } else {
@@ -63,9 +88,18 @@ function renderChoice() {
       button.className = `wind-card${selected.has(c.instanceId)?' selected':''}`;
       button.setAttribute('aria-label', definition.name ?? `${definition.type} ${definition.number}`);
       button.innerHTML = face(c,'wind-card-face');
-      button.onclick = () => { if(selected.has(c.instanceId))selected.delete(c.instanceId);else if(selected.size<3)selected.add(c.instanceId);else {overlay.querySelector('.wind-limit').textContent='最多選 3 張';return;}renderChoice(); };
+      button.onclick = () => { if(selected.has(c.instanceId))selected.delete(c.instanceId);else if(selected.size<3)selected.add(c.instanceId);else {overlay.querySelector('.wind-limit').textContent='最多選 3 張';return;} button.classList.toggle('selected',selected.has(c.instanceId));button.setAttribute('aria-pressed',String(selected.has(c.instanceId)));overlay.querySelector('.wind-count').textContent=`已選 ${selected.size} / 3`;overlay.querySelector('.wind-limit').textContent='';overlay.querySelector('[data-wind=\"confirm\"]').disabled=selected.size===0; };
+      button.setAttribute('aria-pressed',String(selected.has(c.instanceId)));
+      bindTilt(button);
       host.append(button);
     }
+    host.addEventListener('wheel',event=>{if(event.deltaY && host.scrollWidth>host.clientWidth){event.preventDefault();host.scrollLeft+=event.deltaY;}},{passive:false});
+    let dragStart=null, dragged=false;
+    host.addEventListener('pointerdown',event=>{if(event.pointerType==='mouse' && event.button===0 && host.scrollWidth>host.clientWidth){dragStart={x:event.clientX,left:host.scrollLeft};dragged=false;}});
+    host.addEventListener('pointermove',event=>{if(!dragStart)return;const delta=event.clientX-dragStart.x;if(Math.abs(delta)>5){dragged=true;host.scrollLeft=dragStart.left-delta;event.preventDefault();}});
+    host.addEventListener('pointerup',()=>{dragStart=null;});
+    host.addEventListener('pointercancel',()=>{dragStart=null;dragged=false;});
+    host.addEventListener('click',event=>{if(dragged){event.preventDefault();event.stopPropagation();dragged=false;}},true);
     overlay.querySelector('[data-wind="back"]').onclick = () => {active.stage='main';renderChoice();};
     overlay.querySelector('[data-wind="confirm"]').onclick = () => commit({choice:'cycle',discardIds:[...selected]});
   }
