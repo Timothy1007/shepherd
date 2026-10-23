@@ -1,33 +1,24 @@
 import { createGame, effectChangeAmount, executeNormalAction, getNormalActions } from '../src/game/game.js';
 
-export function simulate(seed) {
+export function simulate(seed, { observe, preferReaction = false } = {}) {
   let state = createGame({ seed });
   let actions = 0;
   while (!state.gameOver && actions < 5000) {
     const available = getNormalActions(state);
     if (!available.length) throw new Error(`No action in active game for seed ${seed}`);
     let result = null;
-    for (const action of available) {
+    const candidates = preferReaction ? [...available].sort((a,b) => Number(b.choice === 'use') - Number(a.choice === 'use')) : available;
+    for (const action of candidates) {
       const player=state.players.find(p=>p.playerId===action.playerId);
       const card=player?.hand.find(c=>c.instanceId===action.instanceId);
       const availableCards=player?.hand.filter(c=>c.instanceId!==action.instanceId)??[];
       const gifts=card?.definitionId==='miracle-11'?availableCards.slice(0,Math.min(availableCards.length,effectChangeAmount(state,3))).map(c=>({instanceId:c.instanceId,recipientPlayerId:state.players.find(p=>p.playerId!==player.playerId).playerId})):undefined;
       const attempt = executeNormalAction(state, gifts?{...action,gifts}:action);
-      if (attempt.ok) { result = attempt; break; }
-      if (attempt.reason !== 'Unsupported special card.') throw new Error(attempt.reason);
+      if (!attempt.ok) throw new Error(`Seed ${seed}, action ${JSON.stringify(action)}: ${attempt.reason}`);
+      observe?.({ state, action, card, nextState: attempt.state });
+      result = attempt; break;
     }
-    if (!result) {
-      const current = state.players.find(p => p.playerId === state.currentPlayer);
-      const unsupportedIds = new Set(available.filter(a => a.instanceId).map(a => a.instanceId));
-      if (!current || !unsupportedIds.size) throw new Error('Unsupported special card.');
-      const next = structuredClone(state);
-      const player = next.players.find(p => p.playerId === next.currentPlayer);
-      const discarded = player.hand.filter(c => unsupportedIds.has(c.instanceId));
-      player.hand = player.hand.filter(c => !unsupportedIds.has(c.instanceId));
-      next.discardPile.push(...discarded);
-      state = next;
-      continue;
-    }
+    if (!result) throw new Error(`No executable action for seed ${seed}: ${JSON.stringify(available)}`);
     state = result.state;
     actions += 1;
   }

@@ -16,3 +16,17 @@ for (const seed of ['alpha', 'bravo', 'charlie', 'delta', 'echo', 'recovery-prev
     assert.equal(listCardLocations(state).length, expectedCardCount);
   });
 }
+
+test('simulation reports actual actions and supports using reactions', () => {
+  let seen = 0;
+  const { state, actions } = simulate('audit-11', {
+    preferReaction: true,
+    observe: ({ action, nextState }) => {
+      assert.ok(action.type);
+      assert.ok(nextState);
+      seen++;
+    },
+  });
+  assert.equal(state.gameOver, true);
+  assert.equal(seen, actions);
+});
