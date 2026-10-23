@@ -60,5 +60,15 @@ test('於水中重生 is an effect draw and therefore triggers 在黎明前叩�
   assert.equal(human.hand.length, 4);
   assert.ok(state.pendingEffectDiscard);
   assert.equal(state.pendingEffectDiscard.playerId, 'player-1');
-  assert.ok(human.effects.some(card => card.definitionId === 'miracle-13'));
+  assert.equal(state.pendingEffectDiscard.drawnCount, 4);
+  const dawn = human.effects.find(card => card.definitionId === 'miracle-13');
+  assert.ok(dawn, '黎明必須保留至玩家完成棄牌');
+  const discard = getNormalActions(state).find(action => action.type === 'resolveEffectDiscard');
+  assert.ok(discard, '真人必須有棄牌選擇');
+  const result = executeNormalAction(state, discard);
+  assert.equal(result.ok, true, result.reason);
+  assert.equal(result.state.players[0].hand.length, 3);
+  assert.equal(result.state.pendingEffectDiscard, null);
+  assert.ok(result.state.discardPile.some(card => card.instanceId === discard.discardInstanceId));
+  assert.ok(result.state.discardPile.some(card => card.instanceId === dawn.instanceId));
 });

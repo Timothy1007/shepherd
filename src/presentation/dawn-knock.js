@@ -18,10 +18,20 @@ function show(controller,available){
   const player=controller.state?.players?.find(p=>p.playerId===pending?.playerId);
   if(!pending||player?.type!=='human'){close();return;}
   ensureUi();
-  const host=renderCardRow(overlay,'在黎明前叩門','效果抽牌額外 +1；選擇 1 張手牌棄置。');
+  const drawInfo=Number.isInteger(pending.drawnCount)?`本次實際抽到 ${pending.drawnCount} 張牌。`:'效果抽牌已完成。';
+  const host=renderCardRow(overlay,'在黎明前叩門',`${drawInfo}請選擇 1 張手牌並確認棄置；完成後此牌離開效果區。`);
+  let selectedAction=null;
+  const controls=document.createElement('div');
+  controls.style.cssText='position:absolute;left:50%;top:calc(50% + min(112px,15vh) + 28px);transform:translateX(-50%);pointer-events:auto;';
+  const confirm=document.createElement('button');confirm.type='button';confirm.textContent='確認棄置';confirm.disabled=true;
+  confirm.style.cssText='padding:10px 16px;border:1px solid #e1cf9b88;border-radius:10px;background:#14201be8;color:#fff;cursor:pointer;font:inherit;';
+  confirm.onclick=()=>{if(!selectedAction)return;const action=selectedAction;close();controller.act(action,controller.snapshot());};
+  controls.append(confirm);overlay.querySelector('.choice-row-panel').append(controls);
+  const buttons=[];
   for(const action of available.filter(a=>a.type==='resolveEffectDiscard'&&a.playerId===player.playerId)){
     const card=player.hand.find(c=>c.instanceId===action.discardInstanceId);if(!card)continue;
-    appendChoiceCard(host,card,title(card),()=>{close();controller.act(action,controller.snapshot());});
+    const button=appendChoiceCard(host,card,title(card),()=>{selectedAction=action;for(const item of buttons){item.classList.toggle('selected',item===button);item.setAttribute('aria-pressed',String(item===button));}confirm.disabled=false;});
+    button.setAttribute('aria-pressed','false');buttons.push(button);
   }
   overlay.hidden=false;
 }

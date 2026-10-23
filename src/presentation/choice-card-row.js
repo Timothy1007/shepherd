@@ -16,7 +16,7 @@ export function prepareCardRow(overlay) {
       .choice-row-card{position:relative;flex:0 0 auto;width:min(150px,21vh,calc(16vw - 16px));aspect-ratio:63/88;padding:0;border:0;border-radius:9px;background:transparent;cursor:pointer;perspective:900px}
       .choice-row-tilt{position:relative;display:block;width:100%;height:100%;overflow:hidden;border-radius:9px;box-shadow:0 8px 24px #0009;transform:perspective(900px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg));transition:transform .12s ease-out}
       .choice-row-tilt img{display:block;width:100%;height:100%;object-fit:cover}.choice-row-tilt .runtime-tag-glyph{z-index:2}
-      .choice-row-card:focus-visible{outline:3px solid #ffe190;outline-offset:4px}
+      .choice-row-name{position:absolute;top:calc(100% + 5px);left:-12px;right:-12px;color:#fff;font-size:14px;line-height:1.2;white-space:nowrap;text-shadow:0 1px 5px #000,0 0 8px #000}.choice-row-card.selected{outline:3px solid #ffe190;outline-offset:4px}.choice-row-card:focus-visible{outline:3px solid #ffe190;outline-offset:4px}
       @media(prefers-reduced-motion:reduce){.choice-row-tilt{transform:none!important;transition:none!important}}
     `;
     document.head.append(style);
@@ -48,5 +48,6 @@ export function appendChoiceCard(host,card,label,onSelect){
   const tilt=button.querySelector('.choice-row-tilt');
   button.addEventListener('pointermove',event=>{if(event.buttons||event.pointerType==='touch')return;const rect=button.getBoundingClientRect();if(!rect.width||!rect.height)return;tilt.style.setProperty('--rx',`${(.5-(event.clientY-rect.top)/rect.height)*18}deg`);tilt.style.setProperty('--ry',`${((event.clientX-rect.left)/rect.width-.5)*22}deg`);});
   button.addEventListener('pointerleave',()=>{tilt.style.setProperty('--rx','0deg');tilt.style.setProperty('--ry','0deg');});
-  button.onclick=onSelect;host.append(button);
+  if (d.kind==='miracle'||d.kind==='disaster') {const name=document.createElement('span');name.className='choice-row-name';name.textContent=label;button.append(name);}
+  button.onclick=onSelect;host.append(button);return button;
 }
