@@ -109,3 +109,12 @@ html,body,.dispute-shell{background:#222!important}
 #deck-summary{right:94px!important}#discard-summary{right:18px!important}
 #deck-summary::before,#discard-summary::before{position:absolute;top:8px;left:7px;right:7px;color:#b9d6c5;font:700 9px/1 system-ui;letter-spacing:.14em;text-shadow:0 2px 4px #000}#deck-summary::before{content:"牌庫"}#discard-summary::before{content:"棄牌"}
 #deck-summary::after,#discard-summary::after{content:"張";position:absolute;bottom:7px;left:7px;right:7px;color:#c8dbcf;font:700 9px/1 system-ui;letter-spacing:.12em;text-shadow:0 2px 4px #000}#deck-summary strong,#discard-summary strong{position:relative;z-index:1;margin-bottom:10px;color:#f0c56f!important;font-size:18px!important;line-height:1!important;text-shadow:0 2px 5px #000!important}
+
+/* Animated corruption liquid stays inside the existing indicator. */
+.corruption-hud{position:relative;overflow:hidden;isolation:isolate}
+.corruption-liquid{position:absolute;z-index:0;left:0;right:0;bottom:0;overflow:hidden;height:var(--corruption-fill,0%);background:linear-gradient(180deg,#dc5851,#aa2029 55%,#75121c);transition:height .8s ease-in-out;pointer-events:none}
+.corruption-liquid::before{content:"";position:absolute;left:-25%;top:0;width:150%;height:5px;border-radius:45%;background:#eb746b;opacity:.65;animation:corruption-ripple 2.8s ease-in-out infinite alternate}
+.corruption-reset .corruption-liquid{transition:none}
+.corruption-hud strong,.corruption-hud span{position:relative;z-index:1}
+@keyframes corruption-ripple{from{transform:translateX(-5%) rotate(-3deg)}to{transform:translateX(5%) rotate(3deg)}}
+@media(prefers-reduced-motion:reduce){.corruption-liquid{transition:none}.corruption-liquid::before{animation:none}}
