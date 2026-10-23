@@ -87,7 +87,7 @@ function setup() {
     state.deck.unshift(...top);
   }
   if (MODE === 'choice-batch') {
-    const top = ['sheep-2','food-2','money-2','miracle-04','disaster-07'].map(id => take(state,id)).filter(Boolean);
+    const top = ['sheep-2','miracle-04','disaster-07','food-2','money-2'].map(id => take(state,id)).filter(Boolean);
     state.deck.unshift(...top);
   }
   state.currentPlayer = human.playerId;
