@@ -13,6 +13,15 @@ export function renderPlayers(overlay, title, note, targets, onSelect, describe=
     const name=document.createElement('strong');name.textContent=player.type==='human'?'你':(player.displayName??`玩家 ${player.seat}`);
     const detail=document.createElement('small');detail.textContent=describe(player);
     detail.style.cssText='max-width:90%;line-height:1.35;color:#e2d9c7';
+    button.style.transition='transform .12s ease-out';
+    button.addEventListener('pointermove',event=>{
+      if(event.buttons||event.pointerType==='touch'||globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches)return;
+      const rect=button.getBoundingClientRect();if(!rect.width||!rect.height)return;
+      const x=Math.min(1,Math.max(0,(event.clientX-rect.left)/rect.width));
+      const y=Math.min(1,Math.max(0,(event.clientY-rect.top)/rect.height));
+      button.style.transform=`perspective(900px) rotateX(${(.5-y)*18}deg) rotateY(${(x-.5)*22}deg)`;
+    });
+    button.addEventListener('pointerleave',()=>{button.style.transform='';});
     button.append(portrait,name,detail);button.onclick=()=>onSelect(player);host.append(button);
   }
   return host;
