@@ -218,11 +218,20 @@ function burnDiscardCard(card){
   copy.style.cssText=`position:fixed;left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;height:${rect.height}px;margin:0;z-index:39000;pointer-events:none;visibility:visible;transform:none;filter:none;box-shadow:none;`;
   const img=copy.querySelector('img');if(img)img.style.cssText='display:block;width:100%;height:100%;object-fit:contain';
   flame.setAttribute('aria-hidden','true');
-  flame.style.cssText=`position:fixed;left:${rect.left}px;top:${rect.top-10}px;width:${rect.width}px;height:22px;z-index:39001;pointer-events:none;background:radial-gradient(ellipse at 30% 65%,#fff6b5 0%,#ffb12c 25%,#f64413 52%,transparent 75%),radial-gradient(ellipse at 70% 70%,#fff4a5 0%,#ff7b14 32%,transparent 70%);filter:drop-shadow(0 0 5px #ff6500);`;
+  // Both animations use the same linear progress: the flame sits on the
+  // clipping edge rather than racing ahead of the disappearing card.
+  flame.style.cssText=`position:fixed;left:${rect.left}px;top:${rect.top-10}px;width:${rect.width}px;height:20px;z-index:39001;pointer-events:none;`;
+  for(let i=0;i<7;i++){
+    const tongue=document.createElement('span');
+    tongue.style.cssText=`position:absolute;left:${i*100/7}%;bottom:0;width:20%;height:${i%2?22:16}px;transform-origin:50% 100%;border-radius:70% 25% 55% 40%;background:radial-gradient(ellipse at 50% 85%,#fff8c2 0%,#ffb329 28%,#ed4a0b 60%,transparent 76%);`;
+    flame.append(tongue);
+    tongue.animate([{transform:'scale(.85,.75) rotate(-9deg)',opacity:.8},{transform:'scale(1.1,1.25) rotate(8deg)',opacity:1},{transform:'scale(.9,.9) rotate(-5deg)',opacity:.85}],{duration:200+i*23,delay:-i*40,iterations:Infinity,easing:'ease-in-out'});
+  }
   document.body.append(copy,flame);
   try{
-    const fire=flame.animate([{transform:'translateY(0)',opacity:0},{opacity:1,offset:.12},{transform:`translateY(${rect.height}px)`,opacity:1,offset:.9},{transform:`translateY(${rect.height}px)`,opacity:0}],{duration:850,easing:'linear',fill:'both'});
-    const burn=copy.animate([{clipPath:'inset(0 0 0 0)',filter:'brightness(1)'},{clipPath:'inset(20% 0 0 0)',filter:'brightness(.8) sepia(.6)',offset:.2},{clipPath:'inset(100% 0 0 0)',filter:'brightness(.4) sepia(1)'}],{duration:850,easing:'linear',fill:'both'});
+    const duration=1100;
+    const fire=flame.animate([{transform:'translateY(0)',opacity:1},{transform:`translateY(${rect.height}px)`,opacity:1}],{duration,easing:'linear',fill:'both'});
+    const burn=copy.animate([{clipPath:'inset(0 0 0 0)'},{clipPath:'inset(100% 0 0 0)'}],{duration,easing:'linear',fill:'both'});
     const cleanup=()=>{copy.remove();flame.remove();};
     burn.onfinish=burn.oncancel=cleanup;fire.oncancel=cleanup;
   }catch(error){copy.remove();flame.remove();throw error;}
