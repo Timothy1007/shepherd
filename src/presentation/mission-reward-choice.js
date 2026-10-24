@@ -1,33 +1,32 @@
 import { GameController } from '../controller/game-controller.js';
 import { getNormalActions } from '../game/game.js';
+import { renderCardRow } from './choice-card-row.js';
 
 const originalPrepare=GameController.prototype.prepare;
 let shownFor=null;
-const labels={sheep:'群羊',food:'糧食',money:'金錢'};
-
-function ensureOverlay(){
-  if(document.querySelector('#mission-reward-overlay'))return;
-  const overlay=document.createElement('div');
-  overlay.id='mission-reward-overlay';
-  overlay.hidden=true;
-  overlay.innerHTML='<article><span>神蹟 · 使命</span><h2>選擇要推進的使命</h2><p></p><div></div></article>';
-  document.body.append(overlay);
-  const style=document.createElement('style');
-  style.textContent='#mission-reward-overlay[hidden]{display:none!important}#mission-reward-overlay{position:fixed;right:20px;bottom:24%;z-index:31800;display:block}#mission-reward-overlay article{width:min(520px,92vw);padding:24px;border:1px solid #d7bd7a88;border-radius:18px;background:linear-gradient(145deg,#171b18,#0c100e);color:#eee8d8;box-shadow:0 28px 80px #000b}#mission-reward-overlay h2{margin:6px 0}#mission-reward-overlay p{opacity:.8}#mission-reward-overlay div{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}#mission-reward-overlay button{padding:15px 8px;border:1px solid #d7bd7a66;border-radius:12px;background:#ffffff0d;color:inherit;cursor:pointer;font-weight:700}#mission-reward-overlay button:hover{background:#d7bd7a22;border-color:#d7bd7a}';
-  document.head.append(style);
-}
+const missions={sheep:{label:'群羊',icon:'🐑'},food:{label:'糧食',icon:'🌾'},money:{label:'金錢',icon:'💰'}};
 
 function show(controller){
   const pending=controller.state?.pendingMissionReward,entry=pending?.entries[pending.index],human=controller.state?.players.find(player=>player.type==='human');
-  if(!entry||entry.playerId!==human?.playerId)return;
+  let overlay=document.querySelector('#mission-reward-overlay');
+  if(!entry||entry.playerId!==human?.playerId){if(overlay)overlay.hidden=true;shownFor=null;return;}
+  const options=getNormalActions(controller.state).filter(action=>action.type==='resolveDivisionRecipient'&&missions[action.recipientPlayerId]);
+  if(!options.length){if(overlay)overlay.hidden=true;shownFor=null;return;}
   const key=`${pending.index}:${entry.playerId}:${entry.amount}`;
-  if(shownFor===key&&!document.querySelector('#mission-reward-overlay')?.hidden)return;
-  ensureOverlay();shownFor=key;
-  const overlay=document.querySelector('#mission-reward-overlay'),options=getNormalActions(controller.state);
-  overlay.querySelector('p').textContent=`選擇 1 種尚未完成的使命物資，使其進度 +${entry.amount}。`;
-  const host=overlay.querySelector('div');host.replaceChildren();
-  for(const action of options){const button=document.createElement('button');button.textContent=`${labels[action.recipientPlayerId]} +${entry.amount}`;button.onclick=()=>{overlay.hidden=true;shownFor=null;controller.act(action,controller.snapshot());};host.append(button);}
-  overlay.hidden=false;
+  if(shownFor===key&&overlay&&!overlay.hidden)return;
+  if(!overlay){overlay=document.createElement('div');overlay.id='mission-reward-overlay';overlay.hidden=true;document.body.append(overlay);}
+  shownFor=key;
+  const host=renderCardRow(overlay,'選擇要推進的使命',`選擇一種尚未完成的使命，進度增加 ${entry.amount}。`);
+  for(const action of options){
+    const type=action.recipientPlayerId,info=missions[type],current=human.missionProgress?.[type]??0,required=human.mission?.[type]??0;
+    const button=document.createElement('button');button.type='button';button.className='choice-row-card';
+    button.style.cssText='display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;height:auto;min-height:150px;aspect-ratio:1;color:#f5eee0;background:#26332dea;border:1px solid #d8c79588;box-shadow:0 8px 24px #0009';
+    const icon=document.createElement('span');icon.textContent=info.icon;icon.style.cssText='font-size:42px;line-height:1';icon.setAttribute('aria-hidden','true');
+    const title=document.createElement('strong');title.textContent=info.label;
+    const progress=document.createElement('span');progress.textContent=`${current}／${required}　+${entry.amount}`;
+    button.setAttribute('aria-label',`${info.label}使命，${current}／${required}，增加${entry.amount}`);
+    button.append(icon,title,progress);button.onclick=()=>{overlay.hidden=true;shownFor=null;controller.act(action,controller.snapshot());};host.append(button);
+  }
 }
 
 GameController.prototype.prepare=function missionRewardPrepare(){

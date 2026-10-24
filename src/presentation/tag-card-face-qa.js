@@ -80,6 +80,10 @@ function setup() {
   const definitions = CARD_DEFINITIONS.filter(definition => REVIEW_IDS.has(definition.definitionId));
   const cards = definitions.map(definition => take(state, definition.definitionId)).filter(Boolean);
   human.hand.push(...cards);
+  if (MODE === 'exchange-choice-batch') {
+    const opponents=state.players.filter(player=>player.type==='ai');
+    ['miracle-01','miracle-02','miracle-03'].forEach((id,index)=>{const card=take(state,id);if(card&&opponents[index])opponents[index].hand.unshift(card);});
+  }
   if (MODE === 'disaster-player-choice-batch') {
     human.fire=20;
     for(const target of state.players.filter(player=>player.type==='ai')) { const effect=take(state,'miracle-01'); if(effect)target.effects.push(effect); }
@@ -103,7 +107,7 @@ function setup() {
   state.currentPlayer = human.playerId;
   state.qaSeed = 'tag-card-faces';
   const message = MODE === 'exchange-choice-batch'
-    ? '展示與交換測試：恰如飛鳥經過、謊言與試探及三張物資已發牌；重新開始可測另一張。'
+    ? '展示與交換測試：恰如飛鳥經過、謊言與試探及三張物資已發牌；選物資交換可測不同牌型與使命選擇。'
     : MODE === 'disaster-player-choice-batch-2'
     ? '災難選玩家介面第二批：半朽蜜果、染血銀幣、盜火、愛慾之種已發牌；重新開始可再測其他牌。'
     : MODE === 'disaster-player-choice-batch'
