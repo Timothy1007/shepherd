@@ -35,7 +35,7 @@
 .hand .card.click-preview:not(.inspecting):not(.drag-source){
   z-index:45;
   transform-origin:50% 100%;
-  transform:translateY(-18px) rotate(0) rotateX(0) scale(1.38)!important;
+  transform:translateY(-28px) rotate(0)!important;
   filter:brightness(1.08) drop-shadow(0 18px 28px #0009)!important;
   transition:transform .18s cubic-bezier(.18,.78,.2,1),filter .18s!important;
 }

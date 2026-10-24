@@ -16,7 +16,7 @@ const TAG_FACE_SVGS=Object.freeze({新生:'<svg viewBox="0 0 100 100" fill="curr
 function primaryFaceTag(definition){const tag=faceTag(definition);return TAG_FACE_SVGS[tag]?tag:undefined;}
 function faceGlyph(definition){const tag=primaryFaceTag(definition),svg=TAG_FACE_SVGS[tag];if(!svg||(definition.tags?.includes('應對')&&tag!=='新生'&&!['miracle-16','miracle-17','disaster-16'].includes(definition.definitionId)))return'';const tone=definition.kind==='disaster'?' is-disaster':'';return `<span class="runtime-tag-glyph runtime-tag-glyph--${TAG_FACE_FILES[tag]?.toLowerCase()??'generic'}${tone}" data-runtime-face-glyph data-runtime-face-tag="${tag}" aria-hidden="true">${svg}</span>`;}
 let cardInspectorTimer=null;
-function closeCardInspector(){const inspector=document.querySelector('#card-inspector'),content=document.querySelector('#card-inspector-content'),host=document.querySelector('#card-inspector-card');if(!inspector||inspector.hidden)return;clearTimeout(cardInspectorTimer);inspector.dataset.closing='true';content?.classList.remove('show');inspector.setAttribute('aria-hidden','true');cardInspectorTimer=setTimeout(()=>{if(inspector.dataset.closing==='true'){inspector.hidden=true;delete inspector.dataset.closing;content?.classList.remove('drag-mode');inspector.classList.remove('drag-mode');if(host)host.replaceChildren();}},210);}
+function closeCardInspector(){const inspector=document.querySelector('#card-inspector'),content=document.querySelector('#card-inspector-content'),host=document.querySelector('#card-inspector-card');if(!inspector||inspector.hidden)return;clearClickPreview();clearTimeout(cardInspectorTimer);inspector.dataset.closing='true';content?.classList.remove('show');inspector.setAttribute('aria-hidden','true');cardInspectorTimer=setTimeout(()=>{if(inspector.dataset.closing==='true'){inspector.hidden=true;delete inspector.dataset.closing;content?.classList.remove('drag-mode');inspector.classList.remove('drag-mode');if(host)host.replaceChildren();}},210);}
 function primaryInspectorTag(definition){return qaFaceTag(definition)??definition.tags?.find(tag=>!STRUCTURAL_TAGS.has(tag))??definition.tags?.[0]??(definition.kind==='resource'?'物資':names[definition.kind]);}
 function setInspectorTab(target){const text=document.querySelector('#card-inspector-text');if(!text)return;text.querySelectorAll('.tab-btn').forEach(button=>{const active=button.dataset.target===target;button.classList.toggle('active',active);button.setAttribute('aria-selected',String(active));});text.querySelectorAll('.tab-pane').forEach(pane=>pane.classList.toggle('active',pane.id===target));}
 function renderInspectorText(definition,title,{inEffectZone=false}={}){const text=document.querySelector('#card-inspector-text');if(!text)return;const tag=primaryInspectorTag(definition),buttons=text.querySelectorAll('.tab-btn'),effect=text.querySelector('#pane-effect p'),type=text.querySelector('#pane-type p');buttons[0].textContent=title;buttons[1].textContent=tag;effect.textContent=(inEffectZone?definition.effectText:undefined)??definition.text??`${title}的詳細資訊。`;type.textContent=TAG_INFO[tag]??`${tag}是這張牌的主要類型。`;setInspectorTab('pane-effect');}
@@ -81,7 +81,7 @@ function rejectCard(instanceId,message='目前無法打出'){const el=document.q
 function dropZoneHit(x,y,startY){const rect=$('#drop-zone').getBoundingClientRect(),direct=x>=rect.left&&x<=rect.right&&y>=rect.top&&y<=rect.bottom,broadCenter=x>innerWidth*.16&&x<innerWidth*.84&&y>innerHeight*.15&&y<innerHeight*.69,fling=y<startY-70&&x>innerWidth*.18&&x<innerWidth*.82;return direct||broadCenter||fling;}
 function stopLongPress(){if(drag?.longPressTimer)clearTimeout(drag.longPressTimer);}
 function clearClickPreview(except=null){document.querySelectorAll('#hand .card.click-preview,#hand .blindness-pile.click-preview').forEach(card=>{if(card!==except)card.classList.remove('click-preview');});if(!except)selectedBlindnessPile=null;}
-function previewClickedCard(button,card){clearClickPreview(button);selectedBlindnessPile=null;button.classList.remove('hand-hover','click-preview');selectedInstanceId=null;if(currentState)renderSelectionActions(currentState);showDetail(card);}
+function previewClickedCard(button,card){clearClickPreview(button);selectedBlindnessPile=null;button.classList.remove('hand-hover');button.classList.add('click-preview');selectedInstanceId=null;if(currentState)renderSelectionActions(currentState);showDetail(card);}
 function previewBlindnessPile(button,kind,count){clearClickPreview(button);selectedInstanceId=null;selectedBlindnessPile=kind;button.classList.add('click-preview');if(currentState)renderSelectionActions(currentState);button.addEventListener('pointerleave',()=>button.classList.remove('click-preview'),{once:true});}
 function beginPointer(card,button,event){if(event.button!==undefined&&event.button!==0)return;event.preventDefault();const rect=button.getBoundingClientRect();drag={card,button,pointerId:event.pointerId,startX:event.clientX,startY:event.clientY,x:event.clientX,y:event.clientY,dragging:false,longPressed:false,ghost:null,originRect:rect,offsetX:event.clientX-rect.left,offsetY:event.clientY-rect.top,viewOnly:!humanCanAct()};drag.longPressTimer=setTimeout(()=>{if(!drag||drag.dragging)return;drag.longPressed=true;showDetail(card);button.classList.add('inspecting');if(navigator.vibrate)navigator.vibrate(18);},LONG_PRESS_MS);}
 function beginBlindnessPointer(kind,count,button,event){if(event.button!==undefined&&event.button!==0)return;event.preventDefault();const rect=button.getBoundingClientRect(),action=blindnessPileAction(kind);drag={pileKind:kind,pileCount:count,pileAction:action,button,pointerId:event.pointerId,startX:event.clientX,startY:event.clientY,x:event.clientX,y:event.clientY,dragging:false,longPressed:false,ghost:null,originRect:rect,offsetX:event.clientX-rect.left,offsetY:event.clientY-rect.top,viewOnly:!humanCanAct()};drag.longPressTimer=setTimeout(()=>{if(!drag||drag.dragging)return;drag.longPressed=true;showBlindnessDetail(kind,count);button.classList.add('inspecting');if(navigator.vibrate)navigator.vibrate(18);},LONG_PRESS_MS);}
@@ -104,7 +104,7 @@ function paintPendingHandArrivals() {
 }
 function clearHandArrivals() {
   dealAnimationVersion++;
-  for (const record of pendingHandArrivals.values()) clearTimeout(record.timer);
+  for (const record of pendingHandArrivals.values()){clearTimeout(record.timer);record.resolve?.();}
   pendingHandArrivals.clear();
   document.querySelectorAll('.hand-arrival-flight').forEach(card => card.remove());
   paintPendingHandArrivals();
@@ -113,6 +113,7 @@ function finishHandArrival(id, record) {
   if (pendingHandArrivals.get(id) !== record) return;
   clearTimeout(record.timer);
   pendingHandArrivals.delete(id);
+  record.resolve?.();
   paintPendingHandArrivals();
 }
 function animateHandArrivals(state) {
@@ -132,13 +133,15 @@ function animateHandArrivals(state) {
   const records = new Map();
   addedIds.forEach((id,index) => {
     const old = pendingHandArrivals.get(id);
-    if (old) clearTimeout(old.timer);
-    const record = {timer:null};
-    record.timer = setTimeout(() => finishHandArrival(id,record), 3500);
+    if (old){clearTimeout(old.timer);old.resolve?.();}
+    const record = {timer:null,resolve:null,done:null};
+    record.done=new Promise(resolve=>{record.resolve=resolve;});
+    record.timer = setTimeout(() => finishHandArrival(id,record), 6000);
     pendingHandArrivals.set(id,record);
     records.set(id,record);
   });
   paintPendingHandArrivals();
+  globalThis.__shepherdHandArrivalsDone=Promise.all([...records.values()].map(record=>record.done));
   const initialCards = [...document.querySelectorAll('#hand .card[data-card-id]')];
   // Wait for face images before starting the sequence. The bounded wait keeps
   // a broken or slow asset from leaving a card hidden indefinitely.
@@ -151,7 +154,7 @@ function animateHandArrivals(state) {
     image.addEventListener('load',finish,{once:true});
     image.addEventListener('error',finish,{once:true});
   });
-  Promise.all(addedIds.map(id=>imageReady(initialCards.find(card=>card.dataset.cardId===id)))).then(()=>requestAnimationFrame(() => {
+  Promise.all([globalThis.__shepherdDiscardBurnDone??Promise.resolve(),...addedIds.map(id=>imageReady(initialCards.find(card=>card.dataset.cardId===id)))]).then(()=>requestAnimationFrame(() => {
     if (version !== dealAnimationVersion) return;
     try {
       const deck = document.querySelector('#deck-summary')?.getBoundingClientRect();
@@ -201,16 +204,17 @@ function renderDiscardBurns(state){
   const previous=previousBurnSnapshot;
   previousBurnSnapshot=next;
   if(!previous || previous.round!==next.round || document.hidden || globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches)return;
-  const remaining=new Set(next.hands.flat());
+  const remaining=new Set(next.hands.flat()),burns=[];
   for(let seat=0;seat<previous.hands.length;seat++)for(const id of previous.hands[seat]){
     if(remaining.has(id)||previous.discard.has(id)||!next.discard.has(id))continue;
     const selector=seat===0?'#hand .card[data-card-id]':'[data-ai-card]';
     const original=[...document.querySelectorAll(selector)].find(el=>(seat===0?el.dataset.cardId:el.dataset.aiCard)===id);
     if(!original)continue;
-    try{burnDiscardCard(original);}catch(error){console.warn('[Shepherd] discard animation unavailable',error);}
+    burns.push(new Promise(resolve=>{try{if(!burnDiscardCard(original,resolve))resolve();}catch(error){console.warn('[Shepherd] discard animation unavailable',error);resolve();}}));
   }
+  if(burns.length)globalThis.__shepherdDiscardBurnDone=Promise.all([globalThis.__shepherdDiscardBurnDone??Promise.resolve(),...burns]);
 }
-function burnDiscardCard(card){
+function burnDiscardCard(card,onComplete=()=>{}){
   const rect=(card.querySelector('img')??card).getBoundingClientRect();
   if(!rect.width||!rect.height)return;
   const frame=document.createElement('div'),copy=card.cloneNode(true),flame=document.createElement('div');
@@ -235,8 +239,10 @@ function burnDiscardCard(card){
     const duration=1100;
     const fire=flame.animate([{transform:'translateY(0)',opacity:1},{transform:`translateY(${rect.height}px)`,opacity:1}],{duration,easing:'linear',fill:'both'});
     const burn=copy.animate([{clipPath:'inset(0 0 0 0)'},{clipPath:'inset(100% 0 0 0)'}],{duration,easing:'linear',fill:'both'});
-    const cleanup=()=>frame.remove();
+    let finished=false;
+    const cleanup=()=>{if(finished)return;finished=true;frame.remove();onComplete();};
     burn.onfinish=burn.oncancel=cleanup;fire.oncancel=cleanup;
+    return true;
   }catch(error){frame.remove();throw error;}
 }
 function renderHand(state){const human=state.players[0],blindness=state.activeJudgments?.['資訊'],covered=['blindness-1','blindness-2'].includes(blindness),special=card=>['miracle','disaster'].includes(getDefinition(card).kind),visible=covered?human.hand.filter(card=>!special(card)):human.hand;if(!visible.some(card=>card.instanceId===selectedInstanceId))selectedInstanceId=null;if(selectedBlindnessPile&&!blindnessPileAction(selectedBlindnessPile))selectedBlindnessPile=null;const hand=$('#hand'),existing=[...hand.children];if(state.currentPlayer!==human.playerId&&!covered&&existing.length===visible.length&&existing.every((button,index)=>button.classList.contains('card')&&button.dataset.cardId===visible[index].instanceId)){existing.forEach((button,index)=>{const card=visible[index],{definition,ruleLegal,humanTurn,actionable}=cardStatus(card,state),statusText=actionable?'可出牌':(ruleLegal&&!humanTurn?'等待你的行動':'目前不可出');button.handCard=card;button.classList.toggle('legal',actionable);button.classList.toggle('illegal',!actionable);button.setAttribute('aria-label',`${definitionTitle(definition)}，${statusText}`);const status=button.querySelector('small');if(status)status.textContent=statusText;});return;}const children=[];if(covered){const groups=(blindness==='blindness-2'?[{kind:'unknown',label:'未知功能牌',cards:human.hand.filter(special)}]:['miracle','disaster'].map(kind=>({kind,label:names[kind],cards:human.hand.filter(card=>getDefinition(card).kind===kind)}))).filter(group=>group.cards.length);children.push(...groups.map(blindnessPileButton));}const cardButtons=visible.map(card=>cardButton(card,state)),center=(cardButtons.length-1)/2,step=cardButtons.length<=2?4:cardButtons.length<=4?3.5:3;cardButtons.forEach((button,index)=>{const offset=index-center;if(!button.style?.setProperty)return;button.style.setProperty('--r',`${offset*step}deg`);button.style.setProperty('--y',`${Math.round(Math.abs(offset)*(cardButtons.length<=2?3:2.5))}px`);});children.push(...cardButtons);$('#hand').replaceChildren(...children);paintPendingHandArrivals();}

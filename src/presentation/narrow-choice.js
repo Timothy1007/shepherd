@@ -18,6 +18,7 @@ function show(controller,action,token,player,required){
   const playerName=target=>target.displayName??`玩家 ${target.seat}`;
   function showCards(){
     const host=renderCardRow(panel,'窄門與窄路',`選擇 ${required} 張手牌並分配給其他玩家；可以給同一人。`);
+    host.style.height='min(330px, 48vh)';host.style.paddingBottom='60px';
     for(const card of cards){
       const button=appendChoiceCard(host,card,cardName(card),()=>showRecipients(card));
       const selected=gifts.get(card.instanceId);

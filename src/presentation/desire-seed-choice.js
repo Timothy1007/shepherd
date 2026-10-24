@@ -6,7 +6,7 @@ import { renderPlayers } from './player-choice-row.js';
 
 const previousPrepare=GameController.prototype.prepare;
 const resourceNames={sheep:'群羊',food:'糧食',money:'金錢',grace:'恩典'};
-let panel,activeKey=null;
+let panel,activeKey=null,scheduledKey=null;
 function cardName(card){const d=getDefinition(card);return d.name??`${resourceNames[d.type]??d.type} ${d.number}`;}
 function show(controller,event,player){
   if(!panel){panel=document.createElement('section');panel.id='desire-seed-choice';panel.hidden=true;document.body.append(panel);}
@@ -38,8 +38,18 @@ function show(controller,event,player){
 }
 GameController.prototype.prepare=function(){
   const result=previousPrepare.call(this),event=this.state?.pendingDesireSeeds?.[0],player=this.state?.players.find(p=>p.playerId===event?.playerId);
-  if(!event||player?.type!=='human'){if(panel)panel.hidden=true;activeKey=null;return result;}
+  if(!event||player?.type!=='human'){if(panel)panel.hidden=true;activeKey=null;scheduledKey=null;return result;}
   const key=[this.generation,event.playerId,...event.cardIds,...event.effectIds].join('|');
-  if(activeKey!==key||!panel||panel.hidden){activeKey=key;show(this,event,player);}
+  if(activeKey===key&&panel&&!panel.hidden)return result;
+  const token=this.snapshot(),schedule=`${token.generation}|${token.actionToken}|${key}`;
+  if(scheduledKey===schedule)return result;
+  scheduledKey=schedule;
+  Promise.all([globalThis.__shepherdDiscardBurnDone??Promise.resolve(),globalThis.__shepherdHandArrivalsDone??Promise.resolve()]).then(()=>{
+    if(scheduledKey!==schedule||this.generation!==token.generation||this.actionToken!==token.actionToken)return;
+    const current=this.state?.pendingDesireSeeds?.[0],owner=this.state?.players.find(p=>p.playerId===current?.playerId);
+    const currentKey=current&&[this.generation,current.playerId,...current.cardIds,...current.effectIds].join('|');
+    if(!current||owner?.type!=='human'||currentKey!==key)return;
+    scheduledKey=null;activeKey=key;show(this,current,owner);
+  });
   return result;
 };
