@@ -47,6 +47,7 @@ export function prepareCardRow(overlay) {
     `;
     document.head.append(style);
   }
+  overlay.classList.remove('decision-floating','decision-panel');
   overlay.classList.add('choice-row-overlay');
 }
 export function renderCardRow(overlay, name, note) {
