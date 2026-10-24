@@ -24,8 +24,8 @@ const requestedBatch = Number(query.get('batch') ?? 1);
 const ART_BATCH = Number.isInteger(requestedBatch) && requestedBatch >= 1 && requestedBatch <= ART_BATCH_COUNT ? requestedBatch : 1;
 const ART_BATCH_DEFINITIONS = ART_BATCHES[ART_BATCH - 1] ?? [];
 
-const ACTIVE = MODE === 'exchange-choice-batch' || MODE === 'disaster-player-choice-batch-2' || MODE === 'disaster-player-choice-batch' || MODE === 'player-choice-batch' || MODE === 'dawn-rebirth-choice' || MODE === 'choice-batch' || MODE === 'wind-choice' || MODE === 'scapegoat-glyph' || MODE === 'sanctuary-response' || MODE === 'art-batch' || MODE === 'tag-card-faces' || MODE === 'tag-glyphs' || MODE === 'rebirth-card-face' || MODE === 'flux-card-face' || MODE === 'insight-card-face' || MODE === 'sanctuary-card-face' || MODE === 'resonance-card-face' || MODE === 'plunder-card-face' || (MODE === 'tag-glyph' && Boolean(TAG_GLYPH_CARDS[GLYPH_KEY]));
-const REVIEW_IDS = new Set(MODE === 'exchange-choice-batch' ? ['miracle-10','disaster-02','sheep-1','food-1','money-1'] : MODE === 'disaster-player-choice-batch-2' ? ['disaster-04','disaster-10','disaster-11','disaster-14'] : MODE === 'disaster-player-choice-batch' ? ['disaster-06','disaster-08','disaster-09','disaster-15'] : MODE === 'player-choice-batch' ? ['miracle-09','miracle-12','miracle-14','miracle-22'] : MODE === 'dawn-rebirth-choice' ? ['miracle-04','sheep-1','food-1','money-1'] : MODE === 'choice-batch' ? ['miracle-06','miracle-07','miracle-08','miracle-13','miracle-01','sheep-1','food-1'] : MODE === 'wind-choice' ? ['miracle-05','sheep-1','sheep-2','sheep-3','food-1','food-2','food-3','money-1','money-2','money-3'] : MODE === 'scapegoat-glyph' ? ['miracle-17'] : MODE === 'sanctuary-response' ? ['miracle-16'] : MODE === 'art-batch' ? ART_BATCH_DEFINITIONS.map(definition => definition.definitionId) : MODE === 'tag-glyphs' ? IMPLEMENTED_TAG_GLYPH_KEYS.map(key => TAG_GLYPH_CARDS[key]) : MODE === 'flux-card-face' ? ['miracle-04','miracle-05'] : MODE === 'tag-glyph' ? [
+const ACTIVE = MODE === 'history-glyph' || MODE === 'exchange-choice-batch' || MODE === 'disaster-player-choice-batch-2' || MODE === 'disaster-player-choice-batch' || MODE === 'player-choice-batch' || MODE === 'dawn-rebirth-choice' || MODE === 'choice-batch' || MODE === 'wind-choice' || MODE === 'scapegoat-glyph' || MODE === 'sanctuary-response' || MODE === 'art-batch' || MODE === 'tag-card-faces' || MODE === 'tag-glyphs' || MODE === 'rebirth-card-face' || MODE === 'flux-card-face' || MODE === 'insight-card-face' || MODE === 'sanctuary-card-face' || MODE === 'resonance-card-face' || MODE === 'plunder-card-face' || (MODE === 'tag-glyph' && Boolean(TAG_GLYPH_CARDS[GLYPH_KEY]));
+const REVIEW_IDS = new Set(MODE === 'history-glyph' ? ['sheep-1'] : MODE === 'exchange-choice-batch' ? ['miracle-10','disaster-02','sheep-1','food-1','money-1'] : MODE === 'disaster-player-choice-batch-2' ? ['disaster-04','disaster-10','disaster-11','disaster-14'] : MODE === 'disaster-player-choice-batch' ? ['disaster-06','disaster-08','disaster-09','disaster-15'] : MODE === 'player-choice-batch' ? ['miracle-09','miracle-12','miracle-14','miracle-22'] : MODE === 'dawn-rebirth-choice' ? ['miracle-04','sheep-1','food-1','money-1'] : MODE === 'choice-batch' ? ['miracle-06','miracle-07','miracle-08','miracle-13','miracle-01','sheep-1','food-1'] : MODE === 'wind-choice' ? ['miracle-05','sheep-1','sheep-2','sheep-3','food-1','food-2','food-3','money-1','money-2','money-3'] : MODE === 'scapegoat-glyph' ? ['miracle-17'] : MODE === 'sanctuary-response' ? ['miracle-16'] : MODE === 'art-batch' ? ART_BATCH_DEFINITIONS.map(definition => definition.definitionId) : MODE === 'tag-glyphs' ? IMPLEMENTED_TAG_GLYPH_KEYS.map(key => TAG_GLYPH_CARDS[key]) : MODE === 'flux-card-face' ? ['miracle-04','miracle-05'] : MODE === 'tag-glyph' ? [
   TAG_GLYPH_CARDS[GLYPH_KEY],
 ] : MODE === 'insight-card-face' ? [
   // 洞察圖騰測試：三張洞察神蹟，直接確認眼睛卡面。
@@ -80,6 +80,10 @@ function setup() {
   const definitions = CARD_DEFINITIONS.filter(definition => REVIEW_IDS.has(definition.definitionId));
   const cards = definitions.map(definition => take(state, definition.definitionId)).filter(Boolean);
   human.hand.push(...cards);
+  if (MODE === 'history-glyph') {
+    state.deck.push(...state.playedArea.splice(0));
+    for (const id of ['miracle-01','miracle-05','disaster-07','disaster-16']) {const card=take(state,id);if(card)state.playedArea.push(card);}
+  }
   if (MODE === 'exchange-choice-batch') {
     const opponents=state.players.filter(player=>player.type==='ai');
     ['miracle-01','miracle-02','miracle-03'].forEach((id,index)=>{const card=take(state,id);if(card&&opponents[index])opponents[index].hand.unshift(card);});
@@ -106,7 +110,9 @@ function setup() {
   }
   state.currentPlayer = human.playerId;
   state.qaSeed = 'tag-card-faces';
-  const message = MODE === 'exchange-choice-batch'
+  const message = MODE === 'history-glyph'
+    ? '歷史紀錄圖騰測試：中央已出牌區放入兩張神蹟和兩張災難，長按中央牌堆查看。'
+    : MODE === 'exchange-choice-batch'
     ? '展示與交換測試：恰如飛鳥經過、謊言與試探及三張物資已發牌；選物資交換可測不同牌型與使命選擇。'
     : MODE === 'disaster-player-choice-batch-2'
     ? '災難選玩家介面第二批：半朽蜜果、染血銀幣、盜火、愛慾之種已發牌；重新開始可再測其他牌。'
