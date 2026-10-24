@@ -60,10 +60,11 @@ function setupSecondLifeQa(state){
   const judgmentId=state.qaSeed.split('--')[1];if(judgmentId){const j=getJudgmentDefinition(judgmentId);state.activeJudgments={[j.domain]:j.id};state.judgmentDeck=state.judgmentDeck.filter(id=>id!==j.id);state.lastJudgment={judgmentId:j.id,domain:j.domain,replacedJudgmentId:null,round:state.round};state.judgmentHistory=[state.lastJudgment];}
 }
 function setupAftermathQa(state){
-  if(state.qaSeed!=='aftermath-test')return;
+  if(!['aftermath-test','aftermath-ui-test'].includes(state.qaSeed))return;
   const human=state.players[0];for(const p of state.players)state.deck.push(...p.hand.splice(0));
   const card=takeQaCard(state,'miracle-24');if(!card)throw new Error('Aftermath QA miracle missing');
   human.hand.push(card);for(const [i,p] of state.players.entries()){const held=takeQaCard(state,`sheep-${i+1}`);if(held)p.hand.push(held);p.fire=5;}
+  if(state.qaSeed==='aftermath-ui-test')for(const id of ['food-1','money-1']){const held=takeQaCard(state,id);if(held)human.hand.push(held);}
   state.currentPlayer=human.playerId;state.currentResource=null;
 }
 function setupNarrowQa(state){

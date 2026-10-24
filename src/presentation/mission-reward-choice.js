@@ -1,6 +1,7 @@
 import { GameController } from '../controller/game-controller.js';
 import { getNormalActions } from '../game/game.js';
 import { renderCardRow } from './choice-card-row.js';
+import { addChoiceMotion } from './player-choice-row.js';
 
 const originalPrepare=GameController.prototype.prepare;
 let shownFor=null;
@@ -25,7 +26,7 @@ function show(controller){
     const title=document.createElement('strong');title.textContent=info.label;
     const progress=document.createElement('span');progress.textContent=`${current}／${required}　+${entry.amount}`;
     button.setAttribute('aria-label',`${info.label}使命，${current}／${required}，增加${entry.amount}`);
-    button.append(icon,title,progress);button.onclick=()=>{overlay.hidden=true;shownFor=null;controller.act(action,controller.snapshot());};host.append(button);
+    button.append(icon,title,progress);addChoiceMotion(button);button.onclick=()=>{overlay.hidden=true;shownFor=null;controller.act(action,controller.snapshot());};host.append(button);
   }
 }
 

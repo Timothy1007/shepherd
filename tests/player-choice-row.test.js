@@ -17,6 +17,6 @@ test('player placeholders and effect choices preserve the selected target', () =
     host.children[1].onclick();assert.equal(selected,'p2');assert.equal(overlay.hidden,false);
     host.children=[];let choice=null;renderOptions(overlay,'選效果','',[
       {label:'抽牌',onSelect:()=>{choice='draw'}},{label:'使命',disabled:true,onSelect:()=>{choice='mission'}}]);
-    assert.equal(host.children[1].disabled,true);host.children[0].onclick();assert.equal(choice,'draw');
+    assert.equal(host.children[1].disabled,true);host.children[0].listeners.pointermove({buttons:0,pointerType:'mouse',clientX:80,clientY:20});assert.match(host.children[0].style.transform,/rotateX/);host.children[0].listeners.pointerleave();assert.equal(host.children[0].style.transform,'');host.children[0].onclick();assert.equal(choice,'draw');
   } finally {globalThis.document=previousDocument;}
 });
