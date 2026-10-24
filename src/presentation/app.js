@@ -104,9 +104,15 @@ function paintPendingHandArrivals() {
 }
 function clearHandArrivals() {
   dealAnimationVersion++;
-  for (const timer of pendingHandArrivals.values()) clearTimeout(timer);
+  for (const record of pendingHandArrivals.values()) clearTimeout(record.timer);
   pendingHandArrivals.clear();
   document.querySelectorAll('.hand-arrival-flight').forEach(card => card.remove());
+  paintPendingHandArrivals();
+}
+function finishHandArrival(id, record) {
+  if (pendingHandArrivals.get(id) !== record) return;
+  clearTimeout(record.timer);
+  pendingHandArrivals.delete(id);
   paintPendingHandArrivals();
 }
 function animateHandArrivals(state) {
@@ -115,62 +121,65 @@ function animateHandArrivals(state) {
   const addedIds = [...ids].filter(id => freshDeal || !animatedHandIds.has(id));
   animatedHandIds = ids;
   animatedHandRound = state.round;
-  if ((!freshDeal && !addedIds.length) || globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
   if (freshDeal) clearHandArrivals();
+  if (document.hidden || globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+    clearHandArrivals();
+    return;
+  }
+  if (!freshDeal && !addedIds.length) return;
   const version = dealAnimationVersion;
   if (freshDeal) globalThis.__shepherdDealStartedAt = performance.now();
-  // Hide actual cards immediately and on every subsequent render until each lands.
+  const records = new Map();
   addedIds.forEach((id,index) => {
-    const delay = freshDeal ? index * 240 : index * 180;
     const old = pendingHandArrivals.get(id);
-    if (old) clearTimeout(old);
-    const timer = setTimeout(() => {
-      if (version !== dealAnimationVersion) return;
-      pendingHandArrivals.delete(id);
-      paintPendingHandArrivals();
-    }, delay + 2000);
-    pendingHandArrivals.set(id,timer);
+    if (old) clearTimeout(old.timer);
+    const record = {timer:null};
+    record.timer = setTimeout(() => finishHandArrival(id,record), (freshDeal ? index*240 : index*180) + 1000);
+    pendingHandArrivals.set(id,record);
+    records.set(id,record);
   });
   paintPendingHandArrivals();
   requestAnimationFrame(() => {
     if (version !== dealAnimationVersion) return;
     try {
       const deck = document.querySelector('#deck-summary')?.getBoundingClientRect();
-      // The legacy #resource-deck is hidden; the visible deck is at the top right.
       const originX = deck?.width ? deck.left + deck.width / 2 : window.innerWidth - 123;
       const originY = deck?.height ? deck.top + deck.height / 2 : 106;
       const humanCards = [...document.querySelectorAll('#hand .card[data-card-id]')];
       for (let i=0;i<addedIds.length;i++) {
-        const id = addedIds[i];
-        const card = humanCards.find(item => item.dataset.cardId === id);
-        const rect = card?.getBoundingClientRect();
-        if (!rect?.width || !rect?.height) continue;
-        const width=rect.width, height=rect.height;
-        const x=rect.left, y=rect.top;
-        const copy=card.cloneNode(true);
-        copy.removeAttribute('data-card-id');
-        copy.setAttribute('aria-hidden','true');
-        copy.classList.add('hand-arrival-flight');
-        copy.style.cssText=`position:fixed;left:${x}px;top:${y}px;width:${width}px;height:${height}px;margin:0;z-index:39000;pointer-events:none;visibility:visible;transform:none;transform-origin:center;border-radius:7px;`;
-        const image=copy.querySelector('.card-art');
-        if(image) image.style.cssText='width:100%;height:100%;object-fit:contain';
-        document.body.append(copy);
-        const dx=originX-(x+width/2),dy=originY-(y+height/2);
-        const delay=freshDeal?i*240:i*180;
-        const animation=copy.animate([{transform:`translate(${dx}px,${dy}px) scale(.55)`,opacity:0},{opacity:1,offset:.08},{transform:'translate(0,0) scale(1)',opacity:1}],{duration:650,delay,easing:'cubic-bezier(.22,.7,.24,1)',fill:'both'});
-        animation.onfinish=()=>{
-          if(version===dealAnimationVersion){
-            clearTimeout(pendingHandArrivals.get(id));
-            pendingHandArrivals.delete(id);
-            paintPendingHandArrivals();
-          }
-          copy.remove();
-        };
-        animation.oncancel=()=>copy.remove();
+        const id=addedIds[i],record=records.get(id);
+        if(pendingHandArrivals.get(id)!==record) continue;
+        const card=humanCards.find(item=>item.dataset.cardId===id);
+        const rect=card?.getBoundingClientRect(),sourceImage=card?.querySelector('.card-art');
+        // Never hide a card waiting for an unavailable image or animation.
+        if(!rect?.width||!rect?.height||!sourceImage?.complete||!sourceImage.naturalWidth){finishHandArrival(id,record);continue;}
+        let copy;
+        try {
+          const width=rect.width,height=rect.height,x=rect.left,y=rect.top;
+          copy=card.cloneNode(true);
+          copy.removeAttribute('data-card-id');
+          copy.setAttribute('aria-hidden','true');
+          copy.classList.add('hand-arrival-flight');
+          copy.style.cssText=`position:fixed;left:${x}px;top:${y}px;width:${width}px;height:${height}px;margin:0;z-index:39000;pointer-events:none;visibility:visible;transform:none;transform-origin:center;border-radius:7px;`;
+          const image=copy.querySelector('.card-art');
+          if(image) image.style.cssText='width:100%;height:100%;object-fit:contain';
+          document.body.append(copy);
+          const dx=originX-(x+width/2),dy=originY-(y+height/2),delay=freshDeal?i*240:i*180;
+          const animation=copy.animate([{transform:`translate(${dx}px,${dy}px) scale(.55)`,opacity:0},{opacity:1,offset:.08},{transform:'translate(0,0) scale(1)',opacity:1}],{duration:650,delay,easing:'cubic-bezier(.22,.7,.24,1)',fill:'both'});
+          animation.onfinish=animation.oncancel=()=>{finishHandArrival(id,record);copy.remove();};
+        } catch(error) {
+          copy?.remove();
+          finishHandArrival(id,record);
+          console.warn('[Shepherd] hand card animation unavailable',error);
+        }
       }
-    } catch(error) { console.warn('[Shepherd] hand animation unavailable',error); }
+    } catch(error) {
+      for(const [id,record] of records) finishHandArrival(id,record);
+      console.warn('[Shepherd] hand animation unavailable',error);
+    }
   });
 }
+document.addEventListener('visibilitychange',()=>{if(document.hidden)clearHandArrivals();});
 function renderHand(state){const human=state.players[0],blindness=state.activeJudgments?.['資訊'],covered=['blindness-1','blindness-2'].includes(blindness),special=card=>['miracle','disaster'].includes(getDefinition(card).kind),visible=covered?human.hand.filter(card=>!special(card)):human.hand;if(!visible.some(card=>card.instanceId===selectedInstanceId))selectedInstanceId=null;if(selectedBlindnessPile&&!blindnessPileAction(selectedBlindnessPile))selectedBlindnessPile=null;const hand=$('#hand'),existing=[...hand.children];if(state.currentPlayer!==human.playerId&&!covered&&existing.length===visible.length&&existing.every((button,index)=>button.classList.contains('card')&&button.dataset.cardId===visible[index].instanceId)){existing.forEach((button,index)=>{const card=visible[index],{definition,ruleLegal,humanTurn,actionable}=cardStatus(card,state),statusText=actionable?'可出牌':(ruleLegal&&!humanTurn?'等待你的行動':'目前不可出');button.handCard=card;button.classList.toggle('legal',actionable);button.classList.toggle('illegal',!actionable);button.setAttribute('aria-label',`${definitionTitle(definition)}，${statusText}`);const status=button.querySelector('small');if(status)status.textContent=statusText;});return;}const children=[];if(covered){const groups=(blindness==='blindness-2'?[{kind:'unknown',label:'未知功能牌',cards:human.hand.filter(special)}]:['miracle','disaster'].map(kind=>({kind,label:names[kind],cards:human.hand.filter(card=>getDefinition(card).kind===kind)}))).filter(group=>group.cards.length);children.push(...groups.map(blindnessPileButton));}const cardButtons=visible.map(card=>cardButton(card,state)),center=(cardButtons.length-1)/2,step=cardButtons.length<=2?4:cardButtons.length<=4?3.5:3;cardButtons.forEach((button,index)=>{const offset=index-center;if(!button.style?.setProperty)return;button.style.setProperty('--r',`${offset*step}deg`);button.style.setProperty('--y',`${Math.round(Math.abs(offset)*(cardButtons.length<=2?3:2.5))}px`);});children.push(...cardButtons);$('#hand').replaceChildren(...children);paintPendingHandArrivals();}
 function renderSelectionActions(state){const host=$('#selection-actions');host.replaceChildren();if(selectedBlindnessPile){const action=blindnessPileAction(selectedBlindnessPile),count=state.players[0].hand.filter(card=>{const kind=getDefinition(card).kind;return selectedBlindnessPile==='unknown'?kind==='miracle'||kind==='disaster':kind===selectedBlindnessPile;}).length,button=document.createElement('button');button.className='primary';button.textContent=`打出${blindnessPileTitle(selectedBlindnessPile)}覆蓋牌`;button.disabled=!action;button.addEventListener('click',()=>{if(action){selectedBlindnessPile=null;clearClickPreview();controller.act(action,token);}});host.append(button);const inspect=document.createElement('button');inspect.textContent='查看覆蓋牌';inspect.addEventListener('click',()=>showBlindnessDetail(selectedBlindnessPile,count));host.append(inspect);const cancel=document.createElement('button');cancel.textContent='取消選取';cancel.addEventListener('click',()=>{selectedBlindnessPile=null;clearClickPreview();renderSelectionActions(state);});host.append(cancel);return;}if(!selectedInstanceId)return;const card=state.players[0].hand.find(candidate=>candidate.instanceId===selectedInstanceId);if(!card)return;const definition=getDefinition(card),playable=actionsForCard(card);if(!playable.length){const button=document.createElement('button');button.textContent=state.currentPlayer===state.players[0].playerId?'目前不可打出':'等待你的行動';button.disabled=true;host.append(button);}else{const button=document.createElement('button');button.className='primary';if(definition.kind==='miracle'||definition.kind==='disaster')button.textContent=`打出${names[definition.kind]} · ${definition.name}`;else button.textContent=definition.type==='grace'?'選擇恩典化形':`打出 ${names[definition.type]} ${definition.number}`;button.addEventListener('click',()=>playOrChoose(card));host.append(button);}const inspect=document.createElement('button');inspect.textContent='查看卡牌';inspect.addEventListener('click',()=>showDetail(card));host.append(inspect);const cancel=document.createElement('button');cancel.textContent='取消選取';cancel.addEventListener('click',()=>{selectedInstanceId=null;clearClickPreview();renderSelectionActions(state);});host.append(cancel);}
 function renderCurrentCard(state){const currentPlayed=state.playedArea.at(-1),tableCard=$('#table-card');if(!currentPlayed){tableCard.replaceChildren();tableCard.classList.remove('has-card','grace-born');return;}const definition=getDefinition(currentPlayed);if(definition.kind==='miracle'||definition.kind==='disaster'){const title=definitionTitle(definition);tableCard.innerHTML=`<span class="table-card-visual"><img src="${tagFaceAsset(definition)}" alt="目前出牌：${title}">${faceGlyph(definition)}</span><span>${title}</span>`;tableCard.classList.add('has-card');tableCard.classList.remove('grace-born');}else{const effectiveType=definition.type==='grace'?currentPlayed.declaredType:definition.type,graceBorn=definition.type==='grace'&&effectiveType,image=transformedImage(definition,effectiveType);tableCard.innerHTML=`<span class="table-card-visual"><img src="${image}" alt="目前出牌：${names[effectiveType]} ${definition.number}"></span><span>${names[effectiveType]} ${definition.number}</span>`;tableCard.classList.add('has-card');tableCard.classList.toggle('grace-born',graceBorn);}if(currentPlayed.instanceId!==lastPlayedId){lastPlayedId=currentPlayed.instanceId;tableCard.classList.remove('impact');void tableCard.offsetWidth;tableCard.classList.add('impact');}}
