@@ -60,4 +60,4 @@
 }
 
 /* Keep the same subtle shadow during both player and AI turns. */
-#hand.hand .card{box-shadow:none!important;filter:drop-shadow(0 5px 7px rgba(0,0,0,.48))!important}
+#hand.hand .card{box-shadow:none!important;filter:drop-shadow(0 7px 9px rgba(0,0,0,.58))!important}
