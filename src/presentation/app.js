@@ -211,30 +211,33 @@ function renderDiscardBurns(state){
   }
 }
 function burnDiscardCard(card){
-  const rect=card.getBoundingClientRect();
+  const rect=(card.querySelector('img')??card).getBoundingClientRect();
   if(!rect.width||!rect.height)return;
-  const copy=card.cloneNode(true),flame=document.createElement('div');
+  const frame=document.createElement('div'),copy=card.cloneNode(true),flame=document.createElement('div');
+  frame.setAttribute('aria-hidden','true');
+  frame.style.cssText=`position:fixed;left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;height:${rect.height}px;z-index:39000;pointer-events:none;overflow:visible;`;
   copy.removeAttribute('data-card-id');copy.removeAttribute('data-ai-card');copy.setAttribute('aria-hidden','true');
-  copy.style.cssText=`position:fixed;left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;height:${rect.height}px;margin:0;z-index:39000;pointer-events:none;visibility:visible;transform:none;filter:none;box-shadow:none;`;
+  copy.style.cssText='position:absolute;left:0;top:0;width:100%;height:100%;padding:0;margin:0;border:0;box-sizing:border-box;pointer-events:none;visibility:visible;transform:none;filter:none;box-shadow:none;';
   const img=copy.querySelector('img');if(img)img.style.cssText='display:block;width:100%;height:100%;object-fit:contain';
   flame.setAttribute('aria-hidden','true');
   // Both animations use the same linear progress: the flame sits on the
   // clipping edge rather than racing ahead of the disappearing card.
-  flame.style.cssText=`position:fixed;left:${rect.left}px;top:${rect.top-10}px;width:${rect.width}px;height:20px;z-index:39001;pointer-events:none;`;
+  flame.style.cssText='position:absolute;left:0;top:-20px;width:100%;height:20px;z-index:1;pointer-events:none;';
   for(let i=0;i<7;i++){
     const tongue=document.createElement('span');
     tongue.style.cssText=`position:absolute;left:${i*100/7}%;bottom:0;width:20%;height:${i%2?22:16}px;transform-origin:50% 100%;border-radius:70% 25% 55% 40%;background:radial-gradient(ellipse at 50% 85%,#fff8c2 0%,#ffb329 28%,#ed4a0b 60%,transparent 76%);`;
     flame.append(tongue);
     tongue.animate([{transform:'scale(.85,.75) rotate(-9deg)',opacity:.8},{transform:'scale(1.1,1.25) rotate(8deg)',opacity:1},{transform:'scale(.9,.9) rotate(-5deg)',opacity:.85}],{duration:200+i*23,delay:-i*40,iterations:Infinity,easing:'ease-in-out'});
   }
-  document.body.append(copy,flame);
+  frame.append(copy,flame);
+  document.body.append(frame);
   try{
     const duration=1100;
     const fire=flame.animate([{transform:'translateY(0)',opacity:1},{transform:`translateY(${rect.height}px)`,opacity:1}],{duration,easing:'linear',fill:'both'});
     const burn=copy.animate([{clipPath:'inset(0 0 0 0)'},{clipPath:'inset(100% 0 0 0)'}],{duration,easing:'linear',fill:'both'});
-    const cleanup=()=>{copy.remove();flame.remove();};
+    const cleanup=()=>frame.remove();
     burn.onfinish=burn.oncancel=cleanup;fire.oncancel=cleanup;
-  }catch(error){copy.remove();flame.remove();throw error;}
+  }catch(error){frame.remove();throw error;}
 }
 function renderHand(state){const human=state.players[0],blindness=state.activeJudgments?.['資訊'],covered=['blindness-1','blindness-2'].includes(blindness),special=card=>['miracle','disaster'].includes(getDefinition(card).kind),visible=covered?human.hand.filter(card=>!special(card)):human.hand;if(!visible.some(card=>card.instanceId===selectedInstanceId))selectedInstanceId=null;if(selectedBlindnessPile&&!blindnessPileAction(selectedBlindnessPile))selectedBlindnessPile=null;const hand=$('#hand'),existing=[...hand.children];if(state.currentPlayer!==human.playerId&&!covered&&existing.length===visible.length&&existing.every((button,index)=>button.classList.contains('card')&&button.dataset.cardId===visible[index].instanceId)){existing.forEach((button,index)=>{const card=visible[index],{definition,ruleLegal,humanTurn,actionable}=cardStatus(card,state),statusText=actionable?'可出牌':(ruleLegal&&!humanTurn?'等待你的行動':'目前不可出');button.handCard=card;button.classList.toggle('legal',actionable);button.classList.toggle('illegal',!actionable);button.setAttribute('aria-label',`${definitionTitle(definition)}，${statusText}`);const status=button.querySelector('small');if(status)status.textContent=statusText;});return;}const children=[];if(covered){const groups=(blindness==='blindness-2'?[{kind:'unknown',label:'未知功能牌',cards:human.hand.filter(special)}]:['miracle','disaster'].map(kind=>({kind,label:names[kind],cards:human.hand.filter(card=>getDefinition(card).kind===kind)}))).filter(group=>group.cards.length);children.push(...groups.map(blindnessPileButton));}const cardButtons=visible.map(card=>cardButton(card,state)),center=(cardButtons.length-1)/2,step=cardButtons.length<=2?4:cardButtons.length<=4?3.5:3;cardButtons.forEach((button,index)=>{const offset=index-center;if(!button.style?.setProperty)return;button.style.setProperty('--r',`${offset*step}deg`);button.style.setProperty('--y',`${Math.round(Math.abs(offset)*(cardButtons.length<=2?3:2.5))}px`);});children.push(...cardButtons);$('#hand').replaceChildren(...children);paintPendingHandArrivals();}
 function renderSelectionActions(state){const host=$('#selection-actions');host.replaceChildren();if(selectedBlindnessPile){const action=blindnessPileAction(selectedBlindnessPile),count=state.players[0].hand.filter(card=>{const kind=getDefinition(card).kind;return selectedBlindnessPile==='unknown'?kind==='miracle'||kind==='disaster':kind===selectedBlindnessPile;}).length,button=document.createElement('button');button.className='primary';button.textContent=`打出${blindnessPileTitle(selectedBlindnessPile)}覆蓋牌`;button.disabled=!action;button.addEventListener('click',()=>{if(action){selectedBlindnessPile=null;clearClickPreview();controller.act(action,token);}});host.append(button);const inspect=document.createElement('button');inspect.textContent='查看覆蓋牌';inspect.addEventListener('click',()=>showBlindnessDetail(selectedBlindnessPile,count));host.append(inspect);const cancel=document.createElement('button');cancel.textContent='取消選取';cancel.addEventListener('click',()=>{selectedBlindnessPile=null;clearClickPreview();renderSelectionActions(state);});host.append(cancel);return;}if(!selectedInstanceId)return;const card=state.players[0].hand.find(candidate=>candidate.instanceId===selectedInstanceId);if(!card)return;const definition=getDefinition(card),playable=actionsForCard(card);if(!playable.length){const button=document.createElement('button');button.textContent=state.currentPlayer===state.players[0].playerId?'目前不可打出':'等待你的行動';button.disabled=true;host.append(button);}else{const button=document.createElement('button');button.className='primary';if(definition.kind==='miracle'||definition.kind==='disaster')button.textContent=`打出${names[definition.kind]} · ${definition.name}`;else button.textContent=definition.type==='grace'?'選擇恩典化形':`打出 ${names[definition.type]} ${definition.number}`;button.addEventListener('click',()=>playOrChoose(card));host.append(button);}const inspect=document.createElement('button');inspect.textContent='查看卡牌';inspect.addEventListener('click',()=>showDetail(card));host.append(inspect);const cancel=document.createElement('button');cancel.textContent='取消選取';cancel.addEventListener('click',()=>{selectedInstanceId=null;clearClickPreview();renderSelectionActions(state);});host.append(cancel);}
