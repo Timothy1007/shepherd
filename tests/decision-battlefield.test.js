@@ -19,8 +19,13 @@ test('pending card choice can be hidden and restored without resolving it', () =
   events.pointerdown({target:{closest:()=>null}});
   assert.equal(classes.has('decision-battlefield-hidden'),true);
   assert.equal(context.__shepherdDecisionPending(),true);
-  assert.equal(bodyChildren.at(-1).textContent,'返回選擇');
-  bodyChildren.at(-1).click();
+  const otherCard={dataset:{cardId:'other'}};
+  events.pointerdown({target:{closest:q=>q==='.card[data-card-id]'?otherCard:q.startsWith('button,')?otherCard:null}});
+  assert.equal(classes.has('decision-battlefield-hidden'),true);
+  assert.equal(bodyChildren.length,0);
+  let blankPrevented=false;
+  events.pointerdown({target:{closest:()=>null},preventDefault(){blankPrevented=true},stopImmediatePropagation(){}});
+  assert.equal(blankPrevented,true);
   assert.equal(classes.has('decision-battlefield-hidden'),false);
   assert.equal(context.__shepherdDecisionPending(),true);
   events.pointerdown({target:{closest:()=>null}});

@@ -170,6 +170,8 @@ document.addEventListener('pointerdown', event => {
   }
   if (!event.target.closest?.('#wind-choice-overlay .wind-panel')) {
     const overlay = document.querySelector('#wind-choice-overlay');
+    const interactive=event.target.closest?.('button, a, input, select, textarea, [role=button], [tabindex], #card-inspector-content, .tabletop-pile, .seat, .human-meta');
+    if (overlay?.hidden && !interactive) { event.preventDefault();event.stopImmediatePropagation();renderChoice();return; }
     if (overlay) overlay.hidden=true;
   }
 }, true);
