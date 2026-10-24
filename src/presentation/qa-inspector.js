@@ -35,7 +35,14 @@ function history(){
 }
 function aiMarkup(p){return `<div class="qa-ai-hand" aria-label="Player ${p.seat} 公開手牌">${p.hand.map(c=>`<button class="qa-ai-card" data-ai-card="${c.instanceId}" title="${title(c)}"><img src="${face(c)}" alt="${title(c)}">${globalThis.__shepherdCardFaceGlyph?.(getDefinition(c))??''}</button>`).join('')}</div>`;}
 function placeTopHand(hand){const width=Number(globalThis.innerWidth),height=Number(globalThis.innerHeight);if(!hand?.style?.setProperty||!width||!height)return;const set=(property,value)=>hand.style.setProperty(property,value,'important'),gx=width/32,gy=height/18;set('position','fixed');set('left',`${gx*16-19}px`);set('top',`${gy*1.5-27}px`);set('display','grid');set('grid-template-columns','repeat(6, 38px)');set('grid-auto-rows','54px');set('gap','2px');set('width','max-content');set('margin','0');set('transform','none');set('z-index','40');}
-function renderAiHands(){if(!state)return;const targets=['#seat-left','#seat-top','#seat-right'];state.players.slice(1).forEach((p,i)=>{const seat=$(targets[i]);if(!seat)return;seat.querySelector('.qa-ai-hand')?.remove();seat.insertAdjacentHTML('beforeend',aiMarkup(p));const hand=seat.querySelector('.qa-ai-hand');if(i===1)placeTopHand(hand);seat.querySelectorAll('[data-ai-card]').forEach(b=>b.onclick=e=>{e.stopPropagation();const c=p.hand.find(x=>x.instanceId===b.dataset.aiCard);if(c)detail(c);});});}
+function renderAiHands(){if(!state)return;const targets=['#seat-left','#seat-top','#seat-right'];state.players.slice(1).forEach((p,i)=>{const seat=$(targets[i]);if(!seat)return;seat.querySelector('.qa-ai-hand')?.remove();seat.insertAdjacentHTML('beforeend',aiMarkup(p));const hand=seat.querySelector('.qa-ai-hand');if(i===1)placeTopHand(hand);seat.querySelectorAll('[data-ai-card]').forEach((b,index)=>{
+  const start=globalThis.__shepherdDealStartedAt;
+  if(Number.isFinite(start)&&!globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches){
+    const elapsed=performance.now()-start, delay=index*240-elapsed;
+    if(elapsed>=0&&delay>-180&&typeof b.animate==='function') b.animate([{opacity:0},{opacity:1}],{duration:180,delay,fill:'both',easing:'ease-out'});
+  }
+  b.onclick=e=>{e.stopPropagation();const c=p.hand.find(x=>x.instanceId===b.dataset.aiCard);if(c)detail(c);};
+});});}
 function pileRect(){const pile=$('.tabletop-pile');if(!pile||!pile.classList.contains('has-cards'))return null;const r=pile.getBoundingClientRect();return{left:r.left,top:r.top,right:r.right,bottom:r.bottom};}
 function inPile(e){const r=pileRect();return !!r&&e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom;}
 

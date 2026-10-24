@@ -118,7 +118,7 @@ function animateHandArrivals(state) {
   if ((!freshDeal && !addedIds.length) || globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
   if (freshDeal) clearHandArrivals();
   const version = dealAnimationVersion;
-  const counts = state.players.map(player => player.hand.length);
+  if (freshDeal) globalThis.__shepherdDealStartedAt = performance.now();
   // Hide actual cards immediately and on every subsequent render until each lands.
   addedIds.forEach((id,index) => {
     const delay = freshDeal ? index * 240 : index * 180;
@@ -128,7 +128,7 @@ function animateHandArrivals(state) {
       if (version !== dealAnimationVersion) return;
       pendingHandArrivals.delete(id);
       paintPendingHandArrivals();
-    }, delay + 750);
+    }, delay + 2000);
     pendingHandArrivals.set(id,timer);
   });
   paintPendingHandArrivals();
@@ -140,28 +140,33 @@ function animateHandArrivals(state) {
       const originX = deck?.width ? deck.left + deck.width / 2 : window.innerWidth - 123;
       const originY = deck?.height ? deck.top + deck.height / 2 : 106;
       const humanCards = [...document.querySelectorAll('#hand .card[data-card-id]')];
-      const seats = ['#seat-left','#seat-top-info','#seat-right'].map(selector => document.querySelector(selector)?.getBoundingClientRect());
-      const destinations = freshDeal ? counts.map((count,seat) => ({seat,count})) : [{seat:0,count:addedIds.length}];
-      for (const {seat,count} of destinations) for (let i=0;i<count;i++) {
-        const id = seat === 0 ? (freshDeal ? [...ids][i] : addedIds[i]) : null;
-        const card = seat === 0 ? humanCards.find(item => item.dataset.cardId === id) : null;
-        const rect = seat === 0 ? card?.getBoundingClientRect() : seats[seat-1];
+      for (let i=0;i<addedIds.length;i++) {
+        const id = addedIds[i];
+        const card = humanCards.find(item => item.dataset.cardId === id);
+        const rect = card?.getBoundingClientRect();
         if (!rect?.width || !rect?.height) continue;
-        const width=seat===0?rect.width:46, height=seat===0?rect.height:64;
-        const x=seat===0?rect.left:rect.left+rect.width/2-width/2;
-        const y=seat===0?rect.top:rect.top+rect.height/2-height/2;
-        const copy=seat===0?card.cloneNode(true):document.createElement('div');
+        const width=rect.width, height=rect.height;
+        const x=rect.left, y=rect.top;
+        const copy=card.cloneNode(true);
         copy.removeAttribute('data-card-id');
         copy.setAttribute('aria-hidden','true');
         copy.classList.add('hand-arrival-flight');
         copy.style.cssText=`position:fixed;left:${x}px;top:${y}px;width:${width}px;height:${height}px;margin:0;z-index:39000;pointer-events:none;visibility:visible;transform:none;transform-origin:center;border-radius:7px;`;
-        if(seat===0){const image=copy.querySelector('.card-art');if(image)image.style.cssText='width:100%;height:100%;object-fit:contain';}
-        else{copy.style.background='repeating-linear-gradient(45deg,#253e59 0 8px,#1a2a43 8px 16px)';copy.style.border='2px solid #d4bd81';copy.style.boxShadow='0 4px 10px #0009';}
+        const image=copy.querySelector('.card-art');
+        if(image) image.style.cssText='width:100%;height:100%;object-fit:contain';
         document.body.append(copy);
         const dx=originX-(x+width/2),dy=originY-(y+height/2);
-        const delay=freshDeal?i*240+seat*45:i*180;
+        const delay=freshDeal?i*240:i*180;
         const animation=copy.animate([{transform:`translate(${dx}px,${dy}px) scale(.55)`,opacity:0},{opacity:1,offset:.08},{transform:'translate(0,0) scale(1)',opacity:1}],{duration:650,delay,easing:'cubic-bezier(.22,.7,.24,1)',fill:'both'});
-        animation.onfinish=animation.oncancel=()=>copy.remove();
+        animation.onfinish=()=>{
+          if(version===dealAnimationVersion){
+            clearTimeout(pendingHandArrivals.get(id));
+            pendingHandArrivals.delete(id);
+            paintPendingHandArrivals();
+          }
+          copy.remove();
+        };
+        animation.oncancel=()=>copy.remove();
       }
     } catch(error) { console.warn('[Shepherd] hand animation unavailable',error); }
   });
