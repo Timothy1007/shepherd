@@ -58,3 +58,6 @@
   transform:translateY(var(--y)) rotate(var(--r))!important;
   transition:transform .17s cubic-bezier(.2,.8,.2,1),filter .16s,opacity .16s!important;
 }
+
+/* Keep the same subtle shadow during both player and AI turns. */
+#hand.hand .card{box-shadow:none!important;filter:drop-shadow(0 5px 7px rgba(0,0,0,.48))!important}

@@ -106,9 +106,15 @@ window.addEventListener('pointercancel',settleHand,{capture:true});
 
 // When the turn changes away from the player, clear transient drag state but do
 // not erase the ability to inspect cards during the idle turn.
-const observer=new MutationObserver(()=>cancelSelectionWhenIdle());
+let previousHumanTurn=null;
+const observer=new MutationObserver(()=>{
+  const currentHumanTurn=humanCanAct();
+  if(previousHumanTurn===true&&!currentHumanTurn)settleHand();
+  previousHumanTurn=currentHumanTurn;
+});
 const start=()=>{
   const meta=humanMeta();
+  previousHumanTurn=humanCanAct();
   if(meta)observer.observe(meta,{attributes:true,attributeFilter:['class']});
   cancelSelectionWhenIdle();
 };
