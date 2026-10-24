@@ -1,3 +1,4 @@
+import { renderCardRow, appendChoiceCard } from './choice-card-row.js';
 import { getDefinition } from '../game/cards.js';
 import { GameController } from '../controller/game-controller.js';
 
@@ -16,8 +17,21 @@ function ensureDetailPortal(){const overlay=$('#detail-overlay');if(!overlay)ret
 function openDetailMarkup(markup){const overlay=ensureDetailPortal(),host=$('#detail-content');if(!host||!overlay)return;host.innerHTML=markup;overlay.hidden=false;document.body.classList.add('card-inspection-open');}
 function detail(card){if(typeof globalThis.__shepherdOpenCardInspector==='function'){globalThis.__shepherdOpenCardInspector(card);return;}const d=getDefinition(card);openDetailMarkup(`<img class="detail-card-art" src="${face(card)}" alt="${title(card)}"><div class="detail-copy"><span class="eyebrow">${d.kind==='resource'?names[d.type]:names[d.kind]}</span><h2>${title(card)}</h2><p>測試查看模式</p><p class="detail-note">${d.text??'物資牌依目前物資與克制規則判定。'}</p></div>`);}
 function domDetail(){const img=$('.tabletop-pile .pile-latest img')??$('.tabletop-pile img:last-child');if(!img)return;openDetailMarkup(`<img class="detail-card-art" src="${img.src}" alt="${img.alt}"><div class="detail-copy"><span class="eyebrow">本輪已出牌</span><h2>${img.alt?.replace(/^目前出牌：/,'')||'目前牌'}</h2><p>中央牌堆查看模式</p></div>`);}
-function ensureHistory(){let o=$('#played-history-overlay');if(o)return o;o=document.createElement('div');o.id='played-history-overlay';o.className='overlay';o.dataset.overlayLevel='decision';o.hidden=true;o.innerHTML=`<div class="overlay-backdrop" data-history-close></div><article class="played-history-panel"><button class="overlay-close" data-history-close>×</button><span class="eyebrow">本輪已出牌區</span><h2>過去打出的所有牌</h2><p>短按任一張牌可查看。</p><div class="played-history-grid"></div></article>`;document.body.append(o);o.querySelectorAll('[data-history-close]').forEach(x=>x.onclick=()=>o.hidden=true);return o;}
-function history(){const o=ensureHistory(),host=o.querySelector('.played-history-grid');host.replaceChildren();if(state?.playedArea?.length){for(const card of state.playedArea){const b=document.createElement('button');b.className='played-history-card';const definition=getDefinition(card),asset=globalThis.__shepherdCardFaceAsset?.(definition)??face(card),glyph=globalThis.__shepherdCardFaceGlyph?.(definition)??'';b.innerHTML=`<div class="played-history-face"><img src="${asset}" alt="${title(card)}">${glyph}</div><span>${title(card)}</span>`;b.onclick=e=>{e.stopPropagation();o.hidden=true;detail(card);};host.append(b);}}else{document.querySelectorAll('.tabletop-pile .pile-card').forEach(node=>{const img=node.querySelector('img');if(!img)return;const b=document.createElement('button');b.className='played-history-card';const glyph=node.querySelector('.runtime-tag-glyph')?.outerHTML??'';b.innerHTML=`<div class="played-history-face"><img src="${img.src}" alt="${img.alt}">${glyph}</div><span>${img.alt?.replace(/^目前出牌：/,'')||'已出牌'}</span>`;b.onclick=e=>{e.stopPropagation();o.hidden=true;openDetailMarkup(`<img class="detail-card-art" src="${img.src}" alt="${img.alt}"><div class="detail-copy"><span class="eyebrow">本輪已出牌</span><h2>${img.alt?.replace(/^目前出牌：/,'')||'已出牌'}</h2></div>`);};host.append(b);});}if(!host.children.length)host.textContent='目前還沒有已打出的牌。';o.hidden=false;}
+function ensureHistory(){
+  let o=$('#played-history-overlay');if(o)return o;
+  o=document.createElement('div');o.id='played-history-overlay';o.hidden=true;document.body.append(o);
+  document.addEventListener('pointerdown',event=>{
+    if(o.hidden||event.target.closest?.('#played-history-overlay .choice-row-card, #card-inspector-content, .choice-card-preview-content'))return;
+    o.hidden=true;
+  },true);
+  return o;
+}
+function history(){
+  const o=ensureHistory(),cards=state?.playedArea??[],host=renderCardRow(o,'本輪已出牌區',cards.length?'選擇一張牌查看詳情；可左右滑動。':'目前還沒有已打出的牌。');
+  for(const card of cards){
+    appendChoiceCard(host,card,title(card),()=>{o.hidden=true;detail(card);});
+  }
+}
 function aiMarkup(p){return `<div class="qa-ai-hand" aria-label="Player ${p.seat} 公開手牌">${p.hand.map(c=>`<button class="qa-ai-card" data-ai-card="${c.instanceId}" title="${title(c)}"><img src="${face(c)}" alt="${title(c)}">${globalThis.__shepherdCardFaceGlyph?.(getDefinition(c))??''}</button>`).join('')}</div>`;}
 function placeTopHand(hand){const width=Number(globalThis.innerWidth),height=Number(globalThis.innerHeight);if(!hand?.style?.setProperty||!width||!height)return;const set=(property,value)=>hand.style.setProperty(property,value,'important'),gx=width/32,gy=height/18;set('position','fixed');set('left',`${gx*16-19}px`);set('top',`${gy*1.5-27}px`);set('display','grid');set('grid-template-columns','repeat(6, 38px)');set('grid-auto-rows','54px');set('gap','2px');set('width','max-content');set('margin','0');set('transform','none');set('z-index','40');}
 function renderAiHands(){if(!state)return;const targets=['#seat-left','#seat-top','#seat-right'];state.players.slice(1).forEach((p,i)=>{const seat=$(targets[i]);if(!seat)return;seat.querySelector('.qa-ai-hand')?.remove();seat.insertAdjacentHTML('beforeend',aiMarkup(p));const hand=seat.querySelector('.qa-ai-hand');if(i===1)placeTopHand(hand);seat.querySelectorAll('[data-ai-card]').forEach(b=>b.onclick=e=>{e.stopPropagation();const c=p.hand.find(x=>x.instanceId===b.dataset.aiCard);if(c)detail(c);});});}
