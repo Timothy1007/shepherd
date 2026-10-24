@@ -68,3 +68,10 @@
   border-radius:7px;
 }
 .hand-arrival-flight:not(.card){border:1px solid rgba(0,0,0,.8)!important;box-sizing:border-box}
+
+/* Card faces share the same fine dark edge across the battlefield. */
+:is(.qa-ai-card,.effect-mini,.table-card-visual,.pile-card,.choice-row-tilt,.choice-card-preview-face,.choice-face,.wind-tilt,.detail-foil-card,.grace-choice .choice-card) img,
+#card-inspector-card .detail-card-art,#detail-overlay .detail-card-art{
+  outline:1px solid rgba(0,0,0,.8)!important;
+  outline-offset:-1px;
+}
