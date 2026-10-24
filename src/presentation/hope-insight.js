@@ -19,6 +19,7 @@ function showChoose(){
   ensureUi();const p=active;if(!p)return;
   const {controller,definitionId}=p,o=document.querySelector('#hope-insight-overlay'),cards=viewedCards(controller,definitionId),m=mode(definitionId);
   active.view=showChoose;cleanupBattlefieldView();
+  o.dataset.decisionCardId=p.action.instanceId;
   const host=renderCardRow(o,m.name,m.note);
   for(const card of cards)appendChoiceCard(host,card,title(card),()=>commit(card.instanceId,cards.filter(c=>c.instanceId!==card.instanceId).map(c=>c.instanceId)));
 }

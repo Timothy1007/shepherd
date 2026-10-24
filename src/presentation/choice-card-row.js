@@ -50,6 +50,7 @@ export function prepareCardRow(overlay) {
   overlay.classList.add('choice-row-overlay');
 }
 export function renderCardRow(overlay, name, note) {
+  globalThis.__shepherdCloseCardInspector?.();
   prepareCardRow(overlay);
   overlay.innerHTML = '<article class="choice-row-panel"><div class="choice-row-heading"><h2></h2><p></p></div><div class="choice-row-cards" aria-label="可選擇的牌"></div></article>';
   overlay.querySelector('h2').textContent=name;

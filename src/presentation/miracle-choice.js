@@ -77,6 +77,7 @@ function bindTilt(target) {
 }
 function renderChoice() {
   if (!active) return;
+  globalThis.__shepherdCloseCardInspector?.();
   ensureUi();
   const { controller, action, selected, stage } = active;
   const player = controller.state.players.find(p => p.playerId === action.playerId);
