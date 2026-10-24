@@ -59,5 +59,12 @@
   transition:transform .17s cubic-bezier(.2,.8,.2,1),filter .16s,opacity .16s!important;
 }
 
-/* Keep the same shadows in both turns; the left shadow separates overlapping cards. */
-#hand.hand .card{box-shadow:none!important;filter:drop-shadow(-5px 0 4px rgba(0,0,0,.65)) drop-shadow(0 7px 9px rgba(0,0,0,.58))!important}
+/* Fine outlines separate overlapping cards without shadow filters during dealing. */
+#hand.hand .card,#hand.hand .card.hand-hover,#hand.hand .card.click-preview,
+.hand-arrival-flight{box-shadow:none!important;filter:none!important}
+#hand.hand .card .card-art,.hand-arrival-flight .card-art{
+  outline:1px solid rgba(0,0,0,.8)!important;
+  outline-offset:-1px;
+  border-radius:7px;
+}
+.hand-arrival-flight:not(.card){border:1px solid rgba(0,0,0,.8)!important;box-sizing:border-box}
