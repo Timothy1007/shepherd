@@ -134,12 +134,24 @@ function animateHandArrivals(state) {
     const old = pendingHandArrivals.get(id);
     if (old) clearTimeout(old.timer);
     const record = {timer:null};
-    record.timer = setTimeout(() => finishHandArrival(id,record), (freshDeal ? index*240 : index*180) + 1000);
+    record.timer = setTimeout(() => finishHandArrival(id,record), 3500);
     pendingHandArrivals.set(id,record);
     records.set(id,record);
   });
   paintPendingHandArrivals();
-  requestAnimationFrame(() => {
+  const initialCards = [...document.querySelectorAll('#hand .card[data-card-id]')];
+  // Wait for face images before starting the sequence. The bounded wait keeps
+  // a broken or slow asset from leaving a card hidden indefinitely.
+  const imageReady = card => new Promise(resolve => {
+    const image=card?.querySelector('.card-art');
+    if(!image || image.complete) {resolve();return;}
+    let done=false;
+    const finish=()=>{if(done)return;done=true;clearTimeout(timeout);image.removeEventListener('load',finish);image.removeEventListener('error',finish);resolve();};
+    const timeout=setTimeout(finish,1200);
+    image.addEventListener('load',finish,{once:true});
+    image.addEventListener('error',finish,{once:true});
+  });
+  Promise.all(addedIds.map(id=>imageReady(initialCards.find(card=>card.dataset.cardId===id)))).then(()=>requestAnimationFrame(() => {
     if (version !== dealAnimationVersion) return;
     try {
       const deck = document.querySelector('#deck-summary')?.getBoundingClientRect();
@@ -151,8 +163,10 @@ function animateHandArrivals(state) {
         if(pendingHandArrivals.get(id)!==record) continue;
         const card=humanCards.find(item=>item.dataset.cardId===id);
         const rect=card?.getBoundingClientRect(),sourceImage=card?.querySelector('.card-art');
-        // Never hide a card waiting for an unavailable image or animation.
-        if(!rect?.width||!rect?.height||!sourceImage?.complete||!sourceImage.naturalWidth){finishHandArrival(id,record);continue;}
+        if(!rect?.width||!rect?.height||!sourceImage){finishHandArrival(id,record);continue;}
+        if(!sourceImage.complete||!sourceImage.naturalWidth){finishHandArrival(id,record);continue;}
+        clearTimeout(record.timer);
+        record.timer=setTimeout(()=>finishHandArrival(id,record),(freshDeal?i*240:i*180)+1100);
         let copy;
         try {
           const width=rect.width,height=rect.height,x=rect.left,y=rect.top;
@@ -177,7 +191,7 @@ function animateHandArrivals(state) {
       for(const [id,record] of records) finishHandArrival(id,record);
       console.warn('[Shepherd] hand animation unavailable',error);
     }
-  });
+  }));
 }
 document.addEventListener('visibilitychange',()=>{if(document.hidden)clearHandArrivals();});
 function renderHand(state){const human=state.players[0],blindness=state.activeJudgments?.['資訊'],covered=['blindness-1','blindness-2'].includes(blindness),special=card=>['miracle','disaster'].includes(getDefinition(card).kind),visible=covered?human.hand.filter(card=>!special(card)):human.hand;if(!visible.some(card=>card.instanceId===selectedInstanceId))selectedInstanceId=null;if(selectedBlindnessPile&&!blindnessPileAction(selectedBlindnessPile))selectedBlindnessPile=null;const hand=$('#hand'),existing=[...hand.children];if(state.currentPlayer!==human.playerId&&!covered&&existing.length===visible.length&&existing.every((button,index)=>button.classList.contains('card')&&button.dataset.cardId===visible[index].instanceId)){existing.forEach((button,index)=>{const card=visible[index],{definition,ruleLegal,humanTurn,actionable}=cardStatus(card,state),statusText=actionable?'可出牌':(ruleLegal&&!humanTurn?'等待你的行動':'目前不可出');button.handCard=card;button.classList.toggle('legal',actionable);button.classList.toggle('illegal',!actionable);button.setAttribute('aria-label',`${definitionTitle(definition)}，${statusText}`);const status=button.querySelector('small');if(status)status.textContent=statusText;});return;}const children=[];if(covered){const groups=(blindness==='blindness-2'?[{kind:'unknown',label:'未知功能牌',cards:human.hand.filter(special)}]:['miracle','disaster'].map(kind=>({kind,label:names[kind],cards:human.hand.filter(card=>getDefinition(card).kind===kind)}))).filter(group=>group.cards.length);children.push(...groups.map(blindnessPileButton));}const cardButtons=visible.map(card=>cardButton(card,state)),center=(cardButtons.length-1)/2,step=cardButtons.length<=2?4:cardButtons.length<=4?3.5:3;cardButtons.forEach((button,index)=>{const offset=index-center;if(!button.style?.setProperty)return;button.style.setProperty('--r',`${offset*step}deg`);button.style.setProperty('--y',`${Math.round(Math.abs(offset)*(cardButtons.length<=2?3:2.5))}px`);});children.push(...cardButtons);$('#hand').replaceChildren(...children);paintPendingHandArrivals();}
