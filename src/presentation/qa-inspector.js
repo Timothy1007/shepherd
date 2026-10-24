@@ -8,6 +8,7 @@ const FACE_TAG_FILES=Object.freeze({新生:'Rebirth',流轉:'Flux',洞察:'Insig
 const FACE_SCOPE_TAGS=new Set(['應對','群體','單體','多體','負面']);
 const $=s=>document.querySelector(s);
 let state=null,pilePress=null;
+const currentState=()=>globalThis.__shepherdController?.state??state;
 const originalSafeRender=GameController.prototype.safeRender;
 GameController.prototype.safeRender=function(...args){state=this.state;const result=originalSafeRender.apply(this,args);queueMicrotask(renderAiHands);return result;};
 
@@ -27,7 +28,7 @@ function ensureHistory(){
   return o;
 }
 function history(){
-  const o=ensureHistory(),cards=state?.playedArea??[],host=renderCardRow(o,'本輪已出牌區',cards.length?'選擇一張牌查看詳情；可左右滑動。':'目前還沒有已打出的牌。');
+  const o=ensureHistory(),cards=currentState()?.playedArea??[],host=renderCardRow(o,'本輪已出牌區',cards.length?'選擇一張牌查看詳情；可左右滑動。':'目前還沒有已打出的牌。');
   for(const card of cards){
     appendChoiceCard(host,card,title(card),()=>{o.hidden=true;detail(card);});
   }
@@ -68,5 +69,5 @@ function canInspectPile(e){return inPile(e)&&!hasActiveInteraction()&&!coveredBy
 
 window.addEventListener('pointerdown',e=>{if((e.button??0)!==0||!canInspectPile(e))return;pilePress={pointerId:e.pointerId,x:e.clientX,y:e.clientY,long:false,timer:setTimeout(()=>{if(!pilePress||hasActiveInteraction())return;pilePress.long=true;history();if(navigator.vibrate)navigator.vibrate(18);},LONG_PRESS_MS)};},{capture:true});
 window.addEventListener('pointermove',e=>{if(!pilePress||e.pointerId!==pilePress.pointerId)return;if(Math.hypot(e.clientX-pilePress.x,e.clientY-pilePress.y)>8){clearTimeout(pilePress.timer);pilePress=null;}},{capture:true});
-window.addEventListener('pointerup',e=>{if(!pilePress||e.pointerId!==pilePress.pointerId)return;const p=pilePress;pilePress=null;clearTimeout(p.timer);if(!p.long&&canInspectPile(e)){if(state?.playedArea?.length)detail(state.playedArea.at(-1));else domDetail();}},{capture:true});
+window.addEventListener('pointerup',e=>{if(!pilePress||e.pointerId!==pilePress.pointerId)return;const p=pilePress;pilePress=null;clearTimeout(p.timer);if(!p.long&&canInspectPile(e)){const cards=currentState()?.playedArea??[];if(cards.length)detail(cards.at(-1));}},{capture:true});
 window.addEventListener('pointercancel',()=>{if(pilePress)clearTimeout(pilePress.timer);pilePress=null;},{capture:true});
