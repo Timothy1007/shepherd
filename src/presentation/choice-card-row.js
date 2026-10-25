@@ -16,7 +16,7 @@ function showChoicePreview(card){
   const close=document.createElement('button');close.type='button';close.textContent='返回選擇';close.onclick=closeChoicePreview;
   text.append(name,effect,close);article.append(image,text);preview.append(article);document.body.append(preview);choicePreview=preview;
 }
-if(typeof document!=='undefined')document.addEventListener('pointerdown',event=>{
+if(typeof document!=='undefined'&&typeof document.addEventListener==='function')document.addEventListener('pointerdown',event=>{
   if(!choicePreview||event.target.closest?.('.choice-card-preview-content'))return;
   closeChoicePreview();event.preventDefault();event.stopImmediatePropagation();
 },true);
