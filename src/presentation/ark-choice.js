@@ -25,7 +25,7 @@ function burnChosenCards(ids=[]){
     const frame=document.createElement('div'),copy=card.cloneNode(true),flame=document.createElement('div');
     frame.setAttribute('aria-hidden','true');
     frame.style.cssText=`position:fixed;left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;height:${rect.height}px;z-index:39000;pointer-events:none;overflow:visible;`;
-    copy.removeAttribute('data-card-id');copy.style.cssText='position:absolute;inset:0;width:100%;height:100%;margin:0;padding:0;border:0;box-sizing:border-box;visibility:visible;filter:none;box-shadow:none;';
+    copy.removeAttribute('data-card-id');copy.style.cssText='position:absolute;inset:0;width:100%;height:100%;margin:0;padding:0;border:0;box-sizing:border-box;visibility:visible;transform:none!important;rotate:none!important;filter:none;box-shadow:none;';
     const image=copy.querySelector('img');if(image)image.style.cssText='display:block;width:100%;height:100%;object-fit:contain';
     flame.style.cssText='position:absolute;left:0;top:-20px;width:100%;height:20px;pointer-events:none;';
     for(let i=0;i<7;i++){const tongue=document.createElement('span');tongue.style.cssText=`position:absolute;left:${i*100/7}%;bottom:0;width:20%;height:${i%2?22:16}px;border-radius:70% 25% 55% 40%;background:radial-gradient(ellipse at 50% 85%,#fff8c2 0%,#ffb329 28%,#ed4a0b 60%,transparent 76%);`;flame.append(tongue);tongue.animate([{transform:'scale(.85,.75) rotate(-9deg)'},{transform:'scale(1.1,1.25) rotate(8deg)'},{transform:'scale(.9,.9) rotate(-5deg)'}],{duration:200+i*23,delay:-i*40,iterations:Infinity,easing:'ease-in-out'});}
