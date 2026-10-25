@@ -8,7 +8,7 @@
   document.head.append(style);
   let hidden=null;
   const openStates=new WeakMap();
-  const isPending=el=>el.isConnected&&!el.hidden;
+  const isPending=el=>el.isConnected&&!el.hidden&&!el.classList.contains('decision-battlefield-hidden');
   globalThis.__shepherdDecisionPending=()=>Array.from(document.querySelectorAll(selector)).some(isPending);
   function restore(){if(hidden?.isConnected&&!hidden.hidden){hidden.classList.remove('decision-battlefield-hidden');globalThis.__shepherdCloseCardInspector?.();}hidden=null;}
   function suspend(el){if(hidden===el)return;restore();hidden=el;el.classList.add('decision-battlefield-hidden');}
@@ -35,9 +35,6 @@
     }
     if(hidden&&!target.closest?.('button, a, input, select, textarea, [role=button], [tabindex], #card-inspector-content, .choice-card-preview-content, .tabletop-pile, .seat, .human-meta')){
       event.preventDefault();event.stopImmediatePropagation();restore();return;
-    }
-    if(globalThis.__shepherdDecisionPending()&&target.closest?.('#actions, #selection-actions')){
-      event.preventDefault();event.stopImmediatePropagation();return;
     }
     const open=Array.from(document.querySelectorAll(selector)).filter(el=>isPending(el)&&!el.classList.contains('decision-battlefield-hidden')).at(-1);
     if(!open)return;
