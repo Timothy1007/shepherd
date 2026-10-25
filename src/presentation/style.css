@@ -56,7 +56,7 @@
 @keyframes orientation-turn{0%,18%{transform:rotate(0deg)}42%,68%{transform:rotate(90deg)}82%,100%{transform:rotate(0deg)}}
 
 /* 短邊較小的手機橫向配置：保留戰場、四席與完整手牌。 */
-@media (pointer:coarse) and (orientation:landscape) and (max-height:560px){
+@media (pointer:coarse) and (orientation:landscape) and (max-width:900px){
   .dispute-shell{min-height:100svh;height:100svh}
   .hud-top{padding:8px 14px}.round-hud>div{font-size:14px;margin-bottom:3px}.round-hud a{font-size:10px}
   .arena{inset:52px 0 118px}.seat{min-width:96px;transform-origin:center}.seat-top{transform:translateX(-50%) scale(.64)}.seat-left{left:2%;top:48%;transform:translateY(-50%) scale(.72)}.seat-right{right:2%;top:48%;transform:translateY(-50%) scale(.72)}
@@ -71,7 +71,7 @@
 }
 
 /* 手機橫向：NPC 只保留可點的摘要點，主戰場優先。 */
-@media (pointer:coarse) and (orientation:landscape) and (max-height:560px){
+@media (pointer:coarse) and (orientation:landscape) and (max-width:900px){
   .seat,.seat-top-info{cursor:pointer;-webkit-tap-highlight-color:transparent}
   .seat:not(.npc-expanded),.seat-top-info:not(.npc-expanded){min-width:22px!important;width:22px!important;height:22px!important;padding:0!important;border:0!important;background:transparent!important;overflow:visible!important;opacity:1!important;transform:none!important;text-shadow:none!important}
   .seat:not(.npc-expanded)>*,.seat-top-info:not(.npc-expanded)>*{display:none!important}
@@ -87,7 +87,15 @@
 
 /* 桌面仍由原本的頂部資訊列顯示上方 NPC；手機點開摘要點才展開其內容。 */
 .seat-top > *{display:none}
-@media (pointer:coarse) and (orientation:landscape) and (max-height:560px){
+@media (pointer:coarse) and (orientation:landscape) and (max-width:900px){
   .seat-top.npc-expanded > *{display:block!important}
   .seat-top.npc-expanded .stats,.seat-top.npc-expanded .mission-progress{display:flex!important}
+}
+
+/* 手機橫向不顯示 QA 用的 AI 公開手牌；NPC 詳情只保留可讀數值。 */
+@media (pointer:coarse) and (orientation:landscape) and (max-width:900px){
+  .qa-ai-hand{display:none!important}
+  .seat-top.npc-expanded{top:58px!important;left:50%!important;transform:translateX(-50%)!important}
+  .seat.npc-expanded .mission-progress{display:none!important}
+  .seat.npc-expanded .name{white-space:nowrap}
 }
