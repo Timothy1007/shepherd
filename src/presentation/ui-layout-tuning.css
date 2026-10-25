@@ -24,8 +24,8 @@
 /* AI hands stay concealed in normal play, but their card backs remain visible.
    The individual DOM markers also give discard/deal animations a physical origin. */
 .ai-hand{display:flex;align-items:flex-end;justify-content:center;width:max-content;margin:7px auto 0;isolation:isolate;pointer-events:none}
-.ai-card-back{position:relative;display:block;flex:0 0 24px;width:24px;aspect-ratio:63/88;margin-left:-13px;border:1px solid rgba(225,204,147,.72);border-radius:3px;background:linear-gradient(135deg,rgba(231,211,154,.78) 0 3%,transparent 3% 97%,rgba(231,211,154,.55) 97%),repeating-linear-gradient(-45deg,#1c4039 0 3px,#15332f 3px 6px),radial-gradient(circle at 50% 50%,#d4b56b 0 13%,#183d36 14% 29%,#0b221f 30%);box-shadow:1px -1px 0 #0a1614,2px -2px 4px #0008;transform-origin:50% 100%;animation:ai-card-settle .28s ease both}
-.ai-card-back:first-child{margin-left:0}.ai-card-back:nth-child(2n){transform:translateY(-1px) rotate(1deg)}.ai-card-back:nth-child(3n){transform:translateY(1px) rotate(-1deg)}
+.ai-card-back{position:relative;display:block;flex:0 0 24px;width:24px;aspect-ratio:63/88;margin-left:-7px;border:1px solid rgba(225,204,147,.72);border-radius:3px;background:linear-gradient(135deg,rgba(231,211,154,.78) 0 3%,transparent 3% 97%,rgba(231,211,154,.55) 97%),repeating-linear-gradient(-45deg,#1c4039 0 3px,#15332f 3px 6px),radial-gradient(circle at 50% 50%,#d4b56b 0 13%,#183d36 14% 29%,#0b221f 30%);box-shadow:1px -1px 0 #0a1614,2px -2px 4px #0008;transform-origin:50% 100%;animation:ai-card-settle .28s ease both}
+.ai-card-back:first-child{margin-left:0}.ai-hand{padding:0 4px}.ai-card-back:nth-child(2n){transform:translateY(-1px) rotate(1deg)}.ai-card-back:nth-child(3n){transform:translateY(1px) rotate(-1deg)}
 @keyframes ai-card-settle{from{opacity:0;transform:translateY(-8px) scale(.86)}to{opacity:1}}
 .seat-top .ai-hand{margin-top:5px}
 @media (pointer:coarse) and (orientation:landscape) and (max-width:900px){
