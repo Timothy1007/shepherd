@@ -2,6 +2,7 @@ import { GameController } from '../controller/game-controller.js';
 import { getNormalActions } from '../game/game.js';
 const route=new URLSearchParams(globalThis.location?.search??'').get('qa');
 const SEED='choice-batch-preview';
+globalThis.__shepherdSuppressHandArrivals=true;
 const stages=Object.freeze([
   {title:'第 1 項｜三股合成的繩子',note:'先選自己的展示牌，再選兩名玩家；卡面應在中央透明卡列。',ids:['miracle-15','sheep-1','disaster-01']},
   {title:'第 2 項｜方舟之外',note:'選擇保留一種物資，再從其餘種類點選要棄置的牌。',ids:['disaster-01','sheep-1','food-1','money-1','sheep-2','food-2']}
