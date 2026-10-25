@@ -10,7 +10,7 @@ const $=s=>document.querySelector(s);
 let state=null,pilePress=null;
 const currentState=()=>globalThis.__shepherdController?.state??state;
 const originalSafeRender=GameController.prototype.safeRender;
-GameController.prototype.safeRender=function(...args){state=this.state;const result=originalSafeRender.apply(this,args);queueMicrotask(renderAiHands);return result;};
+GameController.prototype.safeRender=function(...args){state=this.state;const result=originalSafeRender.apply(this,args);queueMicrotask(()=>{if(new URLSearchParams(globalThis.location?.search??'').has('qa-ai-hands'))renderAiHands();else document.querySelectorAll('.qa-ai-hand').forEach(hand=>hand.remove());});return result;};
 
 function title(card){const d=getDefinition(card);return d.kind==='resource'?`${names[d.type]} ${d.number}`:d.name;}
 function face(card){const definition=getDefinition(card);if(!['miracle','disaster'].includes(definition.kind))return definition.image;const tag=definition.tags?.find(value=>!FACE_SCOPE_TAGS.has(value)&&FACE_TAG_FILES[value]);const file=FACE_TAG_FILES[tag];if(!file)return definition.image;const response=definition.tags.includes('應對')?'-Response':'';return definition.kind==='miracle'?`assets/miracles/miracal-${file}${response}.png`:`assets/disasters/disater-${file}${response}.png`;}
