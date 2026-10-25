@@ -20,6 +20,22 @@
 .hand .card:hover{filter:none!important}.hand .card.selected{filter:drop-shadow(0 16px 14px #0008)!important}.hand .card.illegal,.hand .card.illegal:hover{filter:none!important}
 .drag-ghost{width:106px!important;height:auto!important;background:transparent!important;border:0!important;border-radius:7px!important;box-shadow:none!important}.drag-ghost:before,.drag-ghost:after{content:none!important}.drag-ghost .card-art{display:block!important;width:106px!important;height:auto!important;object-fit:contain!important;border-radius:7px!important;box-shadow:none!important}
 
+
+/* AI hands stay concealed in normal play, but their card backs remain visible.
+   The individual DOM markers also give discard/deal animations a physical origin. */
+.ai-hand{display:flex;align-items:flex-end;justify-content:center;width:max-content;margin:7px auto 0;isolation:isolate;pointer-events:none}
+.ai-card-back{position:relative;display:block;flex:0 0 24px;width:24px;aspect-ratio:63/88;margin-left:-13px;border:1px solid rgba(225,204,147,.72);border-radius:3px;background:linear-gradient(135deg,rgba(231,211,154,.78) 0 3%,transparent 3% 97%,rgba(231,211,154,.55) 97%),repeating-linear-gradient(-45deg,#1c4039 0 3px,#15332f 3px 6px),radial-gradient(circle at 50% 50%,#d4b56b 0 13%,#183d36 14% 29%,#0b221f 30%);box-shadow:1px -1px 0 #0a1614,2px -2px 4px #0008;transform-origin:50% 100%;animation:ai-card-settle .28s ease both}
+.ai-card-back:first-child{margin-left:0}.ai-card-back:nth-child(2n){transform:translateY(-1px) rotate(1deg)}.ai-card-back:nth-child(3n){transform:translateY(1px) rotate(-1deg)}
+@keyframes ai-card-settle{from{opacity:0;transform:translateY(-8px) scale(.86)}to{opacity:1}}
+.seat-top .ai-hand{margin-top:5px}
+@media (pointer:coarse) and (orientation:landscape) and (max-width:900px){
+  .seat:not(.npc-expanded)>.ai-hand{display:flex!important;position:absolute;left:calc(100% + 4px);top:50%;margin:0;transform:translateY(-50%);z-index:2}
+  .seat-right:not(.npc-expanded)>.ai-hand{right:calc(100% + 4px);left:auto;flex-direction:row-reverse}
+  .seat-top:not(.npc-expanded)>.ai-hand{left:50%;top:calc(100% + 4px);transform:translateX(-50%)}
+  .ai-card-back{flex-basis:11px;width:11px;margin-left:-6px;border-radius:2px;box-shadow:1px -1px 2px #0009}
+  .seat-right .ai-card-back{margin-left:-6px}
+}
+
 /* QA-visible P2/P3/P4 hands are rendered smaller than P1. Their corner radius therefore
    scales with each card's actual rendered width instead of reusing P1's fixed 7px radius.
    6.6% of card width preserves the same visual corner proportion as 7px on a 106px P1 card. */
@@ -92,11 +108,6 @@
 @media(min-width:1001px){
   .hud-top,.seat,.human-meta,.player-effect-zone,.center-play,.resource-status,.hand,.actions,.selection-actions,#ai-debug-log{z-index:40!important}
 }
-
-/* Temporary visual test: remove the battlefield artwork so card depth can be
-   evaluated against one neutral surface. */
-html,body,.dispute-shell{background:#222!important}
-.battle-background,.world-layer,.ash{display:none!important}
 
 /* A feathered contrast pool keeps corner information legible on any later
    battlefield texture without returning to rectangular HUD containers. */
