@@ -13,8 +13,7 @@ function showChoicePreview(card){
   const text=document.createElement('div');text.className='choice-card-preview-text';
   const name=document.createElement('h2');name.textContent=d.name??'';
   const effect=document.createElement('p');effect.textContent=d.text??'暫無效果說明。';
-  const close=document.createElement('button');close.type='button';close.textContent='返回選擇';close.onclick=closeChoicePreview;
-  text.append(name,effect,close);article.append(image,text);preview.append(article);document.body.append(preview);choicePreview=preview;
+  text.append(name,effect);article.append(image,text);preview.append(article);document.body.append(preview);choicePreview=preview;
 }
 if(typeof document!=='undefined'&&typeof document.addEventListener==='function')document.addEventListener('pointerdown',event=>{
   if(!choicePreview||event.target.closest?.('.choice-card-preview-content'))return;

@@ -85,7 +85,7 @@ function renderChoice() {
   if (!card) return clear();
   const candidates = player.hand.filter(c => c.instanceId !== action.instanceId);
   const overlay = document.querySelector('#wind-choice-overlay');
-  overlay.innerHTML = `<article class="wind-panel ${stage === 'discard' ? 'wind-discard' : 'wind-main'}" aria-label="如風吹來的選擇">${stage === 'main' ? `<h2>如風吹來</h2>${face(card,'wind-face')}<div class="wind-options"><button class="wind-option" data-pointed="${candidates.length ? 'true' : 'false'}" data-wind="cycle" ${candidates.length?'':'disabled'}><strong>效果 1 · 流轉手牌</strong>棄置 1 至 3 張手牌，抽取等量的牌。</button><button class="wind-option" data-pointed="${candidates.length ? 'false' : 'true'}" data-wind="fire"><strong>效果 2 · 守住火種</strong>不棄置手牌，獲得 4 點火種。</button></div>` : `<div class="wind-discard-title"><h2>如風吹來</h2><p>選擇 1 至 3 張手牌，然後抽取等量的牌。</p></div><div class="wind-cards" aria-label="可選擇的手牌"></div><div class="wind-bottom"><p class="wind-count">已選 ${selected.size} / 3</p><p class="wind-limit" aria-live="polite"></p><div class="wind-confirm"><button data-wind="back">返回效果選擇</button><button data-wind="confirm" ${selected.size?'':'disabled'}>確認棄置並抽牌</button></div></div>`}</article>`;
+  overlay.innerHTML = `<article class="wind-panel ${stage === 'discard' ? 'wind-discard' : 'wind-main'}" aria-label="如風吹來的選擇">${stage === 'main' ? `<h2>如風吹來</h2>${face(card,'wind-face')}<div class="wind-options"><button class="wind-option" data-pointed="${candidates.length ? 'true' : 'false'}" data-wind="cycle" ${candidates.length?'':'disabled'}><strong>效果 1 · 流轉手牌</strong>棄置 1 至 3 張手牌，抽取等量的牌。</button><button class="wind-option" data-pointed="${candidates.length ? 'false' : 'true'}" data-wind="fire"><strong>效果 2 · 守住火種</strong>不棄置手牌，獲得 4 點火種。</button></div>` : `<div class="wind-discard-title"><h2>如風吹來</h2><p>選擇 1 至 3 張手牌，然後抽取等量的牌。</p></div><div class="wind-cards" aria-label="可選擇的手牌"></div><div class="wind-bottom"><p class="wind-count">已選 ${selected.size} / 3</p><p class="wind-limit" aria-live="polite"></p><div class="wind-confirm"><button data-wind="confirm" ${selected.size?'':'disabled'}>確認棄置並抽牌</button></div></div>`}</article>`;
   overlay.hidden = false;
   if (stage === 'main') {
     bindTilt(overlay.querySelector('.wind-face'));
@@ -134,7 +134,6 @@ function renderChoice() {
     host.addEventListener('click',event=>{
       if (suppressClick) {event.preventDefault();event.stopPropagation();suppressClick=false;}
     },true);
-    overlay.querySelector('[data-wind="back"]').onclick = () => {active.stage='main';renderChoice();};
     overlay.querySelector('[data-wind="confirm"]').onclick = () => commit({choice:'cycle',discardIds:[...selected]});
   }
   updateClock();
