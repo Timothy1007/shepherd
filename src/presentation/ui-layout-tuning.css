@@ -109,6 +109,11 @@
   .hud-top,.seat,.human-meta,.player-effect-zone,.center-play,.resource-status,.hand,.actions,.selection-actions,#ai-debug-log{z-index:40!important}
 }
 
+/* Temporary visual test: remove the battlefield artwork so card depth can be
+   evaluated against one neutral surface. */
+html,body,.dispute-shell{background:#222!important}
+.battle-background,.world-layer,.ash{display:none!important}
+
 /* A feathered contrast pool keeps corner information legible on any later
    battlefield texture without returning to rectangular HUD containers. */
 .seat,.human-meta{isolation:isolate}
