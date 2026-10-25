@@ -325,6 +325,7 @@ function renderFireTracker(state){
   value.textContent=String(amount);
   if(cap)cap.textContent='／'+threshold;
   tracker.setAttribute('aria-label','火種累積 '+amount+'／'+threshold);
+  tracker.classList.toggle('is-lit',amount>0);
   fireTrackerTarget=percentage;
   const setFill=amount=>tracker.style.setProperty('--fire-tracker-fill',amount+'%');
   if(fireTrackerJudgmentCount!==null&&judgmentCount>fireTrackerJudgmentCount){
