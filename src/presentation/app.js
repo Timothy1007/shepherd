@@ -118,6 +118,14 @@ function finishHandArrival(id, record) {
 }
 function animateHandArrivals(state) {
   const ids = new Set(state.players[0].hand.map(card => card.instanceId));
+  // Batch UI fixtures place their whole hand synchronously. Do not make cards
+  // from the fixture appear later as if the tested effect had drawn them.
+  if (state.qaSeed === 'choice-batch-preview') {
+    animatedHandIds = ids;
+    animatedHandRound = state.round;
+    clearHandArrivals();
+    return;
+  }
   const freshDeal = animatedHandIds === null || animatedHandRound !== state.round;
   const addedIds = [...ids].filter(id => freshDeal || !animatedHandIds.has(id));
   animatedHandIds = ids;
