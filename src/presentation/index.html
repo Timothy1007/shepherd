@@ -23,5 +23,5 @@
     <div id="debug-state" aria-live="polite" hidden></div><div id="boot-error" role="alert" hidden></div><div id="death-round-status" aria-live="polite" hidden></div><div id="toast" class="toast" aria-live="polite"></div>
   </main>
   <script>window.addEventListener('error',event=>{const host=document.querySelector('#boot-error');if(host){host.textContent=`啟動顯示失敗：${event.message||event.target?.src||'未知錯誤'}`;host.hidden=false;}});window.addEventListener('unhandledrejection',event=>{const host=document.querySelector('#boot-error');if(host){host.textContent=`啟動顯示失敗：${event.reason?.message||String(event.reason||'未知錯誤')}`;host.hidden=false;}});</script>
-  <script src="decision-battlefield.js"></script><script src="interaction-guard.js"></script><script src="playtest-runtime.js?v=181fde99956f"></script></body>
+  <script src="decision-battlefield.js?v=07bc71439681"></script><script src="interaction-guard.js"></script><script src="playtest-runtime.js?v=181fde99956f"></script></body>
 </html>
