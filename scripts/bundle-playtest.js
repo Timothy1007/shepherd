@@ -8,7 +8,7 @@ const entryOrder=[
 ];
 const modules=new Map(), imports=new Map(), exported=new Map();
 const normalize=file=>path.posix.normalize(file.replaceAll('\\','/'));
-const resolve=(from,spec)=>normalize(path.posix.relative(root,path.resolve(path.dirname(path.resolve(root,from)),spec)));
+const resolve=(from,spec)=>normalize(path.relative(root,path.resolve(path.dirname(path.resolve(root,from)),spec)));
 async function visit(file){file=normalize(file);if(modules.has(file))return;const source=await readFile(path.resolve(root,file),'utf8');modules.set(file,source);const list=[];const re=/import\s*\{([^}]+)\}\s*from\s*['"]([^'"]+)['"];?/g;for(const match of source.matchAll(re)){const target=resolve(file,match[2]);const names=match[1].split(',').map(v=>v.trim()).filter(Boolean).map(v=>{const [name,alias]=v.split(/\s+as\s+/);return{name:name.trim(),alias:(alias??name).trim()};});list.push({full:match[0],target,names});if(!exported.has(target))exported.set(target,new Set());for(const item of names)exported.get(target).add(item.name);await visit(target);}imports.set(file,list);}
 for(const entry of entryOrder)await visit(entry);
 function compile(file){let source=modules.get(file),list=imports.get(file)??[];for(const item of list){const destruct=item.names.map(({name,alias})=>name===alias?name:`${name}: ${alias}`).join(', ');source=source.replace(item.full,`const { ${destruct} } = require(${JSON.stringify(item.target)});`);}source=source.replace(/\bexport\s+(?=(?:const|let|var|function|class)\b)/g,'');const exposed=[...(exported.get(file)??[])].map(name=>`exports.${name} = ${name};`).join('');return `modules[${JSON.stringify(file)}]=function(module,exports,require){${source}\n${exposed}};`;}
