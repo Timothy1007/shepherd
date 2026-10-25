@@ -13,3 +13,11 @@ function ui(controller){if(document.querySelector('#choice-batch-qa'))return;con
 const previousStart=GameController.prototype.start;
 GameController.prototype.start=function(seed){const result=previousStart.call(this,seed);if(seed===SEED){configure(this,1);ui(this);}return result;};
 if(route==='choice-batch'&&globalThis.__shepherdController){configure(globalThis.__shepherdController,1);ui(globalThis.__shepherdController);}
+
+// The batch is a visual test, not a continuing match. Once the Ark result is
+// visible, keep that exact post-effect state on screen for inspection.
+const batchPrepare=GameController.prototype.prepare;
+GameController.prototype.prepare=function(){
+ if(this.state?.qaSeed===SEED&&this.state.choiceBatchFrozen){this.cancelTimer();this.safeRender(getNormalActions(this.state));return;}
+ return batchPrepare.call(this);
+};
