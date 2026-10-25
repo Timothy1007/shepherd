@@ -8,7 +8,7 @@
   document.head.append(style);
   let hidden=null;
   const openStates=new WeakMap();
-  const isPending=el=>el.isConnected&&!el.hidden&&!el.classList.contains('decision-battlefield-hidden');
+  const isPending=el=>el.isConnected&&!el.hidden;
   globalThis.__shepherdDecisionPending=()=>Array.from(document.querySelectorAll(selector)).some(isPending);
   function restore(){if(hidden?.isConnected&&!hidden.hidden){hidden.classList.remove('decision-battlefield-hidden');globalThis.__shepherdCloseCardInspector?.();}hidden=null;}
   function suspend(el){if(hidden===el)return;restore();hidden=el;el.classList.add('decision-battlefield-hidden');}
