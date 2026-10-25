@@ -181,7 +181,7 @@ function genericCopy(style) {
 function copyFor(style, { detail = false } = {}) {
   if (style.tagFacePreview) {
     const tags = visualTags(style.definition), primary = tags[0] ?? NEW_LIFE, shape = FACE_TAG_FILES[primary]?.toLowerCase() ?? 'rebirth';
-    return `<div class="tag-only-card-copy" aria-label="${primary}"><span class="tag-face-symbol tag-face-symbol--${shape}" aria-hidden="true">${TAG_FACE_GLYPH[primary] ?? ''}</span></div>`;
+    return `<div class="tag-only-card-copy" aria-label="${primary}"><span class="tag-face-symbol tag-face-symbol--${shape}" aria-hidden="true">${TAG_ICON[primary] ?? ''}</span></div>`;
   }
   if (style.definition.name === '拆毀堅固營壘') return miracleCopy();
   if (style.definition.name === '灰與燼') return disasterCopy();
