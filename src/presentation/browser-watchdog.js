@@ -14,7 +14,7 @@ function stateKey(controller) {
 }
 
 function hasVisibleDecision() {
-  return ['#ark-choice-overlay','#reaction-overlay','#target-choice-overlay','#wind-choice-overlay','#grace-overlay']
+  return ['#ark-choice-overlay','#reaction-overlay','#target-choice-overlay','#wind-choice-overlay','#grace-overlay','#overflow-choice']
     .some(selector => { const el=document.querySelector(selector); return !!el && !el.hidden; });
 }
 
