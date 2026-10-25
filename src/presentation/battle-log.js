@@ -32,7 +32,7 @@ if (compactLog) {
       setCollapsed(!compactLog.classList.contains('is-collapsed'));
     });
     compactLog.prepend(collapseToggle);
-    setCollapsed(compactLog.classList.contains('is-collapsed'));
+    setCollapsed(true);
   };
   const open = () => {
     const lines = overlay.querySelector('.battle-log-lines');
