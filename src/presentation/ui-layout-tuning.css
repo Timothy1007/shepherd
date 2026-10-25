@@ -145,8 +145,11 @@ html,body,.dispute-shell{background:#222!important}
 @media (pointer:coarse) and (orientation:landscape) and (max-width:900px){.actions.forced-response.steal-fire-choice{right:10px!important;bottom:7px!important}.actions.forced-response.steal-fire-choice button{font-size:11px!important}}
 
 
-/* The top NPC's concealed hand has its own row above its information. */
+/* The top NPC's concealed hand sits beside its own information, never beneath it. */
 @media(min-width:1001px){
-  .seat-top>.ai-hand{position:fixed!important;left:calc(var(--gx) * 12)!important;top:calc(var(--gy) * .18)!important;margin:0!important;transform:translateX(-50%)!important;z-index:43!important}
+  .seat-top>.ai-hand{position:fixed!important;left:calc(var(--gx) * 19)!important;top:calc(var(--gy) * .62)!important;margin:0!important;transform:translateX(-50%)!important;z-index:43!important}
   #seat-top-info{top:calc(var(--gy) * 1.25)!important}
+}
+@media (pointer:coarse) and (orientation:landscape) and (max-width:900px){
+  .seat-top:not(.npc-expanded)>.ai-hand{position:fixed!important;left:auto!important;right:calc(var(--gx) * 3.2)!important;top:calc(var(--gy) * .55)!important;margin:0!important;transform:none!important;z-index:43!important}
 }
