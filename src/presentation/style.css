@@ -84,3 +84,10 @@
   .actions{left:auto!important;right:10px!important;bottom:7px!important;transform:none!important;max-width:none!important}.actions button.primary-action{background:#3d2920!important;border-color:#e4b95d!important}
 }
 @keyframes stealFirePulse{50%{filter:brightness(1.28) drop-shadow(0 0 15px #ffe99d) drop-shadow(0 0 28px #df8e2d)}}
+
+/* 桌面仍由原本的頂部資訊列顯示上方 NPC；手機點開摘要點才展開其內容。 */
+.seat-top > *{display:none}
+@media (pointer:coarse) and (orientation:landscape) and (max-height:560px){
+  .seat-top.npc-expanded > *{display:block!important}
+  .seat-top.npc-expanded .stats,.seat-top.npc-expanded .mission-progress{display:flex!important}
+}
