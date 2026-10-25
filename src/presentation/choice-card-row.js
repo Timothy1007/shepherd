@@ -36,7 +36,7 @@ export function prepareCardRow(overlay) {
       .choice-row-card{position:relative;flex:0 0 auto;width:min(150px,21vh,calc(16vw - 16px));aspect-ratio:63/88;padding:0;border:0;border-radius:9px;background:transparent;cursor:pointer;perspective:900px}
       .choice-row-tilt{position:relative;display:block;width:100%;height:100%;overflow:hidden;border-radius:9px;box-shadow:0 8px 24px #0009;transform:perspective(900px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg));transition:transform .12s ease-out}
       .choice-row-tilt img{display:block;width:100%;height:100%;object-fit:cover}.choice-row-tilt .runtime-tag-glyph{z-index:2}
-      .choice-row-name{position:absolute;top:calc(100% + 5px);left:-12px;right:-12px;color:#fff;font-size:14px;line-height:1.2;white-space:nowrap;text-shadow:0 1px 5px #000,0 0 8px #000}.choice-row-card.selected{outline:3px solid #ffe190;outline-offset:4px}.choice-row-card:focus-visible{outline:3px solid #ffe190;outline-offset:4px}
+      .choice-row-name{position:absolute;top:calc(100% + 5px);left:-12px;right:-12px;color:#fff;font-size:14px;line-height:1.2;white-space:nowrap;text-shadow:0 1px 5px #000,0 0 8px #000}.choice-row-text-card .choice-row-tilt{display:grid;place-items:center;padding:14px;box-sizing:border-box;border:1px solid #d8c795aa;background:linear-gradient(155deg,#26332de8,#17211d);color:#f5eee0;text-align:center;font:750 16px/1.45 Inter,system-ui,"Noto Sans TC",sans-serif}.choice-row-text-card .choice-row-tilt::after{content:'';position:absolute;inset:7px;border:1px solid #f6df9b33;border-radius:6px;pointer-events:none}.choice-row-text-card .choice-row-text-detail{position:relative;z-index:1;display:block;max-width:100%;font-size:12px;font-weight:600;line-height:1.45;color:#d6cdb9}.choice-row-card.selected{outline:3px solid #ffe190;outline-offset:4px}.choice-row-card:focus-visible{outline:3px solid #ffe190;outline-offset:4px}
       .choice-card-preview{position:fixed;inset:0;z-index:45000;display:grid;place-items:center;pointer-events:none;color:#eee8d8}
       .choice-card-preview-content{display:flex;align-items:center;gap:24px;max-width:min(700px,94vw);padding:18px;pointer-events:auto;text-shadow:0 2px 6px #000,0 0 12px #000}
       .choice-card-preview-face{position:relative;flex:0 0 auto;width:min(210px,28vw,35vh);aspect-ratio:63/88;overflow:hidden;border-radius:10px;box-shadow:0 8px 24px #0009}
@@ -91,5 +91,15 @@ export function appendChoiceCard(host,card,label,onSelect){
   button.addEventListener('pointermove',event=>{if(event.buttons||event.pointerType==='touch')return;const rect=button.getBoundingClientRect();if(!rect.width||!rect.height)return;tilt.style.setProperty('--rx',`${(.5-(event.clientY-rect.top)/rect.height)*18}deg`);tilt.style.setProperty('--ry',`${((event.clientX-rect.left)/rect.width-.5)*22}deg`);});
   button.addEventListener('pointerleave',()=>{tilt.style.setProperty('--rx','0deg');tilt.style.setProperty('--ry','0deg');});
   if (d.kind==='miracle'||d.kind==='disaster') {const name=document.createElement('span');name.className='choice-row-name';name.textContent=label;button.append(name);}
+  button.onclick=onSelect;host.append(button);return button;
+}
+
+export function appendTextChoiceCard(host,label,detail,onSelect){
+  const button=document.createElement('button');
+  button.type='button';button.className='choice-row-card choice-row-text-card';button.setAttribute('aria-label',label);
+  button.innerHTML=`<span class="choice-row-tilt"><span>${label}${detail?`<small class="choice-row-text-detail">${detail}</small>`:''}</span></span>`;
+  const tilt=button.querySelector('.choice-row-tilt');
+  button.addEventListener('pointermove',event=>{if(event.buttons||event.pointerType==='touch')return;const rect=button.getBoundingClientRect();if(!rect.width||!rect.height)return;tilt.style.setProperty('--rx',`${(.5-(event.clientY-rect.top)/rect.height)*18}deg`);tilt.style.setProperty('--ry',`${((event.clientX-rect.left)/rect.width-.5)*22}deg`);});
+  button.addEventListener('pointerleave',()=>{tilt.style.setProperty('--rx','0deg');tilt.style.setProperty('--ry','0deg');});
   button.onclick=onSelect;host.append(button);return button;
 }
