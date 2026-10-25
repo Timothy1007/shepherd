@@ -140,3 +140,10 @@ html,body,.dispute-shell{background:#222!important}
 .actions.forced-response{position:fixed!important;left:50%!important;top:58%!important;bottom:auto!important;z-index:22000!important;display:flex!important;max-width:min(360px,calc(100vw - 32px));padding:10px!important;border:1px solid #d7bd7aaa!important;border-radius:12px!important;background:#101713ed!important;box-shadow:0 14px 34px #000c!important;transform:translate(-50%,-50%)!important;pointer-events:auto!important}
 .actions.forced-response button{min-width:min(320px,calc(100vw - 56px));font-size:14px!important}
 @media(max-width:700px){.actions.forced-response{top:52%!important}.actions.forced-response button{min-width:min(280px,calc(100vw - 48px))}}
+
+
+/* The top NPC's concealed hand has its own row above its information. */
+@media(min-width:1001px){
+  .seat-top>.ai-hand{position:fixed!important;left:calc(var(--gx) * 12)!important;top:calc(var(--gy) * .18)!important;margin:0!important;transform:translateX(-50%)!important;z-index:43!important}
+  #seat-top-info{top:calc(var(--gy) * 1.25)!important}
+}
