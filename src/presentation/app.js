@@ -120,7 +120,7 @@ function animateHandArrivals(state) {
   const ids = new Set(state.players[0].hand.map(card => card.instanceId));
   // Batch UI fixtures place their whole hand synchronously. Do not make cards
   // from the fixture appear later as if the tested effect had drawn them.
-  if (globalThis.__shepherdSuppressHandArrivals || state.qaSeed === 'choice-batch-preview') {
+  if (globalThis.__shepherdSuppressHandArrivals) {
     animatedHandIds = ids;
     animatedHandRound = state.round;
     clearHandArrivals();
@@ -204,6 +204,7 @@ function animateHandArrivals(state) {
     }
   }));
 }
+globalThis.__shepherdRestartHandArrivals=()=>{animatedHandIds=null;animatedHandRound=null;clearHandArrivals();};
 document.addEventListener('visibilitychange',()=>{if(document.hidden)clearHandArrivals();});
 // Track only cards actually moved from a hand into the discard pile.
 let previousBurnSnapshot=null;
@@ -215,6 +216,7 @@ function renderDiscardBurns(state){
   const remaining=new Set(next.hands.flat()),burns=[];
   for(let seat=0;seat<previous.hands.length;seat++)for(const id of previous.hands[seat]){
     if(remaining.has(id)||previous.discard.has(id)||!next.discard.has(id))continue;
+    if(globalThis.__shepherdPreburnedDiscardIds?.delete(id))continue;
     const selector=seat===0?'#hand .card[data-card-id]':'[data-ai-card]';
     const original=[...document.querySelectorAll(selector)].find(el=>(seat===0?el.dataset.cardId:el.dataset.aiCard)===id);
     if(!original)continue;
@@ -253,6 +255,23 @@ function burnDiscardCard(card,onComplete=()=>{}){
     return true;
   }catch(error){frame.remove();throw error;}
 }
+function burnHandCardsBeforeResolution(ids=[]){
+  const unique=[...new Set(ids)].filter(Boolean);
+  if(!unique.length)return Promise.resolve();
+  const preburned=globalThis.__shepherdPreburnedDiscardIds??new Set();
+  globalThis.__shepherdPreburnedDiscardIds=preburned;
+  const burns=[];
+  for(const id of unique){
+    const card=[...document.querySelectorAll('#hand .card[data-card-id]')].find(item=>item.dataset.cardId===id);
+    if(!card)continue;
+    preburned.add(id);
+    burns.push(new Promise(resolve=>{try{if(!burnDiscardCard(card,resolve))resolve();}catch(error){console.warn('[Shepherd] discard animation unavailable',error);resolve();}}));
+  }
+  const done=Promise.all(burns);
+  globalThis.__shepherdDiscardBurnDone=Promise.all([globalThis.__shepherdDiscardBurnDone??Promise.resolve(),done]);
+  return done;
+}
+globalThis.__shepherdBurnHandCards=burnHandCardsBeforeResolution;
 function renderHand(state){const human=state.players[0],blindness=state.activeJudgments?.['資訊'],covered=['blindness-1','blindness-2'].includes(blindness),special=card=>['miracle','disaster'].includes(getDefinition(card).kind),visible=covered?human.hand.filter(card=>!special(card)):human.hand;if(!visible.some(card=>card.instanceId===selectedInstanceId))selectedInstanceId=null;if(selectedBlindnessPile&&!blindnessPileAction(selectedBlindnessPile))selectedBlindnessPile=null;const hand=$('#hand'),existing=[...hand.children];if(state.currentPlayer!==human.playerId&&!covered&&existing.length===visible.length&&existing.every((button,index)=>button.classList.contains('card')&&button.dataset.cardId===visible[index].instanceId)){existing.forEach((button,index)=>{const card=visible[index],{definition,ruleLegal,humanTurn,actionable}=cardStatus(card,state),statusText=actionable?'可出牌':(ruleLegal&&!humanTurn?'等待你的行動':'目前不可出');button.handCard=card;button.classList.toggle('legal',actionable);button.classList.toggle('illegal',!actionable);button.setAttribute('aria-label',`${definitionTitle(definition)}，${statusText}`);const status=button.querySelector('small');if(status)status.textContent=statusText;});return;}const children=[];if(covered){const groups=(blindness==='blindness-2'?[{kind:'unknown',label:'未知功能牌',cards:human.hand.filter(special)}]:['miracle','disaster'].map(kind=>({kind,label:names[kind],cards:human.hand.filter(card=>getDefinition(card).kind===kind)}))).filter(group=>group.cards.length);children.push(...groups.map(blindnessPileButton));}const cardButtons=visible.map(card=>cardButton(card,state)),center=(cardButtons.length-1)/2,step=cardButtons.length<=2?4:cardButtons.length<=4?3.5:3;cardButtons.forEach((button,index)=>{const offset=index-center;if(!button.style?.setProperty)return;button.style.setProperty('--r',`${offset*step}deg`);button.style.setProperty('--y',`${Math.round(Math.abs(offset)*(cardButtons.length<=2?3:2.5))}px`);});children.push(...cardButtons);$('#hand').replaceChildren(...children);paintPendingHandArrivals();}
 function renderSelectionActions(state){const host=$('#selection-actions');host.replaceChildren();if(selectedBlindnessPile){const action=blindnessPileAction(selectedBlindnessPile),count=state.players[0].hand.filter(card=>{const kind=getDefinition(card).kind;return selectedBlindnessPile==='unknown'?kind==='miracle'||kind==='disaster':kind===selectedBlindnessPile;}).length,button=document.createElement('button');button.className='primary';button.textContent=`打出${blindnessPileTitle(selectedBlindnessPile)}覆蓋牌`;button.disabled=!action;button.addEventListener('click',()=>{if(action){selectedBlindnessPile=null;clearClickPreview();controller.act(action,token);}});host.append(button);const inspect=document.createElement('button');inspect.textContent='查看覆蓋牌';inspect.addEventListener('click',()=>showBlindnessDetail(selectedBlindnessPile,count));host.append(inspect);const cancel=document.createElement('button');cancel.textContent='取消選取';cancel.addEventListener('click',()=>{selectedBlindnessPile=null;clearClickPreview();renderSelectionActions(state);});host.append(cancel);return;}if(!selectedInstanceId)return;const card=state.players[0].hand.find(candidate=>candidate.instanceId===selectedInstanceId);if(!card)return;const definition=getDefinition(card),playable=actionsForCard(card);if(!playable.length){const button=document.createElement('button');button.textContent=state.currentPlayer===state.players[0].playerId?'目前不可打出':'等待你的行動';button.disabled=true;host.append(button);}else{const button=document.createElement('button');button.className='primary';if(definition.kind==='miracle'||definition.kind==='disaster')button.textContent=`打出${names[definition.kind]} · ${definition.name}`;else button.textContent=definition.type==='grace'?'選擇恩典化形':`打出 ${names[definition.type]} ${definition.number}`;button.addEventListener('click',()=>playOrChoose(card));host.append(button);}const inspect=document.createElement('button');inspect.textContent='查看卡牌';inspect.addEventListener('click',()=>showDetail(card));host.append(inspect);const cancel=document.createElement('button');cancel.textContent='取消選取';cancel.addEventListener('click',()=>{selectedInstanceId=null;clearClickPreview();renderSelectionActions(state);});host.append(cancel);}
 function renderCurrentCard(state){const currentPlayed=state.playedArea.at(-1),tableCard=$('#table-card');if(!currentPlayed){tableCard.replaceChildren();tableCard.classList.remove('has-card','grace-born');return;}const definition=getDefinition(currentPlayed);if(definition.kind==='miracle'||definition.kind==='disaster'){const title=definitionTitle(definition);tableCard.innerHTML=`<span class="table-card-visual"><img src="${tagFaceAsset(definition)}" alt="目前出牌：${title}">${faceGlyph(definition)}</span><span>${title}</span>`;tableCard.classList.add('has-card');tableCard.classList.remove('grace-born');}else{const effectiveType=definition.type==='grace'?currentPlayed.declaredType:definition.type,graceBorn=definition.type==='grace'&&effectiveType,image=transformedImage(definition,effectiveType);tableCard.innerHTML=`<span class="table-card-visual"><img src="${image}" alt="目前出牌：${names[effectiveType]} ${definition.number}"></span><span>${names[effectiveType]} ${definition.number}</span>`;tableCard.classList.add('has-card');tableCard.classList.toggle('grace-born',graceBorn);}if(currentPlayed.instanceId!==lastPlayedId){lastPlayedId=currentPlayed.instanceId;tableCard.classList.remove('impact');void tableCard.offsetWidth;tableCard.classList.add('impact');}}
