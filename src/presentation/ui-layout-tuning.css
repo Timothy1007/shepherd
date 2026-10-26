@@ -167,17 +167,3 @@ html,body,.dispute-shell{background:#222!important}
 @media (pointer:coarse) and (orientation:landscape) and (max-width:900px){.fire-tracker{left:29%!important;top:48%!important}.fire-flame{width:62px;height:74px;transform:scale(.86);transform-origin:center}.fire-flame strong{font-size:18px}.death-card-reveal img{width:min(180px,30vw);max-height:58vh}.death-card-reveal p{font-size:13px}}
 @media(prefers-reduced-motion:reduce){.fire-flame-fill,.fire-flame-fill:before,.fire-flame-fill:after{animation:none}.death-card-reveal,.death-card-reveal.is-dispersing{animation:none}}
 
-/* Single-card material preview: ?qa=metal-card applies this finish only to the first hand card. */
-.hand .card.metal-preview-card{position:relative!important;overflow:hidden!important;isolation:isolate!important;border:1px solid #e8d8b0!important;box-shadow:0 0 0 1px #fff4c644,0 8px 18px #0009!important}
-.hand .card.metal-preview-card:before{content:""!important;display:block!important;position:absolute;inset:-5px;z-index:20;border:1px solid #fff5d677;border-radius:12px;pointer-events:none;background:linear-gradient(112deg,transparent 24%,#fff8d95c 39%,#fffdf0d8 50%,#fff8d95c 61%,transparent 76%);background-size:185% 100%;background-position:-70% 0;filter:blur(4px);mix-blend-mode:screen;opacity:.72;animation:metal-card-band 4.8s ease-in-out infinite}
-.hand .card.metal-preview-card:after{content:""!important;display:block!important;position:absolute;inset:0;z-index:21;border-radius:7px;pointer-events:none;background:radial-gradient(ellipse at 30% 14%,#fff7d94d,transparent 32%),linear-gradient(180deg,#fff8d91c,transparent 28%,#0718161c 100%);mix-blend-mode:soft-light}
-@keyframes metal-card-band{0%,18%{background-position:-72% 0;opacity:.1}50%{background-position:0 0;opacity:.72}82%,100%{background-position:72% 0;opacity:.1}}
-
-/* The enlarged inspector reuses the same metal finish and clips every reflection to the card. */
-#card-inspector-card.metal-preview-inspector .metal-preview-frame{position:relative;display:block;overflow:hidden;border:2px solid #ead39a;border-radius:14px;line-height:0;box-shadow:0 0 0 1px #fff6c655,0 24px 34px #000a}
-#card-inspector-card.metal-preview-inspector .metal-preview-frame:before{content:none}
-#card-inspector-card.metal-preview-inspector .metal-preview-frame .detail-foil-card{position:relative;overflow:hidden;border-radius:12px!important}
-#card-inspector-card.metal-preview-inspector .metal-preview-frame .detail-foil-card:before{content:"";position:absolute;inset:-8px;z-index:6;border-radius:16px;pointer-events:none;background:linear-gradient(112deg,transparent 22%,#fff8d96e 38%,#fffdf0e8 50%,#fff8d96e 62%,transparent 78%);background-size:185% 100%;background-position:-72% 0;filter:blur(7px);mix-blend-mode:screen;animation:metal-preview-band 4.8s ease-in-out infinite}
-#card-inspector-card.metal-preview-inspector .metal-preview-frame:after{content:"";position:absolute;inset:0;z-index:7;border-radius:12px;pointer-events:none;background:linear-gradient(180deg,#fff8d924,transparent 30%,#0017141f 100%);mix-blend-mode:soft-light}
-#card-inspector-card.metal-preview-inspector .detail-card-art{outline:0!important;border-radius:12px!important}
-@keyframes metal-preview-band{0%,18%{background-position:-72% 0;opacity:.1}50%{background-position:0 0;opacity:.78}82%,100%{background-position:72% 0;opacity:.1}}
