@@ -157,7 +157,7 @@ html,body,.dispute-shell{background:#222!important}
 
 /* Central fire counts only the flat central played area.  The counter is a standalone animated flame; there is no dark vessel behind it. */
 .fire-tracker{position:absolute;z-index:26;left:31%!important;top:51%!important;display:grid;place-items:center;color:#f2e2c2;text-shadow:0 2px 7px #000;pointer-events:none;transform:translate(-50%,-50%)}
-.fire-flame{position:relative;display:grid;place-items:center;width:82px;height:96px;overflow:visible;isolation:isolate;background:transparent;filter:drop-shadow(0 5px 9px #0005)}
+.fire-flame{position:relative;display:grid;place-items:center;width:82px;height:96px;overflow:visible;isolation:isolate;background:transparent;filter:none}
 .fire-flame:before,.fire-flame:after{content:none}
 .fire-flame-fill{position:absolute;z-index:1;left:7%;top:0;width:86%;height:100%;border:0;background:linear-gradient(180deg,#ffeeb0 0%,#ffab52 39%,#e64b38 76%,#b92832 100%);clip-path:polygon(50% 0%,72% 27%,100% 52%,82% 84%,53% 100%,18% 88%,0% 60%,24% 35%);transform-origin:50% 100%;animation:fire-flame-flicker 1.15s ease-in-out infinite alternate;filter:drop-shadow(0 0 8px #f2764caa)}
 .fire-flame-fill:before{content:'';position:absolute;left:26%;top:28%;width:48%;height:52%;background:linear-gradient(180deg,#fff8c9 0%,#ffd967 58%,#f06a3d 100%);clip-path:polygon(50% 0%,72% 27%,100% 52%,82% 84%,53% 100%,18% 88%,0% 60%,24% 35%);animation:fire-flame-inner 1.15s ease-in-out infinite alternate-reverse}
