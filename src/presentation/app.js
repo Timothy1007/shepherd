@@ -319,8 +319,8 @@ function render(state,nextActions,nextToken){currentState=state;actions=nextActi
 function renderFireTracker(state){
   const tracker=$('#fire-tracker'),value=$('#fire-tracker-value');
   if(!tracker?.style?.setProperty||!value)return;
-  const amount=Math.max(0,Number.isFinite(state.fieldFire)?state.fieldFire:0);
-  // This is a separate, round-local record of the pressure placed in the centre.
+  const amount=Array.isArray(state.playedArea)?state.playedArea.length:0;
+  // Only cards physically in the central played area count. Effect-zone cards never do.
   const percentage=Math.max(0,Math.min(100,amount/30*100));
   value.textContent=String(amount);
   tracker.setAttribute('aria-label','場內火種累積 '+amount);
