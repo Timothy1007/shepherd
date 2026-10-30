@@ -154,38 +154,42 @@ func _build_header() -> void:
 func _build_player_panel() -> void:
 	var panel := Control.new()
 	panel.position = Vector2(28, 430)
-	panel.size = Vector2(252, 126)
+	panel.size = Vector2(282, 126)
 	add_child(panel)
 	var portrait := TextureRect.new()
 	portrait.position = Vector2(0, 0)
-	portrait.size = Vector2(74, 100)
-	portrait.texture = load("res://assets/characters/character-wanderer-v1-transparent.png")
+	portrait.size = Vector2(94, 118)
+	var source_texture := load("res://assets/characters/character-wanderer-v1-transparent.png") as Texture2D
+	var half_body := AtlasTexture.new()
+	half_body.atlas = source_texture
+	half_body.region = Rect2(0, 0, 1024, 930)
+	portrait.texture = half_body
 	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	portrait.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	portrait.modulate = Color(1.0, 0.94, 0.82, 0.97)
 	portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_child(portrait)
 	var name_label := make_label("行者", 20, TEXT)
-	name_label.position = Vector2(86, 0)
+	name_label.position = Vector2(106, 0)
 	panel.add_child(name_label)
 	var role := make_label("在荒野中穿行的人", 11, MUTED)
-	role.position = Vector2(86, 27)
+	role.position = Vector2(106, 27)
 	panel.add_child(role)
 	var sanity_caption := make_label("理智", 12, MUTED)
-	sanity_caption.position = Vector2(86, 50)
+	sanity_caption.position = Vector2(106, 50)
 	panel.add_child(sanity_caption)
 	var sanity_bar := make_progress(20, 20, RED, Vector2(108, 10))
-	sanity_bar.position = Vector2(86, 70)
+	sanity_bar.position = Vector2(106, 70)
 	panel.add_child(sanity_bar)
 	var sanity_value := make_label("20", 16, TEXT)
-	sanity_value.position = Vector2(202, 64)
+	sanity_value.position = Vector2(222, 64)
 	panel.add_child(sanity_value)
 	var ap_caption := make_label("行動值", 12, MUTED)
-	ap_caption.position = Vector2(86, 92)
+	ap_caption.position = Vector2(106, 92)
 	panel.add_child(ap_caption)
 	var ap_row := HBoxContainer.new()
-	ap_row.position = Vector2(135, 90)
+	ap_row.position = Vector2(155, 90)
 	ap_row.add_theme_constant_override("separation", 5)
 	panel.add_child(ap_row)
 	for i in range(3):
@@ -194,12 +198,12 @@ func _build_player_panel() -> void:
 		pip.add_theme_stylebox_override("panel", panel_style(Color(0.74, 0.49, 0.22, 0.82), 5, Color(0.95, 0.77, 0.43, 0.55), 1))
 		ap_row.add_child(pip)
 	var deck_caption := make_label("背包 23  ·  棄牌 0", 11, MUTED)
-	deck_caption.position = Vector2(86, 114)
+	deck_caption.position = Vector2(106, 114)
 	panel.add_child(deck_caption)
 func _build_encounter_panel() -> void:
 	var panel := Control.new()
 	panel.position = Vector2(350, 108)
-	panel.size = Vector2(560, 350)
+	panel.size = Vector2(560, 72)
 	add_child(panel)
 	var title := make_label("荒野邊界", 22, TEXT)
 	title.position = Vector2(18, 0)
@@ -208,22 +212,6 @@ func _build_encounter_panel() -> void:
 	tag.position = Vector2(436, 7)
 	panel.add_child(tag)
 	add_rule(panel, Vector2(18, 38), Vector2(500, 1), Color(0.75, 0.63, 0.42, 0.28))
-	var portrait := TextureRect.new()
-	portrait.position = Vector2(180, 48)
-	portrait.size = Vector2(198, 242)
-	portrait.texture = load("res://assets/characters/character-wanderer-v1-transparent.png")
-	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	portrait.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
-	portrait.modulate = Color(1.0, 0.94, 0.82, 0.97)
-	panel.add_child(portrait)
-	var prompt := make_label("前方的風穿過枯木，遠處有火光回應。", 13, Color("#eee3d0"))
-	prompt.position = Vector2(22, 300)
-	prompt.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
-	prompt.add_theme_constant_override("shadow_offset_x", 1)
-	prompt.add_theme_constant_override("shadow_offset_y", 1)
-	panel.add_child(prompt)
-
 func _build_enemy_panel() -> void:
 	var panel := Control.new()
 	panel.position = Vector2(930, 100)
