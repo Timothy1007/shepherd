@@ -60,7 +60,7 @@ func _build_vertical_slice() -> void:
 
 	var hand=Control.new(); hand.position=Vector2(0,525); hand.size=Vector2(1280,180); hand.mouse_filter=Control.MOUSE_FILTER_PASS; add_child(hand)
 	var count: int = hand_cards.size()
-	var overlap: float = 32.0
+	var overlap: float = 16.0
 	var step: float = CARD_SIZE.x - overlap
 	var total_width: float = CARD_SIZE.x + step * float(count - 1)
 	var start_x: float = (1280.0 - total_width) * 0.5
@@ -70,7 +70,7 @@ func _build_vertical_slice() -> void:
 		var card=TextureButton.new(); card.size=CARD_SIZE; card.position=Vector2(start_x + step * float(i), 0); card.ignore_texture_size=true; card.stretch_mode=TextureButton.STRETCH_KEEP_ASPECT_CENTERED; card.texture_normal=load(item[2]); card.material=_rounded_card_material(0.065); hand.add_child(card)
 		card_home[card]=card.position
 		hand_cards_nodes.append(card)
-		card.z_index = int(100.0 - abs(float(i) - center) * 10.0)
+		card.z_index = i
 		card.mouse_entered.connect(func(c=card): _hover_card(c, true))
 		card.mouse_exited.connect(func(c=card): _hover_card(c, false))
 		card.pressed.connect(func(c=card, data=item): _select_card(c, data))
@@ -156,8 +156,7 @@ func _restore_card_layer(card: TextureButton) -> void:
 	if index < 0:
 		card.z_index=0
 		return
-	var center: float = float(hand_cards_nodes.size() - 1) * 0.5
-	card.z_index=int(100.0 - abs(float(index) - center) * 10.0)
+	card.z_index=index
 
 func _tween_card(card: TextureButton, target_pos: Vector2, target_scale: Vector2) -> void:
 	if card_tweens.has(card) and is_instance_valid(card_tweens[card]):
