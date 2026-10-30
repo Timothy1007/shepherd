@@ -155,17 +155,17 @@ func _gui_input(event: InputEvent) -> void:
 
 func _rounded_texture(path: String, target_size: Vector2, radius: float) -> ImageTexture:
 	var source: Texture2D = load(path)
-	var image := source.get_image()
+	var image: Image = source.get_image()
 	image.resize(int(target_size.x), int(target_size.y), Image.INTERPOLATE_LANCZOS)
-	var w := image.get_width()
-	var h := image.get_height()
-	var r := int(radius)
+	var w: int = image.get_width()
+	var h: int = image.get_height()
+	var r: int = int(radius)
 	for y in range(h):
 		for x in range(w):
-			var dx := max(r - x, 0, x - (w - 1 - r))
-			var dy := max(r - y, 0, y - (h - 1 - r))
+			var dx: int = maxi(r - x, maxi(0, x - (w - 1 - r)))
+			var dy: int = maxi(r - y, maxi(0, y - (h - 1 - r)))
 			if dx > 0 and dy > 0 and dx * dx + dy * dy > r * r:
-				var col := image.get_pixel(x,y)
+				var col: Color = image.get_pixel(x,y)
 				col.a = 0.0
 				image.set_pixel(x,y,col)
 	return ImageTexture.create_from_image(image)
