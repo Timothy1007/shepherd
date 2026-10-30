@@ -148,101 +148,107 @@ func _build_header() -> void:
 		nav.add_child(button)
 func _build_player_panel() -> void:
 	var panel := Panel.new()
-	panel.position = Vector2(22, 420)
-	panel.size = Vector2(310, 150)
-	panel.add_theme_stylebox_override("panel", panel_style(Color(0.025, 0.028, 0.028, 0.68), 14, Color(0.48, 0.34, 0.20, 0.62), 1))
+	panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	panel.position = Vector2(20, 20)
+	panel.size = Vector2(292, 118)
+	panel.add_theme_stylebox_override("panel", panel_style(Color(0.025, 0.028, 0.028, 0.70), 14, Color(0.30, 0.25, 0.19, 0.72), 1))
 	add_child(panel)
 	var content := HBoxContainer.new()
-	content.position = Vector2(12, 10)
-	content.size = Vector2(286, 130)
+	content.position = Vector2(10, 10)
+	content.size = Vector2(272, 98)
 	content.add_theme_constant_override("separation", 10)
 	content.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_child(content)
 	var portrait := TextureRect.new()
-	portrait.custom_minimum_size = Vector2(92, 124)
-	portrait.size = Vector2(92, 124)
+	portrait.custom_minimum_size = Vector2(80, 80)
+	portrait.size = Vector2(80, 80)
 	var source_texture := load("res://assets/characters/character-wanderer-v1-transparent.png") as Texture2D
-	var half_body := AtlasTexture.new()
-	half_body.atlas = source_texture
-	half_body.region = Rect2(0, 0, 1024, 930)
-	portrait.texture = half_body
-	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	var head := AtlasTexture.new()
+	head.atlas = source_texture
+	head.region = Rect2(360, 0, 360, 360)
+	portrait.texture = head
+	portrait.expand_mode = 1
+	portrait.stretch_mode = 5
 	portrait.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
-	portrait.modulate = Color(1.0, 0.94, 0.82, 0.97)
 	portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	content.add_child(portrait)
 	var info := VBoxContainer.new()
-	info.custom_minimum_size = Vector2(174, 124)
-	info.add_theme_constant_override("separation", 4)
+	info.custom_minimum_size = Vector2(182, 98)
+	info.add_theme_constant_override("separation", 3)
 	info.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	content.add_child(info)
-	var name_label := make_label("行者", 20, TEXT)
+	var name_label := make_label("行者", 19, TEXT)
 	info.add_child(name_label)
-	var role := make_label("在荒野中穿行的人", 11, MUTED)
+	var role := make_label("在荒野中穿行的人", 10, MUTED)
 	info.add_child(role)
 	var sanity_row := HBoxContainer.new()
-	sanity_row.custom_minimum_size = Vector2(174, 22)
-	sanity_row.add_theme_constant_override("separation", 5)
+	sanity_row.custom_minimum_size = Vector2(182, 20)
+	sanity_row.add_theme_constant_override("separation", 4)
 	info.add_child(sanity_row)
-	var sanity_caption := make_label("理智", 12, MUTED)
-	sanity_caption.custom_minimum_size = Vector2(30, 20)
+	var sanity_caption := make_label("理智", 11, MUTED)
+	sanity_caption.custom_minimum_size = Vector2(28, 20)
 	sanity_row.add_child(sanity_caption)
-	var sanity_bar := make_progress(20, 20, Color("#8f4038"), Vector2(96, 10))
-	sanity_bar.custom_minimum_size = Vector2(96, 10)
-	sanity_bar.size = Vector2(96, 10)
+	var sanity_bar := make_progress(20, 20, Color("#8f4038"), Vector2(98, 9))
+	sanity_bar.custom_minimum_size = Vector2(98, 9)
+	sanity_bar.size = Vector2(98, 9)
 	sanity_bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	sanity_row.add_child(sanity_bar)
-	var sanity_value := make_label("20", 16, TEXT)
+	var sanity_value := make_label("20", 15, TEXT)
 	sanity_value.custom_minimum_size = Vector2(24, 20)
 	sanity_row.add_child(sanity_value)
 	var ap_row := HBoxContainer.new()
-	ap_row.custom_minimum_size = Vector2(174, 18)
-	ap_row.add_theme_constant_override("separation", 5)
+	ap_row.custom_minimum_size = Vector2(182, 19)
+	ap_row.add_theme_constant_override("separation", 4)
 	info.add_child(ap_row)
-	var ap_caption := make_label("行動值", 12, MUTED)
-	ap_caption.custom_minimum_size = Vector2(42, 18)
+	var ap_caption := make_label("行動值", 11, MUTED)
+	ap_caption.custom_minimum_size = Vector2(42, 19)
 	ap_row.add_child(ap_caption)
+	var flame := _make_flame_icon()
+	flame.custom_minimum_size = Vector2(16, 18)
+	flame.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	ap_row.add_child(flame)
 	for i in range(3):
 		var pip := Panel.new()
-		pip.custom_minimum_size = Vector2(30, 10)
+		pip.custom_minimum_size = Vector2(28, 9)
 		pip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		pip.add_theme_stylebox_override("panel", panel_style(Color(0.58, 0.34, 0.16, 0.92), 5, Color(0.82, 0.57, 0.29, 0.55), 1))
+		pip.add_theme_stylebox_override("panel", panel_style(Color(0.58, 0.34, 0.16, 0.92), 4, Color(0.82, 0.57, 0.29, 0.55), 1))
 		ap_row.add_child(pip)
-	var deck_caption := make_label("背包 23  ·  棄牌 0", 11, MUTED)
-	info.add_child(deck_caption)
+func _make_flame_icon() -> Polygon2D:
+	var flame := Polygon2D.new()
+	flame.polygon = PackedVector2Array([Vector2(8, 0), Vector2(14, 7), Vector2(12, 14), Vector2(8, 18), Vector2(3, 14), Vector2(2, 8)])
+	flame.color = Color("#d98a35")
+	flame.antialiased = true
+	return flame
+
 func _build_hand() -> void:
 	var hand_panel := Control.new()
 	hand_panel.position = Vector2(0, 496)
 	hand_panel.size = Vector2(1280, 224)
 	hand_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(hand_panel)
-	var hand := Control.new()
-	hand.position = Vector2(0, 18)
-	hand.size = Vector2(1280, 206)
+	var hand := HBoxContainer.new()
+	hand.position = Vector2(244, 18)
+	hand.size = Vector2(792, 188)
+	hand.alignment = BoxContainer.ALIGNMENT_CENTER
+	hand.add_theme_constant_override("separation", -10)
 	hand.mouse_filter = Control.MOUSE_FILTER_PASS
 	hand_panel.add_child(hand)
-	var overlap := 26.0
-	var step := CARD_SIZE.x - overlap
-	var total_width := CARD_SIZE.x + step * float(hand_cards.size() - 1)
-	var start_x := (1280.0 - total_width) * 0.5
 	for i in range(hand_cards.size()):
 		var item: Array = hand_cards[i]
 		var card := TextureButton.new()
+		card.custom_minimum_size = CARD_SIZE
 		card.size = CARD_SIZE
-		card.position = Vector2(start_x + step * float(i), 0)
 		card.ignore_texture_size = true
 		card.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
 		card.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 		card.texture_normal = load(item[2])
 		card.material = _rounded_card_material(0.065)
-		var card_style := _card_style()
-		card.add_theme_stylebox_override("normal", card_style)
-		card.add_theme_stylebox_override("hover", _card_style(Color(0.18, 0.12, 0.07, 0.68), 8))
-		card.add_theme_stylebox_override("pressed", _card_style(Color(0.18, 0.12, 0.07, 0.78), 8))
+		card.add_theme_stylebox_override("normal", _card_style())
+		card.add_theme_stylebox_override("hover", _card_style())
+		card.add_theme_stylebox_override("pressed", _card_style())
 		card.tooltip_text = item[0] + "  " + item[1]
 		hand.add_child(card)
-		card_home[card] = card.position
+		card_home[card] = Vector2.ZERO
 		hand_cards_nodes.append(card)
 		card.z_index = i
 		card.mouse_entered.connect(func(c = card): _hover_card(c, true))
@@ -275,10 +281,13 @@ func _build_inspector() -> void:
 	inspector_text.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	inspector.add_child(inspector_text)
 
+func _card_home(card: TextureButton) -> Vector2:
+	return Vector2(card.position.x, 0)
+
 func _hover_card(card: TextureButton, hovering: bool) -> void:
 	if card == selected_card:
 		return
-	var home: Vector2 = card_home[card]
+	var home := _card_home(card)
 	if hovering:
 		card.z_index = 500
 		_tween_card(card, home + Vector2(0, HOVER_Y), Vector2(1.025, 1.025))
@@ -293,10 +302,10 @@ func _select_card(card: TextureButton, data: Array) -> void:
 	if selected_card:
 		var previous: TextureButton = selected_card
 		_restore_card_layer(previous)
-		_tween_card(previous, card_home[previous], Vector2.ONE)
+		_tween_card(previous, _card_home(previous), Vector2.ONE)
 	selected_card = card
 	card.z_index = 1000
-	_tween_card(card, card_home[card] + Vector2(0, SELECT_Y), Vector2(1.08, 1.08))
+	_tween_card(card, _card_home(card) + Vector2(0, SELECT_Y), Vector2(1.08, 1.08))
 	_show_inspector(data)
 
 func _show_inspector(data: Array) -> void:
@@ -327,7 +336,7 @@ func _close_inspector() -> void:
 		var old := selected_card
 		selected_card = null
 		_restore_card_layer(old)
-		_tween_card(old, card_home[old], Vector2.ONE)
+		_tween_card(old, _card_home(old), Vector2.ONE)
 	inspector.visible = false
 
 func _restore_card_layer(card: TextureButton) -> void:
@@ -352,21 +361,17 @@ func _gui_input(event: InputEvent) -> void:
 		if not card_rect.has_point(local_mouse) and not inspector_rect.has_point(local_mouse):
 			_close_inspector()
 
-func _card_style(shadow := Color(0.0, 0.0, 0.0, 0.50), shadow_size := 6) -> StyleBoxFlat:
+func _card_style() -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.0, 0.0, 0.0, 0.0)
-	style.border_width_left = 2
-	style.border_width_top = 2
-	style.border_width_right = 2
-	style.border_width_bottom = 2
-	style.border_color = Color("#3a2a1a")
-	style.corner_radius_top_left = 9
-	style.corner_radius_top_right = 9
-	style.corner_radius_bottom_left = 9
-	style.corner_radius_bottom_right = 9
-	style.shadow_color = shadow
-	style.shadow_size = shadow_size
-	style.shadow_offset = Vector2(0, 4)
+	style.border_width_left = 1
+	style.border_width_top = 1
+	style.border_width_right = 1
+	style.border_width_bottom = 1
+	style.border_color = Color("#333333")
+	style.shadow_color = Color(0.0, 0.0, 0.0, 0.0)
+	style.shadow_size = 0
+	style.shadow_offset = Vector2.ZERO
 	return style
 
 func _rounded_card_material(radius: float) -> ShaderMaterial:
@@ -375,6 +380,7 @@ func _rounded_card_material(radius: float) -> ShaderMaterial:
 render_mode unshaded;
 uniform float radius = 0.065;
 uniform float edge_softness = 0.004;
+uniform float inset = 0.075;
 
 float rounded_rect_alpha(vec2 uv, float r, float softness) {
     vec2 p = abs(uv - vec2(0.5));
@@ -385,16 +391,17 @@ float rounded_rect_alpha(vec2 uv, float r, float softness) {
 }
 
 void fragment() {
-    vec4 tex = texture(TEXTURE, UV);
     float mask = rounded_rect_alpha(UV, radius, edge_softness);
-    float top_plate = 1.0 - smoothstep(0.075, 0.13, length(UV - vec2(0.085, 0.085)));
-    float bottom_plate = 1.0 - smoothstep(0.075, 0.13, length(UV - vec2(0.915, 0.915)));
-    float plate = max(top_plate, bottom_plate) * 0.42;
-    vec3 plated = mix(tex.rgb, vec3(0.16, 0.10, 0.05), plate);
-    COLOR = vec4(plated * COLOR.rgb, tex.a * COLOR.a * mask);
+    vec2 inner_uv = (UV - vec2(inset)) / (1.0 - inset * 2.0);
+    vec4 tex = vec4(0.0);
+    if (inner_uv.x >= 0.0 && inner_uv.x <= 1.0 && inner_uv.y >= 0.0 && inner_uv.y <= 1.0) {
+        tex = texture(TEXTURE, inner_uv);
+    }
+    COLOR = vec4(tex.rgb * COLOR.rgb, tex.a * COLOR.a * mask);
 }"""
 	var material := ShaderMaterial.new()
 	material.shader = shader
 	material.set_shader_parameter("radius", radius)
 	material.set_shader_parameter("edge_softness", 0.003)
+	material.set_shader_parameter("inset", 0.075)
 	return material
