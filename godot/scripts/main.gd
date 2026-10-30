@@ -373,7 +373,7 @@ func _gui_input(event: InputEvent) -> void:
 
 func _card_style() -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color("#f7f2e8")
+	style.bg_color = Color(0.0, 0.0, 0.0, 0.0)
 	style.border_width_left = 1
 	style.border_width_top = 1
 	style.border_width_right = 1
