@@ -54,7 +54,7 @@ func _build_vertical_slice() -> void:
 	var spacer=Control.new(); spacer.size_flags_horizontal=Control.SIZE_EXPAND_FILL; top.add_child(spacer)
 	top.add_child(make_label("序章 · 荒野甦醒",18,Color("#e8d8b8")))
 
-	var portrait=TextureRect.new(); portrait.texture=load("res://assets/characters/character-wanderer-v1.png"); portrait.expand_mode=TextureRect.EXPAND_IGNORE_SIZE; portrait.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED; portrait.position=Vector2(900,78); portrait.size=Vector2(330,370); portrait.texture_filter=CanvasItem.TEXTURE_FILTER_LINEAR; add_child(portrait)
+	var portrait=TextureRect.new(); portrait.texture=load("res://assets/characters/character-wanderer-v1-transparent.png"); portrait.expand_mode=TextureRect.EXPAND_IGNORE_SIZE; portrait.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED; portrait.position=Vector2(900,78); portrait.size=Vector2(330,370); portrait.texture_filter=CanvasItem.TEXTURE_FILTER_LINEAR; add_child(portrait)
 
 
 	var hand=HBoxContainer.new(); hand.position=Vector2(65,525); hand.size=Vector2(1150,180); hand.alignment=BoxContainer.ALIGNMENT_CENTER; hand.add_theme_constant_override("separation",-14); add_child(hand)
