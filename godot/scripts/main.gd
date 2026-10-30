@@ -54,13 +54,13 @@ func _build_vertical_slice() -> void:
 	var spacer=Control.new(); spacer.size_flags_horizontal=Control.SIZE_EXPAND_FILL; top.add_child(spacer)
 	top.add_child(make_label("序章 · 荒野甦醒",18,Color("#e8d8b8")))
 
-	var portrait=TextureRect.new(); portrait.texture=load("res://assets/characters/character-wanderer-v1.png"); portrait.expand_mode=TextureRect.EXPAND_IGNORE_SIZE; portrait.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED; portrait.position=Vector2(900,78); portrait.size=Vector2(330,370); portrait.texture_filter=CanvasItem.TEXTURE_FILTER_LINEAR; add_child(portrait)
+	var portrait=TextureRect.new(); portrait.texture=load("res://../docs/art/reference/character-wanderer-v1去背.png"); portrait.expand_mode=TextureRect.EXPAND_IGNORE_SIZE; portrait.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED; portrait.position=Vector2(900,78); portrait.size=Vector2(330,370); portrait.texture_filter=CanvasItem.TEXTURE_FILTER_LINEAR; add_child(portrait)
 
 
 	var hand=HBoxContainer.new(); hand.position=Vector2(65,525); hand.size=Vector2(1150,180); hand.alignment=BoxContainer.ALIGNMENT_CENTER; hand.add_theme_constant_override("separation",-14); add_child(hand)
 	for item in hand_cards:
 		var slot=Control.new(); slot.custom_minimum_size=CARD_SIZE
-		var card=TextureButton.new(); card.size=CARD_SIZE; card.ignore_texture_size=true; card.stretch_mode=TextureButton.STRETCH_KEEP_ASPECT_CENTERED; card.texture_normal=_rounded_texture(item[2], CARD_SIZE, 18.0); slot.add_child(card); hand.add_child(slot)
+		var card=TextureButton.new(); card.size=CARD_SIZE; card.ignore_texture_size=true; card.stretch_mode=TextureButton.STRETCH_KEEP_ASPECT_CENTERED; card.texture_normal=_rounded_texture(item[2], CARD_SIZE, 26.0); slot.add_child(card); hand.add_child(slot)
 		card_home[card]=Vector2.ZERO
 		card.mouse_entered.connect(func(c=card): _hover_card(c, true))
 		card.mouse_exited.connect(func(c=card): _hover_card(c, false))
@@ -110,7 +110,7 @@ func _select_card(card: TextureButton, data: Array) -> void:
 	_show_inspector(data)
 
 func _show_inspector(data: Array) -> void:
-	inspector_card.texture=_rounded_texture(data[2], Vector2(210,293), 22.0)
+	inspector_card.texture=_rounded_texture(data[2], Vector2(210,293), 30.0)
 	for child in inspector_text.get_children():
 		child.queue_free()
 	var title=make_label(data[0] + "  ·  " + data[1],28,Color("#f4e2bd"))
