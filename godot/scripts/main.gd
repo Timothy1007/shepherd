@@ -60,21 +60,27 @@ func _build_vertical_slice() -> void:
 		var nav_button=Button.new(); nav_button.text=nav_item[0]; nav_button.tooltip_text=nav_item[1]; nav_button.custom_minimum_size=Vector2(42,38); nav_button.flat=true; nav_button.add_theme_font_size_override("font_size",22); nav_button.add_theme_color_override("font_color",Color("#f3e3c5")); nav_button.add_theme_color_override("font_hover_color",Color.WHITE); nav.add_child(nav_button)
 
 	# Left-bottom: player state / backpack.
-	var sanity_row=HBoxContainer.new(); sanity_row.position=Vector2(24,594); sanity_row.size=Vector2(180,28); sanity_row.add_theme_constant_override("separation",8); add_child(sanity_row)
-	var sanity_icon=make_label("♥",18,Color("#d7a08f")); sanity_row.add_child(sanity_icon)
-	var sanity_label=make_label("理智",11,Color("#d0c2aa")); sanity_row.add_child(sanity_label)
-	var sanity_value=make_label("20 / 20",16,Color("#fff1d6")); sanity_row.add_child(sanity_value)
+	var status=VBoxContainer.new(); status.position=Vector2(28,500); status.size=Vector2(220,190); status.add_theme_constant_override("separation",10); add_child(status)
+	var sanity_row=HBoxContainer.new(); sanity_row.custom_minimum_size=Vector2(210,42); sanity_row.add_theme_constant_override("separation",12); status.add_child(sanity_row)
+	var sanity_icon=make_label("♥",30,Color("#e7a291")); sanity_icon.custom_minimum_size=Vector2(38,38); sanity_icon.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER; sanity_row.add_child(sanity_icon)
+	var sanity_text=VBoxContainer.new(); sanity_text.add_theme_constant_override("separation",-4); sanity_row.add_child(sanity_text)
+	var sanity_label=make_label("理智",13,Color("#eadbc2")); sanity_text.add_child(sanity_label)
+	var sanity_value=make_label("20",24,Color("#fff4dd")); sanity_text.add_child(sanity_value)
 
-	var backpack=HBoxContainer.new(); backpack.position=Vector2(24,642); backpack.size=Vector2(190,44); backpack.add_theme_constant_override("separation",9); add_child(backpack)
-	var backpack_icon=make_label("▰",23,Color("#d5b071")); backpack_icon.tooltip_text="背包"; backpack.add_child(backpack_icon)
-	var backpack_name=make_label("背包",12,Color("#cfc0a7")); backpack.add_child(backpack_name)
-	var backpack_count=make_label("23",21,Color("#fff0cf")); backpack.add_child(backpack_count)
-
-	# AP belongs to card play, so it stays near the hand rather than in a system corner.
-	var ap=HBoxContainer.new(); ap.position=Vector2(574,684); ap.size=Vector2(132,30); ap.alignment=BoxContainer.ALIGNMENT_CENTER; ap.add_theme_constant_override("separation",7); add_child(ap)
-	var ap_name=make_label("行動",11,Color("#c7b89e")); ap.add_child(ap_name)
+	var ap_row=HBoxContainer.new(); ap_row.custom_minimum_size=Vector2(210,42); ap_row.add_theme_constant_override("separation",12); status.add_child(ap_row)
+	var ap_icon=make_label("✦",29,Color("#e9b654")); ap_icon.custom_minimum_size=Vector2(38,38); ap_icon.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER; ap_row.add_child(ap_icon)
+	var ap_text=VBoxContainer.new(); ap_text.add_theme_constant_override("separation",-3); ap_row.add_child(ap_text)
+	var ap_name=make_label("行動值",13,Color("#eadbc2")); ap_text.add_child(ap_name)
+	var ap_pips=HBoxContainer.new(); ap_pips.add_theme_constant_override("separation",6); ap_text.add_child(ap_pips)
 	for i in range(3):
-		var pip=make_label("◆",15,Color("#e1b55f")); ap.add_child(pip)
+		var pip=make_label("◆",18,Color("#f2c15d")); ap_pips.add_child(pip)
+
+	var spacer=Control.new(); spacer.custom_minimum_size=Vector2(1,13); status.add_child(spacer)
+	var backpack=HBoxContainer.new(); backpack.custom_minimum_size=Vector2(210,50); backpack.add_theme_constant_override("separation",12); status.add_child(backpack)
+	var backpack_icon=make_label("🎒",34,Color.WHITE); backpack_icon.custom_minimum_size=Vector2(42,42); backpack_icon.tooltip_text="背包"; backpack.add_child(backpack_icon)
+	var backpack_text=VBoxContainer.new(); backpack_text.add_theme_constant_override("separation",-4); backpack.add_child(backpack_text)
+	var backpack_name=make_label("背包",13,Color("#eadbc2")); backpack_text.add_child(backpack_name)
+	var backpack_count=make_label("23",24,Color("#fff4dd")); backpack_text.add_child(backpack_count)
 
 	# Right-bottom is reserved for contextual confirmation/effect choices.
 	var action_area=HBoxContainer.new(); action_area.position=Vector2(1082,642); action_area.size=Vector2(174,48); action_area.alignment=BoxContainer.ALIGNMENT_END; add_child(action_area)
@@ -89,7 +95,7 @@ func _build_vertical_slice() -> void:
 	# First-person exploration view: the protagonist is intentionally not pinned on-screen.
 
 
-	var hand=Control.new(); hand.position=Vector2(0,514); hand.size=Vector2(1280,170); hand.mouse_filter=Control.MOUSE_FILTER_PASS; add_child(hand)
+	var hand=Control.new(); hand.position=Vector2(0,568); hand.size=Vector2(1280,170); hand.mouse_filter=Control.MOUSE_FILTER_PASS; add_child(hand)
 	var count: int = hand_cards.size()
 	var overlap: float = 16.0
 	var step: float = CARD_SIZE.x - overlap
