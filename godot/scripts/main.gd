@@ -1,6 +1,6 @@
 extends Control
 
-const CARD_SIZE := Vector2(130, 170)
+const CARD_SIZE := Vector2(120, 180)
 const HOVER_Y := -12.0
 const SELECT_Y := -44.0
 const MOTION_TIME := 0.16
@@ -104,7 +104,7 @@ func _build_vertical_slice() -> void:
 	var center: float = float(count - 1) * 0.5
 	for i in range(count):
 		var item: Array = hand_cards[i]
-		var card=TextureButton.new(); card.size=CARD_SIZE; card.position=Vector2(start_x + step * float(i), 0); card.ignore_texture_size=true; card.stretch_mode=TextureButton.STRETCH_SCALE; card.texture_filter=CanvasItem.TEXTURE_FILTER_LINEAR; card.texture_normal=load(item[2]); hand.add_child(card)
+		var card=TextureButton.new(); card.size=CARD_SIZE; card.position=Vector2(start_x + step * float(i), 0); card.ignore_texture_size=true; card.stretch_mode=TextureButton.STRETCH_KEEP_ASPECT_CENTERED; card.texture_filter=CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS; card.texture_normal=load(item[2]); hand.add_child(card)
 		card_home[card]=card.position
 		hand_cards_nodes.append(card)
 		card.z_index = i
@@ -126,10 +126,10 @@ func _build_inspector() -> void:
 
 	inspector_card=TextureRect.new()
 	inspector_card.position=Vector2(0,8)
-	inspector_card.size=Vector2(190,263)
+	inspector_card.size=Vector2(192,288)
 	inspector_card.expand_mode=TextureRect.EXPAND_IGNORE_SIZE
 	inspector_card.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	inspector_card.texture_filter=CanvasItem.TEXTURE_FILTER_LINEAR
+	inspector_card.texture_filter=CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_WITH_MIPMAPS
 	inspector_card.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	inspector.add_child(inspector_card)
 
