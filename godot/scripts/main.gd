@@ -53,33 +53,43 @@ func _build_vertical_slice() -> void:
 	scene_bg.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	scene_bg.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	add_child(scene_bg)
-	# Subtle cinematic grading: preserve the art while keeping HUD/cards readable.
-	var top_shade=ColorRect.new(); top_shade.position=Vector2(0,0); top_shade.size=Vector2(1280,105); top_shade.color=Color(0.025,0.022,0.019,0.30); top_shade.mouse_filter=Control.MOUSE_FILTER_IGNORE; add_child(top_shade)
-	var bottom_shade=ColorRect.new(); bottom_shade.position=Vector2(0,625); bottom_shade.size=Vector2(1280,95); bottom_shade.color=Color(0.018,0.016,0.014,0.20); bottom_shade.mouse_filter=Control.MOUSE_FILTER_IGNORE; add_child(bottom_shade)
+	# Encounter HUD layout: corners have stable responsibilities.
+	# No full-width black overlays; the scene art remains visually dominant.
+	var nav=HBoxContainer.new(); nav.position=Vector2(1080,18); nav.size=Vector2(176,38); nav.alignment=BoxContainer.ALIGNMENT_END; nav.add_theme_constant_override("separation",12); add_child(nav)
+	for nav_item in [["◇","地圖"],["⋯","探索"],["⚙","設定"]]:
+		var nav_button=Button.new(); nav_button.text=nav_item[0]; nav_button.tooltip_text=nav_item[1]; nav_button.custom_minimum_size=Vector2(42,38); nav_button.flat=true; nav_button.add_theme_font_size_override("font_size",22); nav_button.add_theme_color_override("font_color",Color("#f3e3c5")); nav_button.add_theme_color_override("font_hover_color",Color.WHITE); nav.add_child(nav_button)
 
-	# Sparse first-person HUD: sanity and AP are intentionally separated.
-	var sanity=PanelContainer.new(); sanity.position=Vector2(20,18); sanity.size=Vector2(150,48); sanity.add_theme_stylebox_override("panel",panel_style(Color(0.025,0.023,0.021,0.60),13,Color(0.82,0.72,0.53,0.20),1)); add_child(sanity)
-	var sanity_row=HBoxContainer.new(); sanity_row.add_theme_constant_override("separation",9); sanity.add_child(sanity_row)
-	var sanity_icon=make_label("◉",20,Color("#d6c39d")); sanity_icon.custom_minimum_size=Vector2(26,0); sanity_icon.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER; sanity_row.add_child(sanity_icon)
-	var sanity_text=VBoxContainer.new(); sanity_text.add_theme_constant_override("separation",-3); sanity_row.add_child(sanity_text)
-	var sanity_name=make_label("理智",11,Color("#b9aa91")); sanity_text.add_child(sanity_name)
-	var sanity_value=make_label("8 / 10",18,Color("#fff0d2")); sanity_text.add_child(sanity_value)
+	# Left-bottom: player state / backpack.
+	var sanity_row=HBoxContainer.new(); sanity_row.position=Vector2(24,594); sanity_row.size=Vector2(180,28); sanity_row.add_theme_constant_override("separation",8); add_child(sanity_row)
+	var sanity_icon=make_label("♥",18,Color("#d7a08f")); sanity_row.add_child(sanity_icon)
+	var sanity_label=make_label("理智",11,Color("#d0c2aa")); sanity_row.add_child(sanity_label)
+	var sanity_value=make_label("20 / 20",16,Color("#fff1d6")); sanity_row.add_child(sanity_value)
 
-	var ap=PanelContainer.new(); ap.position=Vector2(20,78); ap.size=Vector2(150,48); ap.add_theme_stylebox_override("panel",panel_style(Color(0.025,0.023,0.021,0.60),13,Color(0.82,0.72,0.53,0.20),1)); add_child(ap)
-	var ap_row=HBoxContainer.new(); ap_row.add_theme_constant_override("separation",9); ap.add_child(ap_row)
-	var ap_icon=make_label("◆",18,Color("#d7a95d")); ap_icon.custom_minimum_size=Vector2(26,0); ap_icon.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER; ap_row.add_child(ap_icon)
-	var ap_text=VBoxContainer.new(); ap_text.add_theme_constant_override("separation",-3); ap_row.add_child(ap_text)
-	var ap_name=make_label("行動",11,Color("#b9aa91")); ap_text.add_child(ap_name)
-	var ap_value=make_label("3 / 3",18,Color("#fff0d2")); ap_text.add_child(ap_value)
+	var backpack=HBoxContainer.new(); backpack.position=Vector2(24,642); backpack.size=Vector2(190,44); backpack.add_theme_constant_override("separation",9); add_child(backpack)
+	var backpack_icon=make_label("▰",23,Color("#d5b071")); backpack_icon.tooltip_text="背包"; backpack.add_child(backpack_icon)
+	var backpack_name=make_label("背包",12,Color("#cfc0a7")); backpack.add_child(backpack_name)
+	var backpack_count=make_label("23",21,Color("#fff0cf")); backpack.add_child(backpack_count)
 
-	var chapter=VBoxContainer.new(); chapter.position=Vector2(1080,20); chapter.size=Vector2(174,52)
-	var ch=make_label("序章",11,Color("#c2b294")); ch.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT; chapter.add_child(ch)
-	var loc=make_label("荒野甦醒",19,Color("#f5e4c5")); loc.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT; chapter.add_child(loc); add_child(chapter)
+	# AP belongs to card play, so it stays near the hand rather than in a system corner.
+	var ap=HBoxContainer.new(); ap.position=Vector2(574,684); ap.size=Vector2(132,30); ap.alignment=BoxContainer.ALIGNMENT_CENTER; ap.add_theme_constant_override("separation",7); add_child(ap)
+	var ap_name=make_label("行動",11,Color("#c7b89e")); ap.add_child(ap_name)
+	for i in range(3):
+		var pip=make_label("◆",15,Color("#e1b55f")); ap.add_child(pip)
+
+	# Right-bottom is reserved for contextual confirmation/effect choices.
+	var action_area=HBoxContainer.new(); action_area.position=Vector2(1082,642); action_area.size=Vector2(174,48); action_area.alignment=BoxContainer.ALIGNMENT_END; add_child(action_area)
+	var confirm=Button.new(); confirm.text="確認打出"; confirm.custom_minimum_size=Vector2(132,44); confirm.disabled=true; confirm.add_theme_font_size_override("font_size",15); confirm.add_theme_stylebox_override("normal",panel_style(Color(0.07,0.06,0.05,0.52),12,Color(0.78,0.64,0.40,0.25),1)); confirm.add_theme_stylebox_override("hover",panel_style(Color(0.11,0.09,0.07,0.80),12,Color(0.90,0.73,0.43,0.55),1)); action_area.add_child(confirm)
+
+	# Enemy information anchor. Hidden until an Encounter supplies an enemy.
+	var enemy_anchor=VBoxContainer.new(); enemy_anchor.position=Vector2(490,74); enemy_anchor.size=Vector2(300,82); enemy_anchor.visible=false; enemy_anchor.name="EnemyHUD"; add_child(enemy_anchor)
+	var enemy_name=make_label("敵人",18,Color("#f5e5c8")); enemy_name.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER; enemy_anchor.add_child(enemy_name)
+	var enemy_hp=make_label("HP  ━━━━━━━━━━",13,Color("#d9b6a0")); enemy_hp.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER; enemy_anchor.add_child(enemy_hp)
+	var intents=make_label("⚔ 3   →   ⚔ 4   →   ✦",15,Color("#ead9bc")); intents.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER; enemy_anchor.add_child(intents)
 
 	# First-person exploration view: the protagonist is intentionally not pinned on-screen.
 
 
-	var hand=Control.new(); hand.position=Vector2(0,536); hand.size=Vector2(1280,180); hand.mouse_filter=Control.MOUSE_FILTER_PASS; add_child(hand)
+	var hand=Control.new(); hand.position=Vector2(0,514); hand.size=Vector2(1280,170); hand.mouse_filter=Control.MOUSE_FILTER_PASS; add_child(hand)
 	var count: int = hand_cards.size()
 	var overlap: float = 16.0
 	var step: float = CARD_SIZE.x - overlap
