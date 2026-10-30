@@ -1,5 +1,10 @@
 extends Control
 
+const CARD_SIZE := Vector2(130, 170)
+const HOVER_Y := -12.0
+const SELECT_Y := -44.0
+const MOTION_TIME := 0.16
+
 var hand_cards = [
 	["群羊", "1", "res://assets/cards/sheep-1.png", "物資", "基礎數值 1。可與其他群羊牌組合，連續打出 3 張群羊可觸發【成群】。"],
 	["糧食", "3", "res://assets/cards/food-3.png", "物資", "基礎數值 3。可與其他糧食牌組合，連續打出 3 張糧食可觸發【播種】。"],
@@ -11,11 +16,15 @@ var hand_cards = [
 ]
 
 var selected_card: TextureButton
-var card_info: VBoxContainer
+var card_home := {}
+var card_tweens := {}
+var inspector: Control
+var inspector_card: TextureRect
+var inspector_text: VBoxContainer
 
 func _ready() -> void:
 	_build_vertical_slice()
-	print("Shepherd Reboot Godot vertical slice v0.1 ready.")
+	print("Shepherd Reboot Godot card inspector prototype ready.")
 
 func panel_style(color: Color, radius := 14, border := Color(0.7,0.58,0.36,0.5), width := 1) -> StyleBoxFlat:
 	var s=StyleBoxFlat.new()
@@ -26,8 +35,11 @@ func panel_style(color: Color, radius := 14, border := Color(0.7,0.58,0.36,0.5),
 	s.border_color=border
 	return s
 
-func label(text:String, size:int, color:=Color.WHITE) -> Label:
-	var l=Label.new(); l.text=text; l.add_theme_font_size_override("font_size",size); l.add_theme_color_override("font_color",color)
+func make_label(text:String, font_px:int, color:=Color.WHITE) -> Label:
+	var l=Label.new()
+	l.text=text
+	l.add_theme_font_size_override("font_size",font_px)
+	l.add_theme_color_override("font_color",color)
 	return l
 
 func _build_vertical_slice() -> void:
@@ -38,44 +50,109 @@ func _build_vertical_slice() -> void:
 
 	var top=HBoxContainer.new(); top.position=Vector2(24,20); top.size=Vector2(1232,58); top.add_theme_constant_override("separation",12); add_child(top)
 	for t in ["理智  8/10","營火  6","行動點  3/3"]:
-		var p=PanelContainer.new(); p.custom_minimum_size=Vector2(150,48); p.add_theme_stylebox_override("panel",panel_style(Color(0.07,0.06,0.05,0.86),12)); var x=label(t,18,Color("#f1dfbd")); x.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER; x.vertical_alignment=VERTICAL_ALIGNMENT_CENTER; p.add_child(x); top.add_child(p)
+		var p=PanelContainer.new(); p.custom_minimum_size=Vector2(150,48); p.add_theme_stylebox_override("panel",panel_style(Color(0.07,0.06,0.05,0.86),12)); var x=make_label(t,18,Color("#f1dfbd")); x.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER; x.vertical_alignment=VERTICAL_ALIGNMENT_CENTER; p.add_child(x); top.add_child(p)
 	var spacer=Control.new(); spacer.size_flags_horizontal=Control.SIZE_EXPAND_FILL; top.add_child(spacer)
-	var chapter=label("序章 · 荒野甦醒",18,Color("#e8d8b8")); top.add_child(chapter)
+	top.add_child(make_label("序章 · 荒野甦醒",18,Color("#e8d8b8")))
 
 	var portrait=TextureRect.new(); portrait.texture=load("res://assets/characters/character-wanderer-v1.png"); portrait.expand_mode=TextureRect.EXPAND_IGNORE_SIZE; portrait.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED; portrait.position=Vector2(850,88); portrait.size=Vector2(390,410); portrait.modulate=Color(0.94,0.88,0.78,1); add_child(portrait)
 
 	var dialog=PanelContainer.new(); dialog.position=Vector2(52,350); dialog.size=Vector2(710,150); dialog.add_theme_stylebox_override("panel",panel_style(Color(0.055,0.047,0.039,0.91),16,Color(0.78,0.64,0.4,0.7),1)); add_child(dialog)
 	var dv=VBoxContainer.new(); dv.add_theme_constant_override("separation",7); dialog.add_child(dv)
-	var who=label("陌生的老人",20,Color("#d7b778")); dv.add_child(who)
-	var line=label("「你醒了。這片荒野不會等人——如果還走得動，就跟上。」",19,Color("#f1eadc")); line.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART; dv.add_child(line)
-	var hint=label("點擊手牌查看 · 此畫面為 Godot v0.1 視覺切片",13,Color("#9d9589")); dv.add_child(hint)
-
-	card_info=VBoxContainer.new(); card_info.position=Vector2(190,430); card_info.size=Vector2(520,92); card_info.add_theme_constant_override("separation",2); card_info.mouse_filter=Control.MOUSE_FILTER_IGNORE; card_info.visible=false; add_child(card_info)
+	dv.add_child(make_label("陌生的老人",20,Color("#d7b778")))
+	var line=make_label("「你醒了。這片荒野不會等人——如果還走得動，就跟上。」",19,Color("#f1eadc")); line.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART; dv.add_child(line)
+	dv.add_child(make_label("點擊手牌查看 · 此畫面為 Godot Prototype 視覺切片",13,Color("#9d9589")))
 
 	var hand=HBoxContainer.new(); hand.position=Vector2(65,525); hand.size=Vector2(1150,180); hand.alignment=BoxContainer.ALIGNMENT_CENTER; hand.add_theme_constant_override("separation",-14); add_child(hand)
 	for item in hand_cards:
-		var card=TextureButton.new(); card.custom_minimum_size=Vector2(130,170); card.ignore_texture_size=true; card.stretch_mode=TextureButton.STRETCH_KEEP_ASPECT_CENTERED; card.texture_normal=load(item[2]); card.tooltip_text=item[0]; card.mouse_entered.connect(func(c=card): if_selected_hover(c, true)); card.mouse_exited.connect(func(c=card): if_selected_hover(c, false)); card.pressed.connect(func(c=card, data=item): select_card(c, data)); hand.add_child(card)
+		var slot=Control.new(); slot.custom_minimum_size=CARD_SIZE
+		var card=TextureButton.new(); card.size=CARD_SIZE; card.ignore_texture_size=true; card.stretch_mode=TextureButton.STRETCH_KEEP_ASPECT_CENTERED; card.texture_normal=load(item[2]); card.tooltip_text=item[0]; slot.add_child(card); hand.add_child(slot)
+		card_home[card]=Vector2.ZERO
+		card.mouse_entered.connect(func(c=card): _hover_card(c, true))
+		card.mouse_exited.connect(func(c=card): _hover_card(c, false))
+		card.pressed.connect(func(c=card, data=item): _select_card(c, data))
 
-	var tag=label("第一人稱場景構圖測試",14,Color("#cbbda4")); tag.position=Vector2(28,690); add_child(tag)
+	_build_inspector()
+	var tag=make_label("第一人稱場景構圖測試",14,Color("#cbbda4")); tag.position=Vector2(28,690); add_child(tag)
 
-func if_selected_hover(card: TextureButton, hovering: bool) -> void:
+func _build_inspector() -> void:
+	inspector=Control.new()
+	inspector.position=Vector2(140,118)
+	inspector.size=Vector2(690,350)
+	inspector.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	inspector.z_index=50
+	inspector.visible=false
+	add_child(inspector)
+
+	inspector_card=TextureRect.new()
+	inspector_card.position=Vector2(0,18)
+	inspector_card.size=Vector2(210,293)
+	inspector_card.expand_mode=TextureRect.EXPAND_IGNORE_SIZE
+	inspector_card.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	inspector_card.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	inspector.add_child(inspector_card)
+
+	inspector_text=VBoxContainer.new()
+	inspector_text.position=Vector2(238,62)
+	inspector_text.size=Vector2(430,210)
+	inspector_text.add_theme_constant_override("separation",7)
+	inspector_text.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	inspector.add_child(inspector_text)
+
+func _hover_card(card: TextureButton, hovering: bool) -> void:
 	if card == selected_card:
 		return
-	card.position.y = -12 if hovering else 0
+	_tween_card(card, Vector2(0, HOVER_Y if hovering else 0), Vector2.ONE if not hovering else Vector2(1.025,1.025))
 
-func select_card(card: TextureButton, data: Array) -> void:
+func _select_card(card: TextureButton, data: Array) -> void:
 	if selected_card == card:
-		selected_card.position.y=0
-		selected_card=null
-		card_info.visible=false
+		_close_inspector()
 		return
 	if selected_card:
-		selected_card.position.y=0
+		_tween_card(selected_card, Vector2.ZERO, Vector2.ONE)
 	selected_card=card
-	card.position.y=-42
-	for child in card_info.get_children():
+	card.z_index=20
+	_tween_card(card, Vector2(0, SELECT_Y), Vector2(1.06,1.06))
+	_show_inspector(data)
+
+func _show_inspector(data: Array) -> void:
+	inspector_card.texture=load(data[2])
+	for child in inspector_text.get_children():
 		child.queue_free()
-	var title=label(data[0] + "  ·  " + data[1],22,Color("#f4e2bd")); title.add_theme_color_override("font_shadow_color",Color(0,0,0,0.9)); title.add_theme_constant_override("shadow_offset_x",2); title.add_theme_constant_override("shadow_offset_y",2); card_info.add_child(title)
-	var kind=label(data[3],13,Color("#c7b28e")); kind.add_theme_color_override("font_shadow_color",Color(0,0,0,0.9)); kind.add_theme_constant_override("shadow_offset_x",1); kind.add_theme_constant_override("shadow_offset_y",1); card_info.add_child(kind)
-	var desc=label(data[4],15,Color("#f1eadc")); desc.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART; desc.add_theme_color_override("font_shadow_color",Color(0,0,0,0.95)); desc.add_theme_constant_override("shadow_offset_x",2); desc.add_theme_constant_override("shadow_offset_y",2); card_info.add_child(desc)
-	card_info.visible=true
+	var title=make_label(data[0] + "  ·  " + data[1],28,Color("#f4e2bd"))
+	title.add_theme_color_override("font_shadow_color",Color(0,0,0,0.92)); title.add_theme_constant_override("shadow_offset_x",2); title.add_theme_constant_override("shadow_offset_y",2)
+	inspector_text.add_child(title)
+	var kind=make_label(data[3],14,Color("#d1b98f")); inspector_text.add_child(kind)
+	var desc=make_label(data[4],17,Color("#f1eadc")); desc.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART; desc.add_theme_color_override("font_shadow_color",Color(0,0,0,0.95)); desc.add_theme_constant_override("shadow_offset_x",2); desc.add_theme_constant_override("shadow_offset_y",2); inspector_text.add_child(desc)
+	inspector.modulate.a=0.0
+	inspector.position.y=126
+	inspector.visible=true
+	var tw=create_tween().set_parallel(true)
+	tw.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.tween_property(inspector,"modulate:a",1.0,0.14)
+	tw.tween_property(inspector,"position:y",118.0,0.16)
+
+func _close_inspector() -> void:
+	if selected_card:
+		var old=selected_card
+		selected_card=null
+		old.z_index=0
+		_tween_card(old,Vector2.ZERO,Vector2.ONE)
+	inspector.visible=false
+
+func _tween_card(card: TextureButton, target_pos: Vector2, target_scale: Vector2) -> void:
+	if card_tweens.has(card) and is_instance_valid(card_tweens[card]):
+		card_tweens[card].kill()
+	card.pivot_offset=CARD_SIZE*0.5
+	var tw=create_tween().set_parallel(true)
+	tw.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.tween_property(card,"position",target_pos,MOTION_TIME)
+	tw.tween_property(card,"scale",target_scale,MOTION_TIME)
+	card_tweens[card]=tw
+
+func _gui_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed and selected_card:
+		var local_mouse=get_local_mouse_position()
+		var card_rect=Rect2(selected_card.global_position,selected_card.size*selected_card.scale)
+		var inspector_rect=Rect2(inspector.global_position,inspector.size)
+		if not card_rect.has_point(local_mouse) and not inspector_rect.has_point(local_mouse):
+			_close_inspector()
