@@ -55,23 +55,31 @@ func _build_vertical_slice() -> void:
 	add_child(scene_bg)
 	# Subtle cinematic grading: preserve the art while keeping HUD/cards readable.
 	var top_shade=ColorRect.new(); top_shade.position=Vector2(0,0); top_shade.size=Vector2(1280,105); top_shade.color=Color(0.025,0.022,0.019,0.30); top_shade.mouse_filter=Control.MOUSE_FILTER_IGNORE; add_child(top_shade)
-	var bottom_shade=ColorRect.new(); bottom_shade.position=Vector2(0,485); bottom_shade.size=Vector2(1280,235); bottom_shade.color=Color(0.018,0.016,0.014,0.55); bottom_shade.mouse_filter=Control.MOUSE_FILTER_IGNORE; add_child(bottom_shade)
+	var bottom_shade=ColorRect.new(); bottom_shade.position=Vector2(0,625); bottom_shade.size=Vector2(1280,95); bottom_shade.color=Color(0.018,0.016,0.014,0.20); bottom_shade.mouse_filter=Control.MOUSE_FILTER_IGNORE; add_child(bottom_shade)
 
-	var top=HBoxContainer.new(); top.position=Vector2(22,18); top.size=Vector2(1236,52); top.add_theme_constant_override("separation",9); add_child(top)
-	for datum in [["理智","8 / 10"],["行動","3 / 3"]]:
-		var p=PanelContainer.new(); p.custom_minimum_size=Vector2(126,44); p.add_theme_stylebox_override("panel",panel_style(Color(0.035,0.031,0.027,0.68),12,Color(0.88,0.74,0.48,0.24),1))
-		var row=HBoxContainer.new(); row.add_theme_constant_override("separation",8); p.add_child(row)
-		var k=make_label(datum[0],12,Color("#c9b99d")); var v=make_label(datum[1],17,Color("#fff0d2")); row.add_child(k); row.add_child(v); top.add_child(p)
-	var spacer=Control.new(); spacer.size_flags_horizontal=Control.SIZE_EXPAND_FILL; top.add_child(spacer)
-	var chapter=VBoxContainer.new(); chapter.alignment=BoxContainer.ALIGNMENT_END
-	var ch=make_label("序章",12,Color("#b9a98e")); ch.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT; chapter.add_child(ch)
-	var loc=make_label("荒野甦醒",20,Color("#f2e2c3")); loc.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT; chapter.add_child(loc); top.add_child(chapter)
+	# Sparse first-person HUD: sanity and AP are intentionally separated.
+	var sanity=PanelContainer.new(); sanity.position=Vector2(20,18); sanity.size=Vector2(150,48); sanity.add_theme_stylebox_override("panel",panel_style(Color(0.025,0.023,0.021,0.60),13,Color(0.82,0.72,0.53,0.20),1)); add_child(sanity)
+	var sanity_row=HBoxContainer.new(); sanity_row.add_theme_constant_override("separation",9); sanity.add_child(sanity_row)
+	var sanity_icon=make_label("◉",20,Color("#d6c39d")); sanity_icon.custom_minimum_size=Vector2(26,0); sanity_icon.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER; sanity_row.add_child(sanity_icon)
+	var sanity_text=VBoxContainer.new(); sanity_text.add_theme_constant_override("separation",-3); sanity_row.add_child(sanity_text)
+	var sanity_name=make_label("理智",11,Color("#b9aa91")); sanity_text.add_child(sanity_name)
+	var sanity_value=make_label("8 / 10",18,Color("#fff0d2")); sanity_text.add_child(sanity_value)
 
+	var ap=PanelContainer.new(); ap.position=Vector2(20,78); ap.size=Vector2(150,48); ap.add_theme_stylebox_override("panel",panel_style(Color(0.025,0.023,0.021,0.60),13,Color(0.82,0.72,0.53,0.20),1)); add_child(ap)
+	var ap_row=HBoxContainer.new(); ap_row.add_theme_constant_override("separation",9); ap.add_child(ap_row)
+	var ap_icon=make_label("◆",18,Color("#d7a95d")); ap_icon.custom_minimum_size=Vector2(26,0); ap_icon.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER; ap_row.add_child(ap_icon)
+	var ap_text=VBoxContainer.new(); ap_text.add_theme_constant_override("separation",-3); ap_row.add_child(ap_text)
+	var ap_name=make_label("行動",11,Color("#b9aa91")); ap_text.add_child(ap_name)
+	var ap_value=make_label("3 / 3",18,Color("#fff0d2")); ap_text.add_child(ap_value)
+
+	var chapter=VBoxContainer.new(); chapter.position=Vector2(1080,20); chapter.size=Vector2(174,52)
+	var ch=make_label("序章",11,Color("#c2b294")); ch.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT; chapter.add_child(ch)
+	var loc=make_label("荒野甦醒",19,Color("#f5e4c5")); loc.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT; chapter.add_child(loc); add_child(chapter)
 
 	# First-person exploration view: the protagonist is intentionally not pinned on-screen.
 
 
-	var hand=Control.new(); hand.position=Vector2(0,526); hand.size=Vector2(1280,180); hand.mouse_filter=Control.MOUSE_FILTER_PASS; add_child(hand)
+	var hand=Control.new(); hand.position=Vector2(0,536); hand.size=Vector2(1280,180); hand.mouse_filter=Control.MOUSE_FILTER_PASS; add_child(hand)
 	var count: int = hand_cards.size()
 	var overlap: float = 16.0
 	var step: float = CARD_SIZE.x - overlap
@@ -89,28 +97,28 @@ func _build_vertical_slice() -> void:
 		card.pressed.connect(func(c=card, data=item): _select_card(c, data))
 
 	_build_inspector()
-	var hand_hint=make_label("手牌",12,Color("#8f816d")); hand_hint.position=Vector2(24,684); add_child(hand_hint)
+	
 
 func _build_inspector() -> void:
 	inspector=Control.new()
-	inspector.position=Vector2(140,118)
-	inspector.size=Vector2(690,350)
+	inspector.position=Vector2(118,130)
+	inspector.size=Vector2(720,330)
 	inspector.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	inspector.z_index=50
 	inspector.visible=false
 	add_child(inspector)
 
 	inspector_card=TextureRect.new()
-	inspector_card.position=Vector2(0,18)
-	inspector_card.size=Vector2(210,293)
+	inspector_card.position=Vector2(0,8)
+	inspector_card.size=Vector2(190,263)
 	inspector_card.expand_mode=TextureRect.EXPAND_IGNORE_SIZE
 	inspector_card.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	inspector_card.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	inspector.add_child(inspector_card)
 
 	inspector_text=VBoxContainer.new()
-	inspector_text.position=Vector2(238,62)
-	inspector_text.size=Vector2(430,210)
+	inspector_text.position=Vector2(218,42)
+	inspector_text.size=Vector2(470,210)
 	inspector_text.add_theme_constant_override("separation",7)
 	inspector_text.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	inspector.add_child(inspector_text)
@@ -149,12 +157,12 @@ func _show_inspector(data: Array) -> void:
 	var kind=make_label(data[3],14,Color("#d1b98f")); inspector_text.add_child(kind)
 	var desc=make_label(data[4],17,Color("#f1eadc")); desc.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART; desc.add_theme_color_override("font_shadow_color",Color(0,0,0,0.95)); desc.add_theme_constant_override("shadow_offset_x",2); desc.add_theme_constant_override("shadow_offset_y",2); inspector_text.add_child(desc)
 	inspector.modulate.a=0.0
-	inspector.position.y=126
+	inspector.position.y=138
 	inspector.visible=true
 	var tw=create_tween().set_parallel(true)
 	tw.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tw.tween_property(inspector,"modulate:a",1.0,0.14)
-	tw.tween_property(inspector,"position:y",118.0,0.16)
+	tw.tween_property(inspector,"position:y",130.0,0.16)
 
 func _close_inspector() -> void:
 	if selected_card:
