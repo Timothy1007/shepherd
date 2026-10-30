@@ -1,7 +1,7 @@
 extends Control
 
 const CARD_SIZE := Vector2(116, 174)
-const HOVER_Y := -14.0
+const HOVER_Y := -20.0
 const SELECT_Y := -42.0
 const MOTION_TIME := 0.18
 
@@ -147,13 +147,20 @@ func _build_header() -> void:
 		button.add_theme_stylebox_override("hover", panel_style(Color(0.18, 0.15, 0.11, 0.44), 12, Color(0.84, 0.68, 0.39, 0.42), 1))
 		nav.add_child(button)
 func _build_player_panel() -> void:
-	var panel := Control.new()
-	panel.position = Vector2(28, 438)
-	panel.size = Vector2(282, 126)
+	var panel := Panel.new()
+	panel.position = Vector2(22, 420)
+	panel.size = Vector2(310, 150)
+	panel.add_theme_stylebox_override("panel", panel_style(Color(0.025, 0.028, 0.028, 0.68), 14, Color(0.48, 0.34, 0.20, 0.62), 1))
 	add_child(panel)
+	var content := HBoxContainer.new()
+	content.position = Vector2(12, 10)
+	content.size = Vector2(286, 130)
+	content.add_theme_constant_override("separation", 10)
+	content.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(content)
 	var portrait := TextureRect.new()
-	portrait.position = Vector2(0, 0)
-	portrait.size = Vector2(94, 118)
+	portrait.custom_minimum_size = Vector2(92, 124)
+	portrait.size = Vector2(92, 124)
 	var source_texture := load("res://assets/characters/character-wanderer-v1-transparent.png") as Texture2D
 	var half_body := AtlasTexture.new()
 	half_body.atlas = source_texture
@@ -164,37 +171,46 @@ func _build_player_panel() -> void:
 	portrait.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	portrait.modulate = Color(1.0, 0.94, 0.82, 0.97)
 	portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	panel.add_child(portrait)
+	content.add_child(portrait)
+	var info := VBoxContainer.new()
+	info.custom_minimum_size = Vector2(174, 124)
+	info.add_theme_constant_override("separation", 4)
+	info.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	content.add_child(info)
 	var name_label := make_label("行者", 20, TEXT)
-	name_label.position = Vector2(112, 0)
-	panel.add_child(name_label)
+	info.add_child(name_label)
 	var role := make_label("在荒野中穿行的人", 11, MUTED)
-	role.position = Vector2(112, 27)
-	panel.add_child(role)
+	info.add_child(role)
+	var sanity_row := HBoxContainer.new()
+	sanity_row.custom_minimum_size = Vector2(174, 22)
+	sanity_row.add_theme_constant_override("separation", 5)
+	info.add_child(sanity_row)
 	var sanity_caption := make_label("理智", 12, MUTED)
-	sanity_caption.position = Vector2(112, 50)
-	panel.add_child(sanity_caption)
-	var sanity_bar := make_progress(20, 20, RED, Vector2(108, 10))
-	sanity_bar.position = Vector2(112, 70)
-	panel.add_child(sanity_bar)
+	sanity_caption.custom_minimum_size = Vector2(30, 20)
+	sanity_row.add_child(sanity_caption)
+	var sanity_bar := make_progress(20, 20, Color("#8f4038"), Vector2(96, 10))
+	sanity_bar.custom_minimum_size = Vector2(96, 10)
+	sanity_bar.size = Vector2(96, 10)
+	sanity_bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	sanity_row.add_child(sanity_bar)
 	var sanity_value := make_label("20", 16, TEXT)
-	sanity_value.position = Vector2(228, 64)
-	panel.add_child(sanity_value)
-	var ap_caption := make_label("行動值", 12, MUTED)
-	ap_caption.position = Vector2(112, 92)
-	panel.add_child(ap_caption)
+	sanity_value.custom_minimum_size = Vector2(24, 20)
+	sanity_row.add_child(sanity_value)
 	var ap_row := HBoxContainer.new()
-	ap_row.position = Vector2(161, 90)
+	ap_row.custom_minimum_size = Vector2(174, 18)
 	ap_row.add_theme_constant_override("separation", 5)
-	panel.add_child(ap_row)
+	info.add_child(ap_row)
+	var ap_caption := make_label("行動值", 12, MUTED)
+	ap_caption.custom_minimum_size = Vector2(42, 18)
+	ap_row.add_child(ap_caption)
 	for i in range(3):
 		var pip := Panel.new()
-		pip.custom_minimum_size = Vector2(32, 10)
-		pip.add_theme_stylebox_override("panel", panel_style(Color(0.74, 0.49, 0.22, 0.82), 5, Color(0.95, 0.77, 0.43, 0.55), 1))
+		pip.custom_minimum_size = Vector2(30, 10)
+		pip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		pip.add_theme_stylebox_override("panel", panel_style(Color(0.58, 0.34, 0.16, 0.92), 5, Color(0.82, 0.57, 0.29, 0.55), 1))
 		ap_row.add_child(pip)
 	var deck_caption := make_label("背包 23  ·  棄牌 0", 11, MUTED)
-	deck_caption.position = Vector2(112, 114)
-	panel.add_child(deck_caption)
+	info.add_child(deck_caption)
 func _build_hand() -> void:
 	var hand_panel := Control.new()
 	hand_panel.position = Vector2(0, 496)
@@ -220,6 +236,10 @@ func _build_hand() -> void:
 		card.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 		card.texture_normal = load(item[2])
 		card.material = _rounded_card_material(0.065)
+		var card_style := _card_style()
+		card.add_theme_stylebox_override("normal", card_style)
+		card.add_theme_stylebox_override("hover", _card_style(Color(0.18, 0.12, 0.07, 0.68), 8))
+		card.add_theme_stylebox_override("pressed", _card_style(Color(0.18, 0.12, 0.07, 0.78), 8))
 		card.tooltip_text = item[0] + "  " + item[1]
 		hand.add_child(card)
 		card_home[card] = card.position
@@ -332,6 +352,23 @@ func _gui_input(event: InputEvent) -> void:
 		if not card_rect.has_point(local_mouse) and not inspector_rect.has_point(local_mouse):
 			_close_inspector()
 
+func _card_style(shadow := Color(0.0, 0.0, 0.0, 0.50), shadow_size := 6) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.0, 0.0, 0.0, 0.0)
+	style.border_width_left = 2
+	style.border_width_top = 2
+	style.border_width_right = 2
+	style.border_width_bottom = 2
+	style.border_color = Color("#3a2a1a")
+	style.corner_radius_top_left = 9
+	style.corner_radius_top_right = 9
+	style.corner_radius_bottom_left = 9
+	style.corner_radius_bottom_right = 9
+	style.shadow_color = shadow
+	style.shadow_size = shadow_size
+	style.shadow_offset = Vector2(0, 4)
+	return style
+
 func _rounded_card_material(radius: float) -> ShaderMaterial:
 	var shader := Shader.new()
 	shader.code = """shader_type canvas_item;
@@ -350,7 +387,11 @@ float rounded_rect_alpha(vec2 uv, float r, float softness) {
 void fragment() {
     vec4 tex = texture(TEXTURE, UV);
     float mask = rounded_rect_alpha(UV, radius, edge_softness);
-    COLOR = vec4(tex.rgb * COLOR.rgb, tex.a * COLOR.a * mask);
+    float top_plate = 1.0 - smoothstep(0.075, 0.13, length(UV - vec2(0.085, 0.085)));
+    float bottom_plate = 1.0 - smoothstep(0.075, 0.13, length(UV - vec2(0.915, 0.915)));
+    float plate = max(top_plate, bottom_plate) * 0.42;
+    vec3 plated = mix(tex.rgb, vec3(0.16, 0.10, 0.05), plate);
+    COLOR = vec4(plated * COLOR.rgb, tex.a * COLOR.a * mask);
 }"""
 	var material := ShaderMaterial.new()
 	material.shader = shader
