@@ -130,65 +130,72 @@ func _build_header() -> void:
 	header.size = Vector2(1224, 66)
 	header.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(header)
-	var eyebrow := make_label("REBOOT  ·  第一章／荒野邊界", 11, GOLD)
-	eyebrow.position = Vector2(0, 0)
-	header.add_child(eyebrow)
-	var title := make_label("牧羊人：荒野之歌", 28, TEXT)
-	title.position = Vector2(0, 16)
-	header.add_child(title)
-	add_rule(header, Vector2(310, 18), Vector2(1, 30), Color(0.78, 0.67, 0.48, 0.50))
 	var state := make_label("遭遇準備中", 13, GOLD)
-	state.position = Vector2(338, 25)
+	state.position = Vector2(0, 25)
 	header.add_child(state)
 	var nav := HBoxContainer.new()
-	nav.position = Vector2(930, 8)
-	nav.size = Vector2(292, 42)
+	nav.position = Vector2(1032, 8)
+	nav.size = Vector2(190, 44)
 	nav.alignment = BoxContainer.ALIGNMENT_END
-	nav.add_theme_constant_override("separation", 3)
+	nav.add_theme_constant_override("separation", 10)
+	nav.mouse_filter = Control.MOUSE_FILTER_PASS
 	header.add_child(nav)
-	for item in ["地圖", "探索", "設定"]:
-		nav.add_child(make_nav_button(item))
-
+	for item in [["⌂", "地圖"], ["✧", "探索"], ["⚙", "設定"]]:
+		var button := Button.new()
+		button.text = item[0]
+		button.tooltip_text = item[1]
+		button.custom_minimum_size = Vector2(48, 42)
+		button.flat = true
+		button.add_theme_font_size_override("font_size", 24)
+		button.add_theme_color_override("font_color", MUTED)
+		button.add_theme_color_override("font_hover_color", TEXT)
+		button.add_theme_stylebox_override("hover", panel_style(Color(0.18, 0.15, 0.11, 0.44), 12, Color(0.84, 0.68, 0.39, 0.42), 1))
+		nav.add_child(button)
 func _build_player_panel() -> void:
 	var panel := Control.new()
-	panel.position = Vector2(30, 382)
-	panel.size = Vector2(260, 104)
+	panel.position = Vector2(28, 430)
+	panel.size = Vector2(252, 126)
 	add_child(panel)
-	var overline := make_label("行者", 20, TEXT)
-	overline.position = Vector2(0, 0)
-	panel.add_child(overline)
-	var role := make_label("理智與行動", 11, MUTED)
-	role.position = Vector2(74, 8)
+	var portrait := TextureRect.new()
+	portrait.position = Vector2(0, 0)
+	portrait.size = Vector2(74, 100)
+	portrait.texture = load("res://assets/characters/character-wanderer-v1-transparent.png")
+	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	portrait.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	portrait.modulate = Color(1.0, 0.94, 0.82, 0.97)
+	portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(portrait)
+	var name_label := make_label("行者", 20, TEXT)
+	name_label.position = Vector2(86, 0)
+	panel.add_child(name_label)
+	var role := make_label("在荒野中穿行的人", 11, MUTED)
+	role.position = Vector2(86, 27)
 	panel.add_child(role)
 	var sanity_caption := make_label("理智", 12, MUTED)
-	sanity_caption.position = Vector2(0, 34)
+	sanity_caption.position = Vector2(86, 50)
 	panel.add_child(sanity_caption)
-	var sanity_value := make_label("20 / 20", 16, TEXT)
-	sanity_value.position = Vector2(48, 29)
-	panel.add_child(sanity_value)
-	var sanity_bar := make_progress(20, 20, RED, Vector2(112, 9))
-	sanity_bar.position = Vector2(125, 34)
+	var sanity_bar := make_progress(20, 20, RED, Vector2(108, 10))
+	sanity_bar.position = Vector2(86, 70)
 	panel.add_child(sanity_bar)
-	var ap_caption := make_label("AP", 12, MUTED)
-	ap_caption.position = Vector2(0, 67)
+	var sanity_value := make_label("20", 16, TEXT)
+	sanity_value.position = Vector2(202, 64)
+	panel.add_child(sanity_value)
+	var ap_caption := make_label("行動值", 12, MUTED)
+	ap_caption.position = Vector2(86, 92)
 	panel.add_child(ap_caption)
 	var ap_row := HBoxContainer.new()
-	ap_row.position = Vector2(34, 64)
+	ap_row.position = Vector2(135, 90)
 	ap_row.add_theme_constant_override("separation", 5)
 	panel.add_child(ap_row)
 	for i in range(3):
 		var pip := Panel.new()
-		pip.custom_minimum_size = Vector2(48, 18)
-		pip.add_theme_stylebox_override("panel", panel_style(Color(0.74, 0.49, 0.22, 0.76), 6, Color(0.95, 0.77, 0.43, 0.62), 1))
-		var pip_text := make_label("可用", 9, Color("#fff1d0"))
-		pip_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		pip_text.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		pip.add_child(pip_text)
+		pip.custom_minimum_size = Vector2(32, 10)
+		pip.add_theme_stylebox_override("panel", panel_style(Color(0.74, 0.49, 0.22, 0.82), 5, Color(0.95, 0.77, 0.43, 0.55), 1))
 		ap_row.add_child(pip)
-	var deck_caption := make_label("牌組 30  ·  棄牌 0", 11, MUTED)
-	deck_caption.position = Vector2(0, 92)
+	var deck_caption := make_label("背包 23  ·  棄牌 0", 11, MUTED)
+	deck_caption.position = Vector2(86, 114)
 	panel.add_child(deck_caption)
-
 func _build_encounter_panel() -> void:
 	var panel := Control.new()
 	panel.position = Vector2(350, 108)
@@ -256,21 +263,9 @@ func _build_hand() -> void:
 	hand_panel.size = Vector2(1280, 224)
 	hand_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(hand_panel)
-	var shade := ColorRect.new()
-	shade.position = Vector2(0, 24)
-	shade.size = Vector2(1280, 200)
-	shade.color = Color(0.025, 0.03, 0.03, 0.52)
-	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hand_panel.add_child(shade)
-	var hand_title := make_label("你的手牌", 13, TEXT)
-	hand_title.position = Vector2(42, 10)
-	hand_panel.add_child(hand_title)
-	var hand_meta := make_label("7 / 7", 12, MUTED)
-	hand_meta.position = Vector2(108, 12)
-	hand_panel.add_child(hand_meta)
 	var hand := Control.new()
-	hand.position = Vector2(0, 34)
-	hand.size = Vector2(1280, 190)
+	hand.position = Vector2(0, 18)
+	hand.size = Vector2(1280, 206)
 	hand.mouse_filter = Control.MOUSE_FILTER_PASS
 	hand_panel.add_child(hand)
 	var overlap := 26.0
@@ -295,7 +290,6 @@ func _build_hand() -> void:
 		card.mouse_entered.connect(func(c = card): _hover_card(c, true))
 		card.mouse_exited.connect(func(c = card): _hover_card(c, false))
 		card.pressed.connect(func(c = card, data = item): _select_card(c, data))
-
 func _build_inspector() -> void:
 	inspector = Panel.new()
 	inspector.position = Vector2(270, 94)
