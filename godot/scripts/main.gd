@@ -55,31 +55,31 @@ func _build_vertical_slice() -> void:
 	add_child(scene_bg)
 	# Encounter HUD layout: corners have stable responsibilities.
 	# No full-width black overlays; the scene art remains visually dominant.
-	var nav=HBoxContainer.new(); nav.position=Vector2(1080,18); nav.size=Vector2(176,38); nav.alignment=BoxContainer.ALIGNMENT_END; nav.add_theme_constant_override("separation",12); add_child(nav)
-	for nav_item in [["◇","地圖"],["⋯","探索"],["⚙","設定"]]:
-		var nav_button=Button.new(); nav_button.text=nav_item[0]; nav_button.tooltip_text=nav_item[1]; nav_button.custom_minimum_size=Vector2(42,38); nav_button.flat=true; nav_button.add_theme_font_size_override("font_size",22); nav_button.add_theme_color_override("font_color",Color("#f3e3c5")); nav_button.add_theme_color_override("font_hover_color",Color.WHITE); nav.add_child(nav_button)
+	var nav=HBoxContainer.new(); nav.position=Vector2(1018,20); nav.size=Vector2(238,42); nav.alignment=BoxContainer.ALIGNMENT_END; nav.add_theme_constant_override("separation",18); add_child(nav)
+	for nav_item in [["地圖","地圖"],["探索","探索"],["設定","設定"]]:
+		var nav_button=Button.new(); nav_button.text=nav_item[0]; nav_button.tooltip_text=nav_item[1]; nav_button.custom_minimum_size=Vector2(62,40); nav_button.flat=true; nav_button.add_theme_font_size_override("font_size",14); nav_button.add_theme_color_override("font_color",Color("#f3e3c5")); nav_button.add_theme_color_override("font_hover_color",Color.WHITE); nav.add_child(nav_button)
 
 	# Left-bottom: player state / backpack.
-	var status=VBoxContainer.new(); status.position=Vector2(28,500); status.size=Vector2(220,190); status.add_theme_constant_override("separation",10); add_child(status)
+	var status=VBoxContainer.new(); status.position=Vector2(30,492); status.size=Vector2(230,200); status.add_theme_constant_override("separation",10); add_child(status)
 	var sanity_row=HBoxContainer.new(); sanity_row.custom_minimum_size=Vector2(210,42); sanity_row.add_theme_constant_override("separation",12); status.add_child(sanity_row)
-	var sanity_icon=make_label("♥",30,Color("#e7a291")); sanity_icon.custom_minimum_size=Vector2(38,38); sanity_icon.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER; sanity_row.add_child(sanity_icon)
+	var sanity_icon=make_label("◉",26,Color("#d8b77a")); sanity_icon.custom_minimum_size=Vector2(38,38); sanity_icon.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER; sanity_row.add_child(sanity_icon)
 	var sanity_text=VBoxContainer.new(); sanity_text.add_theme_constant_override("separation",-4); sanity_row.add_child(sanity_text)
-	var sanity_label=make_label("理智",13,Color("#eadbc2")); sanity_text.add_child(sanity_label)
+	var sanity_label=make_label("理智",14,Color("#eadbc2")); sanity_text.add_child(sanity_label)
 	var sanity_value=make_label("20",24,Color("#fff4dd")); sanity_text.add_child(sanity_value)
 
 	var ap_row=HBoxContainer.new(); ap_row.custom_minimum_size=Vector2(210,42); ap_row.add_theme_constant_override("separation",12); status.add_child(ap_row)
-	var ap_icon=make_label("✦",29,Color("#e9b654")); ap_icon.custom_minimum_size=Vector2(38,38); ap_icon.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER; ap_row.add_child(ap_icon)
+	var ap_icon=make_label("◇",27,Color("#d8b77a")); ap_icon.custom_minimum_size=Vector2(38,38); ap_icon.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER; ap_row.add_child(ap_icon)
 	var ap_text=VBoxContainer.new(); ap_text.add_theme_constant_override("separation",-3); ap_row.add_child(ap_text)
-	var ap_name=make_label("行動值",13,Color("#eadbc2")); ap_text.add_child(ap_name)
+	var ap_name=make_label("行動值",14,Color("#eadbc2")); ap_text.add_child(ap_name)
 	var ap_pips=HBoxContainer.new(); ap_pips.add_theme_constant_override("separation",6); ap_text.add_child(ap_pips)
 	for i in range(3):
-		var pip=make_label("◆",18,Color("#f2c15d")); ap_pips.add_child(pip)
+		var pip=make_label("◆",17,Color("#e4bd72")); ap_pips.add_child(pip)
 
 	var spacer=Control.new(); spacer.custom_minimum_size=Vector2(1,13); status.add_child(spacer)
 	var backpack=HBoxContainer.new(); backpack.custom_minimum_size=Vector2(210,50); backpack.add_theme_constant_override("separation",12); status.add_child(backpack)
-	var backpack_icon=make_label("🎒",34,Color.WHITE); backpack_icon.custom_minimum_size=Vector2(42,42); backpack_icon.tooltip_text="背包"; backpack.add_child(backpack_icon)
+	var backpack_icon=make_label("▱",30,Color("#d8b77a")); backpack_icon.custom_minimum_size=Vector2(42,42); backpack_icon.tooltip_text="背包"; backpack.add_child(backpack_icon)
 	var backpack_text=VBoxContainer.new(); backpack_text.add_theme_constant_override("separation",-4); backpack.add_child(backpack_text)
-	var backpack_name=make_label("背包",13,Color("#eadbc2")); backpack_text.add_child(backpack_name)
+	var backpack_name=make_label("背包",14,Color("#eadbc2")); backpack_text.add_child(backpack_name)
 	var backpack_count=make_label("23",24,Color("#fff4dd")); backpack_text.add_child(backpack_count)
 
 	# Right-bottom is reserved for contextual confirmation/effect choices.
