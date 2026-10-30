@@ -129,7 +129,7 @@ func _build_inspector() -> void:
 	inspector_card.size=Vector2(192,288)
 	inspector_card.expand_mode=TextureRect.EXPAND_IGNORE_SIZE
 	inspector_card.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	inspector_card.texture_filter=CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_WITH_MIPMAPS
+	inspector_card.texture_filter=CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	inspector_card.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	inspector.add_child(inspector_card)
 
