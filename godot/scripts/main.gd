@@ -44,21 +44,31 @@ func make_label(text:String, font_px:int, color:=Color.WHITE) -> Label:
 	return l
 
 func _build_vertical_slice() -> void:
-	var bg=ColorRect.new(); bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); bg.color=Color("#3b2d22"); add_child(bg)
-	var sky=ColorRect.new(); sky.position=Vector2(0,0); sky.size=Vector2(1280,455); sky.color=Color("#78634a"); add_child(sky)
-	var horizon=Polygon2D.new(); horizon.polygon=PackedVector2Array([Vector2(0,310),Vector2(150,220),Vector2(290,300),Vector2(450,190),Vector2(650,290),Vector2(830,210),Vector2(1030,285),Vector2(1180,205),Vector2(1280,250),Vector2(1280,520),Vector2(0,520)]); horizon.color=Color("#4b4034"); add_child(horizon)
-	var ground=ColorRect.new(); ground.position=Vector2(0,430); ground.size=Vector2(1280,290); ground.color=Color("#251f1a"); add_child(ground)
+	var bg=ColorRect.new(); bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); bg.color=Color("#17130f"); add_child(bg)
+	# Temporary art-directed wilderness backdrop; replace with final scene art later.
+	var sky=ColorRect.new(); sky.position=Vector2(0,0); sky.size=Vector2(1280,500); sky.color=Color("#8a7152"); add_child(sky)
+	var sun=Polygon2D.new(); sun.polygon=PackedVector2Array([Vector2(0,-44),Vector2(31,-31),Vector2(44,0),Vector2(31,31),Vector2(0,44),Vector2(-31,31),Vector2(-44,0),Vector2(-31,-31)]); sun.position=Vector2(1010,148); sun.color=Color("#c9a46b"); add_child(sun)
+	var far=Polygon2D.new(); far.polygon=PackedVector2Array([Vector2(0,305),Vector2(130,238),Vector2(270,292),Vector2(420,205),Vector2(570,286),Vector2(735,220),Vector2(900,278),Vector2(1060,215),Vector2(1280,285),Vector2(1280,520),Vector2(0,520)]); far.color=Color("#574a3c"); add_child(far)
+	var near=Polygon2D.new(); near.polygon=PackedVector2Array([Vector2(0,390),Vector2(180,330),Vector2(350,382),Vector2(520,310),Vector2(710,385),Vector2(900,320),Vector2(1080,372),Vector2(1280,300),Vector2(1280,545),Vector2(0,545)]); near.color=Color("#302a24"); add_child(near)
+	var haze=ColorRect.new(); haze.position=Vector2(0,360); haze.size=Vector2(1280,185); haze.color=Color(0.43,0.34,0.25,0.16); add_child(haze)
+	var ground=ColorRect.new(); ground.position=Vector2(0,500); ground.size=Vector2(1280,220); ground.color=Color("#171411"); add_child(ground)
+	var vignette=ColorRect.new(); vignette.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); vignette.color=Color(0,0,0,0.08); vignette.mouse_filter=Control.MOUSE_FILTER_IGNORE; add_child(vignette)
 
-	var top=HBoxContainer.new(); top.position=Vector2(24,20); top.size=Vector2(1232,58); top.add_theme_constant_override("separation",12); add_child(top)
-	for t in ["理智  8/10","營火  6","行動點  3/3"]:
-		var p=PanelContainer.new(); p.custom_minimum_size=Vector2(150,48); p.add_theme_stylebox_override("panel",panel_style(Color(0.07,0.06,0.05,0.86),12)); var x=make_label(t,18,Color("#f1dfbd")); x.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER; x.vertical_alignment=VERTICAL_ALIGNMENT_CENTER; p.add_child(x); top.add_child(p)
+	var top=HBoxContainer.new(); top.position=Vector2(22,18); top.size=Vector2(1236,52); top.add_theme_constant_override("separation",9); add_child(top)
+	for datum in [["理智","8 / 10"],["行動","3 / 3"]]:
+		var p=PanelContainer.new(); p.custom_minimum_size=Vector2(126,44); p.add_theme_stylebox_override("panel",panel_style(Color(0.055,0.047,0.039,0.82),10,Color(0.72,0.60,0.40,0.32),1))
+		var row=HBoxContainer.new(); row.add_theme_constant_override("separation",8); p.add_child(row)
+		var k=make_label(datum[0],13,Color("#bba98c")); var v=make_label(datum[1],18,Color("#f3e5c9")); row.add_child(k); row.add_child(v); top.add_child(p)
 	var spacer=Control.new(); spacer.size_flags_horizontal=Control.SIZE_EXPAND_FILL; top.add_child(spacer)
-	top.add_child(make_label("序章 · 荒野甦醒",18,Color("#e8d8b8")))
+	var chapter=VBoxContainer.new(); chapter.alignment=BoxContainer.ALIGNMENT_END
+	var ch=make_label("序章",12,Color("#b9a98e")); ch.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT; chapter.add_child(ch)
+	var loc=make_label("荒野甦醒",20,Color("#f2e2c3")); loc.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT; chapter.add_child(loc); top.add_child(chapter)
 
-	var portrait=TextureRect.new(); portrait.texture=load("res://assets/characters/character-wanderer-v1-transparent.png"); portrait.expand_mode=TextureRect.EXPAND_IGNORE_SIZE; portrait.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED; portrait.position=Vector2(900,78); portrait.size=Vector2(330,370); portrait.texture_filter=CanvasItem.TEXTURE_FILTER_LINEAR; add_child(portrait)
+
+	# First-person exploration view: the protagonist is intentionally not pinned on-screen.
 
 
-	var hand=Control.new(); hand.position=Vector2(0,525); hand.size=Vector2(1280,180); hand.mouse_filter=Control.MOUSE_FILTER_PASS; add_child(hand)
+	var hand=Control.new(); hand.position=Vector2(0,526); hand.size=Vector2(1280,180); hand.mouse_filter=Control.MOUSE_FILTER_PASS; add_child(hand)
 	var count: int = hand_cards.size()
 	var overlap: float = 16.0
 	var step: float = CARD_SIZE.x - overlap
@@ -76,7 +86,7 @@ func _build_vertical_slice() -> void:
 		card.pressed.connect(func(c=card, data=item): _select_card(c, data))
 
 	_build_inspector()
-	var tag=make_label("第一人稱場景構圖測試",14,Color("#cbbda4")); tag.position=Vector2(28,690); add_child(tag)
+	var hand_hint=make_label("手牌",12,Color("#8f816d")); hand_hint.position=Vector2(24,684); add_child(hand_hint)
 
 func _build_inspector() -> void:
 	inspector=Control.new()
