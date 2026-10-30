@@ -181,20 +181,25 @@ func _gui_input(event: InputEvent) -> void:
 func _rounded_card_material(radius: float) -> ShaderMaterial:
 	var shader := Shader.new()
 	shader.code = """shader_type canvas_item;
-uniform float radius = 0.11;
+render_mode unshaded;
+uniform float radius = 0.065;
+uniform float edge_softness = 0.008;
+
+float rounded_rect_alpha(vec2 uv, float r, float softness) {
+	vec2 p = abs(uv - vec2(0.5));
+	vec2 b = vec2(0.5 - r);
+	vec2 q = p - b;
+	float dist = length(max(q, vec2(0.0))) + min(max(q.x, q.y), 0.0) - r;
+	return 1.0 - smoothstep(-softness, softness, dist);
+}
+
 void fragment() {
-	vec2 p = UV;
-	vec2 q = min(p, vec2(1.0) - p);
-	float r = radius;
-	if (q.x < r && q.y < r) {
-		vec2 d = vec2(r) - q;
-		if (length(d) > r) {
-			discard;
-		}
-	}
-	COLOR = texture(TEXTURE, UV) * COLOR;
+	vec4 tex = texture(TEXTURE, UV);
+	float mask = rounded_rect_alpha(UV, radius, edge_softness);
+	COLOR = vec4(tex.rgb * COLOR.rgb, tex.a * COLOR.a * mask);
 }"""
 	var material := ShaderMaterial.new()
 	material.shader = shader
 	material.set_shader_parameter("radius", radius)
+	material.set_shader_parameter("edge_softness", 0.006)
 	return material
