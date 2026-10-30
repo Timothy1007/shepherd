@@ -45,20 +45,23 @@ func make_label(text:String, font_px:int, color:=Color.WHITE) -> Label:
 
 func _build_vertical_slice() -> void:
 	var bg=ColorRect.new(); bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); bg.color=Color("#17130f"); add_child(bg)
-	# Temporary art-directed wilderness backdrop; replace with final scene art later.
-	var sky=ColorRect.new(); sky.position=Vector2(0,0); sky.size=Vector2(1280,500); sky.color=Color("#8a7152"); add_child(sky)
-	var sun=Polygon2D.new(); sun.polygon=PackedVector2Array([Vector2(0,-44),Vector2(31,-31),Vector2(44,0),Vector2(31,31),Vector2(0,44),Vector2(-31,31),Vector2(-44,0),Vector2(-31,-31)]); sun.position=Vector2(1010,148); sun.color=Color("#c9a46b"); add_child(sun)
-	var far=Polygon2D.new(); far.polygon=PackedVector2Array([Vector2(0,305),Vector2(130,238),Vector2(270,292),Vector2(420,205),Vector2(570,286),Vector2(735,220),Vector2(900,278),Vector2(1060,215),Vector2(1280,285),Vector2(1280,520),Vector2(0,520)]); far.color=Color("#574a3c"); add_child(far)
-	var near=Polygon2D.new(); near.polygon=PackedVector2Array([Vector2(0,390),Vector2(180,330),Vector2(350,382),Vector2(520,310),Vector2(710,385),Vector2(900,320),Vector2(1080,372),Vector2(1280,300),Vector2(1280,545),Vector2(0,545)]); near.color=Color("#302a24"); add_child(near)
-	var haze=ColorRect.new(); haze.position=Vector2(0,360); haze.size=Vector2(1280,185); haze.color=Color(0.43,0.34,0.25,0.16); add_child(haze)
-	var ground=ColorRect.new(); ground.position=Vector2(0,500); ground.size=Vector2(1280,220); ground.color=Color("#171411"); add_child(ground)
-	var vignette=ColorRect.new(); vignette.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); vignette.color=Color(0,0,0,0.08); vignette.mouse_filter=Control.MOUSE_FILTER_IGNORE; add_child(vignette)
+	# Final wilderness awakening background.
+	var scene_bg=TextureRect.new()
+	scene_bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	scene_bg.texture=load("res://assets/backgrounds/wilderness-awakening.jpg")
+	scene_bg.expand_mode=TextureRect.EXPAND_IGNORE_SIZE
+	scene_bg.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	scene_bg.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	add_child(scene_bg)
+	# Subtle cinematic grading: preserve the art while keeping HUD/cards readable.
+	var top_shade=ColorRect.new(); top_shade.position=Vector2(0,0); top_shade.size=Vector2(1280,105); top_shade.color=Color(0.025,0.022,0.019,0.30); top_shade.mouse_filter=Control.MOUSE_FILTER_IGNORE; add_child(top_shade)
+	var bottom_shade=ColorRect.new(); bottom_shade.position=Vector2(0,485); bottom_shade.size=Vector2(1280,235); bottom_shade.color=Color(0.018,0.016,0.014,0.55); bottom_shade.mouse_filter=Control.MOUSE_FILTER_IGNORE; add_child(bottom_shade)
 
 	var top=HBoxContainer.new(); top.position=Vector2(22,18); top.size=Vector2(1236,52); top.add_theme_constant_override("separation",9); add_child(top)
 	for datum in [["理智","8 / 10"],["行動","3 / 3"]]:
-		var p=PanelContainer.new(); p.custom_minimum_size=Vector2(126,44); p.add_theme_stylebox_override("panel",panel_style(Color(0.055,0.047,0.039,0.82),10,Color(0.72,0.60,0.40,0.32),1))
+		var p=PanelContainer.new(); p.custom_minimum_size=Vector2(126,44); p.add_theme_stylebox_override("panel",panel_style(Color(0.035,0.031,0.027,0.68),12,Color(0.88,0.74,0.48,0.24),1))
 		var row=HBoxContainer.new(); row.add_theme_constant_override("separation",8); p.add_child(row)
-		var k=make_label(datum[0],13,Color("#bba98c")); var v=make_label(datum[1],18,Color("#f3e5c9")); row.add_child(k); row.add_child(v); top.add_child(p)
+		var k=make_label(datum[0],12,Color("#c9b99d")); var v=make_label(datum[1],17,Color("#fff0d2")); row.add_child(k); row.add_child(v); top.add_child(p)
 	var spacer=Control.new(); spacer.size_flags_horizontal=Control.SIZE_EXPAND_FILL; top.add_child(spacer)
 	var chapter=VBoxContainer.new(); chapter.alignment=BoxContainer.ALIGNMENT_END
 	var ch=make_label("序章",12,Color("#b9a98e")); ch.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT; chapter.add_child(ch)
