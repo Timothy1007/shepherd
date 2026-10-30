@@ -104,7 +104,7 @@ func _build_vertical_slice() -> void:
 	var center: float = float(count - 1) * 0.5
 	for i in range(count):
 		var item: Array = hand_cards[i]
-		var card=TextureButton.new(); card.size=CARD_SIZE; card.position=Vector2(start_x + step * float(i), 0); card.ignore_texture_size=true; card.stretch_mode=TextureButton.STRETCH_SCALE; card.texture_filter=CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC; card.texture_normal=load(item[2]); card.material=_rounded_card_material(0.045); hand.add_child(card)
+		var card=TextureButton.new(); card.size=CARD_SIZE; card.position=Vector2(start_x + step * float(i), 0); card.ignore_texture_size=true; card.stretch_mode=TextureButton.STRETCH_SCALE; card.texture_filter=CanvasItem.TEXTURE_FILTER_LINEAR; card.texture_normal=load(item[2]); hand.add_child(card)
 		card_home[card]=card.position
 		hand_cards_nodes.append(card)
 		card.z_index = i
@@ -129,7 +129,7 @@ func _build_inspector() -> void:
 	inspector_card.size=Vector2(190,263)
 	inspector_card.expand_mode=TextureRect.EXPAND_IGNORE_SIZE
 	inspector_card.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	inspector_card.texture_filter=CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+	inspector_card.texture_filter=CanvasItem.TEXTURE_FILTER_LINEAR
 	inspector_card.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	inspector.add_child(inspector_card)
 
@@ -146,7 +146,7 @@ func _hover_card(card: TextureButton, hovering: bool) -> void:
 	var home: Vector2 = card_home[card]
 	if hovering:
 		card.z_index=500
-		_tween_card(card, home + Vector2(0,HOVER_Y), Vector2(1.025,1.025))
+		_tween_card(card, home + Vector2(0,HOVER_Y), Vector2.ONE)
 	else:
 		_restore_card_layer(card)
 		_tween_card(card, home, Vector2.ONE)
@@ -161,11 +161,11 @@ func _select_card(card: TextureButton, data: Array) -> void:
 		_tween_card(previous, card_home[previous], Vector2.ONE)
 	selected_card=card
 	card.z_index=1000
-	_tween_card(card, card_home[card] + Vector2(0,SELECT_Y), Vector2(1.06,1.06))
+	_tween_card(card, card_home[card] + Vector2(0,SELECT_Y), Vector2.ONE)
 	_show_inspector(data)
 
 func _show_inspector(data: Array) -> void:
-	inspector_card.texture=load(data[2]); inspector_card.material=_rounded_card_material(0.045)
+	inspector_card.texture=load(data[2])
 	for child in inspector_text.get_children():
 		child.queue_free()
 	var title=make_label(data[0] + "  ·  " + data[1],28,Color("#f4e2bd"))
