@@ -18,6 +18,7 @@ var hand_cards = [
 var selected_card: TextureButton
 var card_home := {}
 var card_tweens := {}
+var hand_cards_nodes: Array[TextureButton] = []
 var inspector: Control
 var inspector_card: TextureRect
 var inspector_text: VBoxContainer
@@ -57,11 +58,19 @@ func _build_vertical_slice() -> void:
 	var portrait=TextureRect.new(); portrait.texture=load("res://assets/characters/character-wanderer-v1-transparent.png"); portrait.expand_mode=TextureRect.EXPAND_IGNORE_SIZE; portrait.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED; portrait.position=Vector2(900,78); portrait.size=Vector2(330,370); portrait.texture_filter=CanvasItem.TEXTURE_FILTER_LINEAR; add_child(portrait)
 
 
-	var hand=HBoxContainer.new(); hand.position=Vector2(65,525); hand.size=Vector2(1150,180); hand.alignment=BoxContainer.ALIGNMENT_CENTER; hand.add_theme_constant_override("separation",-14); add_child(hand)
-	for item in hand_cards:
-		var slot=Control.new(); slot.custom_minimum_size=CARD_SIZE
-		var card=TextureButton.new(); card.size=CARD_SIZE; card.ignore_texture_size=true; card.stretch_mode=TextureButton.STRETCH_KEEP_ASPECT_CENTERED; card.texture_normal=load(item[2]); card.material=_rounded_card_material(0.065); slot.add_child(card); hand.add_child(slot)
-		card_home[card]=Vector2.ZERO
+	var hand=Control.new(); hand.position=Vector2(0,525); hand.size=Vector2(1280,180); hand.mouse_filter=Control.MOUSE_FILTER_PASS; add_child(hand)
+	var count: int = hand_cards.size()
+	var overlap: float = 32.0
+	var step: float = CARD_SIZE.x - overlap
+	var total_width: float = CARD_SIZE.x + step * float(count - 1)
+	var start_x: float = (1280.0 - total_width) * 0.5
+	var center: float = float(count - 1) * 0.5
+	for i in range(count):
+		var item: Array = hand_cards[i]
+		var card=TextureButton.new(); card.size=CARD_SIZE; card.position=Vector2(start_x + step * float(i), 0); card.ignore_texture_size=true; card.stretch_mode=TextureButton.STRETCH_KEEP_ASPECT_CENTERED; card.texture_normal=load(item[2]); card.material=_rounded_card_material(0.065); hand.add_child(card)
+		card_home[card]=card.position
+		hand_cards_nodes.append(card)
+		card.z_index = int(100.0 - abs(float(i) - center) * 10.0)
 		card.mouse_entered.connect(func(c=card): _hover_card(c, true))
 		card.mouse_exited.connect(func(c=card): _hover_card(c, false))
 		card.pressed.connect(func(c=card, data=item): _select_card(c, data))
@@ -96,17 +105,25 @@ func _build_inspector() -> void:
 func _hover_card(card: TextureButton, hovering: bool) -> void:
 	if card == selected_card:
 		return
-	_tween_card(card, Vector2(0, HOVER_Y if hovering else 0), Vector2.ONE if not hovering else Vector2(1.025,1.025))
+	var home: Vector2 = card_home[card]
+	if hovering:
+		card.z_index=500
+		_tween_card(card, home + Vector2(0,HOVER_Y), Vector2(1.025,1.025))
+	else:
+		_restore_card_layer(card)
+		_tween_card(card, home, Vector2.ONE)
 
 func _select_card(card: TextureButton, data: Array) -> void:
 	if selected_card == card:
 		_close_inspector()
 		return
 	if selected_card:
-		_tween_card(selected_card, Vector2.ZERO, Vector2.ONE)
+		var previous: TextureButton = selected_card
+		_restore_card_layer(previous)
+		_tween_card(previous, card_home[previous], Vector2.ONE)
 	selected_card=card
-	card.z_index=20
-	_tween_card(card, Vector2(0, SELECT_Y), Vector2(1.06,1.06))
+	card.z_index=1000
+	_tween_card(card, card_home[card] + Vector2(0,SELECT_Y), Vector2(1.06,1.06))
 	_show_inspector(data)
 
 func _show_inspector(data: Array) -> void:
@@ -130,9 +147,17 @@ func _close_inspector() -> void:
 	if selected_card:
 		var old=selected_card
 		selected_card=null
-		old.z_index=0
-		_tween_card(old,Vector2.ZERO,Vector2.ONE)
+		_restore_card_layer(old)
+		_tween_card(old,card_home[old],Vector2.ONE)
 	inspector.visible=false
+
+func _restore_card_layer(card: TextureButton) -> void:
+	var index: int = hand_cards_nodes.find(card)
+	if index < 0:
+		card.z_index=0
+		return
+	var center: float = float(hand_cards_nodes.size() - 1) * 0.5
+	card.z_index=int(100.0 - abs(float(index) - center) * 10.0)
 
 func _tween_card(card: TextureButton, target_pos: Vector2, target_scale: Vector2) -> void:
 	if card_tweens.has(card) and is_instance_valid(card_tweens[card]):
