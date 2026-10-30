@@ -165,7 +165,7 @@ func _build_player_panel() -> void:
 	var source_texture := load("res://assets/characters/character-wanderer-v1-transparent.png") as Texture2D
 	var head := AtlasTexture.new()
 	head.atlas = source_texture
-	head.region = Rect2(360, 0, 360, 360)
+	head.region = Rect2(400, 0, 300, 300)
 	portrait.texture = head
 	portrait.expand_mode = 1
 	portrait.stretch_mode = 5
@@ -367,7 +367,7 @@ func _gui_input(event: InputEvent) -> void:
 
 func _card_style() -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.0, 0.0, 0.0, 0.0)
+	style.bg_color = Color("#f7f2e8")
 	style.border_width_left = 1
 	style.border_width_top = 1
 	style.border_width_right = 1
