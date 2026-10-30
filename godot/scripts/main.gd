@@ -204,7 +204,6 @@ func _build_player_panel() -> void:
 	ap_caption.custom_minimum_size = Vector2(42, 19)
 	ap_row.add_child(ap_caption)
 	var flame := _make_flame_icon()
-	flame.custom_minimum_size = Vector2(16, 18)
 	flame.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	ap_row.add_child(flame)
 	for i in range(3):
@@ -213,12 +212,17 @@ func _build_player_panel() -> void:
 		pip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		pip.add_theme_stylebox_override("panel", panel_style(Color(0.58, 0.34, 0.16, 0.92), 4, Color(0.82, 0.57, 0.29, 0.55), 1))
 		ap_row.add_child(pip)
-func _make_flame_icon() -> Polygon2D:
+func _make_flame_icon() -> Control:
+	var holder := Control.new()
+	holder.custom_minimum_size = Vector2(16, 18)
+	holder.size = Vector2(16, 18)
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var flame := Polygon2D.new()
 	flame.polygon = PackedVector2Array([Vector2(8, 0), Vector2(14, 7), Vector2(12, 14), Vector2(8, 18), Vector2(3, 14), Vector2(2, 8)])
 	flame.color = Color("#d98a35")
 	flame.antialiased = true
-	return flame
+	holder.add_child(flame)
+	return holder
 
 func _build_hand() -> void:
 	var hand_panel := Control.new()
