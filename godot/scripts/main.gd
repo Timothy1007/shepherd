@@ -25,6 +25,7 @@ var hand_cards = [
 var selected_card: TextureButton
 var card_home := {}
 var card_tweens := {}
+var card_slots := {}
 var hand_cards_nodes: Array[TextureButton] = []
 var inspector: Panel
 var inspector_card: TextureRect
@@ -239,22 +240,27 @@ func _build_hand() -> void:
 	hand_panel.add_child(hand)
 	for i in range(hand_cards.size()):
 		var item: Array = hand_cards[i]
+		var slot := Panel.new()
+		slot.custom_minimum_size = CARD_SIZE
+		slot.size = CARD_SIZE
+		slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		slot.add_theme_stylebox_override("panel", _card_style())
+		hand.add_child(slot)
 		var card := TextureButton.new()
-		card.custom_minimum_size = CARD_SIZE
-		card.size = CARD_SIZE
+		card.position = Vector2(10, 10)
+		card.custom_minimum_size = CARD_SIZE - Vector2(20, 20)
+		card.size = CARD_SIZE - Vector2(20, 20)
 		card.ignore_texture_size = true
 		card.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
 		card.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 		card.texture_normal = load(item[2])
 		card.material = _rounded_card_material(0.065)
-		card.add_theme_stylebox_override("normal", _card_style())
-		card.add_theme_stylebox_override("hover", _card_style())
-		card.add_theme_stylebox_override("pressed", _card_style())
 		card.tooltip_text = item[0] + "  " + item[1]
-		hand.add_child(card)
-		card_home[card] = Vector2.ZERO
+		slot.add_child(card)
+		card_home[card] = Vector2(10, 10)
+		card_slots[card] = slot
 		hand_cards_nodes.append(card)
-		card.z_index = i
+		slot.z_index = i
 		card.mouse_entered.connect(func(c = card): _hover_card(c, true))
 		card.mouse_exited.connect(func(c = card): _hover_card(c, false))
 		card.pressed.connect(func(c = card, data = item): _select_card(c, data))
@@ -286,14 +292,14 @@ func _build_inspector() -> void:
 	inspector.add_child(inspector_text)
 
 func _card_home(card: TextureButton) -> Vector2:
-	return Vector2(card.position.x, 0)
+	return Vector2(10, 10)
 
 func _hover_card(card: TextureButton, hovering: bool) -> void:
 	if card == selected_card:
 		return
 	var home := _card_home(card)
 	if hovering:
-		card.z_index = 500
+		card_slots[card].z_index = 1000
 		_tween_card(card, home + Vector2(0, HOVER_Y), Vector2(1.025, 1.025))
 	else:
 		_restore_card_layer(card)
@@ -308,7 +314,7 @@ func _select_card(card: TextureButton, data: Array) -> void:
 		_restore_card_layer(previous)
 		_tween_card(previous, _card_home(previous), Vector2.ONE)
 	selected_card = card
-	card.z_index = 1000
+	card_slots[card].z_index = 1100
 	_tween_card(card, _card_home(card) + Vector2(0, SELECT_Y), Vector2(1.08, 1.08))
 	_show_inspector(data)
 
@@ -345,12 +351,12 @@ func _close_inspector() -> void:
 
 func _restore_card_layer(card: TextureButton) -> void:
 	var index: int = hand_cards_nodes.find(card)
-	card.z_index = index if index >= 0 else 0
+	card_slots[card].z_index = index if index >= 0 else 0
 
 func _tween_card(card: TextureButton, target_pos: Vector2, target_scale: Vector2) -> void:
 	if card_tweens.has(card) and is_instance_valid(card_tweens[card]):
 		card_tweens[card].kill()
-	card.pivot_offset = CARD_SIZE * 0.5
+	card.pivot_offset = card.size * 0.5
 	var tween := create_tween().set_parallel(true)
 	tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tween.tween_property(card, "position", target_pos, MOTION_TIME)
@@ -384,7 +390,6 @@ func _rounded_card_material(radius: float) -> ShaderMaterial:
 render_mode unshaded;
 uniform float radius = 0.065;
 uniform float edge_softness = 0.004;
-uniform float inset = 0.075;
 
 float rounded_rect_alpha(vec2 uv, float r, float softness) {
     vec2 p = abs(uv - vec2(0.5));
@@ -395,17 +400,12 @@ float rounded_rect_alpha(vec2 uv, float r, float softness) {
 }
 
 void fragment() {
+    vec4 tex = texture(TEXTURE, UV);
     float mask = rounded_rect_alpha(UV, radius, edge_softness);
-    vec2 inner_uv = (UV - vec2(inset)) / (1.0 - inset * 2.0);
-    vec4 tex = vec4(0.0);
-    if (inner_uv.x >= 0.0 && inner_uv.x <= 1.0 && inner_uv.y >= 0.0 && inner_uv.y <= 1.0) {
-        tex = texture(TEXTURE, inner_uv);
-    }
     COLOR = vec4(tex.rgb * COLOR.rgb, tex.a * COLOR.a * mask);
 }"""
 	var material := ShaderMaterial.new()
 	material.shader = shader
 	material.set_shader_parameter("radius", radius)
 	material.set_shader_parameter("edge_softness", 0.003)
-	material.set_shader_parameter("inset", 0.075)
 	return material
