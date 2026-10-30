@@ -1,14 +1,17 @@
 extends Control
 
 var hand_cards = [
-	["群羊", "res://assets/cards/sheep-1.png"],
-	["糧食", "res://assets/cards/food-3.png"],
-	["金錢", "res://assets/cards/money-2.png"],
-	["恩典", "res://assets/cards/grace-3.png"],
-	["群羊", "res://assets/cards/sheep-1.png"],
-	["糧食", "res://assets/cards/food-3.png"],
-	["金錢", "res://assets/cards/money-2.png"],
+	["群羊", "1", "res://assets/cards/sheep-1.png", "物資", "基礎數值 1。可與其他群羊牌組合，連續打出 3 張群羊可觸發【成群】。"],
+	["糧食", "3", "res://assets/cards/food-3.png", "物資", "基礎數值 3。可與其他糧食牌組合，連續打出 3 張糧食可觸發【播種】。"],
+	["金錢", "2", "res://assets/cards/money-2.png", "物資", "基礎數值 2。可與其他金錢牌組合，連續打出 3 張金錢可觸發【積累】。"],
+	["恩典", "3", "res://assets/cards/grace-3.png", "特殊物資", "基礎數值 3。行動中包含恩典時，可觸發【恩賜】，額外成全一次可對應的法則。"],
+	["群羊", "1", "res://assets/cards/sheep-1.png", "物資", "基礎數值 1。可與其他群羊牌組合，連續打出 3 張群羊可觸發【成群】。"],
+	["糧食", "3", "res://assets/cards/food-3.png", "物資", "基礎數值 3。可與其他糧食牌組合，連續打出 3 張糧食可觸發【播種】。"],
+	["金錢", "2", "res://assets/cards/money-2.png", "物資", "基礎數值 2。可與其他金錢牌組合，連續打出 3 張金錢可觸發【積累】。"],
 ]
+
+var selected_card: TextureButton
+var card_info: VBoxContainer
 
 func _ready() -> void:
 	_build_vertical_slice()
@@ -47,8 +50,32 @@ func _build_vertical_slice() -> void:
 	var line=label("「你醒了。這片荒野不會等人——如果還走得動，就跟上。」",19,Color("#f1eadc")); line.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART; dv.add_child(line)
 	var hint=label("點擊手牌查看 · 此畫面為 Godot v0.1 視覺切片",13,Color("#9d9589")); dv.add_child(hint)
 
+	card_info=VBoxContainer.new(); card_info.position=Vector2(190,430); card_info.size=Vector2(520,92); card_info.add_theme_constant_override("separation",2); card_info.mouse_filter=Control.MOUSE_FILTER_IGNORE; card_info.visible=false; add_child(card_info)
+
 	var hand=HBoxContainer.new(); hand.position=Vector2(65,525); hand.size=Vector2(1150,180); hand.alignment=BoxContainer.ALIGNMENT_CENTER; hand.add_theme_constant_override("separation",-14); add_child(hand)
 	for item in hand_cards:
-		var card=TextureButton.new(); card.custom_minimum_size=Vector2(130,170); card.ignore_texture_size=true; card.stretch_mode=TextureButton.STRETCH_KEEP_ASPECT_CENTERED; card.texture_normal=load(item[1]); card.tooltip_text=item[0]; card.mouse_entered.connect(func(c=card): c.position.y=-18); card.mouse_exited.connect(func(c=card): c.position.y=0); hand.add_child(card)
+		var card=TextureButton.new(); card.custom_minimum_size=Vector2(130,170); card.ignore_texture_size=true; card.stretch_mode=TextureButton.STRETCH_KEEP_ASPECT_CENTERED; card.texture_normal=load(item[2]); card.tooltip_text=item[0]; card.mouse_entered.connect(func(c=card): if_selected_hover(c, true)); card.mouse_exited.connect(func(c=card): if_selected_hover(c, false)); card.pressed.connect(func(c=card, data=item): select_card(c, data)); hand.add_child(card)
 
 	var tag=label("第一人稱場景構圖測試",14,Color("#cbbda4")); tag.position=Vector2(28,690); add_child(tag)
+
+func if_selected_hover(card: TextureButton, hovering: bool) -> void:
+	if card == selected_card:
+		return
+	card.position.y = -12 if hovering else 0
+
+func select_card(card: TextureButton, data: Array) -> void:
+	if selected_card == card:
+		selected_card.position.y=0
+		selected_card=null
+		card_info.visible=false
+		return
+	if selected_card:
+		selected_card.position.y=0
+	selected_card=card
+	card.position.y=-42
+	for child in card_info.get_children():
+		child.queue_free()
+	var title=label(data[0] + "  ·  " + data[1],22,Color("#f4e2bd")); title.add_theme_color_override("font_shadow_color",Color(0,0,0,0.9)); title.add_theme_constant_override("shadow_offset_x",2); title.add_theme_constant_override("shadow_offset_y",2); card_info.add_child(title)
+	var kind=label(data[3],13,Color("#c7b28e")); kind.add_theme_color_override("font_shadow_color",Color(0,0,0,0.9)); kind.add_theme_constant_override("shadow_offset_x",1); kind.add_theme_constant_override("shadow_offset_y",1); card_info.add_child(kind)
+	var desc=label(data[4],15,Color("#f1eadc")); desc.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART; desc.add_theme_color_override("font_shadow_color",Color(0,0,0,0.95)); desc.add_theme_constant_override("shadow_offset_x",2); desc.add_theme_constant_override("shadow_offset_y",2); card_info.add_child(desc)
+	card_info.visible=true
