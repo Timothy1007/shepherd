@@ -244,12 +244,17 @@ func _build_hand() -> void:
 		slot.custom_minimum_size = CARD_SIZE
 		slot.size = CARD_SIZE
 		slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		slot.add_theme_stylebox_override("panel", _card_style())
 		hand.add_child(slot)
+		var frame := Panel.new()
+		frame.position = Vector2(1, 1)
+		frame.size = CARD_SIZE - Vector2(2, 2)
+		frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		frame.add_theme_stylebox_override("panel", _card_style())
+		slot.add_child(frame)
 		var card := TextureButton.new()
-		card.position = Vector2(10, 10)
-		card.custom_minimum_size = CARD_SIZE - Vector2(20, 20)
-		card.size = CARD_SIZE - Vector2(20, 20)
+		card.position = Vector2(1, 1)
+		card.custom_minimum_size = CARD_SIZE - Vector2(2, 2)
+		card.size = CARD_SIZE - Vector2(2, 2)
 		card.ignore_texture_size = true
 		card.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
 		card.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
@@ -257,7 +262,7 @@ func _build_hand() -> void:
 		card.material = _rounded_card_material(0.065)
 		card.tooltip_text = item[0] + "  " + item[1]
 		slot.add_child(card)
-		card_home[card] = Vector2(10, 10)
+		card_home[card] = Vector2(1, 1)
 		card_slots[card] = slot
 		hand_cards_nodes.append(card)
 		slot.z_index = i
@@ -292,7 +297,7 @@ func _build_inspector() -> void:
 	inspector.add_child(inspector_text)
 
 func _card_home(card: TextureButton) -> Vector2:
-	return Vector2(10, 10)
+	return Vector2(1, 1)
 
 func _hover_card(card: TextureButton, hovering: bool) -> void:
 	if card == selected_card:
