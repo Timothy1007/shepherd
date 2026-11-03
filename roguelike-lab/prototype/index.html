@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>牧羊人｜Roguelike 戰鬥實驗室</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,"Noto Sans TC",sans-serif;background:#090909;color:#e9e9e9}*{box-sizing:border-box}body{margin:0}main{max-width:1180px;margin:auto;padding:22px}header,.between{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}h1{font-size:23px;margin:0}h2{font-size:17px;margin:0 0 12px}h3{font-size:14px;margin:0 0 8px}.sub,.muted{color:#a7a7a7;font-size:13px}.panel{border:1px solid #454545;background:#171717;border-radius:12px;padding:17px;margin-top:16px}.cols{display:grid;grid-template-columns:1.2fr 1fr;gap:16px}.stats{display:flex;flex-wrap:wrap;gap:8px}.pill{border:1px solid #555;border-radius:8px;padding:7px 10px;background:#242424;font-size:13px}.meter{height:9px;border-radius:9px;background:#363636;overflow:hidden;margin:9px 0}.meter i{display:block;height:100%;background:#aaa}.buttons{display:flex;gap:8px;flex-wrap:wrap}button{background:#303030;color:#f3f3f3;border:1px solid #686868;border-radius:8px;padding:10px 13px;cursor:pointer;font:inherit}button:hover:not(:disabled){background:#444}button:disabled{opacity:.38;cursor:not-allowed}button.active{background:#656565;border-color:#d5d5d5}.hand{display:grid;grid-template-columns:repeat(auto-fill,minmax(135px,1fr));gap:9px}.card{min-height:145px;text-align:left;display:flex;flex-direction:column;gap:8px}.card .glyph{font-size:26px}.card .type{color:#b5b5b5;font-size:12px}.card .effect{font-size:12px;color:#d3d3d3;line-height:1.55}.card strong{font-size:16px}.card .cost{margin-top:auto;font-size:12px;color:#b7b7b7}.log{max-height:220px;overflow:auto;font-size:12px;line-height:1.9;color:#c8c8c8}.log div{border-bottom:1px solid #303030;padding:3px}.hint{border-left:3px solid #999;padding-left:10px;font-size:13px;color:#c6c6c6}.hidden{display:none!important}.choices{display:flex;gap:8px;flex-wrap:wrap}.enemy{font-size:27px;margin:8px 0}.status{color:#bdbdbd;font-size:13px;line-height:1.8}.notice{color:#ddd;font-size:13px}.error{color:#f5a9a9}@media(max-width:750px){main{padding:12px}.cols{grid-template-columns:1fr}.hand{grid-template-columns:repeat(2,minmax(0,1fr))}header h1{font-size:19px}}
+</style></head><body><main>
+<header><div><h1>牧羊人 · 荒野之歌</h1><div class="sub">Roguelike 戰鬥實驗室｜獨立 QA 原型 · 2026-11-03</div></div><button id="restart">重新開始</button></header>
+<section class="panel" id="setup"><h2>選擇遭遇</h2><div class="choices" id="encounters"></div><h3 style="margin-top:18px">開局祝福</h3><div class="choices" id="blessings"></div><p class="muted">本版為可操作規則測試，不是正式美術與平衡版本。名稱皆可更改，規則以已確認版本為準。</p><button id="start">開始戰鬥</button></section>
+<div id="game" class="hidden">
+<div class="cols"><section class="panel"><div class="between"><h2 id="enemyName">敵人</h2><span id="round" class="pill"></span></div><div class="enemy">◇</div><div id="enemyHp"></div><div class="meter"><i id="enemyBar"></i></div><div class="status" id="enemyStatus"></div><div class="hint" id="intent"></div></section>
+<section class="panel"><h2>牧羊人</h2><div id="playerHp"></div><div class="meter"><i id="playerBar"></i></div><div class="stats" id="stats"></div><div class="status" id="buffs"></div></section></div>
+<section class="panel"><div class="between"><h2>選擇秘笈</h2><span class="muted" id="manualHint"></span></div><div class="buttons" id="manuals"></div><p class="hint" id="manualDesc"></p></section>
+<section class="panel"><div class="between"><h2>手牌 <span id="handCount"></span></h2><span class="muted" id="deckCount"></span></div><div class="hand" id="hand"></div><div class="buttons" style="margin-top:13px"><button id="redraw">調度（免費一次）</button><button id="shieldStrike">盾轉攻（守望限定）</button><button id="end">結束行動／回合</button></div><p class="notice" id="notice"></p></section>
+<section class="panel hidden" id="reveal"><h2>啟示：從三張牌選一張</h2><div class="hand" id="revealCards"></div></section>
+<section class="panel"><h2>戰鬥紀錄</h2><div class="log" id="log"></div></section>
+</div></main>
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+const definitions={
+ sheep:{name:"群羊",type:"resource",icon:"♧",cost:1},
+ food:{name:"糧食",type:"resource",icon:"♧",cost:1},
+ money:{name:"金錢",type:"resource",icon:"◎",cost:1},
+ grace:{name:"恩典",type:"resource",icon:"✧",cost:1},
+ rescue:{name:"即刻救援",type:"magic",icon:"⊞",cost:2},
+ flourish:{name:"生生不息",type:"magic",icon:"❧",cost:2},
+ repeat:{name:"重現",type:"magic",icon:"▣",cost:2},
+ laststand:{name:"絕地反擊",type:"magic",icon:"⚔",cost:2},
+ insight:{name:"啟示",type:"magic",icon:"◉",cost:1}
+};
+const manuals={
+ farm:{name:"耕耘",icon:"♧",desc:"播種持續傷害；只有播種實際觸發才可回復理智。"},
+ guard:{name:"守望",icon:"⬡",desc:"護盾與堅守可保留；只有目前處於守望才會盾反。"},
+ reap:{name:"收割",icon:"⚔",desc:"直接傷害、爆擊與吸血；同一次行動兩張羊即可追加傷害。"}
+};
+const encounters=[{name:"恐懼之影",hp:65,kind:"shadow"},{name:"蝗災群",hp:95,kind:"locust"},{name:"金牛之像",hp:160,kind:"bull"}];
+const blessings=[{name:"理智上限 +8",key:"sanity"},{name:"起始播種 +2",key:"seed"},{name:"起始護盾 +5",key:"shield"}];
+let chosenEnemy=0,chosenBlessing=0,S=null,uid=0;
+const make=(key)=>({key,id:++uid});
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+function initialDeck(){const a=[];for(const [key,n] of Object.entries({sheep:9,food:9,money:9,grace:3,rescue:1,flourish:1,repeat:1,laststand:1,insight:2}))for(let i=0;i<n;i++)a.push(make(key));return shuffle(a)}
+function note(msg){S.logs.unshift("行動 "+S.round+"｜"+msg);S.logs=S.logs.slice(0,100)}
+function resource(c){return definitions[c.key].type==="resource"}
+function recycle(){if(!S.deck.length&&S.discard.length){S.deck=shuffle(S.discard.splice(0));note("棄牌堆重新洗入抽牌堆")}}
+function draw(filter){recycle();let indices=[];for(let i=0;i<S.deck.length;i++)if(!filter||filter(S.deck[i]))indices.push(i);if(!indices.length&&S.discard.length){S.deck.push(...shuffle(S.discard.splice(0)));indices=[];for(let i=0;i<S.deck.length;i++)if(!filter||filter(S.deck[i]))indices.push(i)}if(!indices.length)return null;return S.deck.splice(indices[Math.floor(Math.random()*indices.length)],1)[0]}
+function refill(){let r=S.hand.filter(resource).length;while(r<5&&S.hand.length<7){const c=draw(resource);if(!c)break;S.hand.push(c);r++}while(S.hand.length<7){const c=draw();if(!c)break;S.hand.push(c)}}
+function start(){const e=encounters[chosenEnemy],b=blessings[chosenBlessing].key;S={round:1,ap:3,maxSanity:b==="sanity"?40:32,sanity:b==="sanity"?40:32,shield:b==="shield"?5:0,seed:b==="seed"?2:0,herd:0,investment:0,fort:0,reflect:.0,crit:0,bleed:0,halve:false,double:false,enemyHp:e.hp,enemyMax:e.hp,enemy:e.kind,enemyPower:0,manual:"farm",locked:false,counts:{sheep:0,food:0,money:0,grace:0},first:null,discard:[],deck:initialDeck(),hand:[],logs:[],redraw:1,redrawMode:false,shieldUsed:false,reveal:null,pendingSeed:0,done:false};refill();note("戰鬥開始，起始手牌 "+S.hand.length+" 張");$("setup").classList.add("hidden");$("game").classList.remove("hidden");render()}
+function damage(v,{direct=false,guarantee=false}={}){let n=Math.max(0,v);if(direct){if(S.manual==="reap"&&S.sanity<=S.maxSanity*.3)n=Math.ceil(n*1.25);if(S.double){n*=2;S.double=false}if(guarantee||Math.random()<S.crit)n=Math.ceil(n*(guarantee?2:1.5));}n=Math.ceil(n);S.enemyHp=Math.max(0,S.enemyHp-n);if(direct&&S.manual==="reap")S.sanity=Math.min(S.maxSanity,S.sanity+Math.floor(n*.3));note("對敵人造成 "+n+" 傷害");if(S.enemyHp===0){S.done=true;note("勝利！")}return n}
+function seedTick(){if(S.seed<=0)return;const n=S.seed*(2+S.herd)+S.investment;damage(n);note("播種觸發 "+n+"（實際傷害可能受後續防禦影響）");if(S.manual==="farm"){const heal=S.seed>=10?3:S.seed>=5?2:1;S.sanity=Math.min(S.maxSanity,S.sanity+heal);note("收成回饋恢復理智 "+heal)}}
+function count(key){S.counts[key]++}
+function resolveResource(key){count(key);const n=S.counts[key];if(S.manual==="farm"){if(key==="sheep"){S.herd++;note("牧養 +1")}if(key==="food"){S.seed++;note("播種 +1")}if(key==="money"){S.investment++;note("投資 +1")}if(key==="grace"){S.seed*=2;note("播種層數加倍")}}
+if(S.manual==="guard"){if(key==="sheep"){S.shield+=5;note("護盾 +5")}if(key==="food"){S.sanity=Math.min(S.maxSanity,S.sanity+2);S.fort++;note("理智 +2，堅守 +1")}if(key==="money"){S.shield+=4;S.reflect+=.25;note("護盾 +4，守望盾反強度 +25%")}if(key==="grace"){S.halve=true;note("下一次敵方攻擊減半")}}
+if(S.manual==="reap"){if(key==="sheep")damage(6+(n>=2?4:0),{direct:true});if(key==="food"){S.sanity=Math.min(S.maxSanity,S.sanity+2);const used=Math.min(2,S.seed);S.seed-=used;damage(5+used*4,{direct:true})}if(key==="money"){S.crit=Math.min(1,S.crit+.1);damage(7,{direct:true,guarantee:n===3})}if(key==="grace"){S.double=true;note("下一次直接傷害加倍")}}
+}
+function playCard(card,copied=false){if(S.done)return;const key=card.key,d=definitions[key];if(!copied){if(S.ap<d.cost){$("notice").textContent="AP 不足";return}S.ap-=d.cost;S.locked=true;S.discard.push(card);note("打出 "+d.name)}else note("重現複製 "+d.name);
+if(key in S.counts){resolveResource(key);return}
+if(key==="rescue"){const n=15+(S.sanity<5?5:0);S.shield+=n;note("即刻救援：護盾 +"+n)}
+if(key==="flourish"){seedTick();S.pendingSeed+=3;note("回合結束將增加播種 +3")}
+if(key==="laststand")damage(S.maxSanity-S.sanity,{direct:true});
+if(key==="insight"){const choices=[];for(let i=0;i<3;i++){const c=draw();if(c)choices.push(c)}if(choices.length){if(S.reveal)S.deck.push(...S.reveal);S.reveal=choices;note("啟示：請選擇一張牌")}else note("啟示：牌庫已空")}
+if(key==="repeat"){if(S.first&&S.first!=="repeat"){const original={key:S.first};if(original.key==="insight")playCard(original,true);else playCard(original,true)}else note("本次行動沒有可複製的第一張牌")}
+}
+function chooseCard(id){if(!S||S.done||S.reveal)return;const i=S.hand.findIndex(c=>c.id===id);if(i<0)return;const c=S.hand[i];if(S.redrawMode){S.hand.splice(i,1);S.deck.push(c);shuffle(S.deck);const fresh=draw();if(fresh)S.hand.push(fresh);S.redraw=0;S.redrawMode=false;note("調度 "+definitions[c.key].name+"，抽入 "+(fresh?definitions[fresh.key].name:"無牌"));render();return}if(S.ap<definitions[c.key].cost){$("notice").textContent="AP 不足";return}S.hand.splice(i,1);if(!S.first)S.first=c.key;playCard(c);render()}
+function chooseReveal(id){if(!S.reveal)return;const c=S.reveal.find(x=>x.id===id);if(!c)return;S.hand.push(c);S.deck.push(...S.reveal.filter(x=>x.id!==id));shuffle(S.deck);S.reveal=null;note("啟示選擇 "+definitions[c.key].name);render()}
+function triple(){if(S.counts.food===3&&S.manual==="farm"){S.seed++;note("三糧：播種 +1")}if(S.counts.sheep===3&&S.manual==="guard"){S.shield+=6;note("三羊：護盾 +6")}if(S.counts.money===3&&S.manual==="reap")note("三金：本次行動第三張金錢已獲 ×2 必爆");}
+function intent(){if(S.enemy==="shadow")return [10,7,18][(S.round-1)%3];if(S.enemy==="locust")return (S.round%3===0?5:3)+" × "+(S.round%3===0?5:4);const ratio=S.enemyHp/S.enemyMax;return ratio>.7?10+S.enemyPower:ratio>.35?13+S.enemyPower:(13+S.enemyPower)+" + "+(8+S.enemyPower)}
+function enemyAttack(v){let n=v;if(S.halve){n=Math.ceil(n/2);S.halve=false}const blocked=Math.min(S.shield,n);S.shield-=blocked;const hurt=n-blocked;S.sanity=Math.max(0,S.sanity-hurt);note("敵方攻擊 "+n+"，護盾抵擋 "+blocked+"，理智損失 "+hurt);if(blocked>0&&S.fort>0){S.bleed+=S.fort;note("堅守使敵人流血 +"+S.fort)}if(blocked>0&&S.manual==="guard"&&S.reflect>0){damage(Math.ceil(blocked*S.reflect));note("守望盾反觸發")}if(S.sanity===0){S.done=true;note("戰敗：理智耗盡")}}
+function endRound(){if(!S||S.done||S.reveal)return;triple();if(S.pendingSeed){S.seed+=S.pendingSeed;note("生生不息：播種 +"+S.pendingSeed);S.pendingSeed=0}seedTick();if(S.done){render();return}if(S.bleed){damage(S.bleed);note("敵方流血 "+S.bleed)}if(S.done){render();return}if(S.enemy==="shadow")enemyAttack([10,7,18][(S.round-1)%3]);if(S.enemy==="locust"){const hits=S.round%3===0?5:4,each=S.round%3===0?5:3;for(let i=0;i<hits&&!S.done;i++)enemyAttack(each)}if(S.enemy==="bull"){const r=S.enemyHp/S.enemyMax;const hits=r>.7?[10]:r>.35?[13]:[13,8];for(const n of hits){if(S.done)break;enemyAttack(n+S.enemyPower)}if(S.round%4===0){S.enemyHp=Math.min(S.enemyMax,S.enemyHp+8);note("金牛恢復 8 HP")}if(S.round%3===0)S.enemyPower=Math.min(8,S.enemyPower+2)}
+if(!S.done){S.round++;S.ap=3;S.locked=false;S.counts={sheep:0,food:0,money:0,grace:0};S.first=null;S.redraw=1;S.redrawMode=false;S.shieldUsed=false;refill();note("新行動開始，補牌至 "+S.hand.length+" 張")}render()}
+function shieldStrike(){if(!S||S.done||S.manual!=="guard"||S.shieldUsed||!S.shield||S.reveal)return;const n=Math.min(8,S.shield);S.shield-=n;S.shieldUsed=true;damage(n,{direct:true});note("盾轉攻：消耗 "+n+" 護盾");render()}
+function render(){if(!S)return;const enemy=encounters.find(e=>e.kind===S.enemy);$("enemyName").textContent=enemy.name;$("round").textContent="行動 "+S.round+" · AP "+S.ap+"/3";$("enemyHp").textContent="生命 "+S.enemyHp+" / "+S.enemyMax;$("enemyBar").style.width=(S.enemyHp/S.enemyMax*100)+"%";$("enemyStatus").textContent="流血 "+S.bleed+(S.enemy==="bull"?"｜力量 +"+S.enemyPower:"");$("intent").textContent="下一次攻擊："+intent();$("playerHp").textContent="理智 "+S.sanity+" / "+S.maxSanity;$("playerBar").style.width=(S.sanity/S.maxSanity*100)+"%";
+$("stats").innerHTML=[["護盾",S.shield],["播種",S.seed],["牧養",S.herd],["投資",S.investment],["堅守",S.fort],["爆擊",Math.round(S.crit*100)+"%"]].map(([a,b])=>'<span class="pill">'+a+" "+b+"</span>").join("");
+$("buffs").textContent="守望盾反倍率 "+Math.round(S.reflect*100)+"%（僅守望啟用）｜下一擊減半 "+(S.halve?"是":"否")+"｜下次直接增傷 "+(S.double?"×2":"無");
+$("manualHint").textContent=S.locked?"本次行動已鎖定秘笈":"出牌前可選擇";
+$("manuals").innerHTML=Object.entries(manuals).map(([k,m])=>'<button data-manual="'+k+'" '+(S.locked||S.done?"disabled":"")+' class="'+(S.manual===k?"active":"")+'">'+m.icon+" "+m.name+"</button>").join("");
+$("manualDesc").textContent=manuals[S.manual].desc;
+$("handCount").textContent="("+S.hand.length+"/7)";$("deckCount").textContent="抽牌 "+S.deck.length+"｜棄牌 "+S.discard.length;
+$("hand").innerHTML=S.hand.map(c=>{const d=definitions[c.key];return '<button class="card" data-card="'+c.id+'" '+(S.done||S.reveal||(!S.redrawMode&&S.ap<d.cost)?"disabled":"")+'><span class="glyph">'+d.icon+'</span><span class="type">'+(d.type==="magic"?"魔法":"物資")+'</span><strong>'+d.name+'</strong><span class="effect">'+(d.type==="magic"?"魔法效果依卡牌規則結算":"依當前秘笈產生效果")+'</span><span class="cost">'+d.cost+" AP</span></button>"}).join("");
+$("redraw").disabled=S.done||S.redraw===0||!!S.reveal;$("redraw").className=S.redrawMode?"active":"";$("redraw").textContent=S.redrawMode?"取消調度（點選要換出的牌）":"調度（剩 "+S.redraw+" 次）";$("shieldStrike").disabled=S.done||S.manual!=="guard"||S.shieldUsed||!S.shield||!!S.reveal;$("end").disabled=S.done||!!S.reveal;
+$("reveal").classList.toggle("hidden",!S.reveal);$("revealCards").innerHTML=(S.reveal||[]).map(c=>'<button data-reveal="'+c.id+'">'+definitions[c.key].name+"</button>").join("");
+$("log").innerHTML=S.logs.map(s=>"<div>"+s+"</div>").join("");$("notice").textContent=S.done?(S.enemyHp===0?"戰鬥勝利！":"戰鬥失敗。請重新開始。"):"同一次行動計數：羊 "+S.counts.sheep+"／糧 "+S.counts.food+"／錢 "+S.counts.money+"。三連於結束行動時依恰好三張判定。"}
+$("encounters").innerHTML=encounters.map((e,i)=>'<button data-enemy="'+i+'" class="'+(i===0?"active":"")+'">'+e.name+" · "+e.hp+" HP</button>").join("");
+$("blessings").innerHTML=blessings.map((b,i)=>'<button data-blessing="'+i+'" class="'+(i===0?"active":"")+'">'+b.name+"</button>").join("");
+document.addEventListener("click",ev=>{const b=ev.target.closest("button");if(!b)return;if(b.dataset.enemy!==undefined){chosenEnemy=+b.dataset.enemy;document.querySelectorAll("[data-enemy]").forEach(x=>x.classList.toggle("active",+x.dataset.enemy===chosenEnemy))}if(b.dataset.blessing!==undefined){chosenBlessing=+b.dataset.blessing;document.querySelectorAll("[data-blessing]").forEach(x=>x.classList.toggle("active",+x.dataset.blessing===chosenBlessing))}if(b.dataset.manual&&S&&!S.locked&&!S.done){S.manual=b.dataset.manual;render()}if(b.dataset.card)chooseCard(+b.dataset.card);if(b.dataset.reveal)chooseReveal(+b.dataset.reveal)});
+$("start").onclick=start;$("restart").onclick=()=>{S=null;$("game").classList.add("hidden");$("setup").classList.remove("hidden")};$("redraw").onclick=()=>{if(!S||S.done||!S.redraw||S.reveal)return;S.redrawMode=!S.redrawMode;render()};$("shieldStrike").onclick=shieldStrike;$("end").onclick=endRound;
+</script></body></html>
