@@ -26,7 +26,7 @@ function newGame(o = {}) {
     maxSanity: b === "sanity" ? 40 : 32, sanity: 0, shield: b === "shield" ? 5 : 0, seed: b === "seed" ? 2 : 0,
     herd: 0, investment: 0, fort: 0, reflect: 0, crit: 0, bleed: 0, halve: false, double: false,
     enemy: e, enemyHp: ENEMIES[e].hp, enemyMax: ENEMIES[e].hp, enemyPower: 0, count: emptyCount(),
-    deck: [], discard: [], hand: [], staged: [], reveals: [], redraw: 1, shieldUsed: false, pendingSeed: 0, done: false, logs: [] };
+    deck: [], discard: [], hand: [], staged: [], reveals: [], reshuffles: 0, redraw: 1, shieldUsed: false, pendingSeed: 0, done: false, logs: [] };
   S.sanity = S.maxSanity;
   for (const k in DECK) for (let i = 0; i < DECK[k]; i++) S.deck.push({ key: k, id: ++S.uid });
   shuffle(S, S.deck); refill(S); note(S, "戰鬥開始，起始手牌 " + S.hand.length + " 張");
@@ -34,12 +34,12 @@ function newGame(o = {}) {
 }
 
 // ---- 抽牌：單一牌庫＋類別篩選，等同「物資保底＋混合池」----
-function recycle(S) { if (!S.deck.length && S.discard.length) { S.deck = shuffle(S, S.discard.splice(0)); note(S, "棄牌堆重新洗入抽牌堆"); } }
+function recycle(S) { if (!S.deck.length && S.discard.length) { S.deck = shuffle(S, S.discard.splice(0)); S.reshuffles++; note(S, "牌庫抽完，棄牌堆重新洗入牌庫"); } }
 function draw(S, f) {
   recycle(S);
   let idx = []; const scan = () => { idx = []; S.deck.forEach((c, i) => { if (!f || f(c)) idx.push(i); }); };
   scan();
-  if (!idx.length && S.discard.length) { S.deck.push(...shuffle(S, S.discard.splice(0))); scan(); } // 邊界規則待文件確認
+  if (!idx.length && S.discard.length) { S.deck.push(...shuffle(S, S.discard.splice(0))); S.reshuffles++; note(S, "牌庫內已無可抽的物資，棄牌堆提前洗回牌庫"); scan(); } // 物資保底優先
   if (!idx.length) return null;
   return S.deck.splice(idx[Math.floor(S.rnd() * idx.length)], 1)[0];
 }
@@ -135,8 +135,9 @@ function commit(S) { // 打出：依暫存順序一次結算
   if (S.done || S.reveals.length) return false;
   S.locked = true;
   const first = S.staged[0] && S.staged[0].key, fin = tally(S);
-  for (const c of S.staged) { S.discard.push(c); note(S, "打出 " + DEF[c.key].n); play(S, c.key, first, fin, false); if (S.done) break; }
-  S.staged = [];
+  const played = S.staged; S.staged = [];
+  for (const c of played) { note(S, "打出 " + DEF[c.key].n); play(S, c.key, first, fin, false); if (S.done) break; }
+  S.discard.push(...played); // 本次行動打出的牌，結算完才進棄牌區，避免被同一次行動的抽牌洗回
   if (!S.done && !S.reveals.length) endAction(S);
   return true;
 }
