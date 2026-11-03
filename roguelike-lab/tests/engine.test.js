@@ -39,4 +39,18 @@ t("調度：牌池總數不變", () => {
   const S = E.newGame({ seed: 3 }), total = S.deck.length + S.hand.length; E.redraw(S, S.hand[0].id);
   assert.equal(S.deck.length + S.hand.length, total); assert.equal(S.hand.length, 7);
 });
+t("牌庫抽完：棄牌堆洗回牌庫並留下紀錄", () => {
+  const S = G({}, ["sheep"]); S.discard.push(...S.deck.splice(0)); S.deck = []; E.commit(S);
+  assert.ok(S.reshuffles >= 1); assert.ok(log(S).includes("重新洗入"));
+});
+t("牌庫只剩魔法：物資保底提前重洗並留下紀錄", () => {
+  const S = G({}, ["sheep"]); const mg = S.deck.filter(c => E.DEF[c.key].t === "m");
+  S.discard.push(...S.deck.filter(c => E.DEF[c.key].t === "r")); S.deck = mg; E.commit(S);
+  assert.ok(S.reshuffles >= 1); assert.ok(log(S).includes("提前洗回"));
+});
+t("本次行動打出的牌不會被啟示抽到", () => {
+  const S = G({}, ["insight", "sheep"]); S.discard.push(...S.deck.splice(0)); S.deck = [];
+  const ids = S.hand.map(c => c.id); all(S); E.commit(S);
+  assert.ok(S.reveals.length === 1); assert.ok(S.reveals[0].every(c => !ids.includes(c.id)));
+});
 console.log("\n" + n + " 項測試通過");
