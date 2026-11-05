@@ -165,7 +165,8 @@ namespace Shepherd.Battle.Tests
                 StringAssert.Contains("失序值 " + e.Value + " / " + e.Value, plate);
                 var ef = f.Enemy(e.Id);
                 StringAssert.Contains("攻擊 " + e.ForecastAttack, plate, "頭上顯示攻擊意圖");
-                StringAssert.Contains(Plain(CombatLabText.EnemyImpact(ef, f.Outcome)), plate, "意圖顯示對玩家的影響");
+                StringAssert.Contains("預計：" + Plain(CombatLabText.EnemyImpactShort(ef, f.Outcome)), plate, "區分預告攻擊與實際影響");
+                Assert.IsTrue(v.PlateAttackIconVisible(e.Id), "攻擊圖示");
                 Assert.AreEqual(1f, v.PlateFillRatio(e.Id), 1e-4f);
             }
             StringAssert.Contains("錨定值 " + f.AnchorBefore + " → " + f.AnchorAfter, Plain(v.ForecastText), "沒有編排也預估敵方反擊");
@@ -180,7 +181,7 @@ namespace Shepherd.Battle.Tests
             StringAssert.Contains("AP 2 / 3", Plain(v.StatusText));
             StringAssert.Contains("1 / 3 張", Plain(v.PlanTitle));
             Assert.IsTrue(v.SequenceButtons[0].interactable);
-            StringAssert.Contains("施放後預估", Plain(v.ForecastText));
+            StringAssert.Contains("卡牌效果", Plain(v.ForecastText));
             Click(v.HandButtons[1]);
             var f = v.Session.Forecast;
             foreach (var e in f.Enemies)
@@ -249,6 +250,8 @@ namespace Shepherd.Battle.Tests
             Assert.AreEqual(before.Anchor, v.DisplayAnchor, "播放開始時仍顯示結算前的數值");
             Assert.AreEqual(before.Enemies[0].Value, v.DisplayValue(before.Enemies[0].Id));
             Assert.IsFalse(v.HandButtons[0].interactable, "播放中不能操作手牌");
+            foreach (var e in before.Enemies)
+                StringAssert.Contains("預告攻擊 " + e.ForecastAttack, Plain(v.PlateText(e.Id)), "播放中顯示正在結算那一回合的預告攻擊");
             StringAssert.Contains("略過動畫", v.CommitButton.GetComponentInChildren<Text>().text);
 
             Assert.AreEqual(preview.Result.NewState.Fingerprint(), v.LastCommit.Resolution.NewState.Fingerprint(),
@@ -357,6 +360,291 @@ namespace Shepherd.Battle.Tests
             Assert.IsFalse(v.BannerVisible);
             Assert.IsTrue(v.EnemyRoot(1).gameObject.activeSelf);
             StringAssert.Contains("第 1 回合", Plain(v.StatusText));
+        }
+
+        // ---------------- v0.3：卡牌正面、承接、共鳴、威脅預覽 ----------------
+
+        /// <summary>找一個起手至少有 n 張同元素的種子，回傳該元素在手牌中的位置。</summary>
+        private CombatArenaView ViewWithSameElement(int n, out ElementKind element, out List<int> slots)
+        {
+            for (int seed = 1; seed < 400; seed++)
+            {
+                var probe = new CombatLabSession(RuleSet.CreateDefault(), CombatLabScenario.Default(), seed);
+                var hand = probe.Snapshot().Hand;
+                foreach (ElementKind e in System.Enum.GetValues(typeof(ElementKind)))
+                {
+                    var idx = Enumerable.Range(0, hand.Count).Where(i => hand[i].Element == e).ToList();
+                    if (idx.Count < n) continue;
+                    element = e;
+                    slots = idx;
+                    return NewView(null, seed);
+                }
+            }
+            throw new System.InvalidOperationException("找不到符合的種子");
+        }
+
+        [Test]
+        public void CardFaces_ShowRoleValueAndAp_AndFollowSchool()
+        {
+            var v = NewView();
+            var rules = v.Session.Rules;
+            var faces = new Dictionary<SchoolKind, string>();
+            for (int si = 0; si < 3; si++)
+            {
+                Click(v.SchoolButtons[si]);
+                var school = v.Session.SelectedSchool;
+                var hand = v.Session.Snapshot().Hand;
+                for (int i = 0; i < hand.Count; i++)
+                {
+                    var el = hand[i].Element;
+                    string face = Plain(v.CardFaceText(i));
+                    StringAssert.Contains(CombatLabText.Element(el), face);
+                    StringAssert.Contains(CombatLabText.EffectName(school, el), face, "效果名稱隨學派更新");
+                    StringAssert.Contains(CombatLabText.EffectShort(rules, school, el), face, "主要數值取自規則集");
+                    StringAssert.Contains(CombatLabText.CardApCost + " AP", face, "AP 消耗");
+                    var roles = CombatLabText.Roles(rules, school, el);
+                    CollectionAssert.AreEqual(roles, v.CardRoles(i).ToList(), "功能分類取自效果表");
+                    foreach (var r in roles) StringAssert.Contains(CombatLabText.RoleName(r), face);
+                    Assert.AreEqual(ArenaIcons.Get(ArenaIcons.For(roles[0])), v.CardIcon(i), "主要功能圖示");
+                    Assert.AreEqual(ArenaIcons.SchoolColor(school), v.CardStripeColor(i), "學派識別色");
+                }
+                faces[school] = string.Join("/", Enumerable.Range(0, hand.Count).Select(i => Plain(v.CardFaceText(i))));
+            }
+            Assert.AreNotEqual(faces[SchoolKind.Structure], faces[SchoolKind.Process], "切換學派後牌面立即不同");
+            Assert.AreNotEqual(faces[SchoolKind.Process], faces[SchoolKind.Relation]);
+        }
+
+        [Test]
+        public void CardRoles_FollowEffectTable()
+        {
+            var r = RuleSet.CreateDefault();
+            Assert.AreEqual(CardRole.Attack, CombatLabText.Roles(r, SchoolKind.Structure, ElementKind.Ember)[0], "施壓");
+            Assert.AreEqual(CardRole.Defense, CombatLabText.Roles(r, SchoolKind.Structure, ElementKind.Base)[0], "構形");
+            CollectionAssert.AreEqual(new[] { CardRole.Defense, CardRole.Link }, CombatLabText.Roles(r, SchoolKind.Structure, ElementKind.Binder), "適配");
+            CollectionAssert.AreEqual(new[] { CardRole.Sustain, CardRole.Attack }, CombatLabText.Roles(r, SchoolKind.Process, ElementKind.Ember), "啟動");
+            CollectionAssert.AreEqual(new[] { CardRole.Sustain, CardRole.Defense }, CombatLabText.Roles(r, SchoolKind.Process, ElementKind.Base), "穩定");
+            CollectionAssert.AreEqual(new[] { CardRole.Sustain, CardRole.Heal, CardRole.Link }, CombatLabText.Roles(r, SchoolKind.Process, ElementKind.Binder), "轉移");
+            Assert.AreEqual(CardRole.Attack, CombatLabText.Roles(r, SchoolKind.Relation, ElementKind.Ember)[0], "激化");
+            CollectionAssert.AreEqual(new[] { CardRole.Link }, CombatLabText.Roles(r, SchoolKind.Relation, ElementKind.Base), "固化");
+            CollectionAssert.AreEqual(new[] { CardRole.Link }, CombatLabText.Roles(r, SchoolKind.Relation, ElementKind.Binder), "連結");
+        }
+
+        [Test]
+        public void SchoolButtons_ShowTagline_KeepTemporaryNames()
+        {
+            var v = NewView();
+            var schools = new[] { SchoolKind.Structure, SchoolKind.Process, SchoolKind.Relation };
+            for (int i = 0; i < 3; i++)
+            {
+                string t = Plain(v.SchoolButtonText(i));
+                StringAssert.Contains(CombatLabText.School(schools[i]), t, "暫定名稱不變");
+                StringAssert.Contains(CombatLabText.SchoolTagline(schools[i]), t);
+            }
+            Click(v.CommitButton);
+            v.FinishPlayback();
+            Click(v.SchoolButtons[1]);
+            Assert.AreEqual(SchoolKind.Process, v.Session.SelectedSchool, "每回合可重新選擇");
+        }
+
+        [Test]
+        public void ResidueConnectors_FollowCoreEvents()
+        {
+            var v = NewView();
+            Assert.IsFalse(v.ConnectorVisible(0));
+            Click(v.HandButtons[0]);
+            Assert.IsFalse(v.ConnectorVisible(0), "只有一張牌時沒有承接");
+            Click(v.HandButtons[1]);
+            Assert.IsTrue(v.ConnectorVisible(0), "相鄰兩張牌之間顯示承接");
+            Assert.IsFalse(v.ConnectorVisible(1));
+            var f = v.Session.Forecast;
+            var r = f.Residue(1);
+            Assert.IsNotNull(r);
+            var first = v.Session.Staged[0].Element;
+            Assert.AreEqual(first, r.From);
+            string text = Plain(v.ConnectorText(0));
+            StringAssert.Contains("承接・" + CombatLabText.ResidueName(first), text);
+            var residueEvents = v.Session.LastPreview.Result.Events.Where(e => e.Source == "residue:1").ToList();
+            if (first == ElementKind.Base)
+                StringAssert.Contains("擬態 +" + residueEvents.Where(e => e.Kind == EventKind.ShieldChanged).Sum(e => e.Amount), text, "結構的數值取自事件");
+            else if (first == ElementKind.Binder)
+                StringAssert.Contains("連結 +" + residueEvents.Where(e => e.Kind == EventKind.LinkChanged).Sum(e => e.Amount), text, "關聯的數值取自事件");
+            else
+                StringAssert.Contains("主要數值 +" + v.Session.Rules.ResidueEmberBonus, text);
+
+            v.ShowConnectorTooltip(0);
+            Assert.IsTrue(v.TooltipVisible, "承接標記可懸停看說明");
+            StringAssert.Contains(CombatLabText.ResidueHint(v.Session.Rules, first), Plain(v.TooltipText));
+            v.HideConnectorTooltip(0);
+            Assert.IsFalse(v.TooltipVisible);
+
+            Click(v.SequenceButtons[1]);
+            Assert.IsFalse(v.ConnectorVisible(0), "移除後立即更新");
+        }
+
+        [Test]
+        public void Resonance_OnlyWhenCoreEmitsIt_AndUpdatesImmediately()
+        {
+            ElementKind element;
+            List<int> slots;
+            var v = ViewWithSameElement(3, out element, out slots);
+            Click(v.HandButtons[slots[0]]);
+            Click(v.HandButtons[slots[1]]);
+            Assert.IsFalse(v.ResonanceVisible, "兩張不觸發");
+            Click(v.HandButtons[slots[2]]);
+            Assert.IsTrue(v.Session.LastPreview.Result.Events.Any(e => e.Kind == EventKind.Resonance), "核心判定為共鳴");
+            Assert.IsTrue(v.ResonanceVisible);
+            StringAssert.Contains("共鳴已觸發", Plain(v.ResonanceText));
+            StringAssert.Contains(CombatLabText.Element(element), Plain(v.ResonanceText));
+            for (int i = 0; i < 3; i++) Assert.IsTrue(v.SlotHighlighted(i), "三張牌一致高亮");
+            StringAssert.Contains("＋共鳴", Plain(v.ForecastText));
+
+            var g = v.Session.CurrentComboGain();
+            Assert.IsTrue(g.HasResonance);
+            Assert.IsFalse(g.Resonance.IsEmpty, "共鳴帶來可見的收益");
+            var actual = SequenceSummary.From(v.Session.Forecast);
+            Assert.AreEqual(actual.Shield, g.Base.Shield + g.Residue.Shield + g.Resonance.Shield, "基礎＋承接＋共鳴＝實際");
+            foreach (var kv in actual.Damage)
+            {
+                int b, r, s;
+                g.Base.Damage.TryGetValue(kv.Key, out b);
+                g.Residue.Damage.TryGetValue(kv.Key, out r);
+                g.Resonance.Damage.TryGetValue(kv.Key, out s);
+                Assert.AreEqual(kv.Value, b + r + s);
+            }
+
+            Click(v.SequenceButtons[2]);
+            Assert.IsFalse(v.ResonanceVisible, "移除後立即取消");
+            for (int i = 0; i < 3; i++) Assert.IsFalse(v.SlotHighlighted(i));
+        }
+
+        [Test]
+        public void MixedSequence_IsNotResonance()
+        {
+            var v = NewView();
+            var hand = v.Session.Snapshot().Hand;
+            var pick = new List<int> { 0 };
+            for (int i = 1; i < hand.Count && pick.Count < 3; i++)
+                if (pick.Count < 2 || hand[i].Element != hand[pick[0]].Element) pick.Add(i);
+            Assume.That(pick.Select(i => hand[i].Element).Distinct().Count() > 1);
+            foreach (var i in pick) Click(v.HandButtons[i]);
+            Assert.IsFalse(v.Session.LastPreview.Result.Events.Any(e => e.Kind == EventKind.Resonance));
+            Assert.IsFalse(v.ResonanceVisible, "元素不同不顯示共鳴");
+            Assert.IsFalse(v.SlotHighlighted(0));
+        }
+
+        [Test]
+        public void ThreatPreview_UsesFullResolution_NotRawSum()
+        {
+            CombatArenaView v = null;
+            for (int seed = 1; seed < 300 && v == null; seed++)
+            {
+                var probe = new CombatLabSession(RuleSet.CreateDefault(), CombatLabScenario.Default(), seed);
+                if (probe.Snapshot().Hand.Any(c => c.Element == ElementKind.Base)) v = NewView(null, seed);
+            }
+            int slot = v.Session.Snapshot().Hand.ToList().FindIndex(c => c.Element == ElementKind.Base);
+            Click(v.HandButtons[slot]);
+            var f = v.Session.Forecast;
+            int raw = v.Session.Snapshot().Enemies.Sum(e => e.ForecastAttack);
+            string threat = Plain(v.ThreatText);
+            StringAssert.Contains("攻擊 " + f.TotalAttack, threat);
+            StringAssert.Contains("擬態吸收 " + f.TotalShieldAbsorbed, threat);
+            StringAssert.Contains("錨定值 −" + f.TotalAnchorLoss, threat);
+            Assert.Greater(f.TotalShieldAbsorbed, 0);
+            Assert.Less(f.TotalAnchorLoss, raw, "實際損失不是預告攻擊直接相加");
+            StringAssert.Contains("→ " + f.AnchorAfter, Plain(v.StatusText));
+        }
+
+        [Test]
+        public void EnemyPreview_MatchesCommittedResult()
+        {
+            var v = NewView();
+            Click(v.HandButtons[0]);
+            Click(v.HandButtons[1]);
+            var f = v.Session.Forecast;
+            var plates = f.Enemies.ToDictionary(e => e.Id, e => Plain(v.PlateText(e.Id)));
+            Click(v.CommitButton);
+            v.FinishPlayback();
+            var done = v.Session.LastRound;
+            foreach (var e in f.Enemies)
+            {
+                var c = done.Enemy(e.Id);
+                Assert.AreEqual(e.Attack, c.Attack);
+                Assert.AreEqual(e.ShieldAbsorbed, c.ShieldAbsorbed);
+                Assert.AreEqual(e.AnchorLoss, c.AnchorLoss);
+                Assert.AreEqual(e.ValueAfter, c.ValueAfter);
+                StringAssert.Contains(Plain(CombatLabText.EnemyImpactShort(c, done.Outcome)), plates[e.Id], "頭上預估＝正式結算");
+            }
+            Assert.AreEqual(f.AnchorAfter, done.AnchorAfter);
+            Assert.AreEqual(f.TotalAnchorLoss, done.TotalAnchorLoss);
+        }
+
+        [Test]
+        public void InfoAndPreviews_DoNotChangeBattleState()
+        {
+            ElementKind element;
+            List<int> slots;
+            var v = ViewWithSameElement(3, out element, out slots);
+            foreach (var i in slots.Take(3)) Click(v.HandButtons[i]);
+            string before = v.Session.Controller.CloneState().Fingerprint();
+            for (int i = 0; i < v.HandIds.Count; i++) v.ShowCardTooltip(i);
+            v.ShowConnectorTooltip(0);
+            v.ShowConnectorTooltip(1);
+            v.Session.CurrentComboGain();
+            v.Refresh();
+            foreach (var s in new[] { 1, 2, 0 }) Click(v.SchoolButtons[s]);
+            Assert.AreEqual(before, v.Session.Controller.CloneState().Fingerprint(), "所有預覽與資訊都不改動 BattleState");
+            Assert.AreEqual(3, v.Session.Staged.Count);
+        }
+
+        [Test]
+        public void Playback_ShowsComboFeedback()
+        {
+            ElementKind element;
+            List<int> slots;
+            var v = ViewWithSameElement(3, out element, out slots);
+            foreach (var i in slots.Take(3)) Click(v.HandButtons[i]);
+            Click(v.CommitButton);
+            v.FinishPlayback();
+            var ev = v.LastCommit.Resolution.Events;
+            Assert.AreEqual(1, v.Stats.Resonances);
+            const SchoolKind school = SchoolKind.Structure; // 預設學派，本測試沒有切換
+            int boosted = ev.Count(e => e.Kind == EventKind.CardResolved
+                && e.Value != v.Session.Rules.PrimaryValue(school, (ElementKind)e.Amount));
+            Assert.AreEqual(boosted, v.Stats.BoostedCasts, "主要數值提升的施放有金色標示");
+            Assert.Greater(boosted, 0, "共鳴使主要數值提升");
+            var residueEvents = ev.Where(e => e.Source.StartsWith("residue:")).ToList();
+            if (element == ElementKind.Base)
+                Assert.AreEqual(residueEvents.Count(e => e.Kind == EventKind.ShieldChanged), v.Stats.ResidueEffects, "承接・結構回饋");
+            else if (element == ElementKind.Binder)
+                Assert.AreEqual(residueEvents.Count(e => e.Kind == EventKind.LinkChanged), v.Stats.ResidueEffects, "承接・關聯回饋");
+            else
+                Assert.AreEqual(0, v.Stats.ResidueEffects, "反應沒有額外的附帶事件");
+        }
+
+        [TestCase(1920, 1080)]
+        [TestCase(1280, 720)]
+        public void Hud_DoesNotCoverEnemiesOrPlayer(int width, int height)
+        {
+            var v = NewView();
+            Click(v.HandButtons[0]);
+            Click(v.HandButtons[1]);
+            LayoutAt(v, width, height);
+            var size = v.HudRoot.rect.size;
+            var panels = v.HudPanels().Where(p => p.gameObject.activeInHierarchy).Select(p => LocalRect(v.HudRoot, p)).ToList();
+            var points = new List<KeyValuePair<string, Vector3>>();
+            foreach (var e in v.Session.Snapshot().Enemies)
+            {
+                var root = v.EnemyRoot(e.Id);
+                points.Add(new KeyValuePair<string, Vector3>(e.Name + " 胸口", root.position + Vector3.up * 1.4f));
+                points.Add(new KeyValuePair<string, Vector3>(e.Name + " 腳", root.position));
+            }
+            points.Add(new KeyValuePair<string, Vector3>("玩家胸口", v.PlayerRoot.position + Vector3.up * 1.4f));
+            foreach (var kv in points)
+            {
+                var vp = v.ArenaCamera.WorldToViewportPoint(kv.Value);
+                var local = new Vector2((vp.x - 0.5f) * size.x, (vp.y - 0.5f) * size.y);
+                foreach (var r in panels) Assert.IsFalse(r.Contains(local), kv.Key + " 被 HUD 遮住");
+            }
         }
 
         // ---------------- 版面 ----------------

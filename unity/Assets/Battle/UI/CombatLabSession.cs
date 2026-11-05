@@ -249,6 +249,31 @@ namespace Shepherd.Battle.UI
             return RoundForecast.From(state, p.Result);
         }
 
+        /// <summary>
+        /// 目前編排的組合收益（反事實結算）。以同一個 RoundResolver、同一狀態與編排，分別在
+        /// 「承接與共鳴參數歸零」「只把共鳴倍率設為 1」兩組規則下結算，再與實際預覽比較。
+        /// 不改動編排與戰鬥狀態；少於 2 張時基礎效果即實際結果；預覽不合法時回傳 null。
+        /// </summary>
+        public ComboGain CurrentComboGain()
+        {
+            if (IsOver || Forecast == null) return null;
+            if (staged.Count < 2) return Shepherd.Battle.UI.ComboGain.Plain(Forecast);
+            var plan = BuildPlan();
+            var state = controller.CloneState();
+
+            var none = rules.Params;
+            none.TripleMultiplier = 1.0;
+            none.ResidueEmberBonus = 0;
+            none.ResidueBaseShield = 0;
+            none.ResidueBinderLink = 0;
+            var residueOnly = rules.Params;
+            residueOnly.TripleMultiplier = 1.0;
+
+            var fNone = RoundForecast.From(state, RoundResolver.Resolve(state, plan, new RuleSet(none)));
+            var fResidue = RoundForecast.From(state, RoundResolver.Resolve(state, plan, new RuleSet(residueOnly)));
+            return Shepherd.Battle.UI.ComboGain.From(fNone, fResidue, Forecast);
+        }
+
         /// <summary>確認施放／結束回合（空序列合法）。</summary>
         public CommitResult Commit()
         {

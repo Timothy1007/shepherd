@@ -16,6 +16,10 @@ namespace Shepherd.Battle.UI.Arena
         public int Heals;
         public int Resolves;
         public int Resonances;
+        /// <summary>主要數值因反應或共鳴而不同於效果表基礎值的施放次數。</summary>
+        public int BoostedCasts;
+        /// <summary>承接附帶（結構擬態、關聯連結）的回饋次數。</summary>
+        public int ResidueEffects;
     }
 
     /// <summary>
@@ -42,6 +46,8 @@ namespace Shepherd.Battle.UI.Arena
         private bool playing;
         private float wait;
         private readonly List<BattleEvent> played = new List<BattleEvent>();
+        private bool resonancePlaying;
+        private SchoolKind playSchool;
 
         public ArenaFeedbackStats Stats { get; private set; } = new ArenaFeedbackStats();
         public bool IsPlaying { get { return playing; } }
@@ -95,7 +101,9 @@ namespace Shepherd.Battle.UI.Arena
             }
             if (Session.IsOver) return;
             HideCardTooltip(-1);
+            HideConnectorTooltip(-1);
             redrawMode = false;
+            playSchool = Session.SelectedSchool;
             committing = true;
             CommitResult r;
             try
@@ -119,6 +127,7 @@ namespace Shepherd.Battle.UI.Arena
         {
             LastCommit = r;
             Stats = new ArenaFeedbackStats();
+            resonancePlaying = false;
             played.Clear();
             queue.Clear();
             var before = Session.LastRound;
@@ -210,14 +219,27 @@ namespace Shepherd.Battle.UI.Arena
             {
                 case EventKind.Resonance:
                     Stats.Resonances++;
-                    fx.Floater(PlayerChest + Vector3.up, "共鳴！主要數值 ×1.5", CombatLabUi.Highlight, 30);
-                    fx.Glow(PlayerChest, CombatLabUi.Highlight, 3.2f, 0.7f);
-                    return 0.55f;
+                    resonancePlaying = true;
+                    fx.Floater(PlayerChest + Vector3.up, "共鳴！" + CombatLabText.Element((ElementKind)ev.Amount) + " ×" + ev.Value
+                        + "　主要數值 ×" + Session.Rules.TripleMultiplier.ToString("0.##"), ResonanceColor, 32);
+                    fx.Glow(PlayerChest, ResonanceColor, 3.6f, 0.8f);
+                    fx.Burst(PlayerChest, ResonanceColor, 40, 3.5f);
+                    return 0.7f;
 
                 case EventKind.CardResolved:
                 {
                     Stats.Casts++;
-                    var color = ArenaArt.ElementColor((ElementKind)ev.Amount);
+                    var element = (ElementKind)ev.Amount;
+                    var color = ArenaArt.ElementColor(element);
+                    if (resonancePlaying) color = Color.Lerp(color, ResonanceColor, 0.45f);
+                    // 主要數值高於效果表的基礎值時（反應或共鳴），以金色標出差異；兩個數字分別來自規則集與事件。
+                    int baseValue = Session.Rules.PrimaryValue(playSchool, element);
+                    if (ev.Value != baseValue)
+                    {
+                        Stats.BoostedCasts++;
+                        fx.Floater(LanternPoint + Vector3.up * 0.4f, CombatLabText.EffectName(playSchool, element) + " 主要數值 "
+                            + baseValue + "→" + ev.Value, ResonanceColor, 24, 1f);
+                    }
                     fx.Glow(LanternPoint, color, 1.1f, 0.4f);
                     if (target != null && !target.Dissolved)
                     {
@@ -249,6 +271,14 @@ namespace Shepherd.Battle.UI.Arena
 
                 case EventKind.ShieldChanged:
                     displayShield = ev.Value;
+                    if (src.StartsWith("residue:"))
+                    {
+                        Stats.ResidueEffects++;
+                        fx.Glow(PlayerChest, ResidueColor, 2.2f, 0.5f);
+                        fx.Floater(PlayerChest + Vector3.up * 0.8f, "承接・結構 擬態 " + CombatLabText.Signed(ev.Amount), ResidueColor, 28);
+                        FlashShield(0.22f);
+                        return 0.4f;
+                    }
                     if (ev.Amount > 0)
                     {
                         Stats.ShieldGains++;
@@ -288,6 +318,13 @@ namespace Shepherd.Battle.UI.Arena
 
                 case EventKind.LinkChanged:
                     if (d != null) d.Links = ev.Value;
+                    if (src.StartsWith("residue:") && target != null && !target.Dissolved)
+                    {
+                        Stats.ResidueEffects++;
+                        fx.Projectile(LanternPoint, EnemyChest(target), ResidueColor, 0.35f);
+                        fx.Floater(EnemyHead(target) + Vector3.down * 0.4f, "承接・關聯 連結 " + CombatLabText.Signed(ev.Amount), ResidueColor, 26, 1f);
+                        return 0.4f;
+                    }
                     return StatusFloater(target, src, (ev.Amount > 0 ? "連結 +" : "連結 ") + ev.Amount, ArenaArt.Rift);
 
                 case EventKind.CorrectionChanged:

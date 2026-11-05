@@ -3,6 +3,9 @@ using Shepherd.Battle.Core;
 
 namespace Shepherd.Battle.UI
 {
+    /// <summary>卡牌的功能分類（顯示用，由效果表指令推得）。</summary>
+    public enum CardRole { Attack, Defense, Heal, Link, Sustain }
+
     /// <summary>
     /// Combat Lab 的繁體中文顯示文字。只負責把 BattleEvent 與狀態轉成文字，不計算任何數值。
     /// </summary>
@@ -136,6 +139,114 @@ namespace Shepherd.Battle.UI
             if (e == ElementKind.Ember) return "反應：下一張的主要數值 +" + p.ResidueEmberBonus;
             if (e == ElementKind.Base) return "結構：下一張結算後，擬態錨定 +" + p.ResidueBaseShield;
             return "關聯：下一張結算後，連結最少的敵人連結 +" + p.ResidueBinderLink;
+        }
+
+        // ---------------- 卡牌功能分類（由效果表的指令推得） ----------------
+
+        /// <summary>每張元素牌消耗的 AP（規格第三節：每張 1 AP；RuleSet.ActionPoints 為每回合上限）。</summary>
+        public const int CardApCost = 1;
+
+        /// <summary>效果指令對應的功能分類：攻擊（壓制、轉化、斷連）、防護（擬態錨定）、恢復、連結（連結、束縛）、持續（校正、穩定）。</summary>
+        public static CardRole Role(EffectOp op)
+        {
+            switch (op)
+            {
+                case EffectOp.Convert:
+                case EffectOp.Sever:
+                case EffectOp.Pressure: return CardRole.Attack;
+                case EffectOp.Shield:
+                case EffectOp.ThreatShield: return CardRole.Defense;
+                case EffectOp.Heal: return CardRole.Heal;
+                case EffectOp.Link:
+                case EffectOp.Bind: return CardRole.Link;
+                default: return CardRole.Sustain;
+            }
+        }
+
+        /// <summary>這張牌在此學派下的功能分類，依效果表的指令順序排列且不重複；第一個為主要功能。</summary>
+        public static System.Collections.Generic.List<CardRole> Roles(RuleSet rules, SchoolKind s, ElementKind e)
+        {
+            var list = new System.Collections.Generic.List<CardRole>();
+            foreach (var step in rules.Effects(s, e))
+            {
+                var r = Role(step.Op);
+                if (!list.Contains(r)) list.Add(r);
+            }
+            return list;
+        }
+
+        public static string RoleName(CardRole r)
+        {
+            switch (r)
+            {
+                case CardRole.Attack: return "攻擊";
+                case CardRole.Defense: return "防護";
+                case CardRole.Heal: return "恢復";
+                case CardRole.Link: return "連結";
+                default: return "持續";
+            }
+        }
+
+        /// <summary>學派的方向描述（幫助理解，不是規則；學派名稱仍為暫稱）。</summary>
+        public static string SchoolTagline(SchoolKind s)
+        {
+            switch (s)
+            {
+                case SchoolKind.Structure: return "攻擊・構築・直接改變";
+                case SchoolKind.Process: return "持續作用・校正・維持";
+                default: return "連結・轉移・交互影響";
+            }
+        }
+
+        /// <summary>承接的名稱（規格第四節「承接」表）。</summary>
+        public static string ResidueName(ElementKind from)
+        {
+            return from == ElementKind.Ember ? "反應" : from == ElementKind.Base ? "結構" : "關聯";
+        }
+
+        /// <summary>一張牌本身造成的結果（取自事件），例如「壓制 甲 5、擬態 +7」。</summary>
+        public static string CardOutcomeShort(CardOutcome c, Func<int, string> enemyShortName)
+        {
+            if (c.Fizzled) return "目標已解除，敵方指向部分失效";
+            var parts = new System.Collections.Generic.List<string>();
+            foreach (var kv in c.Damage)
+                parts.Add("壓制 " + (c.Damage.Count > 1 || kv.Key != c.TargetId ? enemyShortName(kv.Key) + " " : "") + kv.Value);
+            if (c.ShieldSpent > 0) parts.Add("耗擬態 " + c.ShieldSpent);
+            if (c.ShieldGain > 0) parts.Add("擬態 +" + c.ShieldGain);
+            if (c.Heal > 0) parts.Add("錨定值 +" + c.Heal);
+            foreach (var kv in c.Corrections) if (kv.Value != 0) parts.Add("校正 " + Signed(kv.Value));
+            foreach (var kv in c.Links) if (kv.Value != 0) parts.Add("連結 " + Signed(kv.Value));
+            foreach (var kv in c.Bind) if (kv.Value > 0) parts.Add("束縛");
+            return parts.Count == 0 ? "沒有數值變化" : string.Join("、", parts.ToArray());
+        }
+
+        /// <summary>承接的實際結果（反應以規則值表示；結構／關聯取自 residue 事件）。</summary>
+        public static string ResidueOutcomeShort(RuleSet rules, ResidueOutcome r, Func<int, string> enemyShortName)
+        {
+            switch (r.From)
+            {
+                case ElementKind.Ember: return "主要數值 +" + rules.ResidueEmberBonus;
+                case ElementKind.Base: return r.Shield != 0 ? "擬態 " + Signed(r.Shield) : "擬態沒有變化";
+                default: return r.Links != 0 ? enemyShortName(r.LinkEnemyId) + " 連結 " + Signed(r.Links) : "沒有可增加連結的敵人";
+            }
+        }
+
+        /// <summary>敵人攻擊對玩家的預計影響（精簡版，給頭頂資訊使用）。</summary>
+        public static string EnemyImpactShort(EnemyForecast e, BattleOutcome outcome)
+        {
+            if (e.ResolvedBefore) return "已解除";
+            if (!e.Acted)
+            {
+                if (e.ResolvedAfter) return Colored("行動前就被解除，不會攻擊", Good);
+                return outcome == BattleOutcome.Victory ? Colored("戰鬥先勝利，不會攻擊", Good) : "戰鬥先結束，不會攻擊";
+            }
+            if (e.Attack <= 0) return "本回合不攻擊";
+            var parts = new System.Collections.Generic.List<string>();
+            if (e.Diverted > 0) parts.Add("分流 " + e.Diverted);
+            if (e.ShieldAbsorbed > 0) parts.Add(Colored("擬態擋 " + e.ShieldAbsorbed, "#8CC4FF"));
+            parts.Add(e.AnchorLoss > 0 ? Colored("錨定值 −" + e.AnchorLoss, Bad) : Colored("錨定值無損", Good));
+            if (e.Counter > 0) parts.Add("回應 " + e.Counter);
+            return string.Join("・", parts.ToArray());
         }
 
         // ---------------- 預估與結算摘要 ----------------
