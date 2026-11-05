@@ -47,6 +47,8 @@ namespace Shepherd.Battle.Core
         Refilled,
         Reshuffled,
         Victory,
-        Defeat
+        Defeat,
+        /// <summary>三連（共鳴）觸發：Amount＝元素，Value＝張數。只記錄，不改變任何數值。</summary>
+        Resonance
     }
 }

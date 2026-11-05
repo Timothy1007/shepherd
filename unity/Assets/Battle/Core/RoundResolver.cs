@@ -84,6 +84,7 @@ namespace Shepherd.Battle.Core
                 {
                     if (plan.Cards[i].Element != plan.Cards[0].Element) triple = false;
                 }
+                if (triple) Emit(EventKind.Resonance, "sequence", 0, (int)plan.Cards[0].Element, n);
 
                 for (int i = 0; i < n; i++)
                 {

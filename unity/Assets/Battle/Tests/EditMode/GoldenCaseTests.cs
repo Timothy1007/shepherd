@@ -51,6 +51,28 @@ namespace Shepherd.Battle.Tests
             }
         }
 
+        [Test]
+        public void ResonanceEvent_OnlyForExactlyThreeSameElements()
+        {
+            var rules = RuleSet.CreateDefault();
+            foreach (var gc in GoldenCases.Cases)
+            {
+                RoundPlan plan;
+                var state = GoldenCases.BuildState(gc, rules, out plan);
+                var r = RoundResolver.Resolve(state, plan, rules);
+                bool triple = gc.Plan.Count == 3 && gc.Plan.TrueForAll(c => c.Element == gc.Plan[0].Element);
+                int count = 0;
+                foreach (var e in r.Events)
+                {
+                    if (e.Kind != EventKind.Resonance) continue;
+                    count++;
+                    Assert.AreEqual((int)gc.Plan[0].Element, e.Amount, gc.Id);
+                    Assert.AreEqual(3, e.Value, gc.Id);
+                }
+                Assert.AreEqual(triple ? 1 : 0, count, gc.Id + " 共鳴事件數");
+            }
+        }
+
         internal static string Trace(ResolveResult r)
         {
             var sb = new System.Text.StringBuilder();

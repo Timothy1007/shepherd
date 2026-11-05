@@ -1,0 +1,18 @@
+{
+    "name": "Shepherd.Battle.Editor",
+    "rootNamespace": "Shepherd.Battle.Editor",
+    "references": [
+        "Shepherd.Battle.UI"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
