@@ -195,8 +195,10 @@ namespace Shepherd.Battle.UI.Arena
                 bannerTitle.color = new Color(1f, 0.45f, 0.4f);
                 bannerSubtitle.text = "錨定崩潰：錨定值歸零，現實被異域吞沒";
             }
+            RefreshBannerButton(snap.Outcome);
             banner.gameObject.SetActive(snap.Outcome != BattleOutcome.Ongoing);
             banner.SetAsLastSibling();
+            RaiseBattleEnded(snap.Outcome);
         }
 
         // ---------------- 單一事件的視覺回饋 ----------------
@@ -355,7 +357,7 @@ namespace Shepherd.Battle.UI.Arena
                     }
                     Stats.EnemyAttacks++;
                     fx.Floater(EnemyHead(target), "攻擊 " + ev.Amount, new Color(1f, 0.6f, 0.5f), 30);
-                    fx.Lunge(target.Root, PlayerPosition - target.Root.position, 1.3f, 0.6f);
+                    fx.Lunge(target.Root, player.position - target.Root.position, 1.3f, 0.6f);
                     fx.Projectile(EnemyChest(target), PlayerChest, ArenaArt.Rift, 0.4f);
                     return 0.55f;
 

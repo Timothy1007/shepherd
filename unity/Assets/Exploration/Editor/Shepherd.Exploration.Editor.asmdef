@@ -1,0 +1,21 @@
+{
+    "name": "Shepherd.Exploration.Editor",
+    "rootNamespace": "Shepherd.Exploration.Editor",
+    "references": [
+        "Shepherd.Battle.Core",
+        "Shepherd.Battle.UI",
+        "Shepherd.Exploration",
+        "UnityEngine.UI"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -652,8 +652,9 @@ namespace Shepherd.Battle.UI.Arena
             CombatLabUi.Size(bannerTitle, 84, 0, 900, 0);
             bannerSubtitle = CombatLabUi.Label("Subtitle", banner, "", CombatLabStyle.Button, TextAnchor.MiddleCenter);
             CombatLabUi.Size(bannerSubtitle, 34, 0, 900, 0);
-            var again = CombatLabUi.Button("Again", banner, "再戰一次", OnReset, CombatLabStyle.Button);
+            var again = CombatLabUi.Button("Again", banner, "再戰一次", OnBannerButton, CombatLabStyle.Button);
             CombatLabUi.Size(again, 52, 0, 240, 0);
+            bannerButton = again;
             banner.gameObject.SetActive(false);
         }
 
@@ -898,7 +899,11 @@ namespace Shepherd.Battle.UI.Arena
                 Canvas.ForceUpdateCanvases();
                 logScroll.verticalNormalizedPosition = 0f;
             }
-            if (!playing) banner.gameObject.SetActive(over);
+            if (!playing)
+            {
+                RefreshBannerButton(snap.Outcome);
+                banner.gameObject.SetActive(over);
+            }
             PositionPlates();
             if (hoveredSlot >= 0) ShowCardTooltip(hoveredSlot);
             else if (hoveredConnector >= 0) ShowConnectorTooltip(hoveredConnector);

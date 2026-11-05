@@ -1,0 +1,19 @@
+{
+    "name": "Shepherd.Exploration",
+    "rootNamespace": "Shepherd.Exploration",
+    "references": [
+        "Shepherd.Battle.Core",
+        "Shepherd.Battle.Data",
+        "Shepherd.Battle.UI",
+        "UnityEngine.UI"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

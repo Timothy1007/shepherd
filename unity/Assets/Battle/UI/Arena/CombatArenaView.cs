@@ -75,18 +75,21 @@ namespace Shepherd.Battle.UI.Arena
         private void OnDestroy()
         {
             if (Session != null) Session.Changed -= OnSessionChanged;
-            if (playMode) RestoreAtmosphere();
+            if (playMode && host.ManageAtmosphere) RestoreAtmosphere();
         }
 
         /// <summary>
         /// 建立場景、角色、HUD 與戰鬥。playMode＝false 供 EditMode 測試與截圖使用（不建立 EventSystem、不改 RenderSettings）。
-        /// scenarioOverride／seedOverride 供測試指定情境。
+        /// scenarioOverride／seedOverride 供測試指定情境；hostOptions 供嵌入其他場景（見 <see cref="ArenaHostOptions"/>）。
+        /// 嵌入時請先建立未啟用的 GameObject、AddComponent 後呼叫 Build，再啟用物件（避免 Awake 以預設值建立）。
         /// </summary>
-        public void Build(bool playMode, CombatLabScenario scenarioOverride = null, int? seedOverride = null)
+        public void Build(bool playMode, CombatLabScenario scenarioOverride = null, int? seedOverride = null,
+            ArenaHostOptions hostOptions = null)
         {
             if (built) return;
             built = true;
             this.playMode = playMode;
+            host = hostOptions ?? ArenaHostOptions.Standalone();
             scenario = scenarioOverride ?? CombatLabScenario.Default();
             var rules = config != null ? RuleSetCompiler.Compile(config) : RuleSet.CreateDefault();
             Session = new CombatLabSession(rules, scenario, seedOverride ?? seed);
@@ -101,7 +104,7 @@ namespace Shepherd.Battle.UI.Arena
             BuildWorld();
             BuildHud();
             fx = new ArenaFx(world, floaterLayer, WorldToHud);
-            if (playMode) ApplyAtmosphere();
+            if (playMode && host.ManageAtmosphere) ApplyAtmosphere();
             RebuildEnemies();
             Refresh();
         }
@@ -117,34 +120,39 @@ namespace Shepherd.Battle.UI.Arena
             cam = camGo.AddComponent<Camera>();
             cam.clearFlags = CameraClearFlags.SolidColor;
             cam.backgroundColor = ArenaArt.FogColor;
-            cam.fieldOfView = 45f;
+            cam.fieldOfView = DefaultFieldOfView;
             cam.nearClipPlane = 0.1f;
             cam.farClipPlane = 90f;
-            camGo.transform.position = CameraPosition;
-            camGo.transform.LookAt(CameraLookAt);
+            // 相對於戰場原點（單獨場景時原點即世界原點，與 v0.2 相同）。
+            camGo.transform.localPosition = CameraPosition;
+            camGo.transform.LookAt(world.TransformPoint(CameraLookAt));
             cameraHome = camGo.transform.localPosition;
-            if (playMode)
+            cam.enabled = host.CameraStartsEnabled;
+            if (playMode && host.BuildEnvironment)
             {
                 camGo.tag = "MainCamera";
                 camGo.AddComponent<AudioListener>();
             }
 
-            var moonGo = new GameObject("Moonlight");
-            moonGo.transform.SetParent(world, false);
-            moonGo.transform.rotation = Quaternion.Euler(42f, -32f, 0f);
-            moon = moonGo.AddComponent<Light>();
-            moon.type = LightType.Directional;
-            moon.color = new Color(0.58f, 0.64f, 0.88f);
-            moon.intensity = 0.55f;
-            moon.shadows = LightShadows.Soft;
-            moon.shadowStrength = 0.8f;
-
-            floatingShards = ArenaArt.BuildEnvironment(world);
+            floatingShards = new List<Transform>();
+            if (host.BuildEnvironment)
+            {
+                var moonGo = new GameObject("Moonlight");
+                moonGo.transform.SetParent(world, false);
+                moonGo.transform.rotation = Quaternion.Euler(42f, -32f, 0f);
+                moon = moonGo.AddComponent<Light>();
+                moon.type = LightType.Directional;
+                moon.color = new Color(0.58f, 0.64f, 0.88f);
+                moon.intensity = 0.55f;
+                moon.shadows = LightShadows.Soft;
+                moon.shadowStrength = 0.8f;
+                floatingShards = ArenaArt.BuildEnvironment(world);
+            }
             floatingHome.Clear();
             foreach (var s in floatingShards) floatingHome.Add(s.localPosition);
 
             player = ArenaArt.BuildPlayer(world, PlayerPosition, out playerRenderers, out lantern);
-            player.rotation = Quaternion.LookRotation(new Vector3(0.6f, 0f, 5.6f));
+            player.localRotation = PlayerLocalRotation;
 
             shieldMat = ArenaArt.FadeMat(new Color(0.35f, 0.65f, 1f, 0f), new Color(0.2f, 0.45f, 1f) * 0.35f);
             shieldBubble = ArenaArt.Prim(PrimitiveType.Sphere, player, new Vector3(0, 1.2f, 0), new Vector3(1.9f, 2.6f, 1.9f), shieldMat,
@@ -159,13 +167,6 @@ namespace Shepherd.Battle.UI.Arena
             hoverRing.gameObject.SetActive(false);
         }
 
-        private Vector3 EnemyHome(int index, int count)
-        {
-            float x = (index - (count - 1) * 0.5f) * 3.6f + 0.6f;
-            float z = 2.4f + (index % 2) * 0.7f;
-            return new Vector3(x, 0f, z);
-        }
-
         /// <summary>依目前 BattleState 的敵人重新建立 3D 敵人與頭頂資訊（數量與數值都來自快照）。</summary>
         private void RebuildEnemies()
         {
@@ -178,14 +179,14 @@ namespace Shepherd.Battle.UI.Arena
             {
                 var s = snap.Enemies[i];
                 maxValues[s.Id] = Mathf.Max(1, s.Value);
-                float height = Mathf.Clamp(0.85f + s.Value / 120f, 0.85f, 1.35f);
+                float height = EnemyHeightFor(s.Value);
                 Renderer[] rs;
                 Material core;
                 List<Transform> orbiters;
-                var root = ArenaArt.BuildEnemy(world, EnemyHome(i, snap.Enemies.Count), height, i % 2, out rs, out core, out orbiters);
+                var home = EnemyLocalHome(i, snap.Enemies.Count);
+                var root = ArenaArt.BuildEnemy(world, home, height, i % 2, out rs, out core, out orbiters);
                 root.name = "Enemy_" + s.Id;
-                root.rotation = Quaternion.LookRotation(PlayerPosition - root.position, Vector3.up);
-                root.rotation = Quaternion.Euler(0f, root.rotation.eulerAngles.y, 0f);
+                root.localRotation = EnemyLocalRotation(home);
                 root.gameObject.AddComponent<ArenaEnemyMarker>().EnemyId = s.Id;
                 enemies.Add(new EnemyView
                 {
@@ -266,6 +267,11 @@ namespace Shepherd.Battle.UI.Arena
         {
             if (!built) return;
             Tick(Time.deltaTime);
+            if (!InteractionEnabled)
+            {
+                hoveredEnemy = null;
+                return;
+            }
             if (IsPlaying)
             {
                 if (Input.GetKeyDown(KeyCode.Space)) FinishPlayback();
@@ -393,6 +399,7 @@ namespace Shepherd.Battle.UI.Arena
         {
             if (IsPlaying) FinishPlayback();
             redrawMode = false;
+            endRaised = false;
             Session.Reset(Session.Seed);
             RebuildEnemies();
             Refresh();
