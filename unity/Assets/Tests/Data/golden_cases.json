@@ -1,0 +1,1133 @@
+{
+ "version": "v0.1-unity-spec",
+ "note": "元素：Ember=燃素、Base=基體、Binder=擬合劑；學派：Structure=實在論、Process=過程哲學、Relation=關係論（暫稱）。所有案例為回合 0（敵人攻擊序列第一項）。oracle 欄：calculator-copy＝與套用已採用設定的計算器副本核對；hand＝手算複核（計算器無法表達）。",
+ "cases": [
+  {
+   "id": "G1",
+   "title": "實在論 基體→燃素→基體",
+   "school": "Structure",
+   "round": 0,
+   "player": {
+    "anchor": 30,
+    "shield": 0
+   },
+   "enemies": [
+    {
+     "id": "E1",
+     "value": 40,
+     "attack": 12,
+     "links": 0,
+     "corrections": 0
+    }
+   ],
+   "plan": [
+    {
+     "element": "Base"
+    },
+    {
+     "element": "Ember",
+     "target": "E1"
+    },
+    {
+     "element": "Base"
+    }
+   ],
+   "expected": {
+    "player": {
+     "anchor": 30,
+     "shield": 1
+    },
+    "enemies": [
+     {
+      "id": "E1",
+      "value": 29,
+      "resolved": false,
+      "links": 0,
+      "corrections": 0
+     }
+    ]
+   },
+   "oracle": "calculator-copy",
+   "note": ""
+  },
+  {
+   "id": "G2",
+   "title": "實在論 基體×3（三連）",
+   "school": "Structure",
+   "round": 0,
+   "player": {
+    "anchor": 30,
+    "shield": 0
+   },
+   "enemies": [
+    {
+     "id": "E1",
+     "value": 40,
+     "attack": 12,
+     "links": 0,
+     "corrections": 0
+    }
+   ],
+   "plan": [
+    {
+     "element": "Base"
+    },
+    {
+     "element": "Base"
+    },
+    {
+     "element": "Base"
+    }
+   ],
+   "expected": {
+    "player": {
+     "anchor": 30,
+     "shield": 22
+    },
+    "enemies": [
+     {
+      "id": "E1",
+      "value": 37,
+      "resolved": false,
+      "links": 0,
+      "corrections": 0
+     }
+    ]
+   },
+   "oracle": "calculator-copy",
+   "note": ""
+  },
+  {
+   "id": "G3",
+   "title": "過程哲學 基體→燃素→燃素",
+   "school": "Process",
+   "round": 0,
+   "player": {
+    "anchor": 30,
+    "shield": 0
+   },
+   "enemies": [
+    {
+     "id": "E1",
+     "value": 40,
+     "attack": 12,
+     "links": 0,
+     "corrections": 0
+    }
+   ],
+   "plan": [
+    {
+     "element": "Base",
+     "target": "E1"
+    },
+    {
+     "element": "Ember",
+     "target": "E1"
+    },
+    {
+     "element": "Ember",
+     "target": "E1"
+    }
+   ],
+   "expected": {
+    "player": {
+     "anchor": 24,
+     "shield": 0
+    },
+    "enemies": [
+     {
+      "id": "E1",
+      "value": 28,
+      "resolved": false,
+      "links": 0,
+      "corrections": 7
+     }
+    ]
+   },
+   "oracle": "calculator-copy",
+   "note": ""
+  },
+  {
+   "id": "G4",
+   "title": "過程哲學 燃素→基體→擬合劑",
+   "school": "Process",
+   "round": 0,
+   "player": {
+    "anchor": 30,
+    "shield": 0
+   },
+   "enemies": [
+    {
+     "id": "E1",
+     "value": 40,
+     "attack": 12,
+     "links": 0,
+     "corrections": 0
+    }
+   ],
+   "plan": [
+    {
+     "element": "Ember",
+     "target": "E1"
+    },
+    {
+     "element": "Base",
+     "target": "E1"
+    },
+    {
+     "element": "Binder",
+     "target": "E1"
+    }
+   ],
+   "expected": {
+    "player": {
+     "anchor": 26,
+     "shield": 0
+    },
+    "enemies": [
+     {
+      "id": "E1",
+      "value": 32,
+      "resolved": false,
+      "links": 0,
+      "corrections": 6
+     }
+    ]
+   },
+   "oracle": "calculator-copy",
+   "note": ""
+  },
+  {
+   "id": "G5",
+   "title": "關係論 擬合劑→燃素→基體",
+   "school": "Relation",
+   "round": 0,
+   "player": {
+    "anchor": 30,
+    "shield": 0
+   },
+   "enemies": [
+    {
+     "id": "E1",
+     "value": 40,
+     "attack": 12,
+     "links": 0,
+     "corrections": 0
+    }
+   ],
+   "plan": [
+    {
+     "element": "Binder",
+     "target": "E1"
+    },
+    {
+     "element": "Ember",
+     "target": "E1"
+    },
+    {
+     "element": "Base",
+     "target": "E1"
+    }
+   ],
+   "expected": {
+    "player": {
+     "anchor": 27,
+     "shield": 0
+    },
+    "enemies": [
+     {
+      "id": "E1",
+      "value": 24,
+      "resolved": false,
+      "links": 0,
+      "corrections": 0
+     }
+    ]
+   },
+   "oracle": "calculator-copy",
+   "note": ""
+  },
+  {
+   "id": "G6",
+   "title": "關係論 擬合劑→擬合劑→燃素",
+   "school": "Relation",
+   "round": 0,
+   "player": {
+    "anchor": 30,
+    "shield": 0
+   },
+   "enemies": [
+    {
+     "id": "E1",
+     "value": 40,
+     "attack": 12,
+     "links": 0,
+     "corrections": 0
+    }
+   ],
+   "plan": [
+    {
+     "element": "Binder",
+     "target": "E1"
+    },
+    {
+     "element": "Binder",
+     "target": "E1"
+    },
+    {
+     "element": "Ember",
+     "target": "E1"
+    }
+   ],
+   "expected": {
+    "player": {
+     "anchor": 24,
+     "shield": 0
+    },
+    "enemies": [
+     {
+      "id": "E1",
+      "value": 27,
+      "resolved": false,
+      "links": 0,
+      "corrections": 0
+     }
+    ]
+   },
+   "oracle": "calculator-copy",
+   "note": ""
+  },
+  {
+   "id": "G7",
+   "title": "關係論 擬合劑→燃素→基體（敵人不攻擊）",
+   "school": "Relation",
+   "round": 0,
+   "player": {
+    "anchor": 30,
+    "shield": 0
+   },
+   "enemies": [
+    {
+     "id": "E1",
+     "value": 40,
+     "attack": 0,
+     "links": 0,
+     "corrections": 0
+    }
+   ],
+   "plan": [
+    {
+     "element": "Binder",
+     "target": "E1"
+    },
+    {
+     "element": "Ember",
+     "target": "E1"
+    },
+    {
+     "element": "Base",
+     "target": "E1"
+    }
+   ],
+   "expected": {
+    "player": {
+     "anchor": 30,
+     "shield": 0
+    },
+    "enemies": [
+     {
+      "id": "E1",
+      "value": 33,
+      "resolved": false,
+      "links": 2,
+      "corrections": 0
+     }
+    ]
+   },
+   "oracle": "calculator-copy",
+   "note": ""
+  },
+  {
+   "id": "G8",
+   "title": "實在論 基體→燃素→基體（高壓，攻擊 14）",
+   "school": "Structure",
+   "round": 0,
+   "player": {
+    "anchor": 30,
+    "shield": 0
+   },
+   "enemies": [
+    {
+     "id": "E1",
+     "value": 60,
+     "attack": 14,
+     "links": 0,
+     "corrections": 0
+    }
+   ],
+   "plan": [
+    {
+     "element": "Base"
+    },
+    {
+     "element": "Ember",
+     "target": "E1"
+    },
+    {
+     "element": "Base"
+    }
+   ],
+   "expected": {
+    "player": {
+     "anchor": 29,
+     "shield": 0
+    },
+    "enemies": [
+     {
+      "id": "E1",
+      "value": 52,
+      "resolved": false,
+      "links": 0,
+      "corrections": 0
+     }
+    ]
+   },
+   "oracle": "calculator-copy",
+   "note": ""
+  },
+  {
+   "id": "X1",
+   "title": "空序列 實在論",
+   "school": "Structure",
+   "round": 0,
+   "player": {
+    "anchor": 30,
+    "shield": 0
+   },
+   "enemies": [
+    {
+     "id": "E1",
+     "value": 40,
+     "attack": 12,
+     "links": 0,
+     "corrections": 0
+    }
+   ],
+   "plan": [],
+   "expected": {
+    "player": {
+     "anchor": 18,
+     "shield": 0
+    },
+    "enemies": [
+     {
+      "id": "E1",
+      "value": 40,
+      "resolved": false,
+      "links": 0,
+      "corrections": 0
+     }
+    ]
+   },
+   "oracle": "calculator-copy",
+   "note": ""
+  },
+  {
+   "id": "X2",
+   "title": "空序列 過程哲學，原有 3 層校正",
+   "school": "Process",
+   "round": 0,
+   "player": {
+    "anchor": 30,
+    "shield": 0
+   },
+   "enemies": [
+    {
+     "id": "E1",
+     "value": 40,
+     "attack": 12,
+     "links": 0,
+     "corrections": 3
+    }
+   ],
+   "plan": [],
+   "expected": {
+    "player": {
+     "anchor": 19,
+     "shield": 0
+    },
+    "enemies": [
+     {
+      "id": "E1",
+      "value": 37,
+      "resolved": false,
+      "links": 0,
+      "corrections": 2
+     }
+    ]
+   },
+   "oracle": "calculator-copy",
+   "note": ""
+  },
+  {
+   "id": "X3",
+   "title": "空序列 實在論，原有擬態錨定 5",
+   "school": "Structure",
+   "round": 0,
+   "player": {
+    "anchor": 30,
+    "shield": 5
+   },
+   "enemies": [
+    {
+     "id": "E1",
+     "value": 40,
+     "attack": 12,
+     "links": 0,
+     "corrections": 0
+    }
+   ],
+   "plan": [],
+   "expected": {
+    "player": {
+     "anchor": 23,
+     "shield": 0
+    },
+    "enemies": [
+     {
+      "id": "E1",
+      "value": 40,
+      "resolved": false,
+      "links": 0,
+      "corrections": 0
+     }
+    ]
+   },
+   "oracle": "calculator-copy",
+   "note": ""
+  },
+  {
+   "id": "X4",
+   "title": "兩張同種不觸發三連 實在論 基體×2",
+   "school": "Structure",
+   "round": 0,
+   "player": {
+    "anchor": 30,
+    "shield": 0
+   },
+   "enemies": [
+    {
+     "id": "E1",
+     "value": 40,
+     "attack": 12,
+     "links": 0,
+     "corrections": 0
+    }
+   ],
+   "plan": [
+    {
+     "element": "Base"
+    },
+    {
+     "element": "Base"
+    }
+   ],
+   "expected": {
+    "player": {
+     "anchor": 30,
+     "shield": 4
+    },
+    "enemies": [
+     {
+      "id": "E1",
+      "value": 37,
+      "resolved": false,
+      "links": 0,
+      "corrections": 0
+     }
+    ]
+   },
+   "oracle": "calculator-copy",
+   "note": ""
+  },
+  {
+   "id": "X5",
+   "title": "啟動的立即壓制不觸發回饋 過程哲學 燃素×2",
+   "school": "Process",
+   "round": 0,
+   "player": {
+    "anchor": 30,
+    "shield": 0
+   },
+   "enemies": [
+    {
+     "id": "E1",
+     "value": 40,
+     "attack": 0,
+     "links": 0,
+     "corrections": 0
+    }
+   ],
+   "plan": [
+    {
+     "element": "Ember",
+     "target": "E1"
+    },
+    {
+     "element": "Ember",
+     "target": "E1"
+    }
+   ],
+   "expected": {
+    "player": {
+     "anchor": 31,
+     "shield": 0
+    },
+    "enemies": [
+     {
+      "id": "E1",
+      "value": 30,
+      "resolved": false,
+      "links": 0,
+      "corrections": 4
+     }
+    ]
+   },
+   "oracle": "calculator-copy",
+   "note": ""
+  },
+  {
+   "id": "X6",
+   "title": "回饋每回合最多一次（兩個敵人都有校正）",
+   "school": "Process",
+   "round": 0,
+   "player": {
+    "anchor": 30,
+    "shield": 0
+   },
+   "enemies": [
+    {
+     "id": "E1",
+     "value": 20,
+     "attack": 0,
+     "links": 0,
+     "corrections": 2
+    },
+    {
+     "id": "E2",
+     "value": 20,
+     "attack": 0,
+     "links": 0,
+     "corrections": 2
+    }
+   ],
+   "plan": [],
+   "expected": {
+    "player": {
+     "anchor": 31,
+     "shield": 0
+    },
+    "enemies": [
+     {
+      "id": "E1",
+      "value": 18,
+      "resolved": false,
+      "links": 0,
+      "corrections": 1
+     },
+     {
+      "id": "E2",
+      "value": 18,
+      "resolved": false,
+      "links": 0,
+      "corrections": 1
+     }
+    ]
+   },
+   "oracle": "calculator-copy",
+   "note": ""
+  },
+  {
+   "id": "X7",
+   "title": "回應對每個敵人的攻擊各自判定",
+   "school": "Structure",
+   "round": 0,
+   "player": {
+    "anchor": 30,
+    "shield": 20
+   },
+   "enemies": [
+    {
+     "id": "E1",
+     "value": 20,
+     "attack": 8,
+     "links": 0,
+     "corrections": 0
+    },
+    {
+     "id": "E2",
+     "value": 20,
+     "attack": 8,
+     "links": 0,
+     "corrections": 0
+    }
+   ],
+   "plan": [],
+   "expected": {
+    "player": {
+     "anchor": 30,
+     "shield": 4
+    },
+    "enemies": [
+     {
+      "id": "E1",
+      "value": 17,
+      "resolved": false,
+      "links": 0,
+      "corrections": 0
+     },
+     {
+      "id": "E2",
+      "value": 17,
+      "resolved": false,
+      "links": 0,
+      "corrections": 0
+     }
+    ]
+   },
+   "oracle": "calculator-copy",
+   "note": ""
+  },
+  {
+   "id": "X8",
+   "title": "攻擊值為 0 的回合不觸發回應",
+   "school": "Structure",
+   "round": 0,
+   "player": {
+    "anchor": 30,
+    "shield": 0
+   },
+   "enemies": [
+    {
+     "id": "E1",
+     "value": 40,
+     "attack": 0,
+     "links": 0,
+     "corrections": 0
+    }
+   ],
+   "plan": [],
+   "expected": {
+    "player": {
+     "anchor": 30,
+     "shield": 0
+    },
+    "enemies": [
+     {
+      "id": "E1",
+      "value": 40,
+      "resolved": false,
+      "links": 0,
+      "corrections": 0
+     }
+    ]
+   },
+   "oracle": "calculator-copy",
+   "note": ""
+  },
+  {
+   "id": "X9",
+   "title": "目標提前解除：敵方指向效果失效，不消耗擬態錨定",
+   "school": "Structure",
+   "round": 0,
+   "player": {
+    "anchor": 30,
+    "shield": 10
+   },
+   "enemies": [
+    {
+     "id": "E1",
+     "value": 4,
+     "attack": 5,
+     "links": 0,
+     "corrections": 0
+    },
+    {
+     "id": "E2",
+     "value": 40,
+     "attack": 10,
+     "links": 0,
+     "corrections": 0
+    }
+   ],
+   "plan": [
+    {
+     "element": "Ember",
+     "target": "E1"
+    },
+    {
+     "element": "Ember",
+     "target": "E1"
+    }
+   ],
+   "expected": {
+    "player": {
+     "anchor": 26,
+     "shield": 0
+    },
+    "enemies": [
+     {
+      "id": "E1",
+      "value": 0,
+      "resolved": true,
+      "links": 0,
+      "corrections": 0
+     },
+     {
+      "id": "E2",
+      "value": 40,
+      "resolved": false,
+      "links": 0,
+      "corrections": 0
+     }
+    ]
+   },
+   "oracle": "hand",
+   "note": "第二張燃素的目標已解除：整張失效，擬態錨定不被轉化消耗（第一張後為 6，全數用來擋 E2 的 10 點攻擊）"
+  },
+  {
+   "id": "X10",
+   "title": "目標提前解除：自身增益仍生效",
+   "school": "Structure",
+   "round": 0,
+   "player": {
+    "anchor": 30,
+    "shield": 0
+   },
+   "enemies": [
+    {
+     "id": "E1",
+     "value": 1,
+     "attack": 5,
+     "links": 0,
+     "corrections": 0
+    },
+    {
+     "id": "E2",
+     "value": 40,
+     "attack": 6,
+     "links": 0,
+     "corrections": 0
+    }
+   ],
+   "plan": [
+    {
+     "element": "Ember",
+     "target": "E1"
+    },
+    {
+     "element": "Binder",
+     "target": "E1"
+    }
+   ],
+   "expected": {
+    "player": {
+     "anchor": 30,
+     "shield": 0
+    },
+    "enemies": [
+     {
+      "id": "E1",
+      "value": 0,
+      "resolved": true,
+      "links": 0,
+      "corrections": 0
+     },
+     {
+      "id": "E2",
+      "value": 37,
+      "resolved": false,
+      "links": 0,
+      "corrections": 0
+     }
+    ]
+   },
+   "oracle": "hand",
+   "note": "適配的擬態錨定 +4（含反應 +1）與條件 +2 照常結算，連結 +1 失效；預告攻擊總量為回合開始時的 5+6=11，不因 E1 解除而重算；E2 的 6 點攻擊被完全擋下，觸發回應"
+  },
+  {
+   "id": "X11",
+   "title": "傳導以實際減少量：目標被擊殺（溢出）",
+   "school": "Relation",
+   "round": 0,
+   "player": {
+    "anchor": 30,
+    "shield": 0
+   },
+   "enemies": [
+    {
+     "id": "E1",
+     "value": 2,
+     "attack": 0,
+     "links": 3,
+     "corrections": 0
+    },
+    {
+     "id": "E2",
+     "value": 20,
+     "attack": 0,
+     "links": 1,
+     "corrections": 0
+    }
+   ],
+   "plan": [
+    {
+     "element": "Ember",
+     "target": "E1"
+    }
+   ],
+   "expected": {
+    "player": {
+     "anchor": 30,
+     "shield": 0
+    },
+    "enemies": [
+     {
+      "id": "E1",
+      "value": 0,
+      "resolved": true,
+      "links": 0,
+      "corrections": 0
+     },
+     {
+      "id": "E2",
+      "value": 19,
+      "resolved": false,
+      "links": 0,
+      "corrections": 0
+     }
+    ]
+   },
+   "oracle": "calculator-copy",
+   "note": "斷連消耗 2 層後 E1 仍有 1 層連結；壓制名義 7、實際 2；傳導 ⌊2×50%⌋=1（名義量會是 3）"
+  },
+  {
+   "id": "X12",
+   "title": "斷連先消耗連結：連結耗盡則不傳導",
+   "school": "Relation",
+   "round": 0,
+   "player": {
+    "anchor": 30,
+    "shield": 0
+   },
+   "enemies": [
+    {
+     "id": "E1",
+     "value": 20,
+     "attack": 0,
+     "links": 2,
+     "corrections": 0
+    },
+    {
+     "id": "E2",
+     "value": 20,
+     "attack": 0,
+     "links": 1,
+     "corrections": 0
+    }
+   ],
+   "plan": [
+    {
+     "element": "Ember",
+     "target": "E1"
+    }
+   ],
+   "expected": {
+    "player": {
+     "anchor": 30,
+     "shield": 0
+    },
+    "enemies": [
+     {
+      "id": "E1",
+      "value": 13,
+      "resolved": false,
+      "links": 0,
+      "corrections": 0
+     },
+     {
+      "id": "E2",
+      "value": 20,
+      "resolved": false,
+      "links": 0,
+      "corrections": 0
+     }
+    ]
+   },
+   "oracle": "calculator-copy",
+   "note": ""
+  },
+  {
+   "id": "X13",
+   "title": "同一敵方階段內被傳導擊殺的敵人不行動",
+   "school": "Relation",
+   "round": 0,
+   "player": {
+    "anchor": 30,
+    "shield": 0
+   },
+   "enemies": [
+    {
+     "id": "E1",
+     "value": 24,
+     "attack": 4,
+     "links": 3,
+     "corrections": 0
+    },
+    {
+     "id": "E2",
+     "value": 2,
+     "attack": 6,
+     "links": 1,
+     "corrections": 0
+    }
+   ],
+   "plan": [],
+   "expected": {
+    "player": {
+     "anchor": 30,
+     "shield": 0
+    },
+    "enemies": [
+     {
+      "id": "E1",
+      "value": 20,
+      "resolved": false,
+      "links": 0,
+      "corrections": 0
+     },
+     {
+      "id": "E2",
+      "value": 0,
+      "resolved": true,
+      "links": 0,
+      "corrections": 0
+     }
+    ]
+   },
+   "oracle": "calculator-copy",
+   "note": "E1 先行動，回流 4 點傳導 2 點給 E2 使其解除；E2 不再攻擊，錨定值不變"
+  },
+  {
+   "id": "X14",
+   "title": "承接附帶的連結加在連結最少的存活敵人",
+   "school": "Structure",
+   "round": 0,
+   "player": {
+    "anchor": 30,
+    "shield": 0
+   },
+   "enemies": [
+    {
+     "id": "E1",
+     "value": 40,
+     "attack": 0,
+     "links": 2,
+     "corrections": 0
+    },
+    {
+     "id": "E2",
+     "value": 40,
+     "attack": 0,
+     "links": 0,
+     "corrections": 0
+    }
+   ],
+   "plan": [
+    {
+     "element": "Binder",
+     "target": "E1"
+    },
+    {
+     "element": "Base"
+    }
+   ],
+   "expected": {
+    "player": {
+     "anchor": 30,
+     "shield": 10
+    },
+    "enemies": [
+     {
+      "id": "E1",
+      "value": 40,
+      "resolved": false,
+      "links": 2,
+      "corrections": 0
+     },
+     {
+      "id": "E2",
+      "value": 40,
+      "resolved": false,
+      "links": 0,
+      "corrections": 0
+     }
+    ]
+   },
+   "oracle": "hand",
+   "note": "若附帶連結誤加在 E1，E1 回合末會是 3 而不是 2"
+  }
+ ],
+ "properties": [
+  {
+   "id": "P1",
+   "title": "預覽一致性",
+   "rule": "對每個案例，Preview(plan) 的最終狀態（補牌之前）必須等於 Commit(plan) 的結果（補牌之前），且 Preview 不改動原狀態"
+  },
+  {
+   "id": "P2",
+   "title": "調度",
+   "rule": "每回合只能一次；確認後不能用；不能用於已放進編排區的牌；手牌仍為 7 張；牌庫＋手牌＋棄牌＋編排區總數不變；可能抽回原牌；不套用物資保底"
+  },
+  {
+   "id": "P3",
+   "title": "編排驗證",
+   "rule": "超過 3 張被拒；目標必須是存活敵人；確認後學派鎖定，同回合不得更換；空序列合法"
+  },
+  {
+   "id": "P4",
+   "title": "補牌與洗牌",
+   "rule": "確認後手牌補回 7 張；牌庫抽完時棄牌區洗回；27 張牌的總數守恆"
+  },
+  {
+   "id": "P5",
+   "title": "起手",
+   "rule": "手牌 7 張，全是元素牌"
+  },
+  {
+   "id": "P6",
+   "title": "決定性",
+   "rule": "同一個種子與同一個序列重播，事件列表完全相同"
+  },
+  {
+   "id": "P7",
+   "title": "勝利立即結束",
+   "rule": "所有敵人在序列中途解除時，剩餘的牌不結算，也不進入校正與敵方階段"
+  },
+  {
+   "id": "P8",
+   "title": "戰敗",
+   "rule": "錨定值 ≤ 0 時，後面的敵人不再行動"
+  },
+  {
+   "id": "P9",
+   "title": "狀態隨敵人消失",
+   "rule": "敵人解除後，其校正、連結、束縛一併消失，不再參與傳導或結算"
+  },
+  {
+   "id": "P10",
+   "title": "數值邊界",
+   "rule": "連結上限 4；錨定值上限 40；失序值最低 0；擬態錨定不為負"
+  }
+ ]
+}
