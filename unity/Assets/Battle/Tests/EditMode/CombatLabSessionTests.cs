@@ -49,6 +49,143 @@ namespace Shepherd.Battle.Tests
             return s.Snapshot().Hand.Where(c => c.Element == element).Select(c => c.Id).ToArray();
         }
 
+        // ---------------- 即時預覽與預估摘要 ----------------
+
+        /// <summary>即時預覽必須等於以目前編排直接呼叫引擎預覽的結果。</summary>
+        private static void AssertLiveMatchesEngine(CombatLabSession s)
+        {
+            Assert.IsNotNull(s.LastPreview, "即時預覽不得為空");
+            var direct = s.Controller.Preview(s.BuildPlan());
+            Assert.AreEqual(direct.Validation.IsValid, s.LastPreview.Validation.IsValid);
+            Assert.AreEqual(direct.Result.NewState.Fingerprint(), s.LastPreview.Result.NewState.Fingerprint());
+            Assert.AreEqual(direct.Result.NewState.Anchor, s.Forecast.AnchorAfter);
+            Assert.AreEqual(direct.Result.NewState.Shield, s.Forecast.ShieldAfter);
+            foreach (var e in s.Forecast.Enemies)
+                Assert.AreEqual(direct.Result.NewState.FindEnemy(e.Id).Value, e.ValueAfter);
+        }
+
+        [Test]
+        public void LivePreview_UpdatesOnEveryChange_WithoutTouchingState()
+        {
+            var s = NewSession();
+            string before = Fingerprint(s);
+            AssertLiveMatchesEngine(s);
+            Assert.AreEqual(0, s.Staged.Count, "空序列也預估");
+
+            var hand = Hand(s);
+            s.AddCard(hand[0]);
+            AssertLiveMatchesEngine(s);
+            s.AddCard(hand[1]);
+            AssertLiveMatchesEngine(s);
+            s.SelectSchool(S.Relation);
+            AssertLiveMatchesEngine(s);
+            s.RemoveAt(0);
+            AssertLiveMatchesEngine(s);
+            s.ClearPlan();
+            AssertLiveMatchesEngine(s);
+            s.Redraw(hand[2]);
+            AssertLiveMatchesEngine(s);
+            Assert.AreEqual(0, s.Controller.Snapshot().Round, "預覽不推進回合");
+            Assert.AreEqual(30, s.Snapshot().Anchor, "預覽不改動錨定值");
+            Assert.IsNotEmpty(before);
+        }
+
+        [Test]
+        public void Forecast_EnemyAttackImpact_AddsUpToAnchorAndShieldChange()
+        {
+            // 實在論沒有分流，敵人攻擊只會被擬態錨定吸收或扣錨定值。
+            var s = SessionWith(E.Base, 1);
+            for (int pass = 0; pass < 2; pass++)
+            {
+                var f = s.Forecast;
+                var snap = s.Snapshot();
+                foreach (var e in f.Enemies)
+                {
+                    var es = snap.Enemies.First(x => x.Id == e.Id);
+                    Assert.IsTrue(e.Acted, e.Name + " 應行動");
+                    Assert.AreEqual(es.ForecastAttack, e.Attack, "攻擊值來自引擎事件");
+                    Assert.AreEqual(e.Attack, e.ShieldAbsorbed + e.AnchorLoss, "實在論下攻擊＝擬態吸收＋錨定損失");
+                    Assert.AreEqual(0, e.Diverted);
+                }
+                Assert.AreEqual(f.AnchorBefore - f.AnchorAfter, f.TotalAnchorLoss, "錨定損失總和等於錨定值變化");
+                // 第二輪：先放一張構形（擬態 +7），擬態錨定應吸收部分攻擊。
+                s.AddCard(HandOf(s, E.Base)[0]);
+            }
+            Assert.Greater(s.Forecast.TotalShieldAbsorbed, 0, "有擬態錨定時預估顯示被吸收的量");
+        }
+
+        [Test]
+        public void Forecast_RelationDivert_IsReported()
+        {
+            var scenario = Scenario(
+                new EnemyState { Id = 1, Name = "甲", Value = 40, Links = 3, AttackPattern = new[] { 9 } });
+            var s = new CombatLabSession(RuleSet.CreateDefault(), scenario, 1);
+            s.SelectSchool(S.Relation);
+            var e = s.Forecast.Enemy(1);
+            Assert.IsTrue(e.Acted);
+            Assert.AreEqual(9, e.Attack);
+            Assert.Greater(e.Diverted, 0, "關係論分流要顯示出來");
+            Assert.AreEqual(e.Attack, e.Diverted + e.ShieldAbsorbed + e.AnchorLoss);
+            StringAssert.Contains("分流 " + e.Diverted, CombatLabText.EnemyImpact(e, s.Forecast.Outcome));
+        }
+
+        [Test]
+        public void ForecastWithCard_IsHypothetical_AndMatchesAddingTheCard()
+        {
+            var s = NewSession();
+            var hand = Hand(s);
+            s.AddCard(hand[0]);
+            string before = Fingerprint(s);
+            string reason;
+            var with = s.ForecastWithCard(hand[1], out reason);
+            Assert.IsNotNull(with, reason);
+            Assert.AreEqual(before, Fingerprint(s), "懸停預估不改動戰鬥狀態");
+            Assert.AreEqual(1, s.Staged.Count, "懸停預估不改動編排");
+
+            s.AddCard(hand[1]);
+            Assert.AreEqual(s.Forecast.AnchorAfter, with.AnchorAfter);
+            Assert.AreEqual(s.Forecast.ShieldAfter, with.ShieldAfter);
+            for (int i = 0; i < with.Enemies.Count; i++)
+                Assert.AreEqual(s.Forecast.Enemies[i].ValueAfter, with.Enemies[i].ValueAfter);
+
+            Assert.IsNull(s.ForecastWithCard(hand[0], out reason));
+            StringAssert.Contains("已在編排第 1 張", reason);
+            s.AddCard(hand[2]);
+            Assert.IsNull(s.ForecastWithCard(hand[3], out reason));
+            StringAssert.Contains("AP", reason);
+        }
+
+        [Test]
+        public void Commit_KeepsLastRoundSummary()
+        {
+            var s = NewSession();
+            var expected = s.Forecast;
+            s.Commit();
+            Assert.AreEqual(expected.AnchorAfter, s.LastRound.AnchorAfter, "確認結果與預估一致");
+            Assert.AreEqual(expected.TotalAnchorLoss, s.LastRound.TotalAnchorLoss);
+            StringAssert.Contains("第 1 回合：", s.Message);
+            StringAssert.Contains("錨定值 " + expected.AnchorBefore + " → " + expected.AnchorAfter, s.Message);
+            Assert.IsTrue(s.Log.Any(l => l.Contains("本回合結果")));
+            Assert.IsTrue(s.Log.Any(l => l.Contains(s.Snapshot().Enemies[0].Name + " 的攻擊")), "紀錄以敵人名稱標示攻擊來源");
+        }
+
+        [Test]
+        public void EffectTexts_UseRuleValues()
+        {
+            var p = new RuleParams { StructureBaseShield = 11, RelationBinderLink = 3, ProcessBinderHeal = 5 };
+            var rules = new RuleSet(p);
+            StringAssert.Contains("+11", CombatLabText.EffectShort(rules, S.Structure, E.Base));
+            StringAssert.Contains("+11", CombatLabText.EffectDetail(rules, S.Structure, E.Base));
+            StringAssert.Contains("+3", CombatLabText.EffectShort(rules, S.Relation, E.Binder));
+            StringAssert.Contains("回復錨定值 5", CombatLabText.EffectDetail(rules, S.Process, E.Binder));
+            foreach (S school in Enum.GetValues(typeof(S)))
+            foreach (E element in Enum.GetValues(typeof(E)))
+            {
+                Assert.IsNotEmpty(CombatLabText.EffectShort(RuleSet.CreateDefault(), school, element));
+                Assert.IsNotEmpty(CombatLabText.EffectDetail(RuleSet.CreateDefault(), school, element));
+            }
+        }
+
         [Test]
         public void Initial_StateComesFromBattleState()
         {
@@ -126,7 +263,10 @@ namespace Shepherd.Battle.Tests
             Assert.AreEqual(1, snap.Round);
             Assert.AreEqual(0, s.Staged.Count, "確認後清空編排");
             Assert.AreEqual(7, snap.Hand.Count);
-            Assert.IsNull(s.LastPreview);
+            Assert.IsNotNull(s.LastPreview, "新回合立即以空序列重新預覽");
+            Assert.IsTrue(s.LastPreview.Validation.IsValid);
+            Assert.IsNotNull(s.LastRound, "保留上一回合的結算摘要");
+            Assert.AreEqual(1, s.LastRoundNumber);
             Assert.IsNull(snap.LockedSchool, "新回合可重新選擇學派");
             Assert.IsTrue(s.Log.Any(l => l.Contains("第 1 回合") && l.Contains("實在論")));
             foreach (var e in r.Resolution.Events) CollectionAssert.Contains(s.Log, s.Describe(e));

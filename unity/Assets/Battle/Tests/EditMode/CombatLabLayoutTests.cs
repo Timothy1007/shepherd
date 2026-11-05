@@ -193,8 +193,41 @@ namespace Shepherd.Battle.Tests
             }
             foreach (var b in view.EnemyButtons)
                 Assert.GreaterOrEqual(((RectTransform)b.transform).rect.height, 110f, b.name);
-            foreach (var b in new[] { view.PreviewButton, view.CommitButton, view.RedrawButton, view.ResetButton })
+            foreach (var b in new[] { view.CommitButton, view.RedrawButton, view.ResetButton })
                 Assert.GreaterOrEqual(((RectTransform)b.transform).rect.height, 50f, b.name);
+        }
+
+        [TestCase(1920, 1080)]
+        [TestCase(1280, 720)]
+        [TestCase(1366, 768)]
+        public void CardTooltip_StaysOnScreen_AboveTheCard(int width, int height)
+        {
+            var s = view.Session;
+            s.AddCard(s.Snapshot().Hand[0].Id);
+            LayoutAt(width, height);
+            var canvasRect = WorldRect((RectTransform)view.Canvas.transform);
+            for (int i = 0; i < view.HandIds.Count; i++)
+            {
+                view.ShowCardTooltip(i);
+                Canvas.ForceUpdateCanvases();
+                view.ShowCardTooltip(i);
+                var tip = WorldRect(view.Tooltip);
+                var card = WorldRect((RectTransform)view.HandButtons[i].transform);
+                Assert.IsTrue(canvasRect.Contains(tip.min) && canvasRect.Contains(tip.max),
+                    width + "×" + height + " 第 " + (i + 1) + " 張的說明框超出畫面");
+                Assert.GreaterOrEqual(tip.yMin, card.yMax - 0.5f, "說明框不遮住被指著的牌");
+                var t = view.Tooltip.GetComponentInChildren<Text>();
+                Assert.LessOrEqual(LayoutUtility.GetPreferredHeight(t.rectTransform), t.rectTransform.rect.height + 2f,
+                    "說明框文字超出框線");
+                Assert.GreaterOrEqual(t.fontSize, CombatLabStyle.Body);
+            }
+        }
+
+        private static Rect WorldRect(RectTransform rt)
+        {
+            var c = new Vector3[4];
+            rt.GetWorldCorners(c);
+            return Rect.MinMaxRect(c[0].x, c[0].y, c[2].x, c[2].y);
         }
 
         [Test]

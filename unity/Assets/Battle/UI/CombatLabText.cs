@@ -76,10 +76,126 @@ namespace Shepherd.Battle.UI
             return src;
         }
 
+        // ---------------- 牌的效果說明（數值全部讀自規則集） ----------------
+
+        /// <summary>牌面上的一行簡述（未計承接與三連）。</summary>
+        public static string EffectShort(RuleSet rules, SchoolKind s, ElementKind e)
+        {
+            var p = rules.Params;
+            int v = rules.PrimaryValue(s, e);
+            switch (s)
+            {
+                case SchoolKind.Structure:
+                    if (e == ElementKind.Ember) return "壓制 " + v + "＋轉化";
+                    if (e == ElementKind.Base) return "擬態 +" + v;
+                    return "擬態 +" + v + "、連結 +" + p.StructureBinderLink;
+                case SchoolKind.Process:
+                    if (e == ElementKind.Ember) return "校正 " + v + "、壓制 " + v;
+                    if (e == ElementKind.Base) return "校正 " + v + "、擬態 +" + p.ProcessBaseShield;
+                    return "校正 " + v + "、回復 " + p.ProcessBinderHeal;
+                default:
+                    if (e == ElementKind.Ember) return "壓制 " + v + "＋斷連";
+                    if (e == ElementKind.Base) return "連結 +" + v + "、束縛";
+                    return "連結 +" + v;
+            }
+        }
+
+        /// <summary>規格第四節效果表的逐步說明，數值取自規則集。</summary>
+        public static string EffectDetail(RuleSet rules, SchoolKind s, ElementKind e)
+        {
+            var p = rules.Params;
+            int v = rules.PrimaryValue(s, e);
+            switch (s)
+            {
+                case SchoolKind.Structure:
+                    if (e == ElementKind.Ember)
+                        return "① 轉化：消耗擬態錨定，最多 " + p.StructureConvertBase + "＋" + p.StructureConvertPerLink
+                            + "×目標連結層數\n② 壓制目標 " + v + "＋轉化量";
+                    if (e == ElementKind.Base) return "擬態錨定 +" + v;
+                    return "① 擬態錨定 +" + v + "\n② 若本回合預告攻擊總量大於當前擬態錨定，再 +" + p.StructureBinderThreatBonus
+                        + "\n③ 目標連結 +" + p.StructureBinderLink;
+                case SchoolKind.Process:
+                    if (e == ElementKind.Ember) return "① 目標校正 +" + v + " 層\n② 立即壓制目標 " + v;
+                    if (e == ElementKind.Base)
+                        return "① 目標校正 +" + v + " 層\n② 本回合校正結算不衰減\n③ 擬態錨定 +" + p.ProcessBaseShield;
+                    return "① 目標校正 +" + v + " 層\n② 回復錨定值 " + p.ProcessBinderHeal + "（上限 " + p.MaxAnchor
+                        + "）\n③ 目標連結 +" + p.ProcessBinderLink;
+                default:
+                    if (e == ElementKind.Ember)
+                        return "① 斷連：消耗目標最多 " + p.RelationSeverMaxLayers + " 層連結\n② 壓制目標 " + v + "＋"
+                            + p.RelationSeverBonusPerLayer + "×消耗層數";
+                    if (e == ElementKind.Base) return "① 目標連結 +" + v + "\n② 目標本回合束縛 +" + p.RelationBaseBind;
+                    return "目標連結 +" + v;
+            }
+        }
+
+        /// <summary>這張牌對緊接的下一張牌的承接效果。</summary>
+        public static string ResidueHint(RuleSet rules, ElementKind e)
+        {
+            var p = rules.Params;
+            if (e == ElementKind.Ember) return "反應：下一張的主要數值 +" + p.ResidueEmberBonus;
+            if (e == ElementKind.Base) return "結構：下一張結算後，擬態錨定 +" + p.ResidueBaseShield;
+            return "關聯：下一張結算後，連結最少的敵人連結 +" + p.ResidueBinderLink;
+        }
+
+        // ---------------- 預估與結算摘要 ----------------
+
+        public const string Bad = "#FF9A8F";
+        public const string Good = "#9BE59B";
+
+        public static string Colored(string text, string color)
+        {
+            return "<color=" + color + ">" + text + "</color>";
+        }
+
+        /// <summary>「a → b（±n）」；變少用紅色、變多用綠色（lowerIsBad＝false 時相反）。</summary>
+        public static string Change(int before, int after, bool lowerIsBad = true)
+        {
+            if (before == after) return before.ToString();
+            int d = after - before;
+            string color = (d < 0) == lowerIsBad ? Bad : Good;
+            return before + " → " + Colored("<b>" + after + "</b>（" + Signed(d) + "）", color);
+        }
+
+        /// <summary>這個敵人的攻擊對玩家的影響（白話）。</summary>
+        public static string EnemyImpact(EnemyForecast e, BattleOutcome outcome)
+        {
+            if (e.ResolvedBefore) return "已解除";
+            if (!e.Acted)
+            {
+                if (e.ResolvedAfter) return Colored("在行動前就會被解除，不會攻擊", Good);
+                return outcome == BattleOutcome.Victory ? Colored("戰鬥先勝利，不會攻擊", Good) : "戰鬥先結束，不會攻擊";
+            }
+            if (e.Attack <= 0) return "本回合不攻擊";
+            var parts = new System.Collections.Generic.List<string>();
+            if (e.Diverted > 0) parts.Add("分流 " + e.Diverted);
+            if (e.ShieldAbsorbed > 0) parts.Add("擬態擋 " + e.ShieldAbsorbed);
+            parts.Add(e.AnchorLoss > 0 ? Colored("錨定值 −" + e.AnchorLoss, Bad) : Colored("錨定值無損", Good));
+            string s = "攻擊 " + e.Attack + " → " + string.Join("、", parts.ToArray());
+            if (e.Counter > 0) s += "，回應反擊 " + e.Counter;
+            return s;
+        }
+
+        /// <summary>整個敵方回合對玩家的影響（一行）。</summary>
+        public static string DamageSummary(RoundForecast f)
+        {
+            int attack = f.TotalAttack;
+            if (attack <= 0) return "敵方沒有造成攻擊";
+            var sb = new System.Text.StringBuilder();
+            sb.Append("敵方攻擊共 ").Append(attack).Append("：擬態吸收 ").Append(f.TotalShieldAbsorbed)
+              .Append("，錨定值 −").Append(f.TotalAnchorLoss);
+            int diverted = attack - f.TotalShieldAbsorbed - f.TotalAnchorLoss;
+            if (diverted > 0) sb.Append("，分流 ").Append(diverted);
+            return sb.ToString();
+        }
+
         /// <summary>把一個事件轉成一行紀錄。enemyName／cardName 只用來查名稱。</summary>
         public static string Event(BattleEvent e, Func<int, string> enemyName, Func<int, string> cardName)
         {
             string src = Source(e.Source);
+            int attacker;
+            if (e.Source != null && e.Source.StartsWith("enemy:") && int.TryParse(e.Source.Substring(6), out attacker))
+                src = (enemyName != null ? enemyName(attacker) : "E" + attacker) + " 的攻擊：";
             string enemy = e.EnemyId == 0 ? "" : (enemyName != null ? enemyName(e.EnemyId) : "E" + e.EnemyId);
             switch (e.Kind)
             {

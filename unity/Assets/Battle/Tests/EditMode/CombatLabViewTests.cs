@@ -93,18 +93,21 @@ namespace Shepherd.Battle.Tests
         [Test]
         public void PreviewThenCommit_ShowsResultAndAdvancesRound()
         {
-            Click(view.HandButtons[0]);
-            Click(view.HandButtons[1]);
+            StringAssert.Contains("若直接結束回合", view.PreviewText, "沒有編排時就預估空序列");
             string before = view.Session.Controller.CloneState().Fingerprint();
-            Click(view.PreviewButton);
-            StringAssert.Contains("預覽結果", view.PreviewText);
-            Assert.AreEqual(before, view.Session.Controller.CloneState().Fingerprint(), "預覽不改動狀態");
+            Click(view.HandButtons[0]);
+            StringAssert.Contains("若現在確認施放", view.PreviewText, "選牌後立即更新預估，不必按按鈕");
+            Click(view.HandButtons[1]);
+            StringAssert.Contains("敵方回合", view.PreviewText);
+            Assert.AreEqual(before, view.Session.Controller.CloneState().Fingerprint(), "即時預覽不改動狀態");
 
             Click(view.CommitButton);
             StringAssert.Contains("第 2 回合", view.TopText);
             StringAssert.Contains("第 1 回合", view.LogText);
             StringAssert.Contains("行動：攻擊", view.LogText);
-            StringAssert.Contains("尚未預覽", view.PreviewText);
+            StringAssert.Contains("本回合結果", view.LogText);
+            StringAssert.Contains("第 1 回合：", view.MessageText, "訊息列顯示上一回合敵方攻擊的影響");
+            StringAssert.Contains("若直接結束回合", view.PreviewText);
             Assert.AreEqual(0, view.Session.Staged.Count);
             Assert.AreEqual(7, view.HandButtons.Count(b => b.gameObject.activeSelf));
             CollectionAssert.AreEqual(view.Session.Snapshot().Hand.Select(c => c.Id).ToArray(), view.HandIds.ToArray(),
@@ -142,6 +145,86 @@ namespace Shepherd.Battle.Tests
             StringAssert.Contains("第 1 回合", view.TopText);
             var fresh = new CombatLabSession(RuleSet.CreateDefault(), CombatLabScenario.Default(), 123);
             CollectionAssert.AreEqual(fresh.Snapshot().Hand.Select(c => c.Id).ToArray(), view.HandIds.ToArray());
+        }
+
+        private static string Plain(string richText)
+        {
+            return System.Text.RegularExpressions.Regex.Replace(richText, "<.*?>", "");
+        }
+
+        [Test]
+        public void NoPreviewButton_PreviewIsAlwaysLive()
+        {
+            Assert.IsFalse(view.GetComponentsInChildren<Button>(true).Any(b => b.name == "Preview"), "預覽按鈕已改為即時預覽");
+            Assert.IsNotNull(view.Session.Forecast);
+        }
+
+        [Test]
+        public void EnemyCards_ShowWhatTheirAttackDoesToPlayer()
+        {
+            var f = view.Session.Forecast;
+            for (int i = 0; i < view.EnemyButtons.Count; i++)
+            {
+                var e = f.Enemies[i];
+                string text = Plain(view.EnemyText(i));
+                Assert.IsTrue(e.Acted && e.Attack > 0, "情境第 1 回合兩個敵人都會攻擊");
+                StringAssert.Contains("攻擊 " + e.Attack + " → ", text);
+                StringAssert.Contains(e.AnchorLoss > 0 ? "錨定值 −" + e.AnchorLoss : "錨定值無損", text);
+            }
+            string chip = Plain(view.ChipText("Anchor"));
+            StringAssert.Contains(f.AnchorBefore + " → " + f.AnchorAfter, chip, "頂部顯示回合後的錨定值");
+        }
+
+        [Test]
+        public void HandCards_ShowShortEffect()
+        {
+            var snap = view.Session.Snapshot();
+            for (int i = 0; i < snap.Hand.Count; i++)
+            {
+                string label = Plain(view.HandButtons[i].GetComponentInChildren<Text>().text);
+                StringAssert.Contains(CombatLabText.EffectShort(view.Session.Rules, view.Session.SelectedSchool, snap.Hand[i].Element), label);
+            }
+        }
+
+        [Test]
+        public void HoverTooltip_ShowsCardDetailsAndForecast()
+        {
+            Assert.IsFalse(view.TooltipVisible);
+            var b = view.HandButtons[0];
+            var trigger = b.GetComponent<UnityEngine.EventSystems.EventTrigger>();
+            Assert.IsNotNull(trigger, "手牌需要滑鼠移入／移出事件");
+            var data = new UnityEngine.EventSystems.PointerEventData(null);
+            UnityEngine.EventSystems.ExecuteEvents.Execute(b.gameObject, data, UnityEngine.EventSystems.ExecuteEvents.pointerEnterHandler);
+            Assert.IsTrue(view.TooltipVisible, "滑鼠移入顯示說明");
+
+            var card = view.Session.Snapshot().Hand[0];
+            var school = view.Session.SelectedSchool;
+            string text = Plain(view.TooltipText);
+            StringAssert.Contains(CombatLabText.Element(card.Element) + "・" + CombatLabText.EffectName(school, card.Element), text);
+            StringAssert.Contains(Plain(CombatLabText.EffectDetail(view.Session.Rules, school, card.Element)), text);
+            StringAssert.Contains("加入後本回合預估", text);
+            StringAssert.Contains("錨定值", text);
+            StringAssert.Contains("其他學派", text);
+
+            var group = view.Tooltip.GetComponent<CanvasGroup>();
+            Assert.IsFalse(group.blocksRaycasts, "說明框不得攔截滑鼠，否則會閃爍");
+
+            // 點擊後說明框仍在，並改為顯示已編排。
+            Click(b);
+            Assert.IsTrue(view.TooltipVisible);
+            StringAssert.Contains("已在編排第 1 張", Plain(view.TooltipText));
+
+            UnityEngine.EventSystems.ExecuteEvents.Execute(b.gameObject, data, UnityEngine.EventSystems.ExecuteEvents.pointerExitHandler);
+            Assert.IsFalse(view.TooltipVisible, "滑鼠移出隱藏說明");
+        }
+
+        [Test]
+        public void HoverTooltip_DoesNotChangeBattleOrPlan()
+        {
+            string before = view.Session.Controller.CloneState().Fingerprint();
+            for (int i = 0; i < view.HandIds.Count; i++) view.ShowCardTooltip(i);
+            Assert.AreEqual(before, view.Session.Controller.CloneState().Fingerprint());
+            Assert.AreEqual(0, view.Session.Staged.Count);
         }
     }
 }

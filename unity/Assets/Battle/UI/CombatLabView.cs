@@ -35,6 +35,10 @@ namespace Shepherd.Battle.UI
 
         private string topSummary = "";
         private readonly Dictionary<string, Text> chipValues = new Dictionary<string, Text>();
+        private readonly Dictionary<string, Text> chipLabels = new Dictionary<string, Text>();
+        private RectTransform tooltip;
+        private Text tooltipText;
+        private int hoveredSlot = -1;
         private Text messageText;
         private Text sequenceTitle;
         private Text previewText;
@@ -47,7 +51,6 @@ namespace Shepherd.Battle.UI
         private readonly List<Button> sequenceButtons = new List<Button>();
         private readonly List<Button> handButtons = new List<Button>();
         private readonly List<int> handIds = new List<int>();
-        private Button previewButton;
         private Button commitButton;
         private Button redrawButton;
         private Button clearButton;
@@ -69,7 +72,6 @@ namespace Shepherd.Battle.UI
         public IReadOnlyList<Button> SequenceButtons { get { return sequenceButtons; } }
         public IReadOnlyList<Button> HandButtons { get { return handButtons; } }
         public IReadOnlyList<int> HandIds { get { return handIds; } }
-        public Button PreviewButton { get { return previewButton; } }
         public Button CommitButton { get { return commitButton; } }
         public Button RedrawButton { get { return redrawButton; } }
         public Button ClearButton { get { return clearButton; } }
@@ -77,6 +79,11 @@ namespace Shepherd.Battle.UI
         public InputField SeedInput { get { return seedInput; } }
         public ScrollRect LogScroll { get { return logScroll; } }
         public ScrollRect PreviewScroll { get { return previewScroll; } }
+        public RectTransform Tooltip { get { return tooltip; } }
+        public bool TooltipVisible { get { return tooltip != null && tooltip.gameObject.activeSelf; } }
+        public string TooltipText { get { return tooltipText.text; } }
+        public string EnemyText(int index) { return enemyButtons[index].GetComponentInChildren<Text>().text; }
+        public string ChipText(string key) { return chipLabels[key].text + "｜" + chipValues[key].text; }
 
         /// <summary>
         /// 與 CanvasScaler（Scale With Screen Size、Match Width Or Height）相同的縮放計算，
@@ -158,6 +165,44 @@ namespace Shepherd.Battle.UI
             BuildCenter(root);
             BuildBottom(root);
             BuildLog(root);
+            BuildTooltip(root);
+        }
+
+        /// <summary>手牌懸停時的說明框：放在最上層，不攔截滑鼠，避免閃爍。</summary>
+        private void BuildTooltip(RectTransform root)
+        {
+            tooltip = CombatLabUi.Panel("CardTooltip", root, new Color(0.06f, 0.07f, 0.08f, 0.97f));
+            tooltip.anchorMin = tooltip.anchorMax = new Vector2(0.5f, 0.5f);
+            tooltip.pivot = new Vector2(0.5f, 0f);
+            tooltip.sizeDelta = new Vector2(TooltipWidth, 100f);
+            var outline = tooltip.gameObject.AddComponent<Outline>();
+            outline.effectColor = CombatLabUi.Highlight;
+            outline.effectDistance = new Vector2(2f, -2f);
+            var group = tooltip.gameObject.AddComponent<CanvasGroup>();
+            group.blocksRaycasts = false;
+            group.interactable = false;
+            tooltip.GetComponent<Image>().raycastTarget = false;
+            var v = CombatLabUi.Vertical(tooltip, 0f, 14);
+            v.childForceExpandHeight = false;
+            var fitter = tooltip.gameObject.AddComponent<ContentSizeFitter>();
+            fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            tooltipText = CombatLabUi.Label("Text", tooltip, "", CombatLabStyle.Body, TextAnchor.UpperLeft);
+            tooltipText.lineSpacing = 1.1f;
+            tooltipText.raycastTarget = false;
+            tooltip.gameObject.SetActive(false);
+        }
+
+        private const float TooltipWidth = 560f;
+
+        private static void AddHover(Button b, System.Action enter, System.Action exit)
+        {
+            var trigger = b.gameObject.AddComponent<EventTrigger>();
+            var on = new EventTrigger.Entry { eventID = EventTriggerType.PointerEnter };
+            on.callback.AddListener(_ => enter());
+            var off = new EventTrigger.Entry { eventID = EventTriggerType.PointerExit };
+            off.callback.AddListener(_ => exit());
+            trigger.triggers.Add(on);
+            trigger.triggers.Add(off);
         }
 
         private void BuildTopBar(RectTransform root)
@@ -168,13 +213,13 @@ namespace Shepherd.Battle.UI
             row.childForceExpandWidth = false;
 
             AddChip(top, "Round", "回合", 1f);
-            AddChip(top, "Anchor", "錨定值", 1.2f);
-            AddChip(top, "Shield", "擬態錨定", 1f);
-            AddChip(top, "AP", "AP（剩餘 / 上限）", 1.2f);
-            AddChip(top, "School", "學派", 1.9f);
-            AddChip(top, "Outcome", "戰鬥狀態", 1f);
-            AddChip(top, "Redraw", "調度", 0.9f);
-            AddChip(top, "Deck", "牌庫・棄牌", 1.1f);
+            AddChip(top, "Anchor", "錨定值", 1.6f);
+            AddChip(top, "Shield", "擬態錨定", 1.4f);
+            AddChip(top, "AP", "AP（剩餘 / 上限）", 1.1f);
+            AddChip(top, "School", "學派", 1.8f);
+            AddChip(top, "Outcome", "戰鬥狀態", 0.9f);
+            AddChip(top, "Redraw", "調度", 0.8f);
+            AddChip(top, "Deck", "牌庫・棄牌", 1f);
         }
 
         private void AddChip(RectTransform parent, string key, string label, float flex)
@@ -183,7 +228,8 @@ namespace Shepherd.Battle.UI
             CombatLabUi.Size(chip, -1, -1, -1, flex);
             var v = CombatLabUi.Vertical(chip, 0f, 4);
             v.childForceExpandHeight = true;
-            CombatLabUi.Label("Label", chip, label, CombatLabStyle.MinFont, TextAnchor.MiddleCenter, CombatLabUi.MutedText);
+            chipLabels[key] = CombatLabUi.Label("Label", chip, label, CombatLabStyle.MinFont, TextAnchor.MiddleCenter,
+                CombatLabUi.MutedText);
             var value = CombatLabUi.Label("Value", chip, "", CombatLabStyle.Important, TextAnchor.MiddleCenter);
             value.fontStyle = FontStyle.Bold;
             chipValues[key] = value;
@@ -231,9 +277,9 @@ namespace Shepherd.Battle.UI
                 var b = CombatLabUi.Button("Enemy_" + id, enemyList, "", () => Session.SelectTarget(id), CombatLabStyle.Body);
                 var t = b.GetComponentInChildren<Text>();
                 t.alignment = TextAnchor.MiddleLeft;
-                t.lineSpacing = 1.1f;
-                CombatLabUi.Stretch(t.rectTransform, 12f);
-                CombatLabUi.Size(b, 128);
+                t.lineSpacing = 1.05f;
+                CombatLabUi.Stretch(t.rectTransform, 10f);
+                CombatLabUi.Size(b, 150);
                 enemyButtons.Add(b);
             }
         }
@@ -266,7 +312,7 @@ namespace Shepherd.Battle.UI
                 sequenceButtons.Add(b);
             }
 
-            SectionTitle(center, "PreviewTitle", "預覽（呼叫戰鬥核心，不改動真實狀態）");
+            SectionTitle(center, "PreviewTitle", "本回合預估（即時，依目前編排；尚未結算）");
             previewText = CombatLabUi.ScrollText("Preview", center, CombatLabStyle.Body, out previewScroll);
             previewText.lineSpacing = 1.05f;
             CombatLabUi.Size(previewScroll, -1, 1);
@@ -278,7 +324,7 @@ namespace Shepherd.Battle.UI
             CombatLabUi.Anchor(bottom, 0f, 0f, LogLeft, BottomTop, 4f);
             CombatLabUi.Vertical(bottom, 8f, 10);
 
-            SectionTitle(bottom, "HandTitle", "手牌（點擊加入／移除編排；調度模式下點擊要洗回的牌）");
+            SectionTitle(bottom, "HandTitle", "手牌（滑鼠移到牌上看詳細效果；點擊加入／移除編排）");
             var hand = CombatLabUi.Rect("Hand", bottom);
             CombatLabUi.Horizontal(hand, 8f);
             CombatLabUi.Size(hand, -1, 1);
@@ -286,7 +332,10 @@ namespace Shepherd.Battle.UI
             {
                 int slot = i;
                 var b = CombatLabUi.Button("Hand_" + i, hand, "", () => OnHandClicked(slot), CombatLabStyle.Value);
-                b.GetComponentInChildren<Text>().lineSpacing = 1.05f;
+                var t = b.GetComponentInChildren<Text>();
+                t.lineSpacing = 1.0f;
+                CombatLabUi.Stretch(t.rectTransform, 4f);
+                AddHover(b, () => ShowCardTooltip(slot), () => HideCardTooltip(slot));
                 handButtons.Add(b);
             }
 
@@ -294,15 +343,13 @@ namespace Shepherd.Battle.UI
             var row = CombatLabUi.Horizontal(actions, 8f);
             row.childForceExpandWidth = false;
             CombatLabUi.Size(actions, 58);
-            previewButton = CombatLabUi.Button("Preview", actions, "預覽", () => Session.Preview(), CombatLabStyle.Important);
             commitButton = CombatLabUi.Button("Commit", actions, "", () => Session.Commit(), CombatLabStyle.Important);
             redrawButton = CombatLabUi.Button("Redraw", actions, "", ToggleRedrawMode, CombatLabStyle.Button);
             var seedLabel = CombatLabUi.Label("SeedLabel", actions, "種子", CombatLabStyle.Body, TextAnchor.MiddleRight,
                 CombatLabUi.MutedText);
             seedInput = CombatLabUi.Input("Seed", actions, Session.Seed.ToString(), "種子");
             resetButton = CombatLabUi.Button("Reset", actions, "重置戰鬥", OnReset, CombatLabStyle.Button);
-            CombatLabUi.Size(previewButton, -1, -1, -1, 1f);
-            CombatLabUi.Size(commitButton, -1, -1, -1, 1.8f);
+            CombatLabUi.Size(commitButton, -1, -1, -1, 2.4f);
             CombatLabUi.Size(redrawButton, -1, -1, -1, 1.1f);
             CombatLabUi.Size(seedLabel, -1, -1, 50, 0);
             CombatLabUi.Size(seedInput, -1, -1, 150, 0);
@@ -386,6 +433,116 @@ namespace Shepherd.Battle.UI
             logText.text = string.Join("\n", Session.Log);
             Canvas.ForceUpdateCanvases();
             logScroll.verticalNormalizedPosition = 0f;
+
+            if (hoveredSlot >= 0) ShowCardTooltip(hoveredSlot);
+        }
+
+        // ---------------- 手牌說明框 ----------------
+
+        /// <summary>顯示手牌第 slot 張的說明（滑鼠移入時呼叫；測試可直接呼叫）。</summary>
+        public void ShowCardTooltip(int slot)
+        {
+            if (tooltip == null || slot < 0 || slot >= handIds.Count || !handButtons[slot].gameObject.activeSelf)
+            {
+                HideCardTooltip(slot);
+                return;
+            }
+            hoveredSlot = slot;
+            tooltipText.text = CardTooltip(handIds[slot]);
+            tooltip.gameObject.SetActive(true);
+            tooltip.SetAsLastSibling();
+            PlaceTooltip((RectTransform)handButtons[slot].transform);
+        }
+
+        public void HideCardTooltip(int slot)
+        {
+            if (slot != hoveredSlot && slot >= 0) return;
+            hoveredSlot = -1;
+            if (tooltip != null) tooltip.gameObject.SetActive(false);
+        }
+
+        /// <summary>把說明框放在牌的正上方，並限制在畫布內。</summary>
+        private void PlaceTooltip(RectTransform card)
+        {
+            var root = (RectTransform)canvas.transform;
+            LayoutRebuilder.ForceRebuildLayoutImmediate(tooltip);
+            var corners = new Vector3[4];
+            card.GetWorldCorners(corners);
+            Vector2 topCenter = root.InverseTransformPoint((corners[1] + corners[2]) * 0.5f);
+            var area = root.rect;
+            float half = tooltip.rect.width * 0.5f;
+            float x = Mathf.Clamp(topCenter.x, area.xMin + half + 4f, area.xMax - half - 4f);
+            float y = topCenter.y + 8f;
+            float h = tooltip.rect.height;
+            if (y + h > area.yMax - 4f) y = area.yMax - 4f - h;
+            tooltip.anchoredPosition = new Vector2(x, y);
+        }
+
+        private string CardTooltip(int cardId)
+        {
+            var state = Session.Controller.CloneState();
+            var card = state.Card(cardId);
+            var school = Session.SelectedSchool;
+            var rules = Session.Rules;
+            var sb = new StringBuilder();
+            sb.Append("<size=").Append(CombatLabStyle.Important).Append("><b>").Append(CombatLabText.Element(card.Element))
+              .Append("・").Append(CombatLabText.EffectName(school, card.Element)).Append("</b></size>")
+              .Append("　<size=").Append(CombatLabStyle.Small).Append(">").Append(CombatLabText.School(school))
+              .Append("　#").Append(cardId).Append("</size>\n");
+            sb.Append(CombatLabText.EffectDetail(rules, school, card.Element)).Append('\n');
+            if (Session.CardNeedsTarget(card.Element))
+                sb.Append("目標：").Append(Session.SelectedTargetId.HasValue ? Session.EnemyName(Session.SelectedTargetId.Value) : "（無）")
+                  .Append("（左側點敵人可更換）\n");
+            else
+                sb.Append("不需要目標\n");
+            sb.Append("<color=#C8CCD4>接在它後面的牌　").Append(CombatLabText.ResidueHint(rules, card.Element)).Append("</color>\n");
+
+            sb.Append("<b>── 加入後本回合預估 ──</b>\n");
+            if (redrawMode)
+            {
+                sb.Append("調度模式：點擊會把這張洗回牌庫並重抽一張");
+            }
+            else
+            {
+                string reason;
+                var with = Session.ForecastWithCard(cardId, out reason);
+                if (with == null)
+                {
+                    sb.Append(reason);
+                    if (Session.IsStaged(cardId)) sb.Append("（點擊可移除）");
+                }
+                else
+                {
+                    var now = Session.Forecast;
+                    sb.Append("錨定值 ").Append(CombatLabText.Change(with.AnchorBefore, with.AnchorAfter))
+                      .Append("　擬態 ").Append(CombatLabText.Change(with.ShieldBefore, with.ShieldAfter, false)).Append('\n');
+                    foreach (var e in with.Enemies)
+                    {
+                        if (e.ResolvedBefore) continue;
+                        sb.Append(e.Name).Append(" 失序值 ").Append(CombatLabText.Change(e.ValueBefore, e.ValueAfter, false));
+                        if (e.ResolvedAfter) sb.Append(CombatLabText.Colored(" 解除", CombatLabText.Good));
+                        var old = now != null ? now.Enemy(e.Id) : null;
+                        if (old != null && old.ValueAfter != e.ValueAfter)
+                            sb.Append("<color=#C8CCD4>（比不加 ").Append(CombatLabText.Signed(e.ValueAfter - old.ValueAfter)).Append("）</color>");
+                        sb.Append('\n');
+                    }
+                    if (now != null && now.AnchorAfter != with.AnchorAfter)
+                        sb.Append("錨定值比不加 ").Append(CombatLabText.Signed(with.AnchorAfter - now.AnchorAfter)).Append('\n');
+                    sb.Append("<color=#C8CCD4>含承接、三連與敵方回合；尚未結算</color>");
+                }
+            }
+            sb.Append("\n<color=#C8CCD4>其他學派：");
+            bool first = true;
+            foreach (var other in Schools)
+            {
+                if (other == school) continue;
+                if (!first) sb.Append("；");
+                first = false;
+                sb.Append(CombatLabText.School(other)).Append("・").Append(CombatLabText.EffectName(other, card.Element))
+                  .Append(" ").Append(CombatLabText.EffectShort(rules, other, card.Element));
+            }
+            sb.Append("</color>");
+            return sb.ToString();
         }
 
         private void RefreshTopBar(BattleSnapshot snap)
@@ -399,8 +556,21 @@ namespace Shepherd.Battle.UI
             string deck = snap.DeckCount + "・" + snap.DiscardCount;
 
             chipValues["Round"].text = "第 " + (snap.Round + 1) + " 回合";
-            chipValues["Anchor"].text = anchor;
-            chipValues["Shield"].text = snap.Shield.ToString();
+            var f = Session.Forecast;
+            if (f != null)
+            {
+                chipLabels["Anchor"].text = "錨定值（現在 → 回合後）";
+                chipValues["Anchor"].text = snap.Anchor + " → " + ProjectedValue(f.AnchorBefore, f.AnchorAfter, true);
+                chipLabels["Shield"].text = "擬態錨定（現在 → 回合後）";
+                chipValues["Shield"].text = snap.Shield + " → " + ProjectedValue(f.ShieldBefore, f.ShieldAfter, false);
+            }
+            else
+            {
+                chipLabels["Anchor"].text = "錨定值（上限 " + Session.Rules.MaxAnchor + "）";
+                chipValues["Anchor"].text = snap.Anchor.ToString();
+                chipLabels["Shield"].text = "擬態錨定";
+                chipValues["Shield"].text = snap.Shield.ToString();
+            }
             chipValues["AP"].text = ap;
             chipValues["School"].text = school;
             chipValues["Outcome"].text = outcome;
@@ -430,9 +600,19 @@ namespace Shepherd.Battle.UI
                 else
                 {
                     if (target) sb.Append("　<b>目標</b>");
-                    sb.Append("\n失序值 <b>").Append(e.Value).Append("</b>　本回合預告攻擊 <b>").Append(e.ForecastAttack).Append("</b>");
-                    sb.Append("\n連結 ").Append(e.Links).Append(" / ").Append(Session.Rules.LinkCap)
-                      .Append("　校正 ").Append(e.Corrections).Append("　束縛 ").Append(e.Bind);
+                    var ef = Session.Forecast != null ? Session.Forecast.Enemy(e.Id) : null;
+                    sb.Append("\n失序值 <b>").Append(e.Value).Append("</b>");
+                    if (ef != null && ef.ValueAfter != e.Value)
+                    {
+                        sb.Append(" → ").Append(CombatLabText.Colored("<b>" + ef.ValueAfter + "</b>", CombatLabText.Good))
+                          .Append(ef.ResolvedAfter ? CombatLabText.Colored(" 解除", CombatLabText.Good) : "");
+                    }
+                    sb.Append("\n");
+                    if (ef != null) sb.Append("<b>").Append(CombatLabText.EnemyImpact(ef, Session.Forecast.Outcome)).Append("</b>");
+                    else sb.Append("本回合攻擊 <b>").Append(e.ForecastAttack).Append("</b>");
+                    sb.Append("\n<size=").Append(CombatLabStyle.Small).Append(">連結 ").Append(e.Links).Append(" / ")
+                      .Append(Session.Rules.LinkCap).Append("　校正 ").Append(e.Corrections).Append("　束縛 ").Append(e.Bind)
+                      .Append("</size>");
                 }
                 Color c = e.Resolved ? new Color(0.18f, 0.18f, 0.20f, 1f) : target ? new Color(0.46f, 0.36f, 0.14f, 1f)
                     : CombatLabUi.ButtonColor;
@@ -481,7 +661,8 @@ namespace Shepherd.Battle.UI
                 int order = Session.StagedIndex(card.Id);
                 string label = "<b>" + CombatLabText.Element(card.Element) + "</b>\n<size=" + CombatLabStyle.Button + ">"
                     + CombatLabText.EffectName(Session.SelectedSchool, card.Element) + "</size>\n<size="
-                    + CombatLabStyle.MinFont + ">#" + card.Id + "</size>";
+                    + CombatLabStyle.Small + ">" + CombatLabText.EffectShort(Session.Rules, Session.SelectedSchool, card.Element)
+                    + "</size>";
                 if (order >= 0) label += "\n<size=" + CombatLabStyle.Body + "><b>【第 " + (order + 1) + " 張】</b></size>";
                 else if (redrawMode) label += "\n<size=" + CombatLabStyle.Body + ">點擊調度</size>";
                 Color color = order >= 0 ? new Color(0.33f, 0.33f, 0.36f, 1f) : ElementColor(card.Element, 1f);
@@ -492,7 +673,6 @@ namespace Shepherd.Battle.UI
 
         private void RefreshActions(BattleSnapshot snap, bool over)
         {
-            CombatLabUi.SetButton(previewButton, "預覽", CombatLabUi.ButtonColor, !over);
             string commitLabel = Session.Staged.Count == 0 ? "結束回合（空序列）" : "確認施放（" + Session.Staged.Count + " 張）";
             CombatLabUi.SetButton(commitButton, commitLabel, over ? CombatLabUi.ButtonColor : new Color(0.20f, 0.46f, 0.30f, 1f),
                 !over);
@@ -507,36 +687,52 @@ namespace Shepherd.Battle.UI
             var p = Session.LastPreview;
             if (p == null)
             {
-                previewText.text = "尚未預覽。編排完成後按「預覽」，會用同一個戰鬥核心計算結果，但不改動真實狀態。";
+                previewText.text = "戰鬥已結束，按「重置戰鬥」重新開始。";
                 return;
             }
-            if (!p.Validation.IsValid)
+            var f = Session.Forecast;
+            if (!p.Validation.IsValid || f == null)
             {
-                previewText.text = "無法預覽：" + p.Validation.Error;
+                previewText.text = "目前編排無法結算：" + p.Validation.Error;
                 return;
             }
 
-            var r = p.Result;
-            var ns = r.NewState;
             var sb = new StringBuilder();
-            sb.Append("<b>預覽結果（尚未結算）　").Append(CombatLabText.Outcome(r.Outcome)).Append("</b>\n");
-            sb.Append("錨定值 ").Append(snap.Anchor).Append(" → <b>").Append(ns.Anchor)
-              .Append("</b>　擬態錨定 ").Append(snap.Shield).Append(" → <b>").Append(ns.Shield).Append("</b>\n");
-            foreach (var before in snap.Enemies)
+            sb.Append("<b>").Append(Session.Staged.Count == 0 ? "若直接結束回合（空序列）" : "若現在確認施放")
+              .Append("　→ ").Append(CombatLabText.Outcome(f.Outcome)).Append("</b>\n");
+            sb.Append("<size=").Append(CombatLabStyle.Button).Append(">錨定值 ").Append(CombatLabText.Change(f.AnchorBefore, f.AnchorAfter))
+              .Append("　擬態錨定 ").Append(CombatLabText.Change(f.ShieldBefore, f.ShieldAfter, false)).Append("</size>\n");
+            sb.Append("<b>敵方回合</b>　").Append(CombatLabText.DamageSummary(f)).Append('\n');
+            foreach (var e in f.Enemies)
             {
-                var after = ns.FindEnemy(before.Id);
-                if (after == null) continue;
-                sb.Append(before.Name).Append("：失序值 ").Append(before.Value).Append(" → <b>").Append(after.Value)
-                  .Append("</b>　連結 ").Append(before.Links).Append(" → ").Append(after.Links)
-                  .Append("　校正 ").Append(before.Corrections).Append(" → ").Append(after.Corrections);
-                if (after.Resolved && !before.Resolved) sb.Append("　【解除】");
+                if (e.ResolvedBefore) continue;
+                sb.Append("・").Append(e.Name).Append("：").Append(CombatLabText.EnemyImpact(e, f.Outcome)).Append('\n');
+            }
+            sb.Append("<b>敵人變化</b>\n");
+            foreach (var e in f.Enemies)
+            {
+                if (e.ResolvedBefore) continue;
+                sb.Append("・").Append(e.Name).Append("：失序值 ").Append(CombatLabText.Change(e.ValueBefore, e.ValueAfter, false));
+                if (e.ResolvedAfter) sb.Append(CombatLabText.Colored("【解除】", CombatLabText.Good));
+                if (e.LinksBefore != e.LinksAfter) sb.Append("　連結 ").Append(e.LinksBefore).Append(" → ").Append(e.LinksAfter);
+                if (e.CorrectionsBefore != e.CorrectionsAfter)
+                    sb.Append("　校正 ").Append(e.CorrectionsBefore).Append(" → ").Append(e.CorrectionsAfter);
                 sb.Append('\n');
             }
-            sb.Append("—— 預覽事件 ——\n");
-            foreach (var e in r.Events) sb.Append(Session.Describe(e)).Append('\n');
+            sb.Append("<color=#C8CCD4>—— 詳細結算順序 ——\n");
+            foreach (var e in f.Events) sb.Append(Session.Describe(e)).Append('\n');
+            sb.Append("</color>");
             previewText.text = sb.ToString();
             Canvas.ForceUpdateCanvases();
             previewScroll.verticalNormalizedPosition = 1f;
+        }
+
+        /// <summary>預估值：變差用紅色、變好用綠色。</summary>
+        private static string ProjectedValue(int before, int after, bool lowerIsBad)
+        {
+            if (before == after) return after.ToString();
+            bool bad = (after < before) == lowerIsBad;
+            return CombatLabText.Colored(after.ToString(), bad ? CombatLabText.Bad : CombatLabText.Good);
         }
 
         private static Color ElementColor(ElementKind e, float strength)

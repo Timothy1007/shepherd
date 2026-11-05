@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Shepherd.Battle.Core;
 
@@ -49,7 +49,14 @@ namespace Shepherd.Battle.UI
         public int Seed { get; private set; }
         public SchoolKind SelectedSchool { get; private set; }
         public int? SelectedTargetId { get; private set; }
+        /// <summary>依目前編排即時計算的預覽（每次編排、學派或調度變動後自動更新；戰鬥結束時為 null）。</summary>
         public PreviewResult LastPreview { get; private set; }
+        /// <summary><see cref="LastPreview"/> 的前後對照摘要；預覽不合法或戰鬥結束時為 null。</summary>
+        public RoundForecast Forecast { get; private set; }
+        /// <summary>上一次確認施放的結算摘要（尚未確認過則為 null）。</summary>
+        public RoundForecast LastRound { get; private set; }
+        /// <summary>上一次確認的回合（1 起算）。</summary>
+        public int LastRoundNumber { get; private set; }
         public string Message { get; private set; }
         public BattleController Controller { get { return controller; } }
         public IReadOnlyList<StagedCard> Staged { get { return staged.AsReadOnly(); } }
@@ -72,7 +79,7 @@ namespace Shepherd.Battle.UI
             controller = BattleController.NewBattle(scenario.Enemies, rules, seed);
             staged.Clear();
             log.Clear();
-            LastPreview = null;
+            LastRound = null;
             SelectedSchool = SchoolKind.Structure;
             SelectedTargetId = null;
             EnsureTarget();
@@ -80,6 +87,7 @@ namespace Shepherd.Battle.UI
             AddLog("══ " + scenario.Name + "，種子 " + seed + " ══");
             AddLog(HandLine());
             controller.ClearStage();
+            UpdatePreview();
             Notify();
         }
 
@@ -92,7 +100,7 @@ namespace Shepherd.Battle.UI
             if (controller.LockedSchool.HasValue && controller.LockedSchool.Value != school)
                 return Fail("學派已鎖定為 " + CombatLabText.School(controller.LockedSchool.Value) + "，本回合不得更換");
             SelectedSchool = school;
-            LastPreview = null;
+            UpdatePreview();
             SyncStage();
             Message = "學派：" + CombatLabText.School(school);
             Notify();
@@ -150,7 +158,7 @@ namespace Shepherd.Battle.UI
             if (!v.IsValid) return Fail(v.Error);
 
             staged.Add(candidate[candidate.Count - 1]);
-            LastPreview = null;
+            UpdatePreview();
             SyncStage();
             Message = "加入第 " + staged.Count + " 張：" + CombatLabText.Element(card.Element);
             Notify();
@@ -167,7 +175,7 @@ namespace Shepherd.Battle.UI
         {
             if (index < 0 || index >= staged.Count) return Fail("編排中沒有這個位置");
             staged.RemoveAt(index);
-            LastPreview = null;
+            UpdatePreview();
             SyncStage();
             Message = "已移除第 " + (index + 1) + " 張";
             Notify();
@@ -177,7 +185,7 @@ namespace Shepherd.Battle.UI
         public void ClearPlan()
         {
             staged.Clear();
-            LastPreview = null;
+            UpdatePreview();
             SyncStage();
             Message = "已清空編排";
             Notify();
@@ -207,14 +215,38 @@ namespace Shepherd.Battle.UI
 
         // ---------------- 預覽與確認 ----------------
 
-        /// <summary>預覽：呼叫同一個 RoundResolver，不改動真實狀態。</summary>
+        /// <summary>
+        /// 手動重新預覽（介面已改為即時預覽，此方法保留給測試與工具使用）。
+        /// 呼叫同一個 RoundResolver，不改動真實狀態。
+        /// </summary>
         public PreviewResult Preview()
         {
             var r = controller.Preview(BuildPlan());
             LastPreview = r;
+            Forecast = r.Validation.IsValid ? RoundForecast.From(controller.CloneState(), r.Result) : null;
             Message = r.Validation.IsValid ? "預覽完成（尚未結算）" : "無法預覽：" + r.Validation.Error;
             Notify();
             return r;
+        }
+
+        /// <summary>
+        /// 假設把這張牌加到編排尾端（目標為目前目標）時的預估結果；不改動編排與戰鬥狀態。
+        /// 無法加入時回傳 null，reason 說明原因。
+        /// </summary>
+        public RoundForecast ForecastWithCard(int cardId, out string reason)
+        {
+            reason = null;
+            if (IsOver) { reason = "戰鬥已結束"; return null; }
+            if (IsStaged(cardId)) { reason = "已在編排第 " + (StagedIndex(cardId) + 1) + " 張"; return null; }
+            if (staged.Count >= ApMax) { reason = "AP 已用完（每回合最多 " + ApMax + " 張）"; return null; }
+            var state = controller.CloneState();
+            if (!state.Hand.Contains(cardId)) { reason = "這張牌不在手牌中"; return null; }
+
+            var candidate = new List<StagedCard>(staged);
+            candidate.Add(new StagedCard(cardId, state.Card(cardId).Element, SelectedTargetId));
+            var p = controller.Preview(BuildPlan(candidate, SelectedSchool));
+            if (!p.Validation.IsValid) { reason = p.Validation.Error; return null; }
+            return RoundForecast.From(state, p.Result);
         }
 
         /// <summary>確認施放／結束回合（空序列合法）。</summary>
@@ -222,6 +254,7 @@ namespace Shepherd.Battle.UI
         {
             var plan = BuildPlan();
             int round = controller.Snapshot().Round;
+            var before = controller.CloneState();
             var r = controller.Commit(plan);
             if (!r.Accepted)
             {
@@ -230,19 +263,26 @@ namespace Shepherd.Battle.UI
                 return r;
             }
 
+            LastRound = RoundForecast.From(before, r.Resolution);
+            LastRoundNumber = round + 1;
             AddLog("── 第 " + (round + 1) + " 回合 · " + CombatLabText.School(plan.School) + " · " + SequenceLine(plan) + " ──");
             var after = controller.CloneState();
             foreach (var e in r.Resolution.Events) AddLog(Describe(e, after));
+            AddLog("  ＝ 本回合結果：錨定值 " + LastRound.AnchorBefore + " → " + LastRound.AnchorAfter
+                + "，擬態錨定 " + LastRound.ShieldBefore + " → " + LastRound.ShieldAfter
+                + "；" + CombatLabText.DamageSummary(LastRound));
             foreach (var e in r.RefillEvents) AddLog(Describe(e, after));
             if (controller.Outcome == BattleOutcome.Ongoing) AddLog(HandLine());
 
             staged.Clear();
-            LastPreview = null;
             controller.ClearStage();
             EnsureTarget();
+            UpdatePreview();
+            string summary = "第 " + (round + 1) + " 回合：" + CombatLabText.DamageSummary(LastRound)
+                + "（錨定值 " + LastRound.AnchorBefore + " → " + LastRound.AnchorAfter + "）";
             Message = controller.Outcome == BattleOutcome.Ongoing
-                ? "第 " + (round + 1) + " 回合結算完成，進入第 " + (round + 2) + " 回合"
-                : "戰鬥結束：" + CombatLabText.Outcome(controller.Outcome);
+                ? summary + "　→ 進入第 " + (round + 2) + " 回合"
+                : "戰鬥結束：" + CombatLabText.Outcome(controller.Outcome) + "　" + summary;
             Notify();
             return r;
         }
@@ -258,7 +298,7 @@ namespace Shepherd.Battle.UI
                 return Fail(controller.Snapshot().RedrawsRemaining <= 0 ? "本回合已調度過" : "無法調度這張牌");
             var after = controller.CloneState();
             for (int i = before; i < controller.Log.Count; i++) AddLog(Describe(controller.Log[i], after));
-            LastPreview = null;
+            UpdatePreview();
             Message = "調度完成";
             Notify();
             return true;
@@ -328,6 +368,19 @@ namespace Shepherd.Battle.UI
             {
                 if (e.Alive) { SelectedTargetId = e.Id; break; }
             }
+        }
+
+        /// <summary>即時預覽：依目前編排（含空序列）重新呼叫 RoundResolver，不改動真實狀態。</summary>
+        private void UpdatePreview()
+        {
+            if (IsOver)
+            {
+                LastPreview = null;
+                Forecast = null;
+                return;
+            }
+            LastPreview = controller.Preview(BuildPlan());
+            Forecast = LastPreview.Validation.IsValid ? RoundForecast.From(controller.CloneState(), LastPreview.Result) : null;
         }
 
         /// <summary>讓引擎的編排區與介面一致（調度會依此拒絕已編排的牌）。</summary>

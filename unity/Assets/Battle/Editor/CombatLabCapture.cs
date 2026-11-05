@@ -43,13 +43,19 @@ namespace Shepherd.Battle.Editor
             foreach (var size in sizes)
             {
                 string path = Path.Combine(dir, "combatlab_" + size.x + "x" + size.y + ".png");
-                Capture(size.x, size.y, path, true);
+                Capture(size.x, size.y, path, true, false);
                 Debug.Log("[CombatLab] 截圖 " + path);
+                string hover = Path.Combine(dir, "combatlab_" + size.x + "x" + size.y + "_hover.png");
+                Capture(size.x, size.y, hover, true, true);
+                Debug.Log("[CombatLab] 截圖 " + hover);
             }
         }
 
-        /// <summary>渲染一張截圖。populate＝true 時先操作一回合，讓預覽、編排與紀錄都有內容。</summary>
-        public static void Capture(int width, int height, string path, bool populate)
+        /// <summary>
+        /// 渲染一張截圖。populate＝true 時先操作一回合，讓預覽、編排與紀錄都有內容；
+        /// hover＝true 時模擬滑鼠停在第 5 張手牌上，顯示說明框。
+        /// </summary>
+        public static void Capture(int width, int height, string path, bool populate, bool hover = false)
         {
             var root = new GameObject("CombatLabCaptureRoot");
             var camGo = new GameObject("CombatLabCaptureCamera");
@@ -60,6 +66,7 @@ namespace Shepherd.Battle.Editor
                 var view = root.AddComponent<CombatLabView>();
                 view.Build(false);
                 if (populate) Populate(view);
+                if (hover) view.ShowCardTooltip(4);
 
                 var cam = camGo.AddComponent<Camera>();
                 cam.clearFlags = CameraClearFlags.SolidColor;
@@ -111,7 +118,6 @@ namespace Shepherd.Battle.Editor
             s.SelectSchool(Core.SchoolKind.Relation);
             s.AddCard(hand[2].Id);
             s.AddCard(hand[3].Id);
-            s.Preview();
         }
 
         private static string Arg(string name)
