@@ -48,7 +48,8 @@ namespace Shepherd.Battle.Tests
             CollectionAssert.AreEqual(snap.Hand.Select(c => c.Id).ToArray(), view.HandIds.ToArray());
             for (int i = 0; i < snap.Enemies.Count; i++)
             {
-                var label = view.EnemyButtons[i].GetComponentInChildren<Text>().text;
+                var label = System.Text.RegularExpressions.Regex.Replace(
+                    view.EnemyButtons[i].GetComponentInChildren<Text>().text, "<.*?>", "");
                 StringAssert.Contains(snap.Enemies[i].Name, label);
                 StringAssert.Contains("失序值 " + snap.Enemies[i].Value, label);
             }

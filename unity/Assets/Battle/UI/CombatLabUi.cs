@@ -4,15 +4,35 @@ using UnityEngine.UI;
 
 namespace Shepherd.Battle.UI
 {
+    /// <summary>
+    /// Combat Lab 的版面尺寸與字級（以參考解析度 1600×900 為單位）。
+    /// 16:9 畫面下實際像素 ＝ 字級 × 畫面高度 ÷ 900，例如 1920×1080 時 ×1.2、1280×720 時 ×0.8。
+    /// </summary>
+    public static class CombatLabStyle
+    {
+        public static readonly Vector2 ReferenceResolution = new Vector2(1600f, 900f);
+        public const float MatchWidthOrHeight = 0.5f;
+
+        /// <summary>任何文字的最小字級。</summary>
+        public const int MinFont = 16;
+        public const int Small = 17;
+        public const int Body = 19;
+        public const int Section = 20;
+        public const int Button = 22;
+        public const int Important = 24;
+        public const int Value = 28;
+    }
+
     /// <summary>以程式建立 uGUI 元件的小工具（不使用任何外部圖片或素材）。</summary>
     internal static class CombatLabUi
     {
-        public static readonly Color Background = new Color(0.10f, 0.11f, 0.13f, 1f);
-        public static readonly Color PanelColor = new Color(0.16f, 0.17f, 0.20f, 1f);
-        public static readonly Color ButtonColor = new Color(0.27f, 0.29f, 0.34f, 1f);
-        public static readonly Color Highlight = new Color(0.85f, 0.70f, 0.30f, 1f);
-        public static readonly Color TextColor = new Color(0.92f, 0.92f, 0.92f, 1f);
-        public static readonly Color MutedText = new Color(0.62f, 0.64f, 0.68f, 1f);
+        public static readonly Color Background = new Color(0.09f, 0.10f, 0.12f, 1f);
+        public static readonly Color PanelColor = new Color(0.15f, 0.16f, 0.19f, 1f);
+        public static readonly Color ButtonColor = new Color(0.25f, 0.27f, 0.32f, 1f);
+        public static readonly Color Highlight = new Color(0.90f, 0.74f, 0.32f, 1f);
+        public static readonly Color TextColor = new Color(0.96f, 0.96f, 0.96f, 1f);
+        public static readonly Color MutedText = new Color(0.78f, 0.80f, 0.84f, 1f);
+        public static readonly Color DarkText = new Color(0.10f, 0.09f, 0.07f, 1f);
 
         private static Font font;
 
@@ -105,11 +125,21 @@ namespace Shepherd.Battle.UI
             le.flexibleHeight = flexibleHeight;
             le.preferredWidth = preferredWidth;
             le.flexibleWidth = flexibleWidth;
-            if (preferredHeight > 0) le.minHeight = preferredHeight;
+            // 指定固定尺寸而未指定彈性時明確設為 0；否則 LayoutGroup 的 childForceExpand 會讓它把多餘空間分走。
+            if (preferredHeight > 0)
+            {
+                le.minHeight = preferredHeight;
+                if (flexibleHeight < 0) le.flexibleHeight = 0;
+            }
+            if (preferredWidth > 0)
+            {
+                le.minWidth = preferredWidth;
+                if (flexibleWidth < 0) le.flexibleWidth = 0;
+            }
             return le;
         }
 
-        public static Text Label(string name, Transform parent, string text, int size = 18,
+        public static Text Label(string name, Transform parent, string text, int size = CombatLabStyle.Body,
             TextAnchor align = TextAnchor.MiddleLeft, Color? color = null)
         {
             var rt = Rect(name, parent);
@@ -125,7 +155,7 @@ namespace Shepherd.Battle.UI
             return t;
         }
 
-        public static Button Button(string name, Transform parent, string label, UnityAction onClick, int fontSize = 18)
+        public static Button Button(string name, Transform parent, string label, UnityAction onClick, int fontSize = CombatLabStyle.Button)
         {
             var rt = Rect(name, parent);
             var img = rt.gameObject.AddComponent<Image>();
@@ -140,13 +170,15 @@ namespace Shepherd.Battle.UI
             b.colors = colors;
             if (onClick != null) b.onClick.AddListener(onClick);
             var t = Label("Label", rt, label, fontSize, TextAnchor.MiddleCenter);
-            Stretch(t.rectTransform, 4f);
+            Stretch(t.rectTransform, 6f);
             return b;
         }
 
-        public static void SetButton(Button b, string label, Color color, bool interactable)
+        public static void SetButton(Button b, string label, Color color, bool interactable, Color? textColor = null)
         {
-            b.GetComponentInChildren<Text>().text = label;
+            var t = b.GetComponentInChildren<Text>();
+            t.text = label;
+            t.color = textColor ?? (interactable ? TextColor : MutedText);
             ((Image)b.targetGraphic).color = color;
             b.interactable = interactable;
         }
@@ -163,7 +195,7 @@ namespace Shepherd.Battle.UI
 
             var viewport = Rect("Viewport", root);
             Anchor(viewport, 0, 0, 1, 1, 0);
-            viewport.offsetMax = new Vector2(-16f, 0f);
+            viewport.offsetMax = new Vector2(-18f, 0f);
             viewport.gameObject.AddComponent<RectMask2D>();
 
             var content = Rect("Content", viewport);
@@ -172,7 +204,7 @@ namespace Shepherd.Battle.UI
             content.pivot = new Vector2(0.5f, 1f);
             content.offsetMin = Vector2.zero;
             content.offsetMax = Vector2.zero;
-            var vg = Vertical(content, 0f, 8);
+            var vg = Vertical(content, 0f, 10);
             vg.childForceExpandHeight = false;
             var fitter = content.gameObject.AddComponent<ContentSizeFitter>();
             fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
@@ -183,7 +215,7 @@ namespace Shepherd.Battle.UI
             bar.anchorMin = new Vector2(1, 0);
             bar.anchorMax = new Vector2(1, 1);
             bar.pivot = new Vector2(1, 0.5f);
-            bar.sizeDelta = new Vector2(14f, 0f);
+            bar.sizeDelta = new Vector2(16f, 0f);
             bar.anchoredPosition = Vector2.zero;
             var area = Rect("Sliding Area", bar);
             Stretch(area, 2f);
@@ -205,12 +237,12 @@ namespace Shepherd.Battle.UI
         {
             var rt = Panel(name, parent, new Color(0.9f, 0.9f, 0.9f, 1f));
             var input = rt.gameObject.AddComponent<InputField>();
-            var text = Label("Text", rt, "", 18, TextAnchor.MiddleLeft, Color.black);
+            var text = Label("Text", rt, "", CombatLabStyle.Button, TextAnchor.MiddleLeft, Color.black);
             text.supportRichText = false;
-            Stretch(text.rectTransform, 6f);
-            var ph = Label("Placeholder", rt, placeholder, 16, TextAnchor.MiddleLeft, new Color(0.4f, 0.4f, 0.4f, 1f));
+            Stretch(text.rectTransform, 8f);
+            var ph = Label("Placeholder", rt, placeholder, CombatLabStyle.Body, TextAnchor.MiddleLeft, new Color(0.35f, 0.35f, 0.35f, 1f));
             ph.fontStyle = FontStyle.Italic;
-            Stretch(ph.rectTransform, 6f);
+            Stretch(ph.rectTransform, 8f);
             input.textComponent = text;
             input.placeholder = ph;
             input.contentType = InputField.ContentType.IntegerNumber;

@@ -2,6 +2,7 @@
     "name": "Shepherd.Battle.Editor",
     "rootNamespace": "Shepherd.Battle.Editor",
     "references": [
+        "Shepherd.Battle.Core",
         "Shepherd.Battle.UI"
     ],
     "includePlatforms": [
