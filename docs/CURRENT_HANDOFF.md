@@ -1,3 +1,14 @@
+# 2026-11-07｜已交付 Claude Code 的室內 Graybox 實作腳本（最新）
+使用者希望**先讓 Claude 做可玩原型，後續再依遊玩體驗調整**。本次已在 GitHub `main` 新增：
+`docs/story/case01_seventeenth_door/CASE01_INTERIOR_GRAYBOX_CLAUDE_TASK_V0_1.md`
+這是**Claude Code 可直接執行的開發任務書**，不是遊戲的完成品。讀取它與 `CASE01_AUTHOR_BIBLE_V0_5.md`、`docs/UNITY_BATTLE_V0.1_SPEC.md`、`CASE01_IMPLEMENTATION.md`，先盤點現有 Unity 代碼再實作。
+**首個遊玩切片**：室內一樓玄關／客廳／餐廳／廚房、二樓臥室／書房／樓梯，餐桌兩副變一副、女兒研究線索、樓梯錯接、暫定不存在的夾層核介入點、空間覆寫／錨定、異域反制、既有第三人稱卡牌戰鬥、戰後非戰鬥式核校正、固定局部穩定結尾。QA 須獨立 Scene，可重置／跳階段，不破壞 `AnomalyStreetDemo`、`CombatLab3D` 或卡牌數值。
+**狀態**：GitHub 已新增的是文檔；目前**尚未建立可玩住宅 Scene、執行 Unity QA 或提供遊戲測試網址**。Claude 完工後須依任務書 commit/push main、逐項回報實際測試與未完成處。
+**界線**：兩層樓與不存在的夾層、三段式修復、核視覺為 **可改的關卡假設**，非「所有異域核皆如此」的宇宙設定；艾琳生死、首次校正的秘密、人工失序組織內容仍未定案。
+本地 `git pull origin main`。舊 Web 的 `npm.cmd run build`／`npm.cmd run preview` 不是 Unity 啟動命令。
+
+---
+
 # CURRENT HANDOFF｜2026-11-07 Case01 A v0.5 審核完成（本段最新）
 **已同步至 GitHub main 的劇情文件**：新增 `docs/story/case01_seventeenth_door/CASE01_AUTHOR_BIBLE_V0_5.md`，並更新 CASE01 STORY／LEVEL_DESIGN／DIALOGUES／IMPLEMENTATION、STORY_BIBLE、MAIN_ARC、FORESHADOWING_TRACKER。請先讀**新 A 版**再看歷史 v0.3／v0.2／v0.1。
 **使用者七項明確決策**：①母女既有真實傷害也有溫暖；②女兒艾琳**為研究異域而主動深入**，可能受未決的引導者／記錄吸引，非僅為鄰居犧牲；③**第一次校正涉及被隱瞞的決策**，後案揭露；④失序體是異域維持核所支撐的異常秩序時出現的具象化干預反應；⑤第一案依線索**修復舊校正術式**；⑥**固定主結局**，選擇影響對話與證物；⑦情感收束，世界觀留謎。
