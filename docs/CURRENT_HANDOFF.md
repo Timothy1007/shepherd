@@ -1,3 +1,15 @@
+# 2026-11-06｜Case01 v0.3 劇情方向已同步（本段最新）
+**已確認的創作方向**：〈第十七號門〉以「母親尋找逐漸被遺忘的女兒」展開，週日晚餐／兩副餐具、房屋顯現、進入室內隨調查逐步改寫、接近真相才發生戰鬥、處理異域後帶回可跨案件回看的證物。候選副標題為《被遺忘的晚餐》。案件敘事可融合懸疑、驚悚、溫柔與冒險；人性的細節比為反轉而反轉重要。
+**玩家命運干預原則**：可以提供選擇，讓玩家決定如何介入、調查、保存證物或對外說明，但**有些遺憾無法彌補，選擇不必都能救回所有人**。具體選項與分支、女兒結局、過去是否有人主動選擇、核／殘留校正原因仍需設計，**不可將提案當已定案的真相**。
+**最新設計入口**：`docs/story/case01_seventeenth_door/CASE01_STORY.md` 最上方 v0.3。其他檔案以其最新標題更新段為準；下方 v0.2、v0.1 是沿革紀錄。
+**下階段立刻要做**：母女兩人角色設計——外在與私下個性、母女互動與矛盾、生活細節、談吐、屋內可以被玩家觀察到的痕跡；之後才建立秘密真相時間線並更新對話與 Unity 事件。
+**程式狀態**：本輪只改 `docs/`；沒有執行 Unity、建事務所／屋內場景、修改 C#、戰鬥、模型或 UI。舊 `AnomalyStreetDemo` 仍是可玩 QA 場景；Case01 新 Scene 與可執行測試網址尚不存在。
+**開發分支**：`Timothy1007/shepherd` / `main`。先讀 `docs/DEVELOPMENT_HANDOFF_2026-10-20.md`（舊 Web 交接）、`docs/UNITY_BATTLE_V0.1_SPEC.md`（現行戰鬥）與目前故事文件。不得以舊段落覆蓋最新狀態。
+**本地更新**：`git pull origin main`；`npm.cmd run build`、`npm.cmd run preview` 僅舊 Web 工程，非 Unity 執行方式。
+
+---
+
+
 # 2026-11-06 最新更新｜跨案件敘事與 Case01 v0.2（本段優先）
 **本次已同步 GitHub main：**新增 `docs/story/MAIN_ARC.md`、`docs/story/FORESHADOWING_TRACKER.md`；修改 STORY_BIBLE 及 Case01 STORY、LEVEL_DESIGN、DIALOGUES、IMPLEMENTATION 的優先級說明。原 v0.1 內容保留在文件後段作歷史參考，不再直接作為正式故事的實作依據。
 
