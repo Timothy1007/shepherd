@@ -1,4 +1,16 @@
-# 2026-11-07｜已交付 Claude Code 的室內 Graybox 實作腳本（最新）
+# 2026-11-07｜Case01 室內 Graybox QA v0.1 已實作（本段最新）
+依 `docs/story/case01_seventeenth_door/CASE01_INTERIOR_GRAYBOX_CLAUDE_TASK_V0_1.md` 建立**可玩**的獨立 QA 場景（Claude Code 實作，已在本機 Unity 2022.3.18f1 batchmode 測試）。
+- **Scene**：`unity/Assets/Exploration/Scenes/Case01HouseInteriorQA.unity`（只含一個 `Case01HouseQA` 元件，房屋、玩家、HUD 於 Play 時以程式建立；未加入 Build Settings）。選單：`Shepherd/Case01/開啟室內 QA 場景`、`重新產生室內 QA 場景`、`截圖檢查`。
+- **流程（S00～S60 全段可玩）**：玄關起點 → 餐廳兩副餐具／合照 → 離開後在玩家看不到餐桌時改寫成一副，再訪時同伴通訊、日誌保留「原本兩副」→ 二樓書房（舊地圖、艾琳手記：主動研究失序＋不明來歷資料、殘缺校正記錄）→ 離開書房後書房門錯接到一樓餐廳（親自走過才記錄「路徑與標記不符」）→ 在門框 △ 下覆寫「歸位」（○／□ 為可恢復的錯誤）→ 外牆第三扇門通往不存在的夾層 → 碰核觸發一次異域反制（已歸位的門重新連錯、燈光轉紅）→ 被拉進異常中庭，走近失序體才進入**既有 CombatArenaView 嵌入式戰鬥**（現有兩敵、3 AP／7 手牌、規則與數值未改）→ 勝利回到遭遇前位置，`battle_won` 只設一次、敵人不重生；戰敗「返回檢查點重試」→ 經裂口回夾層，核三段修復：①依舊地圖＋合照補回 17（北牆出現可走的 17 號門）②核把 △／○ 去向互換，須親自走過確認後依記號選錨點（錯誤錨點送回餐廳可重試）③走過錨定後的 △ 門與 17 號門才可補缺口 → `core_stabilized`、`house_state=temporarily_stable`、房間輪廓復位、燈光轉暖、前門變成出口 → 合照最後改變、證物歸檔 → 結束畫面「房屋暫時穩定／艾琳下落未明」。
+- **操作**：WASD 移動、滑鼠視角、Shift 奔跑、準星＋E 調查／互動（面板開著時對同一物件按 E 關閉）、1–3 選擇、J 日誌、Esc 釋放滑鼠；QA 跳轉 F1 S00 玄關／F2 S30 樓梯錯接／F3 S40 夾層（反制前）／F4 S50 戰後修復；前門在修復前是「QA 返回／重來」。
+- **程式**：`unity/Assets/Exploration/Scripts/Case01/`（`Case01Flow` 純邏輯規則與門連結映射、`Case01Session` 最小記錄器與 13 個旗標、`Case01Texts` 暫定文案、`Case01HouseBuilder` Graybox 空間、`Case01HouseQA` 第一人稱／互動／傳送／戰鬥銜接、`Case01Hud`）。沿用既有 `FirstPersonController`、`ExploreHud`、`EncounterZone`、`ArenaArt`、`CombatArenaView`（只用已存在的公開接口）；**未修改** AnomalyStreetDemo、CombatLab3D、戰鬥 Core、卡牌數值、golden cases、SampleScene、Build Settings。戰鬥中的玩家沿用原本的 Primitive 替身。
+- **測試**：EditMode 196/196（新增 Case01FlowTests 12 項、Case01HouseQATests 10 項，含用真實移動輸入從玄關走到結束的完整流程、戰敗重試、F1～F4 跳轉、隔牆不可調查、場景檔無 Missing Script、舊場景仍指向原腳本）；PlayMode 4/4（新增實際載入場景走進餐廳調查、F3 → 碰核 → 中庭 → 既有戰鬥出牌）。1920×1080 與 1280×720 截圖已檢查 E 提示、字幕、日誌、選項、QA 面板可讀。
+- **尚未完成／妥協**：沒有在有視窗的 Unity 中用實體鍵盤滑鼠手動遊玩（batchmode 只能用腳本輸入；滑鼠鎖定需手動確認）；文案、核外觀、三段修復、房屋格局都是暫定，需試玩調整；聲音提示只有一段程式產生的低頻擠壓聲；沒有事務所／街區銜接、完整存檔、母親或同伴對話系統、跨案件證物保存；中庭以外的房間（廚房、客廳、臥室）只有少量可選調查；戰鬥 HUD 仍顯示 Combat Lab 的「重置戰鬥」按鈕（沿用既有 HUD）。
+- **注意**：本機另有未提交的「Tripo 主角模型放進 AnomalyStreetDemo」修改與 `art-source/`，**不在本次提交內**。
+
+---
+
+# 2026-11-07｜已交付 Claude Code 的室內 Graybox 實作腳本
 使用者希望**先讓 Claude 做可玩原型，後續再依遊玩體驗調整**。本次已在 GitHub `main` 新增：
 `docs/story/case01_seventeenth_door/CASE01_INTERIOR_GRAYBOX_CLAUDE_TASK_V0_1.md`
 這是**Claude Code 可直接執行的開發任務書**，不是遊戲的完成品。讀取它與 `CASE01_AUTHOR_BIBLE_V0_5.md`、`docs/UNITY_BATTLE_V0.1_SPEC.md`、`CASE01_IMPLEMENTATION.md`，先盤點現有 Unity 代碼再實作。
