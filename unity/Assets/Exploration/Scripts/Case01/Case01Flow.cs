@@ -48,6 +48,17 @@ namespace Shepherd.Exploration.Case01
         public const string MezzCircleMark = "mezz_mark_circle";
         public const string Wall17 = "mezz_wall17";
 
+        // v0.2 生活細節與證物。
+        public const string TeaTin = "tea_tin";
+        public const string LivingBookNote = "living_book_note";
+        public const string FriendCard = "friend_card";
+        public const string ShoppingList = "shopping_list";
+        public const string TravelRoute = "travel_route";
+        public const string JobLetter = "job_letter";
+        public const string RepairKit = "repair_kit";
+        public const string FileBoxes = "file_boxes";
+        public const string EvidencePhoto = "evidence_photo";
+
         public const string ChoiceOverride = "override_study_door";
         public const string ChoiceAnchor = "anchor_link";
         public const string ChoiceFrontDoor = "front_door";
@@ -64,6 +75,10 @@ namespace Shepherd.Exploration.Case01
     public sealed class Case01Response
     {
         public string Text;
+        /// <summary>短觀察（準星下方的小字，不開側邊面板）。</summary>
+        public string Note;
+        /// <summary>要進入 3D 檢視的證物 ID。</summary>
+        public string Inspect;
         public string Toast;
         public string Radio;
         public Case01Choice Choice;
@@ -218,14 +233,67 @@ namespace Shepherd.Exploration.Case01
                 case Case01Ids.MezzTriangleMark: return new Case01Response { Text = Case01Texts.MezzTriangleMark + "\n" + SeenText(Case01Door.MezzTriangle) };
                 case Case01Ids.MezzCircleMark: return new Case01Response { Text = Case01Texts.MezzCircleMark + "\n" + SeenText(Case01Door.MezzCircle) };
                 case Case01Ids.Wall17: return new Case01Response { Text = Door17Open ? Case01Texts.Wall17After : Case01Texts.Wall17Before };
+                case Case01Ids.LivingBookNote: return new Case01Response { Note = Case01Texts.LivingBookNote };
+                case Case01Ids.RepairKit: return new Case01Response { Note = Case01Texts.RepairKit };
+                case Case01Ids.FileBoxes:
+                    return new Case01Response { Note = WrongConnectionActive && !CoreStabilized ? Case01Texts.FileBoxesShuffled : Case01Texts.FileBoxes };
+                case Case01Ids.FriendCard: return LifeClue("friend_card", Case01Texts.FriendCardTitle, Case01Texts.FriendCard);
+                case Case01Ids.ShoppingList: return LifeClue("shopping_list", Case01Texts.ShoppingListTitle, Case01Texts.ShoppingList);
+                case Case01Ids.TravelRoute: return LifeClue("travel_route", Case01Texts.TravelRouteTitle, Case01Texts.TravelRoute);
+                case Case01Ids.JobLetter: return LifeClue("job_letter", Case01Texts.JobLetterTitle, Case01Texts.JobLetter);
+                case Case01Ids.EvidencePhoto: return CollectFamilyPhoto();
                 case Case01Ids.FrontDoor:
                     return new Case01Response
                     {
                         Choice = CoreStabilized
-                            ? new Case01Choice { Id = Case01Ids.ChoiceFrontDoor, Prompt = Case01Texts.FrontDoorAfter, Options = new[] { "離開十七號（結束 QA）", "再看看" } }
+                            ? new Case01Choice
+                            {
+                                Id = Case01Ids.ChoiceFrontDoor,
+                                Prompt = Case01Texts.FrontDoorAfter + (FamilyPhotoCollected ? "" : Case01Texts.ExitEvidenceHint),
+                                Options = new[] { "離開十七號（結束 QA）", "再看看" },
+                            }
                             : new Case01Choice { Id = Case01Ids.ChoiceFrontDoor, Prompt = Case01Texts.FrontDoorBefore, Options = new[] { "重新開始 QA（回到玄關起點）", "繼續調查" } },
                     };
                 default: return Case01Response.None;
+            }
+        }
+
+        // ---------------- v0.2 生活細節、環境觀察、證物 ----------------
+
+        /// <summary>短觀察，同時記入日誌（可重讀）。</summary>
+        private Case01Response LifeClue(string journalId, string title, string text)
+        {
+            bool isNew = Session.AddJournal(journalId, title, text);
+            return new Case01Response { Note = text, Toast = isNew ? "已記入日誌：" + title : null };
+        }
+
+        /// <summary>FP-001 是否已在本次 QA 收藏。</summary>
+        public bool FamilyPhotoCollected { get { return Session.HasEvidence(Case01Texts.EvidenceId); } }
+
+        /// <summary>FP-001 只在核穩定後、尚未拾取時出現在夾層。</summary>
+        public bool FamilyPhotoAvailable { get { return CoreStabilized && !FamilyPhotoCollected; } }
+
+        private Case01Response CollectFamilyPhoto()
+        {
+            if (!FamilyPhotoAvailable) return Case01Response.None;
+            Session.CollectEvidence(Case01Texts.EvidenceId);
+            Session.Set(Case01Texts.EvidenceKey);
+            Session.AddJournal("evidence_fp001", Case01Texts.FamilyPhotoTitle,
+                Case01Texts.FamilyPhotoSource + "\n" + Case01Texts.FamilyPhotoDescription + "\n" + Case01Texts.FamilyPhotoUnresolved);
+            return new Case01Response { Toast = Case01Texts.FamilyPhotoToast, Inspect = Case01Texts.EvidenceId, WorldChanged = true };
+        }
+
+        /// <summary>玩家回訪時看到的安靜異變：寫入日誌（含原始觀察），每項只寫一次。</summary>
+        public bool NoteEnvironment(string id)
+        {
+            switch (id)
+            {
+                case "env_living": return Session.AddJournal(id, Case01Texts.EnvLivingTitle, Case01Texts.EnvLiving);
+                case "env_dining": return Session.AddJournal(id, Case01Texts.EnvDiningTitle, Case01Texts.EnvDining);
+                case "env_study": return Session.AddJournal(id, Case01Texts.EnvStudyTitle, Case01Texts.EnvStudy);
+                case "env_landing": return Session.AddJournal(id, Case01Texts.EnvLandingTitle, Case01Texts.EnvLanding);
+                case "env_after": return Session.AddJournal(id, Case01Texts.EnvAfterTitle, Case01Texts.EnvAfter);
+                default: return false;
             }
         }
 

@@ -12,6 +12,10 @@ namespace Shepherd.Exploration.Case01
         public bool Journal;
         /// <summary>F1～F4：跳到 S00／S30／S40／S50 檢查點，沒有為 0。</summary>
         public int Jump;
+        /// <summary>滑鼠滾輪（證物檢視時縮放）。</summary>
+        public float Zoom;
+        /// <summary>I：再次檢視已收藏的證物。</summary>
+        public bool InspectEvidence;
 
         public static Case01Input None { get { return new Case01Input(); } }
 
@@ -35,6 +39,8 @@ namespace Shepherd.Exploration.Case01
             else if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2)) r.Choice = 2;
             else if (Input.GetKeyDown(KeyCode.Alpha3) || Input.GetKeyDown(KeyCode.Keypad3)) r.Choice = 3;
             r.Journal = Input.GetKeyDown(KeyCode.J);
+            r.Zoom = Input.mouseScrollDelta.y;
+            r.InspectEvidence = Input.GetKeyDown(KeyCode.I);
             if (Input.GetKeyDown(KeyCode.F1)) r.Jump = 1;
             else if (Input.GetKeyDown(KeyCode.F2)) r.Jump = 2;
             else if (Input.GetKeyDown(KeyCode.F3)) r.Jump = 3;

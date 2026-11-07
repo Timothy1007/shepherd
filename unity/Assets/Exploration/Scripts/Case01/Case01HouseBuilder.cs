@@ -84,6 +84,9 @@ namespace Shepherd.Exploration.Case01
         public readonly List<Transform> Floating = new List<Transform>();
         public readonly List<Vector3> FloatingHome = new List<Vector3>();
 
+        public Transform DiningChairNorth;
+        public Case01Decor Decor;
+
         public Transform EncounterAnchor;
         public Light CourtyardLight;
         public GameObject TearFrame;
@@ -139,6 +142,9 @@ namespace Shepherd.Exploration.Case01
             BuildSecondFloor(L, ArenaArt.Group("SecondFloor", root, Vector3.zero));
             BuildMezzanine(L, ArenaArt.Group("Mezzanine", root, Vector3.zero));
             BuildCourtyard(L, ArenaArt.Group("Courtyard", root, Vector3.zero));
+
+            // v0.2：生活細節、階段異變物件與校正後證物（只加在現有空間內，不改牆、門、樓梯與熱區）。
+            L.Decor = Case01HouseDecor.Build(L, ArenaArt.Group("LifeDetails", root, Vector3.zero));
 
             L.Arrivals[Case01Room.Entrance] = new Case01Pose(SpawnPoint, 0f);
             L.Arrivals[Case01Room.Dining] = new Case01Pose(new Vector3(6.5f, 0.05f, 5.8f), 0f);
@@ -250,7 +256,7 @@ namespace Shepherd.Exploration.Case01
             block.center = new Vector3(0f, 0.375f, 0f);
             block.size = new Vector3(1.6f, 0.75f, 1.2f);
             Solid(table, new Vector3(0f, 0.25f, -0.95f), new Vector3(0.45f, 0.5f, 0.45f), darkWood, "ChairSouth");
-            Solid(table, new Vector3(0f, 0.25f, 0.95f), new Vector3(0.45f, 0.5f, 0.45f), darkWood, "ChairNorth");
+            L.DiningChairNorth = Solid(table, new Vector3(0f, 0.25f, 0.95f), new Vector3(0.45f, 0.5f, 0.45f), darkWood, "ChairNorth");
             Setting(table, -0.32f, "SetSouth");
             L.DiningSecondSet = Setting(table, 0.32f, "SetNorth").gameObject;
             // 再訪時：收走的那一側，桌面比較乾淨。
@@ -626,7 +632,7 @@ namespace Shepherd.Exploration.Case01
         }
 
         /// <summary>可調查物件的 Trigger 熱區。</summary>
-        private static Case01Interactable Hotspot(Case01HouseLayout L, Transform parent, string id, string prompt, Vector3 pos, Vector3 size)
+        internal static Case01Interactable Hotspot(Case01HouseLayout L, Transform parent, string id, string prompt, Vector3 pos, Vector3 size)
         {
             var go = new GameObject("Interact_" + id);
             go.transform.SetParent(parent, false);

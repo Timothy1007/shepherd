@@ -22,6 +22,10 @@ namespace Shepherd.Exploration.Case01
         public Text QaText { get; private set; }
         public Text EndText { get; private set; }
         public Image Fade { get; private set; }
+        public Text NoteText { get; private set; }
+        private RectTransform notePanel;
+        private float noteTime = -1f;
+        public const float NoteSeconds = 6f;
         private RectTransform subtitlePanel;
         private RectTransform journalPanel;
         private RectTransform endPanel;
@@ -60,7 +64,7 @@ namespace Shepherd.Exploration.Case01
             Base.Controls.text = "WASD 移動｜滑鼠 視角｜Shift 奔跑｜E 調查／互動｜1–3 選擇｜J 日誌｜Esc 釋放滑鼠";
             Base.ViewMode.text = "QA 跳轉：F1 S00 玄關｜F2 S30 樓梯錯接｜F3 S40 夾層｜F4 S50 戰後修復";
             var help = (RectTransform)Base.Controls.transform.parent;
-            help.sizeDelta = new Vector2(700f, 84f);
+            help.sizeDelta = new Vector2(800f, 84f);
             // 較長的調查文字（手記、選項）需要更大的面板。
             Base.InspectPanel.sizeDelta = new Vector2(600f, 280f);
             var obj = (RectTransform)Base.Objective.transform.parent;
@@ -76,6 +80,12 @@ namespace Shepherd.Exploration.Case01
             Subtitle = Label(subtitlePanel, "", CombatLabStyle.Section, TextAnchor.MiddleCenter, new Color(0.75f, 0.9f, 1f));
             Fill(Subtitle.rectTransform, 14f, 6f);
             subtitlePanel.gameObject.SetActive(false);
+
+            // 短觀察：準星下方的小字（生活細節不開側邊面板）。
+            notePanel = Box(root, "Note", new Vector2(0.5f, 0.5f), new Vector2(0f, -120f), new Vector2(760f, 64f));
+            NoteText = Label(notePanel, "", CombatLabStyle.Body, TextAnchor.MiddleCenter, new Color(0.95f, 0.93f, 0.88f));
+            Fill(NoteText.rectTransform, 14f, 6f);
+            notePanel.gameObject.SetActive(false);
 
             // QA 狀態：右上。
             var qa = Box(root, "QaPanel", new Vector2(1f, 1f), new Vector2(-16f, -16f), new Vector2(430f, 74f));
@@ -114,6 +124,11 @@ namespace Shepherd.Exploration.Case01
         public void Tick(float dt)
         {
             Base.Tick(dt);
+            if (noteTime >= 0f)
+            {
+                noteTime += dt;
+                if (noteTime > NoteSeconds) HideNote();
+            }
             if (subtitleTime < 0f) return;
             subtitleTime += dt;
             if (subtitleTime > SubtitleSeconds)
@@ -134,6 +149,21 @@ namespace Shepherd.Exploration.Case01
 
         public bool SubtitleVisible { get { return subtitlePanel.gameObject.activeSelf; } }
 
+        public void ShowNote(string text)
+        {
+            NoteText.text = text;
+            notePanel.gameObject.SetActive(true);
+            noteTime = 0f;
+        }
+
+        public void HideNote()
+        {
+            notePanel.gameObject.SetActive(false);
+            noteTime = -1f;
+        }
+
+        public bool NoteVisible { get { return notePanel.gameObject.activeSelf; } }
+
         public void HideRadio()
         {
             subtitlePanel.gameObject.SetActive(false);
@@ -146,6 +176,16 @@ namespace Shepherd.Exploration.Case01
         {
             ActiveChoice = null;
             Base.ShowInspect(text + "\n\n<color=#8E98A6>［E］關閉</color>");
+            FitPanel();
+        }
+
+        /// <summary>調查面板依文字長度調整高度（短文字不留大片空白，長文字不溢出）。</summary>
+        private void FitPanel()
+        {
+            var t = Base.InspectText;
+            var settings = t.GetGenerationSettings(new Vector2(600f - 32f, 0f));
+            float h = t.cachedTextGeneratorForLayout.GetPreferredHeight(t.text, settings) / t.pixelsPerUnit;
+            Base.InspectPanel.sizeDelta = new Vector2(600f, Mathf.Clamp(h * 1.08f + 64f, 150f, 600f));
         }
 
         public void ShowChoice(Case01Choice choice)
@@ -157,6 +197,7 @@ namespace Shepherd.Exploration.Case01
                 sb.Append("<color=#E6BD52>［").Append(i + 1).Append("］</color>").Append(choice.Options[i]).Append('\n');
             sb.Append("\n<color=#8E98A6>［E］／［Esc］取消</color>");
             Base.ShowInspect(sb.ToString());
+            FitPanel();
         }
 
         public void HidePanel()
@@ -180,17 +221,26 @@ namespace Shepherd.Exploration.Case01
                 {
                     HidePanel();
                     HideRadio();
+                    HideNote();
                     Base.SetHint(null);
                 }
             }
         }
 
         /// <summary>顯示日誌：由新到舊排列，放不下的舊條目省略（日誌本身保留全部）。</summary>
-        public void RefreshJournal(IList<JournalEntry> entries)
+        public void RefreshJournal(IList<JournalEntry> entries, IList<string> evidence = null)
         {
             var sb = new StringBuilder();
             sb.Append("<b><color=#E6BD52>調查日誌</color></b>　<color=#8E98A6>（J 關閉｜共 ").Append(entries.Count).Append(" 筆，新的在上）</color>\n");
             int budget = 900;
+            if (evidence != null && evidence.Count > 0)
+            {
+                sb.Append("\n<b><color=#9BE59B>證物收藏（本次 QA）</color></b>");
+                foreach (var id in evidence)
+                    sb.Append("\n").Append(id == Case01Texts.EvidenceId ? Case01Texts.FamilyPhotoTitle : id).Append("　<color=#8E98A6>［I］檢視</color>");
+                sb.Append("\n");
+                budget -= 120;
+            }
             for (int i = entries.Count - 1; i >= 0; i--)
             {
                 var e = entries[i];

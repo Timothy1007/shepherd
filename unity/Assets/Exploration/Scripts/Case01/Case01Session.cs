@@ -124,6 +124,21 @@ namespace Shepherd.Exploration.Case01
 
         public void SetValue(string key, string value) { values[key] = value; }
 
+        private readonly List<string> evidence = new List<string>();
+
+        /// <summary>本次 QA 收藏的實體證物（穩定 Evidence ID）。只存在記憶體：重新開始／重啟 Unity 後清空，尚無跨案件存檔。</summary>
+        public IList<string> Evidence { get { return evidence.AsReadOnly(); } }
+
+        public bool HasEvidence(string id) { return evidence.Contains(id); }
+
+        /// <summary>收藏證物；同一 ID 只會加入一次（回傳 false 表示已收藏）。</summary>
+        public bool CollectEvidence(string id)
+        {
+            if (evidence.Contains(id)) return false;
+            evidence.Add(id);
+            return true;
+        }
+
         public bool HasJournal(string id)
         {
             foreach (var e in journal) if (e.Id == id) return true;

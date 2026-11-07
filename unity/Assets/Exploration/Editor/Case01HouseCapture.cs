@@ -61,6 +61,17 @@ namespace Shepherd.Exploration.Editor
                 var p = qa.Player;
                 Advance(qa, 0.3f);
                 Shot(qa, rt, prefix + "00_entrance.png");
+                // v0.2 生活細節（H0）。
+                Pose(qa, new Vector3(3.9f, 0.05f, 6.3f), -55f, 8f);
+                Shot(qa, rt, prefix + "00b_living_h0.png");
+                Pose(qa, new Vector3(2.6f, 0.05f, 3.4f), -120f, 15f);
+                Shot(qa, rt, prefix + "00c_kitchen.png");
+                Pose(qa, new Vector3(4.2f, 3.05f, 6.6f), -35f, 18f);
+                Shot(qa, rt, prefix + "00d_bedroom.png");
+                Pose(qa, new Vector3(6.3f, 3.05f, 6.3f), 40f, 12f);
+                Shot(qa, rt, prefix + "00e_study_h0.png");
+                Pose(qa, new Vector3(7.8f, 3.05f, 4.3f), -122f, 14f);
+                Shot(qa, rt, prefix + "00f_landing_h0.png");
 
                 p.Teleport(new Vector3(6.6f, 0.05f, 6.2f), 0f);
                 Advance(qa, 0.1f);
@@ -85,6 +96,15 @@ namespace Shepherd.Exploration.Editor
                 qa.JumpTo(Case01Checkpoint.S30);
                 Advance(qa, 0.3f);
                 Shot(qa, rt, prefix + "05_landing_wrong_connection.png");
+                // H1／H2 的安靜異變（檢查點直接套用）。
+                Pose(qa, new Vector3(3.9f, 0.05f, 6.3f), -55f, 8f);
+                Shot(qa, rt, prefix + "05b_living_h1.png");
+                Pose(qa, new Vector3(6.3f, 3.05f, 6.3f), 40f, 12f);
+                Shot(qa, rt, prefix + "05c_study_h2.png");
+                Pose(qa, new Vector3(7.8f, 3.05f, 4.3f), -122f, 14f);
+                Shot(qa, rt, prefix + "05d_landing_h2.png");
+                qa.Player.Teleport(new Vector3(7.6f, 3.05f, 2.4f), -12f);
+                Advance(qa, 0.1f);
                 qa.Flow.Traverse(Case01Door.StudyDoor);
                 qa.Player.Teleport(new Vector3(6.3f, 3.05f, 3.9f), 0f);
                 Advance(qa, 0.1f);
@@ -124,6 +144,16 @@ namespace Shepherd.Exploration.Editor
                 qa.Player.Teleport(new Vector3(40f, 0.05f, -3.5f), 0f, 8f);
                 Advance(qa, 0.1f);
                 Shot(qa, rt, prefix + "12_core_stabilized.png");
+                // H3：夾層的 FP-001 與 3D 檢視（正面、背面）、客廳殘留。
+                Pose(qa, new Vector3(38.7f, 0.05f, -0.2f), -60f, 14f);
+                Shot(qa, rt, prefix + "12b_fp001_in_mezzanine.png");
+                Interact(qa, Case01Ids.EvidencePhoto);
+                Shot(qa, rt, prefix + "12c_inspect_front.png");
+                qa.RotateInspect(180f);
+                Shot(qa, rt, prefix + "12d_inspect_back.png");
+                qa.Tick(Step, new ExploreInput { Interact = true });
+                Pose(qa, new Vector3(3.9f, 0.05f, 6.3f), -55f, 8f);
+                Shot(qa, rt, prefix + "12e_living_h3.png");
 
                 qa.Player.Teleport(new Vector3(7.1f, 0.05f, 1.6f), 180f);
                 Advance(qa, 0.1f);
@@ -164,6 +194,12 @@ namespace Shepherd.Exploration.Editor
                 qa.Tick(Step, new ExploreInput { Look = look });
             }
             qa.Tick(Step, new ExploreInput { Interact = true });
+        }
+
+        private static void Pose(Case01HouseQA qa, Vector3 pos, float yaw, float pitch)
+        {
+            qa.Player.Teleport(pos, yaw, pitch);
+            Advance(qa, 0.1f);
         }
 
         private static void Advance(Case01HouseQA qa, float seconds)

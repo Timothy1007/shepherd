@@ -23,6 +23,8 @@ namespace Shepherd.Exploration.Case01
         ReturningToExplore,
         /// <summary>QA 結束畫面（F1～F4 可重玩）。</summary>
         Ended,
+        /// <summary>3D 證物檢視（移動暫停；滑鼠旋轉、滾輪縮放、E／Esc 收起）。</summary>
+        Inspect,
     }
 
     /// <summary>
@@ -204,6 +206,7 @@ namespace Shepherd.Exploration.Case01
 
         private void BuildContent(Case01Checkpoint cp)
         {
+            EndInspect();
             content = ArenaArt.Group("Case01Content", transform, Vector3.zero);
             layout = Case01HouseBuilder.Build(content);
             flow = Case01Flow.ForCheckpoint(cp);
@@ -221,13 +224,15 @@ namespace Shepherd.Exploration.Case01
             hud.Visible = true;
             hud.HidePanel();
             hud.HideRadio();
+            hud.HideNote();
             hud.JournalVisible = false;
             hud.EndVisible = false;
             hud.Base.HideEncounter();
             hud.Base.SetHint(null);
             hud.Fade.color = new Color(0f, 0f, 0f, 0f);
-            RefreshWorld();
             currentRoom = layout.RoomAt(pose.Position);
+            RefreshWorld();
+            UpdateDecor(true);
             inspectAnchor = pose.Position;
             SetCursorCaptured(true);
             SnapCameraToPlayer();
@@ -310,6 +315,7 @@ namespace Shepherd.Exploration.Case01
                     }
                     break;
                 case Case01Mode.ReturningToExplore: TickReturn(dt); break;
+                case Case01Mode.Inspect: TickInspect(input); break;
             }
             if (!playMode && arena != null) arena.Tick(dt);
             UpdateQaText();
@@ -340,7 +346,12 @@ namespace Shepherd.Exploration.Case01
             if (input.Journal)
             {
                 hud.JournalVisible = !hud.JournalVisible;
-                if (hud.JournalVisible) hud.RefreshJournal(flow.Session.Journal);
+                if (hud.JournalVisible) hud.RefreshJournal(flow.Session.Journal, flow.Session.Evidence);
+            }
+            if (input.InspectEvidence && flow.FamilyPhotoCollected)
+            {
+                BeginInspect(Case01Texts.EvidenceId);
+                return;
             }
 
             var prev = player.transform.position;
@@ -364,6 +375,7 @@ namespace Shepherd.Exploration.Case01
             }
 
             UpdateRoom();
+            UpdateDecor(false);
 
             // 第一次再訪餐廳前，在玩家看不到餐桌時把兩副餐具改寫成一副。
             if (flow.DiningRewritePending && currentRoom != Case01Room.Dining && !TableVisible())
@@ -390,6 +402,13 @@ namespace Shepherd.Exploration.Case01
             if (b.Interact)
             {
                 if (hud.PanelVisible && sameAsPanel) hud.HidePanel();
+                else if (CurrentTarget != null && CurrentTarget.Id == Case01Ids.TeaTin)
+                {
+                    // 真的可以操作的物件：打開／蓋上茶葉盒。
+                    var d = layout.Decor;
+                    d.SetTeaTin(!d.TeaTinOpen);
+                    hud.ShowNote(d.TeaTinOpen ? Case01Texts.TeaTinOpen : Case01Texts.TeaTinClose);
+                }
                 else if (CurrentTarget != null)
                 {
                     inspectAnchor = cur;
@@ -420,6 +439,114 @@ namespace Shepherd.Exploration.Case01
             if (!keepPanelOnRoomChange && hud.ActiveChoice == null) hud.HidePanel();
             keepPanelOnRoomChange = false;
             Handle(flow.EnterRoom(from, r));
+            NoteEnvironmentOnEntry(r);
+        }
+
+        // ---------------- v0.2 階段異變（H0～H3） ----------------
+
+        /// <summary>
+        /// 依流程狀態套用各房間的安靜異變。玩家不在該房間時才切換（不當面硬閃）；建立／跳轉檢查點時 force＝true 直接套用。
+        /// H1＝餐具改寫後（客廳、餐廳）；H2＝樓梯錯接後（書房、樓梯平台）；H3＝核穩定後大部分歸位但保留殘留。
+        /// </summary>
+        private void UpdateDecor(bool force)
+        {
+            var d = layout.Decor;
+            bool st = flow.CoreStabilized;
+            bool h1 = flow.Session.Has(Case01Flags.TableRewritten);
+            bool h2 = flow.WrongConnectionActive;
+            if ((h1 != d.LivingChanged || st != d.LivingStable) && (force || currentRoom != Case01Room.Living)) d.ApplyLiving(h1, st);
+            if ((h1 != d.DiningChanged || st != d.DiningStable) && (force || currentRoom != Case01Room.Dining)) d.ApplyDining(h1, st);
+            if ((h2 != d.StudyChanged || st != d.StudyStable) && (force || currentRoom != Case01Room.Study)) d.ApplyStudy(h2, st);
+            if ((h2 != d.LandingChanged || st != d.LandingStable) && (force || currentRoom != Case01Room.Landing)) d.ApplyLanding(h2, st);
+        }
+
+        /// <summary>目前房屋的異變階段（0～3，取已發生的最高階段；供 QA 面板與測試）。</summary>
+        public int HouseStage
+        {
+            get
+            {
+                if (flow.CoreStabilized) return 3;
+                if (flow.WrongConnectionActive) return 2;
+                return flow.Session.Has(Case01Flags.TableRewritten) ? 1 : 0;
+            }
+        }
+
+        /// <summary>回訪已變化的房間時，把差異與原始觀察寫入日誌（每項一次，不播放音效）。</summary>
+        private void NoteEnvironmentOnEntry(Case01Room r)
+        {
+            var d = layout.Decor;
+            bool added = false;
+            if (r == Case01Room.Living && d.LivingChanged && !d.LivingStable) added |= flow.NoteEnvironment("env_living");
+            if (r == Case01Room.Dining && d.DiningChanged && !d.DiningStable) added |= flow.NoteEnvironment("env_dining");
+            if (r == Case01Room.Study && d.StudyChanged && !d.StudyStable) added |= flow.NoteEnvironment("env_study");
+            if (r == Case01Room.Landing && d.LandingChanged && !d.LandingStable) added |= flow.NoteEnvironment("env_landing");
+            if ((r == Case01Room.Living || r == Case01Room.Dining) && d.LivingStable && d.DiningStable && d.LivingChanged) added |= flow.NoteEnvironment("env_after");
+            if (added && hud.JournalVisible) hud.RefreshJournal(flow.Session.Journal, flow.Session.Evidence);
+        }
+
+        // ---------------- v0.2 3D 證物檢視 ----------------
+
+        private Transform inspectObj;
+        private Light inspectLight;
+        private float inspectDistance = 0.5f;
+
+        public Transform InspectObject { get { return inspectObj; } }
+
+        private void BeginInspect(string evidenceId)
+        {
+            EndInspect();
+            Mode = Case01Mode.Inspect;
+            hud.HidePanel();
+            hud.HideNote();
+            hud.JournalVisible = false;
+            hud.Base.SetHint(null);
+            inspectDistance = 0.5f;
+            var src = layout.Decor.EvidenceModel.gameObject;
+            inspectObj = Instantiate(src, exploreCam.transform, false).transform;
+            inspectObj.name = "Inspect_" + evidenceId;
+            inspectObj.gameObject.SetActive(true);
+            inspectObj.localPosition = new Vector3(0f, 0f, inspectDistance);
+            inspectObj.localRotation = Quaternion.identity;
+            var lg = new GameObject("InspectLight");
+            lg.transform.SetParent(exploreCam.transform, false);
+            lg.transform.localPosition = new Vector3(0.15f, 0.2f, 0.05f);
+            inspectLight = lg.AddComponent<Light>();
+            inspectLight.type = LightType.Point;
+            inspectLight.range = 2f;
+            inspectLight.intensity = 0.8f;
+            inspectLight.color = new Color(1f, 0.95f, 0.88f);
+            hud.ShowText(Case01Texts.FamilyPhotoText() + "\n\n" + Case01Texts.InspectControls);
+        }
+
+        private void TickInspect(Case01Input input)
+        {
+            var b = input.Base;
+            SnapCameraToPlayer();
+            if (b.Interact || b.ReleaseCursor)
+            {
+                EndInspect();
+                hud.HidePanel();
+                Mode = Case01Mode.Exploring;
+                return;
+            }
+            var l = b.Look * 4f;
+            inspectObj.localRotation = Quaternion.AngleAxis(-l.x, Vector3.up) * Quaternion.AngleAxis(l.y, Vector3.right) * inspectObj.localRotation;
+            inspectDistance = Mathf.Clamp(inspectDistance - input.Zoom * 0.05f, 0.3f, 0.9f);
+            inspectObj.localPosition = new Vector3(0f, 0f, inspectDistance);
+        }
+
+        /// <summary>旋轉檢視中的證物（截圖用，等同滑鼠位移）。</summary>
+        public void RotateInspect(float yawDegrees)
+        {
+            if (inspectObj != null) inspectObj.localRotation = Quaternion.AngleAxis(yawDegrees, Vector3.up) * inspectObj.localRotation;
+        }
+
+        private void EndInspect()
+        {
+            if (inspectObj != null) ArenaArt.Kill(inspectObj.gameObject);
+            if (inspectLight != null) ArenaArt.Kill(inspectLight.gameObject);
+            inspectObj = null;
+            inspectLight = null;
         }
 
         /// <summary>玩家視線內是否看得到餐桌（用於安全的環境改寫）。</summary>
@@ -455,7 +582,8 @@ namespace Shepherd.Exploration.Case01
             if (r.Radio != null) hud.ShowRadio(r.Radio);
             if (r.Choice != null) hud.ShowChoice(r.Choice);
             else if (r.Text != null) hud.ShowText(r.Text);
-            if (hud.JournalVisible) hud.RefreshJournal(flow.Session.Journal);
+            if (r.Note != null) hud.ShowNote(r.Note);
+            if (hud.JournalVisible) hud.RefreshJournal(flow.Session.Journal, flow.Session.Evidence);
             UpdateObjective();
             if (r.Restart)
             {
@@ -465,6 +593,11 @@ namespace Shepherd.Exploration.Case01
             if (r.Exit)
             {
                 EndQa();
+                return;
+            }
+            if (r.Inspect != null)
+            {
+                BeginInspect(r.Inspect);
                 return;
             }
             if (r.BeginDefense)
@@ -776,6 +909,11 @@ namespace Shepherd.Exploration.Case01
             L.Interactables[Case01Ids.FrontDoor].Prompt = flow.CoreStabilized ? "前門（離開十七號）" : "前門（QA 返回／重來）";
             L.Door17Frame.SetActive(flow.Door17Open);
             L.TearFrame.SetActive(flow.CourtyardTearOpen);
+            // v0.2：FP-001 只在核穩定後、尚未拾取時出現；各房間的安靜異變。
+            L.Decor.SetEvidenceVisible(flow.FamilyPhotoAvailable);
+            UpdateDecor(false);
+            hud.Base.Controls.text = "WASD 移動｜滑鼠 視角｜Shift 奔跑｜E 調查／互動｜1–3 選擇｜J 日誌" +
+                                     (flow.FamilyPhotoCollected ? "｜I 檢視證物" : "") + "｜Esc 釋放滑鼠";
 
             Color coreColor = flow.CoreStabilized ? ArenaArt.LampWarm : flow.DefenseActive ? new Color(1f, 0.25f, 0.35f) : ArenaArt.Rift;
             ArenaArt.SetEmission(L.CoreMat, coreColor * (flow.CoreStabilized ? 1.2f : 2.2f));
@@ -882,7 +1020,8 @@ namespace Shepherd.Exploration.Case01
             if (!flow.TriangleVerified || !flow.Door17Verified)
                 return "走一次 △ 門" + (flow.Door17Verified ? "" : "與 17 號門") + "確認關係，再回到核。" + back;
             if (!flow.CoreStabilized) return "回到核，補上第一次校正的缺口。" + back;
-            return "從玄關的前門離開十七號。（可先再看一次餐廳的合照）";
+            if (!flow.FamilyPhotoCollected) return "夾層裡多了一張照片（可選）。巡查完再從玄關前門離開十七號。";
+            return "可以再巡查一下房子，然後從玄關前門離開十七號。";
         }
 
         private void UpdateQaText()
@@ -890,7 +1029,8 @@ namespace Shepherd.Exploration.Case01
             int n = 0;
             foreach (var f in Case01Flags.All) if (flow.Session.Has(f)) n++;
             hud.QaText.text = "<b>QA</b>　" + Case01Texts.StageName(flow.Session.Stage) + "｜旗標 " + n + "/" + TotalFlags +
-                              "\n位置：" + Case01Texts.RoomName(currentRoom) + "｜J 日誌（" + flow.Session.Journal.Count + "）";
+                              "\n位置：" + Case01Texts.RoomName(currentRoom) + "｜房屋 H" + HouseStage + "｜日誌 " + flow.Session.Journal.Count +
+                              "｜證物 " + flow.Session.Evidence.Count;
         }
 
         private void SetCursorCaptured(bool captured)

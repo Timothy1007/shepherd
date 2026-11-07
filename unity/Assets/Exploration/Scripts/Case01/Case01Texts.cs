@@ -104,10 +104,55 @@ namespace Shepherd.Exploration.Case01
         public const string ConfirmedPrefix = "上次走過：通往";
         public const string NotConfirmed = "還沒走過。";
 
-        public const string EvidenceTitle = "已歸檔：十七號的合照";
-        public const string Evidence = "合照已收入案卷。照片裡的第二個人影只剩輪廓，但案卷保留了「原本有兩人」的觀測。";
+        public const string EvidenceTitle = "案卷：餐廳合照的觀測";
+        public const string Evidence = "餐廳合照的觀測已寫入案卷（原件留在原處）。照片裡的第二個人影只剩輪廓，但案卷保留了「原本有兩人」的觀測。";
         public const string EndTitle = "〈第十七號門〉室內 QA 結束";
         public const string EndBody = "房屋：暫時穩定\n艾琳：下落未明\n街區沒有永久復原。";
+
+        // ---------------- v0.2 生活細節（短觀察；重要的才進日誌） ----------------
+        public const string TeaTinOpen = "茶葉盒裡只剩半罐。蓋子內側貼著一張小紙條：「她喜歡的那種，別買錯。」";
+        public const string TeaTinClose = "把茶葉盒蓋回去。";
+        public const string LivingBookNote = "書裡夾著一張便箋：「借我的那本看完了嗎？下次見面記得帶。」字跡是另一個人的。";
+        public const string FriendCardTitle = "朋友寄來的卡片";
+        public const string FriendCard = "卡片：「恭喜妳拿到那份工作！別又熬夜整理別人的舊文件了。」署名只寫了一個字母。";
+        public const string ShoppingListTitle = "購物清單";
+        public const string ShoppingList = "購物清單：牛奶、雞蛋、她愛吃的那種餅乾（×2）。「×2」被劃掉，又補了回去。";
+        public const string TravelRouteTitle = "旅行路線";
+        public const string TravelRoute = "手畫的旅行路線，終點是一座海邊小鎮。旁邊寫著：「等這件事做完，帶媽去。」";
+        public const string JobLetterTitle = "工作邀請信";
+        public const string JobLetter = "一封檔案修復工作的邀請信，日期是半年前。回覆欄寫著「延後」，旁邊補了一句：「先把十七號的事查清楚。」";
+        public const string RepairKit = "修復工具擺得很整齊：毛刷、鑷子、骨刀。布上沾著陳年的墨漬──她每天都在用。";
+        public const string FileBoxes = "三個檔案盒，貼著紅、藍、黃色標籤：「已修復」「待確認」「不該存在」。";
+        public const string FileBoxesShuffled = "檔案盒的順序被換過了。「不該存在」那一盒被推到最裡面，標籤翹了起來。";
+
+        // ---------------- v0.2 階段異變（玩家回訪時寫入日誌，保留原始觀察） ----------------
+        public const string EnvLivingTitle = "客廳：細節不同了";
+        public const string EnvLiving = "書架第二層少了兩本書，北牆的相框變成空白。\n原始觀察：初入時書架是滿的，相框裡是兩個人站在海邊。";
+        public const string EnvDiningTitle = "餐廳：細節不同了";
+        public const string EnvDining = "桌上的紅布巾不見了，北側的椅子被推開，托盤上只剩一個茶杯。\n原始觀察：初入時鋪著布巾，托盤上有兩個茶杯。";
+        public const string EnvStudyTitle = "書房：紀錄被重排";
+        public const string EnvStudy = "書架兩端各有一本一模一樣的紅色舊冊；檔案盒的順序被換過。\n原始觀察：紅色舊冊只有一本，檔案盒依紅、藍、黃排列。";
+        public const string EnvLandingTitle = "樓梯平台：多了東西";
+        public const string EnvLanding = "儲藏室門外多了兩個紙箱，西牆的掛畫歪斜下滑。\n原始觀察：門外只有一個紙箱，掛畫掛得端正。";
+        public const string EnvAfterTitle = "房子安靜下來之後";
+        public const string EnvAfter = "大部分東西回到原位：書回到書架，布巾鋪回餐桌，多出來的紙箱與重複的書不見了。\n但客廳的相框仍是空白，托盤上仍只有一個茶杯。";
+
+        // ---------------- v0.2 校正後證物 FP-001 ----------------
+        public const string EvidenceId = "FP-001";
+        public const string EvidenceKey = "case01.family_photo";
+        public const string FamilyPhotoTitle = "FP-001　十七號的合照（夾層殘留）";
+        public const string FamilyPhotoSource = "來源：局部校正後，在不存在的夾層中顯現。與餐廳那張合照是同一個畫面，但這是一個異常的實體殘留；餐廳的原件仍留在原處。";
+        public const string FamilyPhotoDescription = "正面：兩個人並肩，第二個人的位置只剩一圈空白輪廓。\n背面：鉛筆字「週日。兩個人。」，第二行被擦掉，右下角撕掉了一角。";
+        public const string FamilyPhotoUnresolved = "未解：為什麼核穩定後，它會出現在這裡？輪廓裡缺席的那個人，現在在哪裡？";
+        public const string FamilyPhotoToast = "已收入證物：FP-001 十七號的合照（本次 QA 收藏）";
+        public const string InspectControls = "<color=#8E98A6>移動滑鼠 旋轉｜滾輪 縮放｜E／Esc 收起</color>";
+        public const string ExitEvidenceHint = "\n<color=#9BB8E5>（夾層裡似乎還留著什麼。可以先去看看，不影響結束。）</color>";
+
+        public static string FamilyPhotoText()
+        {
+            return "<b><color=#E6BD52>" + FamilyPhotoTitle + "</color></b>\n" + FamilyPhotoSource + "\n\n" + FamilyPhotoDescription + "\n\n<color=#C79BFF>" +
+                   FamilyPhotoUnresolved + "</color>";
+        }
 
         public static string RoomName(Case01Room r)
         {
