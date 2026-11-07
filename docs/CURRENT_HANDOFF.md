@@ -1,3 +1,13 @@
+# 2026-11-08｜Case01 試玩回饋：住宅細節與異變 v0.2 已下達開發任務（最新）
+**使用者已要求實裝，交給 Claude Code 按規格修改現有可玩室內 QA**。本輪已建立開發任務文檔 `docs/story/case01_seventeenth_door/CASE01_ENVIRONMENT_EXPANSION_CLAUDE_TASK_V0_2.md`。
+**本次限定修改**：不擴建房間、不改 △／○／□ 的二樓記號、錨點與三段核修復；增加一二樓低面數生活家具／可調查物件、H0～H3 階段性可見環境差異（靜默變化和既有音效共同存在）、修復核後在不存在的夾層顯現並可拾取／於 QA 中回看 `FP-001` 家庭合照的異常實體證物。1～2 件 3D 拿起旋轉檢視屬次優先，不得阻擋主要增量。核修復後應允許玩家巡查並拾取證物，再選擇結束，不讓 EndPanel 提前鎖住。
+**已核對現有工程**：`Case01HouseBuilder.cs` 程式化生成住宅、`Case01HouseQA.cs` 控制探索與戰鬥、`Case01Hud.cs` 管理日誌與調查 UI。先沿用這套實作增量，不能換掉整個系統。
+**交付狀態**：本回合 GitHub **僅新增 Claude Code 開發規格與交接文件**，**沒有直接觸發 Claude 執行，也沒有改 Unity .cs / Scene 或執行 Unity 測試**。不能因此稱遊戲已完成 v0.2。Claude Code 必須按任務書在自己的環境實際修改、測試、提交 main，之後才算實裝。
+**QA 既有入口**：`unity/Assets/Exploration/Scenes/Case01HouseInteriorQA.unity`／Unity 菜單 `Shepherd/Case01/開啟室內 QA 場景`；F1 原始玄關、F2 樓梯錯接、F3 夾層、F4 戰後修復。此入口尚未包含 v0.2 變更。
+**GitHub**：`Timothy1007/shepherd`／`main`；本地同步 `git pull origin main`。舊 Web 的 `npm.cmd run build`、`npm.cmd run preview` 不啟動 Unity。
+
+---
+
 # 2026-11-07｜Case01 室內 Graybox QA v0.1 已實作（本段最新）
 依 `docs/story/case01_seventeenth_door/CASE01_INTERIOR_GRAYBOX_CLAUDE_TASK_V0_1.md` 建立**可玩**的獨立 QA 場景（Claude Code 實作，已在本機 Unity 2022.3.18f1 batchmode 測試）。
 - **Scene**：`unity/Assets/Exploration/Scenes/Case01HouseInteriorQA.unity`（只含一個 `Case01HouseQA` 元件，房屋、玩家、HUD 於 Play 時以程式建立；未加入 Build Settings）。選單：`Shepherd/Case01/開啟室內 QA 場景`、`重新產生室內 QA 場景`、`截圖檢查`。
