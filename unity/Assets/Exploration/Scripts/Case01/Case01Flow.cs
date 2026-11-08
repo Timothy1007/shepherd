@@ -92,6 +92,16 @@ namespace Shepherd.Exploration.Case01
         };
     }
 
+    /// <summary>v0.4 記憶殘響的 ID（每段每次流程只出現一次）。</summary>
+    public static class Case01Echoes
+    {
+        public const string Entrance = "echo_entrance";
+        public const string Dining = "echo_dining";
+        public const string Study = "echo_study";
+        public const string Landing = "echo_landing";
+        public static readonly string[] All = { Entrance, Dining, Study, Landing };
+    }
+
     public sealed class Case01Choice
     {
         public string Id;
@@ -112,6 +122,8 @@ namespace Shepherd.Exploration.Case01
         public string Radio;
         /// <summary>v0.4：這次事件觸發的主角自語 ID（依序；已說過的不會再出現）。</summary>
         public List<string> Monologue;
+        /// <summary>v0.4：這次事件觸發的記憶殘響 ID（沒有為 null）。</summary>
+        public string Echo;
         public Case01Choice Choice;
         /// <summary>要把玩家安全傳送到的房間（錯誤操作的回饋、通路目的地）。</summary>
         public Case01Room? Redirect;
@@ -161,12 +173,22 @@ namespace Shepherd.Exploration.Case01
             if (Case01Texts.SayIsKey(id)) Session.AddJournal("say_" + id, Case01Texts.MonologueJournalTitle, Case01Texts.SayLine(id));
         }
 
-        /// <summary>QA 開始時（S00 剛進門）的第一句。之後的跳轉不重播。</summary>
+        /// <summary>QA 開始時（S00 剛進門）：玄關的生活殘響，接著第一句自語。之後的跳轉不重播。</summary>
         public Case01Response OnArrive()
         {
             var r = new Case01Response();
-            if (Session.Stage == Case01Stage.EnteredHome) Say(r, Case01Say.EnterHome);
+            if (Session.Stage != Case01Stage.EnteredHome) return r;
+            Echo(r, Case01Echoes.Entrance);
+            Say(r, Case01Say.EnterHome);
             return r;
+        }
+
+        /// <summary>觸發一段記憶殘響（每段一次）；台詞同時記入日誌，略過或走開也找得到。</summary>
+        private void Echo(Case01Response r, string id)
+        {
+            if (r == null || ReferenceEquals(r, Case01Response.None) || r.Echo != null || !said.Add(id)) return;
+            r.Echo = id;
+            Session.AddJournal(id, Case01Texts.EchoJournalTitle + "：" + Case01Texts.EchoRoomName(id), Case01Texts.EchoJournal(id));
         }
 
         public Case01Flow()
@@ -608,6 +630,10 @@ namespace Shepherd.Exploration.Case01
             var r = new Case01Response();
             if (from == Case01Room.Dining && Has(Case01Flags.TableTwo)) diningLeftAfterObserve = true;
 
+            // v0.4 記憶殘響（首次、依階段）：餐廳＝餐具改寫前；書房＝H1／H2；樓梯平台＝H2（錯接後、核穩定前）。
+            if (to == Case01Room.Dining && !Has(Case01Flags.TableRewritten)) Echo(r, Case01Echoes.Dining);
+            if (to == Case01Room.Study && Has(Case01Flags.TableRewritten) && !CoreStabilized) Echo(r, Case01Echoes.Study);
+
             if (to == Case01Room.Dining && Has(Case01Flags.TableRewritten) && !rewriteAnnounced)
             {
                 rewriteAnnounced = true;
@@ -631,6 +657,8 @@ namespace Shepherd.Exploration.Case01
             {
                 Say(r, Case01Say.H2Landing);
                 if (ThirdDoorVisible) Say(r, Case01Say.ThirdDoor);
+                // 第二次以後回到平台才有遠處的聲音（不和剛錯接的那一刻搶）。
+                if (HasSaid(Case01Say.H2Landing) && from != Case01Room.Study) Echo(r, Case01Echoes.Landing);
             }
 
             if (to == Case01Room.Mezzanine && Session.Advance(Case01Stage.MezzanineDiscovered))

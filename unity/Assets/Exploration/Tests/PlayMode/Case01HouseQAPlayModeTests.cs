@@ -108,11 +108,14 @@ namespace Shepherd.Exploration.Tests
 
             var input = new ScriptedInput();
             qa.InputSource = input;
-            Assert.IsTrue(qa.Hud.MonologueVisible, "v0.4：進門自語（字幕顯示時照常移動與調查）");
+            Assert.IsTrue(qa.Hud.MonologueVisible, "v0.4：玄關殘響／進門自語（字幕顯示時照常移動與調查）");
+            Assert.AreEqual(Case01Echoes.Entrance, qa.Echo.Active, "v0.4：玄關的生活殘響");
             yield return WalkTo(qa, input, 6.5f, 4.4f);
             yield return WalkTo(qa, input, 6.5f, 5.8f);
             yield return WalkTo(qa, input, 6.6f, 6.2f);
             Assert.AreEqual(Case01Room.Dining, qa.CurrentRoom, "實際走進餐廳");
+            Assert.IsFalse(qa.Hud.HasPendingGroup(Case01Echoes.Entrance), "走開即略過玄關殘響（不鎖鏡頭）");
+            Assert.AreEqual(Case01Echoes.Dining, qa.Echo.Active, "餐具改寫前的餐廳殘響");
 
             var hot = qa.Layout.Interactables[Case01Ids.Table];
             var target = hot.transform.TransformPoint(hot.GetComponent<BoxCollider>().center);
@@ -155,6 +158,43 @@ namespace Shepherd.Exploration.Tests
             Object.Destroy(qa.gameObject);
             yield return null;
             Assert.IsTrue(sources.All(s => s == null || !s.isPlaying), "Case01 的聲音隨場景物件停止");
+        }
+
+        [UnityTest]
+        public IEnumerator NarrativeQa_EchoSkippableByWalking_GlitchDoorTraversable_SoundStops_InRealPlayMode()
+        {
+            PlayerPrefs.SetString(Case01HouseQA.LaunchModeKey, "v04");
+            yield return LoadScene();
+            var qa = Object.FindObjectOfType<Case01HouseQA>();
+            Assert.AreEqual(Case01QaMode.NarrativeV04, qa.QaMode);
+            var input = new ScriptedInput();
+            qa.InputSource = input;
+            yield return null;
+            // F10 兩次：餐廳殘響。
+            input.Once = new Case01Input { Function = 10 };
+            yield return null;
+            input.Once = new Case01Input { Function = 10 };
+            yield return null;
+            Assert.AreEqual(Case01Echoes.Dining, qa.Echo.Active);
+            yield return WaitUntil(() => qa.Echo.Alpha > 0.5f, 3f, "剪影隨字幕淡入");
+            Assert.AreEqual(Case01Mode.Exploring, qa.Mode, "殘響不鎖鏡頭與移動");
+            // 真的走回玄關：殘響結束。
+            yield return WalkTo(qa, input, 6.5f, 4.2f);
+            yield return WalkTo(qa, input, 6.6f, 2.6f);
+            yield return WaitUntil(() => qa.Echo.Active == null, 3f, "走開即結束殘響");
+
+            // F9：錯接的書房門（訊號故障），照常穿門到餐廳。
+            input.Once = new Case01Input { Function = 9 };
+            yield return null;
+            yield return null;
+            Assert.AreEqual(Case01PortalState.Wrong, qa.PortalState(Case01Door.StudyDoor));
+            yield return WalkTo(qa, input, Case01HouseBuilder.StudyDoorX, 5.6f);
+            yield return WaitUntil(() => qa.Mode == Case01Mode.Exploring && qa.CurrentRoom == Case01Room.Dining, 5f, "穿過故障門到餐廳");
+
+            var sources = qa.GetComponentsInChildren<AudioSource>(true);
+            Object.Destroy(qa.gameObject);
+            yield return null;
+            Assert.IsTrue(sources.All(s => s == null || !s.isPlaying), "門的雜音、殘響低語隨場景停止");
         }
 
         private static IEnumerator AimAndPress(Case01HouseQA qa, ScriptedInput input, string id)

@@ -148,7 +148,10 @@ namespace Shepherd.Exploration.Tests
         {
             var qa = NewQa();
             var hud = qa.Hud;
-            Assert.AreEqual(1, hud.MonologueLog.Count, "啟動時：進門的一句");
+            Assert.AreEqual(3, hud.MonologueLog.Count, "啟動時：玄關殘響兩句＋進門自語一句");
+            Assert.AreEqual(Case01Texts.SayLine(Case01Say.EnterHome), hud.MonologueLog[2], "自語排在殘響之後");
+            hud.ClearMonologue();
+            hud.EnqueueMonologue(Case01Texts.SayLine(Case01Say.EnterHome));
             qa.Tick(Dt, Case01Input.None);
             Assert.IsTrue(hud.MonologueVisible);
             StringAssert.Contains("有人生活", hud.MonologueText.text);

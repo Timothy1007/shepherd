@@ -97,6 +97,13 @@ namespace Shepherd.Exploration.Case01
         public int ArtStage { get; private set; }
 
         private Case01Audio sfx;
+        private Case01EchoPlayer echo;
+        /// <summary>v0.4 記憶殘響的演出（測試用）。</summary>
+        public Case01EchoPlayer Echo { get { return echo; } }
+
+        [Tooltip("v0.4 記憶殘響（占位低語）的音量。")]
+        [Range(0f, 1f)] [SerializeField] private float echoVolume = 0.5f;
+        public float EchoVolume { get { return echoVolume; } set { echoVolume = Mathf.Clamp01(value); } }
         private Case01Manifestation manifestation;
         private bool manifested;
 
@@ -250,6 +257,7 @@ namespace Shepherd.Exploration.Case01
             if (mode.HasValue) qaMode = mode.Value;
             hud = new Case01Hud(transform);
             sfx = new Case01Audio(transform);
+            echo = new Case01EchoPlayer(hud, sfx);
             ApplyVolumes();
             BuildContent(start ?? (qaMode == Case01QaMode.CoreV03 ? Case01Checkpoint.S50 : startCheckpoint));
             // 剛進門的第一句自語（只在 QA 啟動時；F1～F5 跳轉不重播）。
@@ -289,6 +297,7 @@ namespace Shepherd.Exploration.Case01
 
         private void BuildContent(Case01Flow f, Case01Checkpoint cp, Case01Pose? poseOverride)
         {
+            if (echo != null) echo.Stop();
             EndInspect();
             manifestation = null;
             manifested = false;
@@ -352,7 +361,7 @@ namespace Shepherd.Exploration.Case01
                     hud.Base.ViewMode.text = "核校正 v0.3 QA：F4 戰後核前｜F5 切回 v0.2｜F1～F3 檢查點｜F8 降低閃爍";
                     break;
                 case Case01QaMode.NarrativeV04:
-                    hud.Base.ViewMode.text = "空間敘事 v0.4 QA：F6 H0～H3｜F7 自語｜F9 失序門｜F8 降低閃爍｜F1～F4 檢查點";
+                    hud.Base.ViewMode.text = "空間敘事 v0.4 QA：F6 H0～H3｜F7 自語｜F9 失序門｜F10 殘響｜F8 降低閃爍｜F1～F4";
                     break;
                 default:
                     hud.Base.ViewMode.text = "QA 跳轉：F1 S00 玄關｜F2 S30 樓梯錯接｜F3 S40 夾層｜F4 S50 戰後修復｜F5 核校正 v0.3｜F8 降低閃爍";
@@ -440,6 +449,11 @@ namespace Shepherd.Exploration.Case01
                 PreviewGlitch((GlitchPreview + 1) % GlitchPreviewCount);
                 return;
             }
+            if (qaMode == Case01QaMode.NarrativeV04 && input.Function == 10)
+            {
+                PreviewEcho((EchoPreview + 1) % Case01Echoes.All.Length);
+                return;
+            }
             if (qaMode == Case01QaMode.ArtPreview && input.Function == 7)
             {
                 PreviewManifestation();
@@ -455,6 +469,13 @@ namespace Shepherd.Exploration.Case01
             // 自語在面板／日誌／選項／檢視／轉場／演出時暫停，回到自由探索才接著播。
             hud.MonologueHold = Mode != Case01Mode.Exploring || hud.PanelVisible || hud.JournalVisible || hud.ActiveChoice != null;
             hud.Tick(dt);
+            if (echo != null && player != null)
+            {
+                echo.EchoVolume = echoVolume;
+                echo.ReduceMotion = reduceFlicker;
+                bool echoAllowed = Mode == Case01Mode.Exploring || Mode == Case01Mode.Transition || Mode == Case01Mode.Inspect;
+                echo.Tick(dt, player.transform.position, currentRoom, echoAllowed, clock);
+            }
             Animate(dt);
             switch (Mode)
             {
@@ -747,6 +768,8 @@ namespace Shepherd.Exploration.Case01
             if (r.WorldChanged) RefreshWorld();
             if (r.Toast != null) hud.Base.ShowToast(r.Toast);
             if (r.Radio != null) hud.ShowRadio(r.Radio);
+            // 殘響先排（生活片段），自語接在後面。
+            if (r.Echo != null && echo != null) echo.Play(r.Echo, content, palette);
             if (r.Monologue != null)
                 foreach (var id in r.Monologue) hud.EnqueueMonologue(Case01Texts.SayLine(id));
             if (r.Choice != null) hud.ShowChoice(r.Choice);
@@ -877,6 +900,7 @@ namespace Shepherd.Exploration.Case01
             if (Mode != Case01Mode.Exploring || !flow.CanStartBattle || encounter == null || encounter.Defeated) return false;
             encounter.MarkTriggered();
             flow.OnBattleStarted();
+            if (echo != null) echo.Stop();
             hud.ClearMonologue();
             hud.HidePanel();
             hud.JournalVisible = false;
@@ -1069,6 +1093,7 @@ namespace Shepherd.Exploration.Case01
         private void EndQa()
         {
             Mode = Case01Mode.Ended;
+            if (echo != null) echo.Stop();
             hud.ClearMonologue();
             hud.HidePanel();
             hud.JournalVisible = false;
@@ -1474,6 +1499,50 @@ namespace Shepherd.Exploration.Case01
             }
             BuildContent(f, Case01Checkpoint.S00, pose);
             hud.Base.ShowToast("失序門預覽 " + (GlitchPreview + 1) + "／" + GlitchPreviewCount + "：" + label);
+        }
+
+        /// <summary>目前的殘響預覽（-1＝沒有）。</summary>
+        public int EchoPreview { get; private set; } = -1;
+
+        /// <summary>空間敘事 QA：在對應的房屋階段與位置單獨回放一段殘響（不需重新破關；不改流程的去重狀態）。</summary>
+        public void PreviewEcho(int n)
+        {
+            EchoPreview = Mathf.Clamp(n, 0, Case01Echoes.All.Length - 1);
+            var id = Case01Echoes.All[EchoPreview];
+            KillArena();
+            if (content != null)
+            {
+                content.gameObject.SetActive(false);
+                ArenaArt.Kill(content.gameObject);
+            }
+            encounterGroup = null;
+            exploreCam.enabled = true;
+            float y = Case01HouseBuilder.FloorHeight + 0.05f;
+            Case01Flow f;
+            Case01Pose pose;
+            switch (id)
+            {
+                case Case01Echoes.Entrance:
+                    f = Case01Flow.ForHouseStage(0);
+                    pose = new Case01Pose(Case01HouseBuilder.SpawnPoint, 0f);
+                    break;
+                case Case01Echoes.Dining:
+                    f = Case01Flow.ForHouseStage(0);
+                    pose = new Case01Pose(new Vector3(6.5f, 0.05f, 5.6f), 25f);
+                    break;
+                case Case01Echoes.Study:
+                    f = Case01Flow.ForHouseStage(1);
+                    pose = new Case01Pose(new Vector3(Case01HouseBuilder.StudyDoorX, y, 5.7f), 15f);
+                    break;
+                default:
+                    f = Case01Flow.ForCheckpoint(Case01Checkpoint.S30);
+                    pose = new Case01Pose(new Vector3(7.6f, y, 2.4f), 70f);
+                    break;
+            }
+            BuildContent(f, Case01Checkpoint.S00, pose);
+            hud.ClearMonologue();
+            echo.Play(id, content, palette);
+            hud.Base.ShowToast("殘響預覽 " + (EchoPreview + 1) + "／" + Case01Echoes.All.Length + "：" + Case01Texts.EchoRoomName(id) + Case01Texts.EchoPlaceholderNote);
         }
 
         private int previewLine = -1;

@@ -79,6 +79,12 @@ namespace Shepherd.Exploration.Editor
                     Case01HouseCapture.Advance(qa, 1.2f);
                     Case01HouseCapture.Shot(qa, rt, prefix + "door" + g + "_" + qa.PortalState(g == 0 ? Case01Door.StudyDoor : Case01Door.MezzTriangle) + ".png");
                 }
+                for (int e = 0; e < Case01Echoes.All.Length; e++)
+                {
+                    qa.PreviewEcho(e);
+                    Case01HouseCapture.AdvanceUntil(qa, q => q.Echo.Alpha > 0.95f || q.Hud.CurrentGroup == Case01Echoes.All[e] && q.Echo.FigureCount == 0, 0.3f);
+                    Case01HouseCapture.Shot(qa, rt, prefix + "echo" + e + "_" + Case01Echoes.All[e] + ".png");
+                }
                 Debug.Log("[Case01NarrativeCapture] 截圖完成 " + prefix + "*.png");
             }
             finally

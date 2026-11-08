@@ -137,12 +137,28 @@ namespace Shepherd.Exploration.Case01
         public Text MonologueText { get; private set; }
         private RectTransform monologuePanel;
         private CanvasGroup monologueGroup;
-        private readonly Queue<string> monologueQueue = new Queue<string>();
+        /// <summary>一句字幕：說話者（主角自語或記憶殘響）、內容、群組（同一段殘響的句子；自語為 null）。</summary>
+        private struct Line
+        {
+            public string Speaker;
+            public string Text;
+            public string Group;
+        }
+
+        private readonly List<Line> monologueQueue = new List<Line>();
         private float monologueTime = -1f;
         private float monologueDuration;
         private float monologueGap;
-        public const int MonologueQueueMax = 3;
+        public const int MonologueQueueMax = 5;
         public const float MonologueGapSeconds = 0.5f;
+        /// <summary>目前這句所屬的殘響群組（自語或沒有字幕時為 null）。</summary>
+        public string CurrentGroup { get; private set; }
+
+        public bool HasPendingGroup(string group)
+        {
+            foreach (var l in monologueQueue) if (l.Group == group) return true;
+            return false;
+        }
 
         /// <summary>本次 QA 送進隊列的所有句子（測試用；依序）。</summary>
         public readonly List<string> MonologueLog = new List<string>();
@@ -160,18 +176,32 @@ namespace Shepherd.Exploration.Case01
 
         public void EnqueueMonologue(string line)
         {
-            if (string.IsNullOrEmpty(line)) return;
-            MonologueLog.Add(line);
-            monologueQueue.Enqueue(line);
-            // 同時觸發太多句時只留最新的幾句，避免一直佔住畫面。
-            while (monologueQueue.Count > MonologueQueueMax) monologueQueue.Dequeue();
+            EnqueueLine(Case01Texts.MonologueSpeaker, line, null);
         }
 
-        /// <summary>略過目前這句（Tab）。</summary>
+        /// <summary>加入一句字幕（記憶殘響用 group 綁定同一段演出）。</summary>
+        public void EnqueueLine(string speaker, string line, string group)
+        {
+            if (string.IsNullOrEmpty(line)) return;
+            MonologueLog.Add(line);
+            monologueQueue.Add(new Line { Speaker = speaker, Text = line, Group = group });
+            // 同時觸發太多句時只留最新的幾句，避免一直佔住畫面。
+            while (monologueQueue.Count > MonologueQueueMax) monologueQueue.RemoveAt(0);
+        }
+
+        /// <summary>略過目前這句（Tab）。目前是殘響時，整段殘響一起略過。</summary>
         public void SkipMonologue()
         {
             if (monologueTime < 0f) return;
-            EndMonologueLine();
+            if (CurrentGroup != null) DropGroup(CurrentGroup);
+            else EndMonologueLine();
+        }
+
+        /// <summary>移除某段殘響還沒播的句子；正在播的也結束（玩家走開、略過）。</summary>
+        public void DropGroup(string group)
+        {
+            monologueQueue.RemoveAll(l => l.Group == group);
+            if (CurrentGroup == group && monologueTime >= 0f) EndMonologueLine();
         }
 
         /// <summary>清除全部（戰鬥、跳轉、結束）。</summary>
@@ -181,6 +211,7 @@ namespace Shepherd.Exploration.Case01
             monologueTime = -1f;
             monologueGap = 0f;
             MonologueCurrent = null;
+            CurrentGroup = null;
             monologuePanel.gameObject.SetActive(false);
         }
 
@@ -189,6 +220,7 @@ namespace Shepherd.Exploration.Case01
             monologueTime = -1f;
             monologueGap = MonologueGapSeconds;
             MonologueCurrent = null;
+            CurrentGroup = null;
             monologuePanel.gameObject.SetActive(false);
         }
 
@@ -215,8 +247,15 @@ namespace Shepherd.Exploration.Case01
                 return;
             }
             if (monologueQueue.Count == 0) return;
-            MonologueCurrent = monologueQueue.Dequeue();
-            MonologueText.text = "<color=#9AA6B8>〔" + Case01Texts.MonologueSpeaker + "〕</color>　" + MonologueCurrent;
+            var line = monologueQueue[0];
+            monologueQueue.RemoveAt(0);
+            MonologueCurrent = line.Text;
+            CurrentGroup = line.Group;
+            bool echo = line.Speaker != Case01Texts.MonologueSpeaker;
+            // 自語：斜體、灰色標籤；殘響：正體、淡藍標籤（不冒充 NPC 通訊）。
+            MonologueText.fontStyle = echo ? FontStyle.Normal : FontStyle.Italic;
+            MonologueText.color = echo ? new Color(0.82f, 0.87f, 0.97f) : new Color(0.93f, 0.92f, 0.88f);
+            MonologueText.text = "<color=" + (echo ? "#8FA3C8" : "#9AA6B8") + ">〔" + line.Speaker + "〕</color>　" + (echo ? "「" + line.Text + "」" : line.Text);
             monologueDuration = MonologueSeconds(MonologueCurrent);
             monologueTime = 0f;
             monologueGroup.alpha = 0f;

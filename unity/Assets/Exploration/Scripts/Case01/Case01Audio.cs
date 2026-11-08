@@ -26,6 +26,8 @@ namespace Shepherd.Exploration.Case01
         public AudioClip Settle { get; private set; }
         /// <summary>v0.4 失序門的輕微電流雜音（循環）。</summary>
         public AudioClip Static { get; private set; }
+        /// <summary>v0.4 記憶殘響的占位低語（程式產生，不是角色配音）。</summary>
+        public AudioClip Murmur { get; private set; }
 
         /// <summary>v0.4 失序門雜音的獨立音量。</summary>
         public float PortalVolume = 0.35f;
@@ -54,6 +56,7 @@ namespace Shepherd.Exploration.Case01
             Sting = Make("Case01Sting", 3.8f, StingSample);
             Settle = Make("Case01Settle", 1.4f, SettleSample);
             Static = Make("Case01PortalStatic", 2f, Case01Glitch.StaticSample);
+            Murmur = Make("Case01EchoMurmur", 2.2f, MurmurSample);
             Ambient.clip = AmbientLoop;
         }
 
@@ -232,6 +235,16 @@ namespace Shepherd.Exploration.Case01
             }
             if (t > len * 0.6f) s += Mathf.Sin(2f * Mathf.PI * 103.83f * t) * 0.25f * Mathf.Clamp01((t - len * 0.6f) * 4f);
             return s * Env(t, len, 1.8f, 0.8f);
+        }
+
+        private static float MurmurSample(float t, float len)
+        {
+            // 占位低語：像隔著牆聽到的說話起伏（兩個共振峰＋音節包絡），聽不出字，只表示「有人在說話」。
+            float syll = 0.5f + 0.5f * Mathf.Sin(2f * Mathf.PI * 4.3f * t + Mathf.Sin(t * 7f));
+            float pitch = 180f + 25f * Mathf.Sin(2f * Mathf.PI * 0.8f * t);
+            float voice = Mathf.Sin(2f * Mathf.PI * pitch * t) * 0.4f + Mathf.Sin(2f * Mathf.PI * pitch * 2.6f * t) * 0.15f;
+            float breath = Noise(t, 23) * 0.06f;
+            return (voice * syll + breath) * Env(t, len, 0.25f, 0.6f) * 0.35f;
         }
 
         private static float SettleSample(float t, float len)

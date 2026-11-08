@@ -182,6 +182,52 @@ namespace Shepherd.Exploration.Case01
                    || id == Case01Say.H3Return;
         }
 
+        // ---------------- v0.4 記憶殘響（候選生活片段；不證明事件一定發生、不代表任何人的現況） ----------------
+        public const string EchoElder = "殘響・年長的聲音";
+        public const string EchoYounger = "殘響・年輕的聲音";
+        public const string EchoDistant = "殘響・遠處的聲音";
+        public const string EchoJournalTitle = "記憶殘響";
+        public const string EchoPlaceholderNote = "（聲音為程式產生的占位音色，尚無角色配音）";
+
+        public static string EchoRoomName(string id)
+        {
+            switch (id)
+            {
+                case Case01Echoes.Entrance: return "玄關";
+                case Case01Echoes.Dining: return "餐廳";
+                case Case01Echoes.Study: return "書房";
+                case Case01Echoes.Landing: return "樓梯平台";
+                default: return "";
+            }
+        }
+
+        /// <summary>殘響台詞：(說話者, 內容)。對白含蓄，不揭露艾琳的結局、組織或第一次校正的決策。</summary>
+        public static string[][] EchoLines(string id)
+        {
+            switch (id)
+            {
+                case Case01Echoes.Entrance:
+                    return new[] { new[] { EchoElder, "鞋子別又堆在門口。" }, new[] { EchoYounger, "我等會還要出去呢。" } };
+                case Case01Echoes.Dining:
+                    return new[] { new[] { EchoElder, "今天會回來吃飯吧？" }, new[] { EchoYounger, "……我會盡量。" } };
+                case Case01Echoes.Study:
+                    return new[] { new[] { EchoYounger, "這份舊圖……明明還畫著十七號。" } };
+                case Case01Echoes.Landing:
+                    return new[] { new[] { EchoDistant, "艾琳？" }, new[] { MonologueSpeaker, "……是剛才的聲音？" } };
+                default:
+                    return new string[0][];
+            }
+        }
+
+        public static string EchoJournal(string id)
+        {
+            var sb = new System.Text.StringBuilder();
+            sb.Append("在").Append(EchoRoomName(id)).Append("短暫看見／聽見的生活片段：");
+            foreach (var l in EchoLines(id)) sb.Append("\n").Append(l[0]).Append("：「").Append(l[1]).Append("」");
+            sb.Append("\n<color=#8E98A6>殘響是異域留下的痕跡，不能當成實況的證明。</color>");
+            return sb.ToString();
+        }
+
         public static string FamilyPhotoText()
         {
             return "<b><color=#E6BD52>" + FamilyPhotoTitle + "</color></b>\n" + FamilyPhotoSource + "\n\n" + FamilyPhotoDescription + "\n\n<color=#C79BFF>" +
