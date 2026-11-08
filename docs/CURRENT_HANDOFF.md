@@ -5,7 +5,14 @@
 
 ---
 
-# 2026-11-08｜Case01 公開 Demo 戰鬥 UI 與首戰教學 實作進度（本段最新）
+# 2026-11-09｜Case01 v0.4 空間敘事 實作進度（Claude）
+**Stage A｜主角自語（已實作、已測）**：Case01 第一章不再使用同伴通訊解題（`Case01Response.Radio` 與 `Case01Hud.ShowRadio()` 架構保留給其他案件，Case01 不再呼叫）。新增 `Case01Say`（事件 ID）與 `Case01Texts.SayLine()`（規格台詞庫 17 句，含 3 句自行補寫的小句：樓梯異常、反制、v0.3 錨點的「我固定的是可靠的連接，不是記號本身」），由 `Case01Flow` 在因果狀態**首次**成立時加入回應（`Case01Response.Monologue`，依 ID 去重；重要句記入日誌「自語」）。觸發：S00 啟動進門、餐具改寫首次回餐廳、H1 首次離開餐廳、書房線索齊全、樓梯錯接後進平台（H2＋第三扇門）、第一次／第二次錯接到餐廳、首次進夾層、反制、戰後第一次碰核、核前缺證據、v0.3 預演錯誤／正確錨點／第二關係／穿門寫回、核穩定後首次回一樓。`Case01Hud` 新增低位自語字幕隊列（標示〔主角・自語〕、2.5～5 秒依字數、淡入淡出、最多排 3 句、Tab 略過），在調查面板、選項、日誌、短觀察、檢視、轉場、演出時暫停，進入戰鬥／跳轉／結束時清除；F1～F5 跳轉不重播。v0.2 不套用 v0.3 的教學句。
+**QA**：新選單 `Shepherd/Case01/空間敘事 v0.4 QA`（`Case01QaMode.NarrativeV04`）：F6 H0～H3、F7 逐句預覽自語（不改流程）。
+**測試（Stage A）**：EditMode 256/256（新增 `Case01MonologueTests` 6 項；改寫 `Case01FlowTests` 與 `Case01HouseQATests` 中原本檢查同伴通訊的斷言）、PlayMode 8/8（真實 Play 下自語顯示時照常移動調查、面板開啟時不疊字）。未經真人試玩。
+
+---
+
+# 2026-11-08｜Case01 公開 Demo 戰鬥 UI 與首戰教學 實作進度
 依 `CASE01_COMBAT_DEMO_UI_TUTORIAL_CLAUDE_TASK_V0_3.md`。**BattleController、RoundResolver、規則、數值、卡牌、敵人數量／AI、勝負條件都未修改。**
 **第一步：Demo 戰鬥 HUD＋獨立 QA（已實作、已測）**：新檔 `unity/Assets/Battle/UI/Arena/Demo/`（`CombatDemoHud.cs` 覆蓋式 view、`CombatDemoTheme.cs` 色票／尺寸、`CombatDemoText.cs` 集中文案）。它掛在既有 `CombatArenaView` 上，只讀 `CombatLabSession` 快照與 Core 預估、`CombatArenaView` 的播放狀態，所有操作轉發給同一個 Session 與既有按鈕邏輯（確認／略過、調度、重置），**不建立第二套戰鬥或公式**。舊 HUD 面板隱藏但物件保留（結果橫幅、浮字、畫面閃光照用；舊的公開存取與測試照舊）；CombatLab3D、AnomalyStreetDemo 不掛新 HUD。版面（參考 1600×900）：左上 錨定值（生命）條＋預估、擬態錨定（先吸收傷害）、敵方回合預估威脅；上方中央 AP 三顆菱形＋「每張 1 AP」；右上 三學派分頁（名稱＋方向描述，確認時鎖定）＋戰鬥紀錄（展開）；敵人頭上名牌（失序值條與回合後預估、下回合攻擊、預計影響、連結／校正／束縛）；下方左 七張手牌（元素色＋符號 ▲■◆、1 AP、目前學派的效果名與數值、功能；已排入的抬起並標「第 N 張」；懸停顯示詳情）；下方右 術式編排三槽（順序、效果、預估結果、目標「目標：甲 ⇄」可更換）、槽間承接標記、三連共鳴進度（「再一張…即成三連」／成立）、預估（你將得到→目標將受到→敵方回合→回合後，皆標「預估」）、主按鈕確認施放／略過動畫、次要調度與清空。正式 Case01 路徑不顯示「重置戰鬥」。Case01 房屋 QA 的戰鬥（`Case01HouseQA.StartEncounter`）已改用新 HUD。
 **QA 入口**：選單 `Shepherd/Case01/戰鬥 Demo UI QA`（場景 `Assets/Exploration/Scenes/Case01CombatDemoQA.unity`：只有 Case01 首戰兩敵）；F1 重來、F9 重置戰鬥、F10 切換舊版 HUD 對照、T 教學開／關（第二步生效）。截圖：選單 `Shepherd/Case01/戰鬥 Demo UI 截圖` 或 `-executeMethod Shepherd.Exploration.Editor.Case01CombatDemoCapture.CaptureFromCommandLine`。

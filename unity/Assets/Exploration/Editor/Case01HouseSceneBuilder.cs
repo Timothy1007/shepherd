@@ -61,6 +61,10 @@ namespace Shepherd.Exploration.Editor
         [MenuItem("Shepherd/Case01/核校正 v0.3 QA")]
         public static void LaunchCoreV03() { Launch("v03"); }
 
+        /// <summary>空間敘事 v0.4 QA：逐句預覽自語、H0～H3、失序門、記憶殘響（不需重新破關）。</summary>
+        [MenuItem("Shepherd/Case01/空間敘事 v0.4 QA")]
+        public static void LaunchNarrativeV04() { Launch("v04"); }
+
         /// <summary>開啟室內 QA 場景並以指定模式進入 Play（一次性參數，Awake 讀取後刪除）。</summary>
         public static void Launch(string mode)
         {

@@ -36,6 +36,8 @@ namespace Shepherd.Exploration.Case01
         Standard,
         ArtPreview,
         CoreV03,
+        /// <summary>v0.4 空間敘事 QA：F6 H0～H3、F7 下一句自語預覽（之後的階段加上失序門與記憶殘響）。</summary>
+        NarrativeV04,
     }
 
     /// <summary>
@@ -178,6 +180,7 @@ namespace Shepherd.Exploration.Case01
                 PlayerPrefs.DeleteKey(LaunchModeKey);
                 if (launch == "art") qaMode = Case01QaMode.ArtPreview;
                 else if (launch == "v03") qaMode = Case01QaMode.CoreV03;
+                else if (launch == "v04") qaMode = Case01QaMode.NarrativeV04;
             }
             Build(true);
         }
@@ -249,6 +252,8 @@ namespace Shepherd.Exploration.Case01
             sfx = new Case01Audio(transform);
             ApplyVolumes();
             BuildContent(start ?? (qaMode == Case01QaMode.CoreV03 ? Case01Checkpoint.S50 : startCheckpoint));
+            // 剛進門的第一句自語（只在 QA 啟動時；F1～F5 跳轉不重播）。
+            Handle(flow.OnArrive());
         }
 
         private CombatLabScenario CurrentScenario()
@@ -314,6 +319,7 @@ namespace Shepherd.Exploration.Case01
             hud.Visible = true;
             hud.HidePanel();
             hud.HideRadio();
+            hud.ClearMonologue();
             hud.HideNote();
             hud.JournalVisible = false;
             hud.EndVisible = false;
@@ -342,6 +348,9 @@ namespace Shepherd.Exploration.Case01
                     break;
                 case Case01QaMode.CoreV03:
                     hud.Base.ViewMode.text = "核校正 v0.3 QA：F4 戰後核前｜F5 切回 v0.2｜F1～F3 檢查點｜F8 降低閃爍";
+                    break;
+                case Case01QaMode.NarrativeV04:
+                    hud.Base.ViewMode.text = "空間敘事 v0.4 QA：F6 房屋 H0～H3｜F7 下一句自語｜F8 降低閃爍｜F1～F4 檢查點";
                     break;
                 default:
                     hud.Base.ViewMode.text = "QA 跳轉：F1 S00 玄關｜F2 S30 樓梯錯接｜F3 S40 夾層｜F4 S50 戰後修復｜F5 核校正 v0.3｜F8 降低閃爍";
@@ -414,9 +423,14 @@ namespace Shepherd.Exploration.Case01
                 hud.Base.ShowToast(qaMode == Case01QaMode.CoreV03 ? "QA：核校正 v0.3（關係校正）" : "QA：核校正 v0.2（原三段式）");
                 return;
             }
-            if (qaMode == Case01QaMode.ArtPreview && input.Function == 6)
+            if ((qaMode == Case01QaMode.ArtPreview || qaMode == Case01QaMode.NarrativeV04) && input.Function == 6)
             {
                 SetArtStage((ArtStage + 1) % 4);
+                return;
+            }
+            if (qaMode == Case01QaMode.NarrativeV04 && input.Function == 7)
+            {
+                PreviewNextMonologue();
                 return;
             }
             if (qaMode == Case01QaMode.ArtPreview && input.Function == 7)
@@ -430,6 +444,9 @@ namespace Shepherd.Exploration.Case01
                 return;
             }
             clock += dt;
+            if (input.SkipLine) hud.SkipMonologue();
+            // 自語在面板／日誌／選項／檢視／轉場／演出時暫停，回到自由探索才接著播。
+            hud.MonologueHold = Mode != Case01Mode.Exploring || hud.PanelVisible || hud.JournalVisible || hud.ActiveChoice != null;
             hud.Tick(dt);
             Animate(dt);
             switch (Mode)
@@ -722,6 +739,8 @@ namespace Shepherd.Exploration.Case01
             if (r.WorldChanged) RefreshWorld();
             if (r.Toast != null) hud.Base.ShowToast(r.Toast);
             if (r.Radio != null) hud.ShowRadio(r.Radio);
+            if (r.Monologue != null)
+                foreach (var id in r.Monologue) hud.EnqueueMonologue(Case01Texts.SayLine(id));
             if (r.Choice != null) hud.ShowChoice(r.Choice);
             else if (r.Text != null) hud.ShowText(r.Text);
             if (r.Note != null) hud.ShowNote(r.Note);
@@ -850,6 +869,7 @@ namespace Shepherd.Exploration.Case01
             if (Mode != Case01Mode.Exploring || !flow.CanStartBattle || encounter == null || encounter.Defeated) return false;
             encounter.MarkTriggered();
             flow.OnBattleStarted();
+            hud.ClearMonologue();
             hud.HidePanel();
             hud.JournalVisible = false;
             hud.Base.SetHint(null);
@@ -1041,6 +1061,7 @@ namespace Shepherd.Exploration.Case01
         private void EndQa()
         {
             Mode = Case01Mode.Ended;
+            hud.ClearMonologue();
             hud.HidePanel();
             hud.JournalVisible = false;
             hud.Base.SetHint(null);
@@ -1075,7 +1096,7 @@ namespace Shepherd.Exploration.Case01
             L.Decor.SetEvidenceVisible(flow.FamilyPhotoAvailable);
             UpdateDecor(false);
             hud.Base.Controls.text = "WASD 移動｜滑鼠 視角｜Shift 奔跑｜E 調查／互動｜1–3 選擇｜J 日誌" +
-                                     (flow.FamilyPhotoCollected ? "｜I 檢視證物" : "") + "｜Esc 釋放滑鼠";
+                                     (flow.FamilyPhotoCollected ? "｜I 檢視證物" : "") + "｜Tab 略過自語｜Esc 釋放滑鼠";
 
             Color coreColor = flow.CoreStabilized ? ArenaArt.LampWarm : flow.DefenseActive ? new Color(1f, 0.25f, 0.35f) : ArenaArt.Rift;
             ArenaArt.SetEmission(L.CoreMat, coreColor * (flow.CoreStabilized ? 1.2f : 2.2f));
@@ -1322,6 +1343,18 @@ namespace Shepherd.Exploration.Case01
             exploreCam.enabled = true;
             BuildContent(Case01Flow.ForHouseStage(ArtStage), Case01Checkpoint.S00, new Case01Pose(new Vector3(3.9f, 0.05f, 6.3f), -55f));
             hud.Base.ShowToast("美術 QA：房屋 H" + ArtStage);
+        }
+
+        private int previewLine = -1;
+
+        /// <summary>空間敘事 QA：依序預覽下一句自語（只顯示，不改流程或去重狀態）。</summary>
+        public void PreviewNextMonologue()
+        {
+            previewLine = (previewLine + 1) % Case01Say.All.Length;
+            var id = Case01Say.All[previewLine];
+            hud.ClearMonologue();
+            hud.EnqueueMonologue(Case01Texts.SayLine(id));
+            hud.Base.ShowToast("自語預覽 " + (previewLine + 1) + "／" + Case01Say.All.Length + "：" + id);
         }
 
         /// <summary>美術 QA：直接到中庭播放失序體形成（不開戰，可重複）。</summary>

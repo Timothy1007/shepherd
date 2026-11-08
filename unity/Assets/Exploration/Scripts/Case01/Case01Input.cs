@@ -18,6 +18,8 @@ namespace Shepherd.Exploration.Case01
         public bool InspectEvidence;
         /// <summary>F5～F8 的 QA 功能鍵（5＝切換核校正 v0.2／v0.3，6＝美術 QA 切換 H0～H3，7＝播放失序體形成，8＝降低閃爍），沒有為 0。</summary>
         public int Function;
+        /// <summary>Tab：略過目前的自語字幕。</summary>
+        public bool SkipLine;
 
         public static Case01Input None { get { return new Case01Input(); } }
 
@@ -43,6 +45,7 @@ namespace Shepherd.Exploration.Case01
             r.Journal = Input.GetKeyDown(KeyCode.J);
             r.Zoom = Input.mouseScrollDelta.y;
             r.InspectEvidence = Input.GetKeyDown(KeyCode.I);
+            r.SkipLine = Input.GetKeyDown(KeyCode.Tab);
             if (Input.GetKeyDown(KeyCode.F1)) r.Jump = 1;
             else if (Input.GetKeyDown(KeyCode.F2)) r.Jump = 2;
             else if (Input.GetKeyDown(KeyCode.F3)) r.Jump = 3;

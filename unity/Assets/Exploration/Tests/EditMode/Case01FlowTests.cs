@@ -72,12 +72,15 @@ namespace Shepherd.Exploration.Tests
             Assert.IsFalse(f.DiningShowsTwoSets);
 
             var r = f.EnterRoom(Case01Room.Entrance, Case01Room.Dining);
-            Assert.AreEqual(Case01Texts.RadioOneSet, r.Radio, "同伴：我這裡的記錄只有一副");
+            Assert.IsNull(r.Radio, "v0.4：第一章不使用同伴通訊");
+            CollectionAssert.Contains(r.Monologue, Case01Say.TableRewritten, "主角自語：剛才不是兩副嗎");
             Assert.AreEqual(Case01Stage.DiningContradiction, f.Session.Stage);
             Assert.IsTrue(f.Session.HasJournal("table_two"), "原始觀測（兩副）仍在日誌");
             Assert.IsTrue(f.Session.HasJournal("table_rewritten"));
-            Assert.IsNull(f.EnterRoom(Case01Room.Dining, Case01Room.Entrance).Radio);
-            Assert.IsNull(f.EnterRoom(Case01Room.Entrance, Case01Room.Dining).Radio, "通訊只播一次");
+            var back = f.EnterRoom(Case01Room.Dining, Case01Room.Entrance);
+            Assert.IsTrue(back.Monologue == null || !back.Monologue.Contains(Case01Say.TableRewritten));
+            var again = f.EnterRoom(Case01Room.Entrance, Case01Room.Dining);
+            Assert.IsTrue(again.Monologue == null || !again.Monologue.Contains(Case01Say.TableRewritten), "自語只說一次");
             StringAssert.Contains("一副", f.Interact(Case01Ids.Table).Text);
         }
 

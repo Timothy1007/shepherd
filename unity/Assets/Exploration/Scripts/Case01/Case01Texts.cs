@@ -14,7 +14,6 @@ namespace Shepherd.Exploration.Case01
         public const string TableOne = "桌上只剩一副餐具。\n另一個位置的桌面比較乾淨，像是剛被收走──但椅子靠得很整齊。";
         public const string TableRewrittenTitle = "餐桌：再訪時只剩一副";
         public const string TableRewrittenJournal = "再回到餐廳時，桌上只剩一副餐具。\n原始觀測仍保留：第一次看到的是兩副。";
-        public const string RadioOneSet = "我這裡的記錄只有一副。你確定剛才看見兩副？";
 
         public const string PhotoTitle = "合照";
         public const string Photo = "相框裡是兩個人並肩站著，臉模糊得認不出來。\n背面用鉛筆寫著：「週日。兩個人。」";
@@ -42,7 +41,6 @@ namespace Shepherd.Exploration.Case01
         public const string Postcard = "床頭有一張沒寄出的明信片：「媽，下週日我晚點到。」";
         public const string Storage = "儲藏室的門鎖著。（QA：此房間不開放）";
         public const string ArmedToast = "樓梯平台那邊傳來木板擠壓的聲音……";
-        public const string ArmedRadio = "你那邊的平面圖在跳動。樓梯平台附近，好像多了一個方向。";
         public const string ActivatedToast = "身後的門框輕輕一震。";
 
         // ---------------- S30 樓梯錯接 ----------------
@@ -67,7 +65,6 @@ namespace Shepherd.Exploration.Case01
         public const string MezzJournal = "樓梯平台外牆的門後，是一個平面圖上沒有的夾層。三個門框分別標著△、○，北牆上有被劃掉一半的「17」。";
         public const string CoreStart = "核懸在舊校正術式的斷口上。你伸手去碰斷掉的標記──\n整個夾層猛然翻轉。";
         public const string DefenseToast = "異域在反制：已經歸位的門又被扭開，舊規則正在回來。";
-        public const string DefenseRadio = "所有房間的連結都在亂跳！你那邊有東西在成形──小心。";
         public const string CoreBattlePending = "核周圍的空間又一次翻轉──失序體還在中庭。";
         public const string BattleWonTitle = "失序體平息";
         public const string BattleWon = "中庭裡的失序體平息了。但核還沒有修復──戰勝不等於校正完成。";
@@ -147,6 +144,43 @@ namespace Shepherd.Exploration.Case01
         public const string FamilyPhotoToast = "已收入證物：FP-001 十七號的合照（本次 QA 收藏）";
         public const string InspectControls = "<color=#8E98A6>移動滑鼠 旋轉｜滾輪 縮放｜E／Esc 收起</color>";
         public const string ExitEvidenceHint = "\n<color=#9BB8E5>（夾層裡似乎還留著什麼。可以先去看看，不影響結束。）</color>";
+
+        // ---------------- v0.4 主角自語（第一章不使用常駐同伴解題；事件觸發、每句一次） ----------------
+        public const string MonologueSpeaker = "主角・自語";
+        public const string MonologueJournalTitle = "自語";
+
+        /// <summary>事件 ID → 主角短句。只描述觀察與疑惑，不報答案（不出現「選△」「錨定到…」之類的解法）。</summary>
+        public static string SayLine(string id)
+        {
+            switch (id)
+            {
+                case Case01Say.EnterHome: return "這裡還留著有人生活的樣子。";
+                case Case01Say.TableRewritten: return "……等一下。剛才桌上不是兩副餐具嗎？";
+                case Case01Say.H1Cold: return "剛才的燈好像沒這麼冷。";
+                case Case01Say.Armed: return "樓梯那邊有聲音……像是多出了一個方向。";
+                case Case01Say.WrongFirst: return "不對。我明明是從書房門進來的……怎麼會是餐廳？";
+                case Case01Say.WrongSecond: return "門沒有移動。變的是它連向的地方。";
+                case Case01Say.H2Landing: return "越往裡走，這棟房子越不像有人住過。";
+                case Case01Say.ThirdDoor: return "平面圖上不應該有這個位置。";
+                case Case01Say.Mezzanine: return "……這裡不是原本的樓層。";
+                case Case01Say.Defense: return "連結全都在亂跳……有東西在成形。";
+                case Case01Say.CoreAfterBattle: return "打倒它們也沒結束。這些錯接還在。";
+                case Case01Say.NeedEvidence: return "先比對我的記錄……原本通往哪裡，和現在通往哪裡？";
+                case Case01Say.V03Wrong: return "這條線固定了，另一邊反而斷了。不是這樣。";
+                case Case01Say.V03Anchor: return "先讓一條可信的路留下來。我固定的是可靠的連接，不是記號本身。";
+                case Case01Say.V03Second: return "十七號不是憑空多出一間房……是被省略的連結。";
+                case Case01Say.V03Commit: return "是我沿著這條關係走過，才讓它不再變動。";
+                case Case01Say.H3Return: return "路終於對了。可這裡……已經不是剛進門時的樣子。";
+                default: return null;
+            }
+        }
+
+        /// <summary>重要的自語同時記入日誌（略過字幕也找得到）。</summary>
+        public static bool SayIsKey(string id)
+        {
+            return id == Case01Say.TableRewritten || id == Case01Say.WrongFirst || id == Case01Say.CoreAfterBattle || id == Case01Say.NeedEvidence
+                   || id == Case01Say.H3Return;
+        }
 
         public static string FamilyPhotoText()
         {

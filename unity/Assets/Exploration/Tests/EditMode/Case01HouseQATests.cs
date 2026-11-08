@@ -242,8 +242,8 @@ namespace Shepherd.Exploration.Tests
             Assert.IsTrue(qa.Layout.DiningTrace.activeSelf, "桌面痕跡不同");
 
             EntranceToDining(qa);
-            Assert.IsTrue(qa.Hud.SubtitleVisible, "同伴通訊");
-            StringAssert.Contains("只有一副", qa.Hud.Subtitle.text);
+            Assert.IsFalse(qa.Hud.SubtitleVisible, "v0.4：第一章不使用同伴通訊");
+            StringAssert.Contains("兩副餐具", qa.Hud.MonologueLog[qa.Hud.MonologueLog.Count - 1], "主角自語");
             Assert.AreEqual(Case01Stage.DiningContradiction, qa.Session.Stage);
             Interact(qa, Case01Ids.Table);
             StringAssert.Contains("只剩一副", qa.Hud.Base.InspectText.text);

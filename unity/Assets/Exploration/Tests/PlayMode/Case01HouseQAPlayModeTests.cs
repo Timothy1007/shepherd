@@ -108,6 +108,7 @@ namespace Shepherd.Exploration.Tests
 
             var input = new ScriptedInput();
             qa.InputSource = input;
+            Assert.IsTrue(qa.Hud.MonologueVisible, "v0.4：進門自語（字幕顯示時照常移動與調查）");
             yield return WalkTo(qa, input, 6.5f, 4.4f);
             yield return WalkTo(qa, input, 6.5f, 5.8f);
             yield return WalkTo(qa, input, 6.6f, 6.2f);
@@ -125,6 +126,7 @@ namespace Shepherd.Exploration.Tests
             yield return null;
             Assert.IsTrue(qa.Session.Has(Case01Flags.TableTwo));
             Assert.IsTrue(qa.Hud.PanelVisible);
+            Assert.IsFalse(qa.Hud.MonologueVisible, "調查面板開著時自語不疊在上面");
         }
 
         [UnityTest]

@@ -61,7 +61,7 @@ namespace Shepherd.Exploration.Case01
         {
             Base = new ExploreHud(parent);
             Base.Canvas.gameObject.name = "Case01Hud";
-            Base.Controls.text = "WASD 移動｜滑鼠 視角｜Shift 奔跑｜E 調查／互動｜1–3 選擇｜J 日誌｜Esc 釋放滑鼠";
+            Base.Controls.text = "WASD 移動｜滑鼠 視角｜Shift 奔跑｜E 調查／互動｜1–3 選擇｜J 日誌｜Tab 略過自語｜Esc 釋放滑鼠";
             Base.ViewMode.text = "QA 跳轉：F1 S00 玄關｜F2 S30 樓梯錯接｜F3 S40 夾層｜F4 S50 戰後修復";
             var help = (RectTransform)Base.Controls.transform.parent;
             help.sizeDelta = new Vector2(800f, 84f);
@@ -80,6 +80,17 @@ namespace Shepherd.Exploration.Case01
             Subtitle = Label(subtitlePanel, "", CombatLabStyle.Section, TextAnchor.MiddleCenter, new Color(0.75f, 0.9f, 1f));
             Fill(Subtitle.rectTransform, 14f, 6f);
             subtitlePanel.gameObject.SetActive(false);
+
+            // v0.4 主角自語：低位字幕（與通訊字幕同位置但不同樣式；不遮準心、E 提示與面板）。
+            // E 提示列之上（不與「［E］…」重疊）；短觀察出現時暫停。
+            monologuePanel = Box(root, "Monologue", new Vector2(0.5f, 0f), new Vector2(0f, 196f), new Vector2(820f, 52f));
+            monologuePanel.pivot = new Vector2(0.5f, 0f);
+            monologuePanel.GetComponent<Image>().color = new Color(0.03f, 0.035f, 0.045f, 0.72f);
+            MonologueText = Label(monologuePanel, "", CombatLabStyle.Body, TextAnchor.MiddleCenter, new Color(0.93f, 0.92f, 0.88f));
+            Fill(MonologueText.rectTransform, 16f, 4f);
+            MonologueText.fontStyle = FontStyle.Italic;
+            monologueGroup = monologuePanel.gameObject.AddComponent<CanvasGroup>();
+            monologuePanel.gameObject.SetActive(false);
 
             // 短觀察：準星下方的小字（生活細節不開側邊面板）。
             notePanel = Box(root, "Note", new Vector2(0.5f, 0.5f), new Vector2(0f, -120f), new Vector2(760f, 64f));
@@ -121,9 +132,101 @@ namespace Shepherd.Exploration.Case01
             set { Base.Visible = value; }
         }
 
+        // ---------------- v0.4 主角自語（隊列） ----------------
+
+        public Text MonologueText { get; private set; }
+        private RectTransform monologuePanel;
+        private CanvasGroup monologueGroup;
+        private readonly Queue<string> monologueQueue = new Queue<string>();
+        private float monologueTime = -1f;
+        private float monologueDuration;
+        private float monologueGap;
+        public const int MonologueQueueMax = 3;
+        public const float MonologueGapSeconds = 0.5f;
+
+        /// <summary>本次 QA 送進隊列的所有句子（測試用；依序）。</summary>
+        public readonly List<string> MonologueLog = new List<string>();
+        /// <summary>暫停（面板、日誌、選項、檢視、轉場時由場景設定）：計時停止、字幕隱藏，之後接著播。</summary>
+        public bool MonologueHold { get; set; }
+        public bool MonologueVisible { get { return monologuePanel.gameObject.activeSelf; } }
+        public int MonologuePending { get { return monologueQueue.Count; } }
+        public string MonologueCurrent { get; private set; }
+
+        /// <summary>每句 2～5 秒（依字數）。</summary>
+        public static float MonologueSeconds(string line)
+        {
+            return Mathf.Clamp(1.6f + (line != null ? line.Length : 0) * 0.09f, 2.5f, 5f);
+        }
+
+        public void EnqueueMonologue(string line)
+        {
+            if (string.IsNullOrEmpty(line)) return;
+            MonologueLog.Add(line);
+            monologueQueue.Enqueue(line);
+            // 同時觸發太多句時只留最新的幾句，避免一直佔住畫面。
+            while (monologueQueue.Count > MonologueQueueMax) monologueQueue.Dequeue();
+        }
+
+        /// <summary>略過目前這句（Tab）。</summary>
+        public void SkipMonologue()
+        {
+            if (monologueTime < 0f) return;
+            EndMonologueLine();
+        }
+
+        /// <summary>清除全部（戰鬥、跳轉、結束）。</summary>
+        public void ClearMonologue()
+        {
+            monologueQueue.Clear();
+            monologueTime = -1f;
+            monologueGap = 0f;
+            MonologueCurrent = null;
+            monologuePanel.gameObject.SetActive(false);
+        }
+
+        private void EndMonologueLine()
+        {
+            monologueTime = -1f;
+            monologueGap = MonologueGapSeconds;
+            MonologueCurrent = null;
+            monologuePanel.gameObject.SetActive(false);
+        }
+
+        private void TickMonologue(float dt)
+        {
+            bool hold = MonologueHold || !Base.Visible || NoteVisible;
+            if (hold)
+            {
+                if (monologuePanel.gameObject.activeSelf) monologuePanel.gameObject.SetActive(false);
+                return;
+            }
+            if (monologueTime >= 0f)
+            {
+                if (!monologuePanel.gameObject.activeSelf) monologuePanel.gameObject.SetActive(true);
+                monologueTime += dt;
+                // 淡入 0.2 秒、淡出 0.3 秒。
+                monologueGroup.alpha = Mathf.Min(Mathf.Clamp01(monologueTime / 0.2f), Mathf.Clamp01((monologueDuration - monologueTime) / 0.3f));
+                if (monologueTime >= monologueDuration) EndMonologueLine();
+                return;
+            }
+            if (monologueGap > 0f)
+            {
+                monologueGap -= dt;
+                return;
+            }
+            if (monologueQueue.Count == 0) return;
+            MonologueCurrent = monologueQueue.Dequeue();
+            MonologueText.text = "<color=#9AA6B8>〔" + Case01Texts.MonologueSpeaker + "〕</color>　" + MonologueCurrent;
+            monologueDuration = MonologueSeconds(MonologueCurrent);
+            monologueTime = 0f;
+            monologueGroup.alpha = 0f;
+            monologuePanel.gameObject.SetActive(true);
+        }
+
         public void Tick(float dt)
         {
             Base.Tick(dt);
+            TickMonologue(dt);
             if (noteTime >= 0f)
             {
                 noteTime += dt;

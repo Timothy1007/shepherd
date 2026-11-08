@@ -182,6 +182,7 @@ namespace Shepherd.Exploration.Case01
                     Session.AddJournal("v03_preview_" + previewConflict, "預演的矛盾", PreviewTexts[previewConflict]);
                     var p = PreviewResponse();
                     p.WorldChanged = true;
+                    Say(p, Case01Say.V03Wrong);
                     return p;
                 }
                 Session.Set(Case01FlagsV03.ChosenAnchor);
@@ -189,11 +190,13 @@ namespace Shepherd.Exploration.Case01
                 Session.Advance(Case01Stage.LinkRestoration);
                 routes[Case01Door.MezzTriangle] = Case01Room.Study;
                 Session.AddJournal("v03_anchor", "錨點：△→書房", "依艾琳的手記與門框記號，固定 △→書房。○ 仍在跳動。");
-                return new Case01Response
+                var a = new Case01Response
                 {
                     Text = "△→書房 固定了。△ 門框的光穩定下來。\n但 ○ 還在餐廳和玄關之間跳動──再看一次裝置。",
                     Toast = "錨點：△→書房", WorldChanged = true,
                 };
+                Say(a, Case01Say.V03Anchor);
+                return a;
             }
             if (id == Case01IdsV03.ChoiceSecond && V03Anchored && !V03SecondLink)
             {
@@ -203,17 +206,20 @@ namespace Shepherd.Exploration.Case01
                     Session.AddJournal("v03_preview_" + previewConflict, "預演的矛盾", PreviewTexts[previewConflict]);
                     var p = PreviewResponse();
                     p.WorldChanged = true;
+                    Say(p, Case01Say.V03Wrong);
                     return p;
                 }
                 Session.Set(Case01FlagsV03.SecondLinkCorrected);
                 Session.Set(Case01Flags.MissingLinkRestored);
                 routes[Case01Door.MezzCircle] = Case01Room.Dining;
                 Session.AddJournal("v03_second", "第二條關係：17→玄關", "○ 多出來的玄關去向交給 17 號參照。△→書房 與 17→玄關 同時成立，北牆出現 17 號門。");
-                return new Case01Response
+                var s = new Case01Response
                 {
                     Text = "○ 停止跳動，回到餐廳。多出來的玄關去向接到了 17──北牆出現一扇真正的門。\n現在 △→書房、17→玄關 同時成立。走過其中一條，把校正寫回。",
                     Toast = "17→玄關 已接上", WorldChanged = true,
                 };
+                Say(s, Case01Say.V03Second);
+                return s;
             }
             return Case01Response.None;
         }
@@ -256,6 +262,7 @@ namespace Shepherd.Exploration.Case01
             r.WorldChanged = true;
             r.Toast = "校正寫回：核已局部穩定";
             r.Text = "門框一格格扣回原位，低沉的接合聲穿過整棟房子。\n核穩定了──但只是暫時的。";
+            Say(r, Case01Say.V03Commit);
         }
     }
 }

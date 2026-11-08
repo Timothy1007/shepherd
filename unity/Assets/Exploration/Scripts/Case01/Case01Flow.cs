@@ -64,6 +64,34 @@ namespace Shepherd.Exploration.Case01
         public const string ChoiceFrontDoor = "front_door";
     }
 
+    /// <summary>v0.4 主角自語的事件 ID（每個 ID 每次流程只說一次）。</summary>
+    public static class Case01Say
+    {
+        public const string EnterHome = "enter_home";
+        public const string TableRewritten = "table_rewritten";
+        public const string H1Cold = "h1_cold";
+        public const string Armed = "armed";
+        public const string WrongFirst = "wrong_first";
+        public const string WrongSecond = "wrong_second";
+        public const string H2Landing = "h2_landing";
+        public const string ThirdDoor = "third_door";
+        public const string Mezzanine = "mezzanine";
+        public const string Defense = "defense";
+        public const string CoreAfterBattle = "core_after_battle";
+        public const string NeedEvidence = "need_evidence";
+        public const string V03Wrong = "v03_wrong";
+        public const string V03Anchor = "v03_anchor";
+        public const string V03Second = "v03_second";
+        public const string V03Commit = "v03_commit";
+        public const string H3Return = "h3_return";
+
+        public static readonly string[] All =
+        {
+            EnterHome, TableRewritten, H1Cold, Armed, WrongFirst, WrongSecond, H2Landing, ThirdDoor, Mezzanine, Defense,
+            CoreAfterBattle, NeedEvidence, V03Wrong, V03Anchor, V03Second, V03Commit, H3Return,
+        };
+    }
+
     public sealed class Case01Choice
     {
         public string Id;
@@ -80,7 +108,10 @@ namespace Shepherd.Exploration.Case01
         /// <summary>要進入 3D 檢視的證物 ID。</summary>
         public string Inspect;
         public string Toast;
+        /// <summary>同伴通訊（保留架構供其他案件使用；Case01 第一章不使用）。</summary>
         public string Radio;
+        /// <summary>v0.4：這次事件觸發的主角自語 ID（依序；已說過的不會再出現）。</summary>
+        public List<string> Monologue;
         public Case01Choice Choice;
         /// <summary>要把玩家安全傳送到的房間（錯誤操作的回饋、通路目的地）。</summary>
         public Case01Room? Redirect;
@@ -115,6 +146,28 @@ namespace Shepherd.Exploration.Case01
         private bool triangleVerified;
         private bool door17Verified;
         private int circleFlip;
+        private int wrongTraversals;
+        private readonly HashSet<string> said = new HashSet<string>();
+
+        /// <summary>這次流程已說過的自語（依事件 ID 去重；F1～F5 跳轉會建立新流程並以重播標記已發生的事件）。</summary>
+        public bool HasSaid(string id) { return said.Contains(id); }
+
+        /// <summary>把一句自語加到回應裡（每個 ID 只一次）；重要的同時記入日誌。</summary>
+        private void Say(Case01Response r, string id)
+        {
+            if (r == null || ReferenceEquals(r, Case01Response.None) || !said.Add(id)) return;
+            if (r.Monologue == null) r.Monologue = new List<string>();
+            r.Monologue.Add(id);
+            if (Case01Texts.SayIsKey(id)) Session.AddJournal("say_" + id, Case01Texts.MonologueJournalTitle, Case01Texts.SayLine(id));
+        }
+
+        /// <summary>QA 開始時（S00 剛進門）的第一句。之後的跳轉不重播。</summary>
+        public Case01Response OnArrive()
+        {
+            var r = new Case01Response();
+            if (Session.Stage == Case01Stage.EnteredHome) Say(r, Case01Say.EnterHome);
+            return r;
+        }
 
         public Case01Flow()
         {
@@ -230,7 +283,11 @@ namespace Shepherd.Exploration.Case01
                 case Case01Ids.OldRecord: return StudyClue(Case01Flags.OldCorrectionRecord, "old_record", Case01Texts.RecordTitle, Case01Texts.Record);
                 case Case01Ids.StudyMark: return StudyMark();
                 case Case01Ids.ThirdDoor:
-                    return new Case01Response { Text = StairRouteRestored ? Case01Texts.ThirdDoorOpen : Case01Texts.ThirdDoorSealed };
+                {
+                    var t = new Case01Response { Text = StairRouteRestored ? Case01Texts.ThirdDoorOpen : Case01Texts.ThirdDoorSealed };
+                    Say(t, Case01Say.ThirdDoor);
+                    return t;
+                }
                 case Case01Ids.Core: return Core();
                 case Case01Ids.MezzTriangleMark: return new Case01Response { Text = Case01Texts.MezzTriangleMark + "\n" + SeenText(Case01Door.MezzTriangle) };
                 case Case01Ids.MezzCircleMark: return new Case01Response { Text = Case01Texts.MezzCircleMark + "\n" + SeenText(Case01Door.MezzCircle) };
@@ -340,9 +397,8 @@ namespace Shepherd.Exploration.Case01
             {
                 armed = true;
                 r.Toast = Case01Texts.ArmedToast;
-                r.Radio = Case01Texts.ArmedRadio;
                 r.WorldChanged = true;
-                Session.AddJournal("radio_armed", Case01Texts.Companion, Case01Texts.ArmedRadio);
+                Say(r, Case01Say.Armed);
             }
             return r;
         }
@@ -368,15 +424,27 @@ namespace Shepherd.Exploration.Case01
                 Session.Advance(Case01Stage.AnomalyDefense);
                 // 反制：已歸位的書房門重新連錯（但「已覆寫成功」的記錄保留，第三扇門維持開啟，不會卡關）。
                 routes[Case01Door.StudyDoor] = Case01Room.Dining;
-                Session.AddJournal("radio_defense", Case01Texts.Companion, Case01Texts.DefenseRadio);
-                return new Case01Response
+                var d = new Case01Response
                 {
-                    Text = Case01Texts.CoreStart, Toast = Case01Texts.DefenseToast, Radio = Case01Texts.DefenseRadio,
+                    Text = Case01Texts.CoreStart, Toast = Case01Texts.DefenseToast,
                     BeginDefense = true, WorldChanged = true,
                 };
+                Say(d, Case01Say.Defense);
+                return d;
             }
             if (!Has(Case01Flags.BattleWon)) return new Case01Response { Text = Case01Texts.CoreBattlePending, PullToCourtyard = true };
-            if (Correction == Case01CorrectionMode.RevisedV03) return CoreV03();
+            var core = Correction == Case01CorrectionMode.RevisedV03 ? CoreV03() : CoreV02();
+            // 戰後第一次碰核：戰鬥≠解除異域。缺證據時引導「比對記錄」，不報答案。
+            if (!ReferenceEquals(core, Case01Response.None))
+            {
+                Say(core, Case01Say.CoreAfterBattle);
+                if (core.Text != null && (core.Text.Contains(Case01Texts.CoreNeedEvidence) || core.Text.Contains("記錄還推不出來"))) Say(core, Case01Say.NeedEvidence);
+            }
+            return core;
+        }
+
+        private Case01Response CoreV02()
+        {
 
             // ---- 第一段：補回被省略的 17 參照 ----
             if (!Has(Case01Flags.MissingLinkRestored))
@@ -493,6 +561,11 @@ namespace Shepherd.Exploration.Case01
                         Session.AddJournal("route_mismatch", Case01Texts.MismatchTitle, Case01Texts.Mismatch);
                         r.Toast = "已記入日誌：路徑與標記不符";
                     }
+                    if (dest != Case01Room.Study)
+                    {
+                        wrongTraversals++;
+                        Say(r, wrongTraversals == 1 ? Case01Say.WrongFirst : Case01Say.WrongSecond);
+                    }
                     break;
                 case Case01Door.MezzTriangle:
                 case Case01Door.MezzCircle:
@@ -539,11 +612,11 @@ namespace Shepherd.Exploration.Case01
             {
                 rewriteAnnounced = true;
                 Session.AddJournal("table_rewritten", Case01Texts.TableRewrittenTitle, Case01Texts.TableRewrittenJournal);
-                Session.AddJournal("radio_one_set", Case01Texts.Companion, Case01Texts.RadioOneSet);
                 Session.Advance(Case01Stage.DiningContradiction);
-                r.Radio = Case01Texts.RadioOneSet;
+                Say(r, Case01Say.TableRewritten);
                 r.Toast = "已記入日誌：餐具只剩一副（原始觀測保留）";
             }
+            else if (rewriteAnnounced && !wrongActive && to != Case01Room.Dining) Say(r, Case01Say.H1Cold);
 
             if (from == Case01Room.Study && armed && !wrongActive)
             {
@@ -554,11 +627,22 @@ namespace Shepherd.Exploration.Case01
                 r.WorldChanged = true;
             }
 
+            if (to == Case01Room.Landing && wrongActive && !CoreStabilized)
+            {
+                Say(r, Case01Say.H2Landing);
+                if (ThirdDoorVisible) Say(r, Case01Say.ThirdDoor);
+            }
+
             if (to == Case01Room.Mezzanine && Session.Advance(Case01Stage.MezzanineDiscovered))
             {
                 Session.AddJournal("mezzanine", Case01Texts.MezzTitle, Case01Texts.MezzJournal);
                 r.Toast = "發現：不存在的夾層";
             }
+            if (to == Case01Room.Mezzanine) Say(r, Case01Say.Mezzanine);
+
+            // 核穩定後第一次回到一樓：路對了，但房子不回到剛進門時的樣子。
+            if (CoreStabilized && (to == Case01Room.Entrance || to == Case01Room.Living || to == Case01Room.Dining || to == Case01Room.Kitchen))
+                Say(r, Case01Say.H3Return);
             return r;
         }
 

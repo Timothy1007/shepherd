@@ -83,7 +83,12 @@ namespace Shepherd.Exploration.Editor
                 p.Teleport(new Vector3(6.6f, 0.05f, 6.2f), 0f);
                 Advance(qa, 0.2f);
                 Interact(qa, Case01Ids.Table);
-                Shot(qa, rt, prefix + "02_table_one_radio.png");
+                Shot(qa, rt, prefix + "02_table_one.png");
+                // v0.4：關閉面板後，主角自語接著出現（不疊在面板上）。
+                qa.Hud.HidePanel();
+                qa.Hud.SkipMonologue();
+                AdvanceUntil(qa, q => q.Hud.MonologueCurrent != null && q.Hud.MonologueCurrent.Contains("兩副"), 0.4f);
+                Shot(qa, rt, prefix + "02b_monologue_one_set.png");
 
                 p.Teleport(new Vector3(6.7f, 3.05f, 8.2f), 0f);
                 Advance(qa, 0.2f);
