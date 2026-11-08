@@ -18,7 +18,7 @@ namespace Shepherd.Exploration.Case01
         public const float DriftEnd = 2.4f;
         public const float AssembleEnd = 4.0f;
         public const float Duration = 4.8f;
-        public const int FragmentsPerFigure = 40;
+        public const int FragmentsPerFigure = Case01EnemyShell.PiecesPerFigure;
 
         private sealed class Fragment
         {
@@ -66,9 +66,11 @@ namespace Shepherd.Exploration.Case01
             Root = ArenaArt.Group("Manifestation", parent, Vector3.zero);
             var rng = new System.Random(seed);
             Func<float, float, float> R = (a, b) => a + (float)rng.NextDouble() * (b - a);
-            // 紙、舊紙、書、相框木；其中一種帶微弱裂隙光，讓碎片在暗處也看得出軌跡。
-            var glowPaper = p.Own(ArenaArt.Mat(new Color(0.85f, 0.8f, 0.9f), 0.2f, ArenaArt.Rift * 0.7f));
-            var mats = new[] { p.Get("paper"), p.Get("paper_old"), p.Get("book_0"), glowPaper, p.Get("book_3"), p.Get("frame_wood") };
+            // 紙、舊紙、書、相框木；其中一種帶微弱裂隙光，讓碎片在暗處也看得出軌跡（與戰鬥外殼同一組材質）。
+            var mats = Case01EnemyShell.Materials(p);
+            // v0.5：人形先隱藏，再擺碎片（建立的同一影格就不可見，不會閃出舊的黑色人形）。
+            foreach (var fig in enemyFigures)
+                if (fig != null) fig.gameObject.SetActive(false);
             for (int i = 0; i < enemyFigures.Count; i++)
             {
                 var fig = enemyFigures[i];
@@ -76,27 +78,22 @@ namespace Shepherd.Exploration.Case01
                 figureScale.Add(fig.localScale);
                 var c = fig.position;
                 centers.Add(c);
-                float h = Mathf.Max(1.4f, heights[i] * 1.9f);
                 var shell = ArenaArt.Group("Shell_" + i, Root, Vector3.zero);
                 Shells.Add(shell);
-                for (int k = 0; k < FragmentsPerFigure; k++)
+                // 終點：與戰鬥外殼相同的人形輪廓配置（頭、軀幹、雙臂、雙腿；以失序體的朝向為準）。
+                var layout = Case01EnemyShell.Layout(i, heights[i]);
+                for (int k = 0; k < layout.Count; k++)
                 {
+                    var piece = layout[k];
                     int kind = k % 3;
-                    var scale = kind == 0 ? new Vector3(0.32f, 0.006f, 0.42f) : kind == 1 ? new Vector3(0.28f, 0.07f, 0.36f) : new Vector3(0.2f, 0.008f, 0.26f);
-                    var tr = ArenaArt.Prim(PrimitiveType.Cube, shell, Vector3.zero, scale, mats[(k + i) % mats.Length], null, "Fragment", false, false);
+                    var tr = ArenaArt.Prim(PrimitiveType.Cube, shell, Vector3.zero, piece.Scale, mats[piece.Mat], null, "Fragment", false, false);
                     // 起點：散落在地上（以敵人位置為中心的環狀區域）。
                     float a = R(0f, Mathf.PI * 2f), r = R(1.2f, 3.4f);
                     var start = c + new Vector3(Mathf.Cos(a) * r, 0.02f + kind * 0.02f, Mathf.Sin(a) * r);
-                    // 終點：人形輪廓（頭、軀幹、雙臂、雙腿）。
-                    // 輪廓略大於身體，碎片外殼才看得見。
-                    var sp = SilhouettePoint(k, h, R);
-                    var target = c + new Vector3(sp.x * 1.35f, sp.y, sp.z * 1.35f);
-                    var outward = target - (c + Vector3.up * target.y);
-                    if (outward.sqrMagnitude < 1e-4f) outward = Vector3.forward;
                     fragments.Add(new Fragment
                     {
-                        T = tr, Owner = i, Start = start, StartRot = Quaternion.Euler(0f, R(0f, 360f), 0f), Target = target,
-                        TargetRot = Quaternion.LookRotation(outward.normalized, Vector3.up) * Quaternion.Euler(90f + R(-25f, 25f), 0f, R(-30f, 30f)),
+                        T = tr, Owner = i, Start = start, StartRot = Quaternion.Euler(0f, R(0f, 360f), 0f),
+                        Target = c + fig.rotation * piece.LocalPos, TargetRot = fig.rotation * piece.LocalRot,
                         Phase = R(0f, 6.28f), Orbit = R(0.8f, 1.4f),
                     });
                 }
@@ -105,25 +102,31 @@ namespace Shepherd.Exploration.Case01
             UpdateTransforms();
         }
 
-        private static Vector3 SilhouettePoint(int k, float h, Func<float, float, float> R)
+        /// <summary>v0.5 可見狀態：還沒開始＝只有地上的碎片；播放中＝凝聚；結束＝完成外觀。</summary>
+        public Case01EnemyVisual Visual
         {
-            int part = k % 6;
-            switch (part)
+            get
             {
-                case 0: // 頭
-                    var d = new Vector3(R(-1f, 1f), R(-1f, 1f), R(-1f, 1f)).normalized * 0.16f;
-                    return new Vector3(0f, h * 0.9f, 0f) + d;
-                case 1:
-                case 2: // 軀幹
-                    float a = R(0f, Mathf.PI * 2f);
-                    return new Vector3(Mathf.Cos(a) * 0.2f, R(h * 0.48f, h * 0.8f), Mathf.Sin(a) * 0.14f);
-                case 3: // 手臂
-                    float side = k % 12 < 6 ? -1f : 1f;
-                    return new Vector3(side * R(0.25f, 0.42f), R(h * 0.38f, h * 0.78f), R(-0.06f, 0.06f));
-                default: // 腿
-                    float leg = k % 2 == 0 ? -1f : 1f;
-                    return new Vector3(leg * R(0.06f, 0.16f), R(0.05f, h * 0.46f), R(-0.08f, 0.08f));
+                if (Done) return Case01EnemyVisual.Manifested;
+                return t <= 0f ? Case01EnemyVisual.DebrisOnly : Case01EnemyVisual.Assembling;
             }
+        }
+
+        /// <summary>人形開始凝實的時間：碎片已大致聚攏成輪廓之後（之前人形完全不可見）。</summary>
+        public const float BodyAppearStart = 3.1f;
+
+        /// <summary>第 i 個個體的碎片離輪廓終點的平均距離（測試用：人形可見時外殼必須已經聚攏）。</summary>
+        public float MeanShellGap(int owner)
+        {
+            float sum = 0f;
+            int n = 0;
+            foreach (var f in fragments)
+            {
+                if (f.Owner != owner) continue;
+                sum += Vector3.Distance(f.T.position, f.Target);
+                n++;
+            }
+            return n > 0 ? sum / n : 0f;
         }
 
         public void Tick(float dt)
@@ -197,8 +200,8 @@ namespace Shepherd.Exploration.Case01
                 f.T.position = pos;
                 f.T.rotation = rot;
             }
-            // 陰影凝實：現有失序體模型在第三拍後半由小變大。
-            float grow = Smooth((t - (DriftEnd + 0.6f)) / (AssembleEnd - DriftEnd - 0.4f));
+            // 陰影凝實：碎片大致聚攏之後，人形才在外殼內由小變大（v0.5：之前完全不可見）。
+            float grow = Smooth((t - BodyAppearStart) / (AssembleEnd - BodyAppearStart));
             for (int i = 0; i < figures.Count; i++)
             {
                 if (figures[i] == null) continue;

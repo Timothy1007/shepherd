@@ -399,6 +399,8 @@ namespace Shepherd.Exploration.Case01
             var anchor = layout.EncounterAnchor;
             encounter = new EncounterZone { Id = "case01_courtyard", Center = anchor.TransformPoint(CombatArenaView.EnemyGroupCenter(count)) };
             encounterGroup = ArenaArt.Group("CourtyardEnemies", content, Vector3.zero);
+            // v0.5：先關閉再建人形（建立的那一影格也不會出現沒有外殼的黑色人形）。
+            encounterGroup.gameObject.SetActive(false);
             encounterGroup.position = anchor.position;
             encounterGroup.rotation = anchor.rotation;
             figureOrbiters.Clear();
@@ -412,7 +414,38 @@ namespace Shepherd.Exploration.Case01
                 var fig = ArenaArt.BuildEnemy(encounterGroup, home, CombatArenaView.EnemyHeightFor(e.Value), i % 2, out rs, out core, out orbiters);
                 fig.name = "Wanderer_" + e.Id;
                 fig.localRotation = CombatArenaView.EnemyLocalRotation(home);
+                fig.gameObject.SetActive(false);
+                // 黑色裸身換成碎片外殼（只留發光的核與裂紋）；戰鬥中的同一個敵人也做相同處理。
+                Case01EnemyShell.HideBareBody(fig);
                 figureOrbiters.Add(orbiters);
+            }
+            // v0.5：可以開戰時，碎片（DebrisOnly）就已經散在中庭地上；第一次進入中庭才開始凝聚。戰敗重試直接是完成外觀。
+            if (manifestation != null)
+            {
+                ArenaArt.Kill(manifestation.Root.gameObject);
+                manifestation = null;
+            }
+            if (flow != null && flow.CanStartBattle) RebuildManifestation(manifested);
+        }
+
+        /// <summary>v0.5 失序體目前的可見狀態（見 <see cref="Case01EnemyVisual"/>）。</summary>
+        public Case01EnemyVisual EnemyVisual
+        {
+            get
+            {
+                if (arena != null) return Case01EnemyVisual.Battle;
+                if (flow == null || !flow.CanStartBattle || encounter == null || encounter.Defeated || manifestation == null) return Case01EnemyVisual.Hidden;
+                return manifestation.Visual;
+            }
+        }
+
+        /// <summary>中庭人形群組是否該顯示：只有凝聚開始之後（人形本身仍由演出控制可見度）。</summary>
+        private bool FiguresShouldShow
+        {
+            get
+            {
+                var v = EnemyVisual;
+                return v == Case01EnemyVisual.Assembling || v == Case01EnemyVisual.Manifested;
             }
         }
 
@@ -961,6 +994,14 @@ namespace Shepherd.Exploration.Case01
             options.OnDefeat = () => { pendingRetry = true; };
             arena.Build(playMode, scenario, seed, options);
             arena.BattleEnded += OnBattleEnded;
+            // v0.5：戰鬥中的失序體掛上與探索中相同的碎片外殼（在戰鬥物件啟用前，第一個畫面就有）。
+            var shellMats = Case01EnemyShell.Materials(palette);
+            for (int i = 0; i < scenario.Enemies.Count; i++)
+            {
+                var enemyRoot = arena.EnemyRoot(scenario.Enemies[i].Id);
+                Case01EnemyShell.AttachToEnemy(enemyRoot, i, CombatArenaView.EnemyHeightFor(scenario.Enemies[i].Value), shellMats);
+                Case01EnemyShell.HideBareBody(enemyRoot);
+            }
             // Case01 公開 Demo 的戰鬥 HUD（舊 HUD 面板隱藏；結果橫幅、浮字照舊）。
             // 首戰教學只在這個 QA 執行階段的第一場戰鬥出現；戰敗重試不再自動出現（可按「？教學」重看）。
             DemoHud = CombatDemoHud.Attach(arena, new CombatDemoOptions { ShowQaTools = false, Tutorial = TutorialEnabled && !TutorialShown, ReduceMotion = reduceFlicker });
@@ -1064,8 +1105,8 @@ namespace Shepherd.Exploration.Case01
             hud.Visible = true;
             hud.Base.HideEncounter();
             Retries++;
+            // 已形成過：BuildEncounter 直接以完成外觀（外殼＋人形）重建，不重播、不閃黑模型。
             BuildEncounter();
-            if (manifested) RebuildManifestation(true);
             RefreshWorld();
             TeleportPlayer(layout.Arrivals[Case01Room.Courtyard]);
             SetCursorCaptured(true);
@@ -1169,8 +1210,9 @@ namespace Shepherd.Exploration.Case01
             foreach (var m in L.MezzLineMats) ArenaArt.SetEmission(m, (flow.CoreStabilized ? Case01Mood.CoreStable : ArenaArt.Rift) * 1.8f);
             if (L.CourtyardLight != null) L.CourtyardLight.intensity = flow.CourtyardTearOpen ? 0.9f : 2.2f;
             RefreshMezzLabels();
-            bool enemiesVisible = flow.CanStartBattle && encounter != null && !encounter.Defeated;
-            if (encounterGroup != null) encounterGroup.gameObject.SetActive(enemiesVisible);
+            bool enemiesVisible = flow.CanStartBattle && encounter != null && !encounter.Defeated && arena == null;
+            // v0.5：人形只在凝聚開始後顯示；在那之前中庭只有散落的碎片。
+            if (encounterGroup != null) encounterGroup.gameObject.SetActive(enemiesVisible && FiguresShouldShow);
             if (manifestation != null) manifestation.SetVisible(enemiesVisible);
             ApplyVolumes();
 
@@ -1415,8 +1457,11 @@ namespace Shepherd.Exploration.Case01
         /// <summary>第一次進入中庭時開始形成演出（只發生一次；戰敗重試不重播）。</summary>
         private void BeginManifestation()
         {
+            // 地上的碎片已經在（DebrisOnly）；從同一份碎片開始凝聚，不重建、不閃現。
+            if (manifestation == null || manifestation.Visual != Case01EnemyVisual.DebrisOnly) RebuildManifestation(false);
             manifested = true;
-            RebuildManifestation(false);
+            manifestation.SetVisible(true);
+            encounterGroup.gameObject.SetActive(true);
             // 視線轉向兩個失序體成形的位置。
             var center = encounter.Center + Vector3.up * 1.1f - player.EyePosition;
             player.Teleport(player.transform.position, Mathf.Atan2(center.x, center.z) * Mathf.Rad2Deg,

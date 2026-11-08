@@ -101,7 +101,8 @@ namespace Shepherd.Exploration.Tests
             CollectionAssert.AreEqual(new[] { "Case01Rustle", "Case01Whoosh", "Case01Assemble", "Case01Sting", "Case01Lock" }, qa.Audio.Played.ToArray());
             // 碎片留在身上成為外殼。
             var shell = m.Shells[0].GetChild(0).position;
-            Assert.Less(Vector3.Distance(shell, m.Figures[0].position), 2.6f, "碎片貼在人形輪廓上");
+            // v0.5：外殼依身體比例覆蓋到頭頂（約 2.5 m × 身高係數），不再比人形矮。
+            Assert.Less(Vector3.Distance(shell, m.Figures[0].position), 3.4f, "碎片貼在人形輪廓上");
 
             WalkForwardUntilBattle(qa);
             Assert.AreEqual(Case01Mode.EnteringBattle, qa.Mode, "依原本的遭遇距離開戰");
