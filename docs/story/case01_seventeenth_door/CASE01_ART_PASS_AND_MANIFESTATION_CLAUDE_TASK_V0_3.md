@@ -1,3 +1,5 @@
+> **2026-11-09 v0.4 優先級通知：** 本文是已實作 v0.3 美術工作的歷史任務基準。最新真人試玩決定將 H3 改為**核修復後空間穩定但房屋仍冷清、舊化、不恢復 H0 暖光**，並將失序門改為故障訊號／雪花噪點表現。實作請以 [`CASE01_SPATIAL_NARRATIVE_PASS_CLAUDE_TASK_V0_4.md`](./CASE01_SPATIAL_NARRATIVE_PASS_CLAUDE_TASK_V0_4.md) 為準；勿再將本文件原 H3「暖光恢復」當成最新要求。
+
 # CASE01｜室內材質／燈光／失序體形成演出｜Claude Code Art Pass v0.3 實作規格
 日期：2026-11-08｜性質：**可直接實作之美術任務，非已完成的視覺資產**
 Repo `Timothy1007/shepherd`｜`main`｜Unity 2022.3.18f1
