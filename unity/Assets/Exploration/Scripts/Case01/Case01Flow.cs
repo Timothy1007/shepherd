@@ -90,6 +90,8 @@ namespace Shepherd.Exploration.Case01
         public bool Exit;
         /// <summary>房屋狀態有變化，場景需要刷新外觀。</summary>
         public bool WorldChanged;
+        /// <summary>v0.3：這次穿門把校正寫回（場景播放門框歸位與接合聲）。</summary>
+        public bool CommitEffect;
 
         public static readonly Case01Response None = new Case01Response();
     }
@@ -99,7 +101,7 @@ namespace Shepherd.Exploration.Case01
     /// 線索、門的連結映射、核的三段修復與戰鬥前後條件都在這裡；場景只負責呈現與傳送。
     /// 本關的通路術式與核修復是為試玩採用的暫定方案，不是普遍的異域規則。
     /// </summary>
-    public sealed class Case01Flow
+    public sealed partial class Case01Flow
     {
         public Case01Session Session { get; private set; }
 
@@ -374,6 +376,7 @@ namespace Shepherd.Exploration.Case01
                 };
             }
             if (!Has(Case01Flags.BattleWon)) return new Case01Response { Text = Case01Texts.CoreBattlePending, PullToCourtyard = true };
+            if (Correction == Case01CorrectionMode.RevisedV03) return CoreV03();
 
             // ---- 第一段：補回被省略的 17 參照 ----
             if (!Has(Case01Flags.MissingLinkRestored))
@@ -425,6 +428,10 @@ namespace Shepherd.Exploration.Case01
             {
                 case Case01Ids.ChoiceOverride: return Override(index);
                 case Case01Ids.ChoiceAnchor: return Anchor(index);
+                case Case01IdsV03.ChoiceAnchor:
+                case Case01IdsV03.ChoiceSecond:
+                case Case01IdsV03.ChoiceUndo:
+                    return ChooseV03(choiceId, index);
                 case Case01Ids.ChoiceFrontDoor:
                     if (index != 0) return Case01Response.None;
                     if (!CoreStabilized) return new Case01Response { Restart = true };
@@ -476,6 +483,7 @@ namespace Shepherd.Exploration.Case01
             var dest = routes[door];
             lastSeen[door] = dest;
             var r = new Case01Response { Redirect = dest };
+            if (Correction == Case01CorrectionMode.RevisedV03 && door != Case01Door.StudyDoor) return TraverseV03(door, dest, r);
 
             switch (door)
             {
@@ -578,6 +586,7 @@ namespace Shepherd.Exploration.Case01
             if (!Session.Set(Case01Flags.BattleWon)) return Case01Response.None;
             Session.Advance(Case01Stage.PostBattle);
             Session.AddJournal("battle_won", Case01Texts.BattleWonTitle, Case01Texts.BattleWon);
+            if (Correction == Case01CorrectionMode.RevisedV03) OnBattleWonV03();
             return new Case01Response { Toast = Case01Texts.BattleWonToast, WorldChanged = true };
         }
 
@@ -617,7 +626,12 @@ namespace Shepherd.Exploration.Case01
         /// <summary>建立指定檢查點的狀態：以正常流程的同一組操作重播，旗標、日誌與通路都一致。</summary>
         public static Case01Flow ForCheckpoint(Case01Checkpoint cp)
         {
-            var f = new Case01Flow();
+            return ForCheckpoint(cp, Case01CorrectionMode.LegacyV02);
+        }
+
+        public static Case01Flow ForCheckpoint(Case01Checkpoint cp, Case01CorrectionMode mode)
+        {
+            var f = new Case01Flow(mode);
             if (cp == Case01Checkpoint.S00) return f;
             f.Interact(Case01Ids.Table);
             f.Interact(Case01Ids.Photo);

@@ -170,6 +170,37 @@ namespace Shepherd.Exploration.Editor
                 qa.Tick(Step, new Case01Input { Choice = 1 });
                 Advance(qa, 0.2f);
                 Shot(qa, rt, prefix + "14_end.png");
+                // ---- v0.3 核校正（關係校正）：核前、選錯、連結校正中、完成後 ----
+                qa.RestoreAtmosphere();
+                UnityEngine.Object.DestroyImmediate(root);
+                root = new GameObject("Case01CaptureRoot");
+                qa = root.AddComponent<Case01HouseQA>();
+                qa.Build(false, QuickVictory(), 1, Case01Checkpoint.S50, Case01QaMode.CoreV03);
+                qa.ApplyAtmosphere();
+                var mc = Case01HouseBuilder.MezzCenter;
+                qa.Player.Teleport(mc + new Vector3(0f, 0.05f, -0.4f), 0f);
+                Advance(qa, 0.2f);
+                Interact(qa, Case01Ids.Core);
+                Shot(qa, rt, prefix + "v03_1_device.png");
+                qa.Tick(Step, new Case01Input { Choice = 2 });
+                Advance(qa, 0.3f);
+                Shot(qa, rt, prefix + "v03_2_wrong_preview.png");
+                qa.Tick(Step, new Case01Input { Choice = 1 });
+                qa.Tick(Step, new Case01Input { Choice = 1 });
+                qa.Tick(Step, new ExploreInput { Interact = true });
+                Interact(qa, Case01Ids.Core);
+                Shot(qa, rt, prefix + "v03_3_second_link.png");
+                qa.Tick(Step, new Case01Input { Choice = 1 });
+                qa.Tick(Step, new ExploreInput { Interact = true });
+                Pose(qa, mc + new Vector3(-1.5f, 0.05f, -2.5f), 20f, 8f);
+                Shot(qa, rt, prefix + "v03_4_linked.png");
+                qa.Player.Teleport(mc + new Vector3(0f, 0.05f, 4.6f), 0f);
+                for (int i = 0; i < 90 && qa.CurrentRoom != Case01Room.Entrance; i++) qa.Tick(Step, ExploreInput.Forward());
+                Advance(qa, 0.55f);
+                Shot(qa, rt, prefix + "v03_5_commit_snap.png");
+                Advance(qa, 2.5f);
+                Pose(qa, new Vector3(3.9f, 0.05f, 6.3f), -55f, 8f);
+                Shot(qa, rt, prefix + "v03_6_after_living.png");
                 Debug.Log("[Case01HouseQA] 截圖完成 " + prefix + "*.png");
             }
             finally

@@ -155,6 +155,68 @@ namespace Shepherd.Exploration.Tests
             Assert.IsTrue(sources.All(s => s == null || !s.isPlaying), "Case01 的聲音隨場景物件停止");
         }
 
+        private static IEnumerator AimAndPress(Case01HouseQA qa, ScriptedInput input, string id)
+        {
+            var hot = qa.Layout.Interactables[id];
+            input.Once = Case01Input.From(new ExploreInput
+            {
+                Look = LookDelta(qa.Player, hot.transform.TransformPoint(hot.GetComponent<BoxCollider>().center), false),
+            });
+            yield return null;
+            yield return null;
+            input.Once = Case01Input.From(new ExploreInput { Interact = true });
+            yield return null;
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator CoreV03_FullCorrection_OneWalkThroughTriangle_NoSoftlock_InRealPlayMode()
+        {
+            PlayerPrefs.SetString(Case01HouseQA.LaunchModeKey, "v03");
+            yield return LoadScene();
+            var qa = Object.FindObjectOfType<Case01HouseQA>();
+            var input = new ScriptedInput();
+            qa.InputSource = input;
+            yield return null;
+            Assert.AreEqual(Case01CorrectionMode.RevisedV03, qa.Flow.Correction, "選單的 v0.3 啟動參數");
+            Assert.AreEqual(Case01Room.Mezzanine, qa.CurrentRoom, "從戰後核前開始");
+            yield return WalkTo(qa, input, 40f, -0.4f);
+            yield return AimAndPress(qa, input, Case01Ids.Core);
+            Assert.IsNotNull(qa.Hud.ActiveChoice, "校正裝置");
+            input.Once = new Case01Input { Choice = 3 };
+            yield return null;
+            yield return null;
+            Assert.AreEqual(Case01IdsV03.ChoiceUndo, qa.Hud.ActiveChoice.Id, "選錯看到反證");
+            input.Once = new Case01Input { Choice = 1 };
+            yield return null;
+            yield return null;
+            input.Once = new Case01Input { Choice = 1 };
+            yield return null;
+            yield return null;
+            Assert.IsTrue(qa.Flow.V03Anchored);
+            input.Once = Case01Input.From(new ExploreInput { Interact = true });
+            yield return null;
+            yield return AimAndPress(qa, input, Case01Ids.Core);
+            input.Once = new Case01Input { Choice = 1 };
+            yield return null;
+            yield return null;
+            Assert.IsTrue(qa.Flow.V03SecondLink);
+            input.Once = Case01Input.From(new ExploreInput { Interact = true });
+            yield return null;
+            // 走過 △ 門（西側）一次即寫回。
+            yield return WalkTo(qa, input, 36f, 0f);
+            yield return WalkTo(qa, input, 33.4f, 0f);
+            yield return WaitUntil(() => qa.Mode == Case01Mode.Exploring && qa.CurrentRoom == Case01Room.Study, 4f, "到達書房");
+            Assert.IsTrue(qa.Flow.CoreStabilized, "一次穿門寫回");
+            Assert.IsTrue(qa.DoorSnapPlaying || qa.DoorSnapPieces > 0, "門框歸位演出");
+            // 從書房走回樓梯平台：一般門洞，不再錯接到餐廳。
+            yield return WalkTo(qa, input, Case01HouseBuilder.StudyDoorX, 4.2f);
+            Assert.AreEqual(Case01Room.Landing, qa.CurrentRoom);
+            yield return WalkTo(qa, input, Case01HouseBuilder.StudyDoorX, 5.8f);
+            Assert.AreEqual(Case01Room.Study, qa.CurrentRoom, "書房門已歸位");
+            Assert.AreEqual(3, qa.HouseStage);
+        }
+
         [UnityTest]
         public IEnumerator Scene_JumpToS40_CoreTriggersDefense_ThenExistingBattle_InRealPlayMode()
         {

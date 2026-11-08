@@ -86,6 +86,8 @@ namespace Shepherd.Exploration.Case01
 
         /// <summary>本次建置的材質（重建／離開時 Dispose）。</summary>
         public Case01Palette Palette;
+        /// <summary>夾層門框上方的記號標籤（v0.3 依校正狀態改變顏色與文字）。</summary>
+        public readonly Dictionary<Case01Door, Text> MezzLabels = new Dictionary<Case01Door, Text>();
         /// <summary>各房間的主燈與其基準顏色／亮度（H1～H3 依此調整，不累積漂移）。</summary>
         public readonly Dictionary<Case01Room, Light> RoomLights = new Dictionary<Case01Room, Light>();
         public readonly Dictionary<Case01Room, Color> RoomLightColor = new Dictionary<Case01Room, Color>();
@@ -460,9 +462,9 @@ namespace Shepherd.Exploration.Case01
 
             var labelColor = new Color(0.95f, 0.92f, 1f);
             Case01Hud.WorldLabel(g, c + new Vector3(0f, 2.75f, -5.91f), 180f, "返回樓梯平台", 26, labelColor, 220f);
-            Case01Hud.WorldLabel(g, c + new Vector3(-5.91f, 2.75f, 0f), -90f, "△", 48, labelColor, 80f);
-            Case01Hud.WorldLabel(g, c + new Vector3(5.91f, 2.75f, 0f), 90f, "○", 48, labelColor, 80f);
-            Case01Hud.WorldLabel(g, c + new Vector3(0f, 2.75f, 5.91f), 0f, "□ 17", 40, labelColor, 160f);
+            L.MezzLabels[Case01Door.MezzTriangle] = Case01Hud.WorldLabel(g, c + new Vector3(-5.91f, 2.75f, 0f), -90f, "△", 48, labelColor, 80f);
+            L.MezzLabels[Case01Door.MezzCircle] = Case01Hud.WorldLabel(g, c + new Vector3(5.91f, 2.75f, 0f), 90f, "○", 48, labelColor, 80f);
+            L.MezzLabels[Case01Door.Mezz17] = Case01Hud.WorldLabel(g, c + new Vector3(0f, 2.75f, 5.91f), 0f, "□ 17", 40, labelColor, 160f);
             Hotspot(L, g, Case01Ids.MezzTriangleMark, "△ 門", c + new Vector3(-5.85f, 1.5f, -0.95f), new Vector3(0.12f, 1.2f, 0.6f));
             Hotspot(L, g, Case01Ids.MezzCircleMark, "○ 門", c + new Vector3(5.85f, 1.5f, 0.95f), new Vector3(0.12f, 1.2f, 0.6f));
             Hotspot(L, g, Case01Ids.Wall17, "北牆的「17」", c + new Vector3(0f, 1.1f, 5.82f), new Vector3(1.3f, 2.0f, 0.12f));

@@ -4,6 +4,7 @@ using Shepherd.Battle.UI;
 using Shepherd.Battle.UI.Arena;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 namespace Shepherd.Exploration.Case01
 {
@@ -86,6 +87,8 @@ namespace Shepherd.Exploration.Case01
         public const string LaunchModeKey = "Shepherd.Case01.LaunchMode";
 
         public Case01QaMode QaMode { get { return qaMode; } }
+        /// <summary>核修復玩法：一般／美術 QA 使用 v0.2；核校正 v0.3 QA 使用新規則。</summary>
+        public Case01CorrectionMode Correction { get { return qaMode == Case01QaMode.CoreV03 ? Case01CorrectionMode.RevisedV03 : Case01CorrectionMode.LegacyV02; } }
         public Case01Audio Audio { get { return sfx; } }
         public Case01Manifestation Manifestation { get { return manifestation; } }
         public bool Manifested { get { return manifested; } }
@@ -239,7 +242,7 @@ namespace Shepherd.Exploration.Case01
             hud = new Case01Hud(transform);
             sfx = new Case01Audio(transform);
             ApplyVolumes();
-            BuildContent(start ?? startCheckpoint);
+            BuildContent(start ?? (qaMode == Case01QaMode.CoreV03 ? Case01Checkpoint.S50 : startCheckpoint));
         }
 
         private CombatLabScenario CurrentScenario()
@@ -270,7 +273,7 @@ namespace Shepherd.Exploration.Case01
 
         private void BuildContent(Case01Checkpoint cp)
         {
-            BuildContent(Case01Flow.ForCheckpoint(cp), cp, null);
+            BuildContent(Case01Flow.ForCheckpoint(cp, Correction), cp, null);
         }
 
         private void BuildContent(Case01Flow f, Case01Checkpoint cp, Case01Pose? poseOverride)
@@ -278,6 +281,13 @@ namespace Shepherd.Exploration.Case01
             EndInspect();
             manifestation = null;
             manifested = false;
+            pendingCommit = null;
+            snapPieces.Clear();
+            snapFrom.Clear();
+            snapTo.Clear();
+            snapRotFrom.Clear();
+            snapLight = null;
+            snapT = -1f;
             if (sfx != null) sfx.StopAll();
             content = ArenaArt.Group("Case01Content", transform, Vector3.zero);
             if (palette != null) palette.Dispose();
@@ -328,7 +338,7 @@ namespace Shepherd.Exploration.Case01
                     hud.Base.ViewMode.text = "核校正 v0.3 QA：F4 戰後核前｜F5 切回 v0.2｜F1～F3 檢查點｜F8 降低閃爍";
                     break;
                 default:
-                    hud.Base.ViewMode.text = "QA 跳轉：F1 S00 玄關｜F2 S30 樓梯錯接｜F3 S40 夾層｜F4 S50 戰後修復｜F8 降低閃爍";
+                    hud.Base.ViewMode.text = "QA 跳轉：F1 S00 玄關｜F2 S30 樓梯錯接｜F3 S40 夾層｜F4 S50 戰後修復｜F5 核校正 v0.3｜F8 降低閃爍";
                     break;
             }
         }
@@ -389,6 +399,14 @@ namespace Shepherd.Exploration.Case01
             {
                 reduceFlicker = !reduceFlicker;
                 hud.Base.ShowToast(reduceFlicker ? "QA：降低閃爍　開" : "QA：降低閃爍　關");
+            }
+            if (input.Function == 5)
+            {
+                // A/B 比較：在 v0.2 與 v0.3 核校正之間切換，直接回到戰後核前（S50）。
+                qaMode = qaMode == Case01QaMode.CoreV03 ? Case01QaMode.Standard : Case01QaMode.CoreV03;
+                JumpNow(Case01Checkpoint.S50);
+                hud.Base.ShowToast(qaMode == Case01QaMode.CoreV03 ? "QA：核校正 v0.3（關係校正）" : "QA：核校正 v0.2（原三段式）");
+                return;
             }
             if (qaMode == Case01QaMode.ArtPreview && input.Function == 6)
             {
@@ -724,7 +742,15 @@ namespace Shepherd.Exploration.Case01
                 BeginTransition(layout.Arrivals[Case01Room.Courtyard]);
                 return;
             }
-            if (r.Redirect.HasValue) BeginTransition(layout.Arrivals[r.Redirect.Value]);
+            if (r.Redirect.HasValue)
+            {
+                if (r.CommitEffect)
+                {
+                    pendingCommit = r.Redirect.Value;
+                    BeginTransition(CommitPose(r.Redirect.Value));
+                }
+                else BeginTransition(layout.Arrivals[r.Redirect.Value]);
+            }
         }
 
         // ---------------- 安全傳送 ----------------
@@ -769,6 +795,12 @@ namespace Shepherd.Exploration.Case01
             keepPanelOnRoomChange = true;
             UpdateRoom();
             keepPanelOnRoomChange = false;
+            if (pendingCommit.HasValue)
+            {
+                SpawnDoorSnap(pendingCommit.Value);
+                if (sfx != null) sfx.PlayEffect(sfx.Settle, 1f);
+                pendingCommit = null;
+            }
         }
 
         // ---------------- 異域反制 ----------------
@@ -1038,6 +1070,7 @@ namespace Shepherd.Exploration.Case01
             foreach (var l in L.MezzLights) l.color = mezzColor;
             foreach (var m in L.MezzLineMats) ArenaArt.SetEmission(m, (flow.CoreStabilized ? ArenaArt.LampWarm : ArenaArt.Rift) * 1.8f);
             if (L.CourtyardLight != null) L.CourtyardLight.intensity = flow.CourtyardTearOpen ? 0.9f : 2.2f;
+            RefreshMezzLabels();
             bool enemiesVisible = flow.CanStartBattle && encounter != null && !encounter.Defeated;
             if (encounterGroup != null) encounterGroup.gameObject.SetActive(enemiesVisible);
             if (manifestation != null) manifestation.SetVisible(enemiesVisible);
@@ -1084,6 +1117,116 @@ namespace Shepherd.Exploration.Case01
                 layout.Overlaps[i].localRotation = Quaternion.Slerp(layout.Overlaps[i].localRotation, target, 1f - Mathf.Exp(-dt * 3f));
             }
             UpdateLights();
+            AnimateDoorSnap(dt);
+            if (flow.PreviewConflict != 0)
+            {
+                layout.CoreLight.color = new Color(1f, 0.3f, 0.35f);
+                layout.CoreLight.intensity = 1.6f + 0.6f * Mathf.Sin(clock * 3f) * FlickerScale;
+            }
+            else if (layout.CoreLight.intensity != 2.0f && !flow.CoreStabilized)
+            {
+                layout.CoreLight.intensity = 2.0f;
+            }
+        }
+
+        // ---------------- v0.3 核校正：標籤、提交演出 ----------------
+
+        private Case01Room? pendingCommit;
+        private readonly List<Transform> snapPieces = new List<Transform>();
+        private readonly List<Vector3> snapFrom = new List<Vector3>();
+        private readonly List<Vector3> snapTo = new List<Vector3>();
+        private readonly List<Quaternion> snapRotFrom = new List<Quaternion>();
+        private Light snapLight;
+        private float snapT = -1f;
+        public const float DoorSnapSeconds = 1.6f;
+
+        /// <summary>v0.3 提交演出是否正在播放（測試用）。</summary>
+        public bool DoorSnapPlaying { get { return snapT >= 0f && snapT < DoorSnapSeconds; } }
+        public int DoorSnapPieces { get { return snapPieces.Count; } }
+
+        /// <summary>寫回校正後的到達位置：站在門內、轉身面向剛走過的門。</summary>
+        public static Case01Pose CommitPose(Case01Room room)
+        {
+            if (room == Case01Room.Study) return new Case01Pose(new Vector3(Case01HouseBuilder.StudyDoorX, Case01HouseBuilder.FloorHeight + 0.05f, 6.3f), 180f);
+            return new Case01Pose(new Vector3(7.1f, 0.05f, 1.9f), 180f);
+        }
+
+        /// <summary>門框歸位：幾片發光的門框從錯位處扣回門洞，伴隨暖光脈動（約 1.6 秒，不閃爍）。</summary>
+        private void SpawnDoorSnap(Case01Room room)
+        {
+            ClearDoorSnap();
+            Vector3 c = room == Case01Room.Study ? new Vector3(Case01HouseBuilder.StudyDoorX, Case01HouseBuilder.FloorHeight, 5.1f) : new Vector3(7.1f, 0f, 0.12f);
+            var g = ArenaArt.Group("DoorSnap", content, c);
+            var glow = palette.Get("lamp_shade");
+            float w = Case01HouseBuilder.DoorWidth, h = Case01HouseBuilder.DoorHeight;
+            Vector3[] pos = { new Vector3(-w * 0.5f - 0.05f, h * 0.5f, 0f), new Vector3(w * 0.5f + 0.05f, h * 0.5f, 0f), new Vector3(0f, h + 0.05f, 0f) };
+            Vector3[] scale = { new Vector3(0.07f, h, 0.05f), new Vector3(0.07f, h, 0.05f), new Vector3(w + 0.2f, 0.07f, 0.05f) };
+            Vector3[] off = { new Vector3(-0.8f, 0.3f, 0.2f), new Vector3(0.8f, -0.25f, 0.25f), new Vector3(0.1f, 0.6f, 0.25f) };
+            for (int i = 0; i < pos.Length; i++)
+            {
+                var p = ArenaArt.Prim(PrimitiveType.Cube, g, pos[i] + off[i], scale[i], glow, null, "SnapPiece", false, false);
+                p.localRotation = Quaternion.Euler(off[i].y * 25f, off[i].x * 20f, off[i].x * 15f);
+                snapPieces.Add(p);
+                snapFrom.Add(p.localPosition);
+                snapTo.Add(pos[i]);
+                snapRotFrom.Add(p.localRotation);
+            }
+            snapLight = ArenaArt.PointLight(g, new Vector3(0f, 1.2f, 0.6f), ArenaArt.LampWarm, 5f, 0f, false);
+            snapT = 0f;
+        }
+
+        private void AnimateDoorSnap(float dt)
+        {
+            if (snapT < 0f) return;
+            snapT += dt;
+            float k = Mathf.Clamp01(snapT / DoorSnapSeconds);
+            float s = k * k * (3f - 2f * k);
+            for (int i = 0; i < snapPieces.Count; i++)
+            {
+                if (snapPieces[i] == null) continue;
+                snapPieces[i].localPosition = Vector3.Lerp(snapFrom[i], snapTo[i], s);
+                snapPieces[i].localRotation = Quaternion.Slerp(snapRotFrom[i], Quaternion.identity, s);
+            }
+            if (snapLight != null) snapLight.intensity = 2.2f * Mathf.Sin(Mathf.PI * k);
+            if (snapT > DoorSnapSeconds + 1.5f) ClearDoorSnap();
+        }
+
+        private void ClearDoorSnap()
+        {
+            if (snapPieces.Count > 0 && snapPieces[0] != null) ArenaArt.Kill(snapPieces[0].parent.gameObject);
+            snapPieces.Clear();
+            snapFrom.Clear();
+            snapTo.Clear();
+            snapRotFrom.Clear();
+            snapLight = null;
+            snapT = -1f;
+        }
+
+        /// <summary>夾層門框上方的記號：v0.3 已校正的關係變綠並加上房間名稱（不只靠顏色）。</summary>
+        private void RefreshMezzLabels()
+        {
+            var normal = new Color(0.95f, 0.92f, 1f);
+            var fixedColor = new Color(0.6f, 1f, 0.65f);
+            bool v03 = flow.Correction == Case01CorrectionMode.RevisedV03;
+            Text t;
+            if (layout.MezzLabels.TryGetValue(Case01Door.MezzTriangle, out t))
+            {
+                bool on = v03 && flow.V03Anchored;
+                t.text = on ? "△ 書房" : "△";
+                t.color = on ? fixedColor : normal;
+            }
+            if (layout.MezzLabels.TryGetValue(Case01Door.MezzCircle, out t))
+            {
+                bool on = v03 && flow.V03SecondLink;
+                t.text = on ? "○ 餐廳" : "○";
+                t.color = on ? fixedColor : normal;
+            }
+            if (layout.MezzLabels.TryGetValue(Case01Door.Mezz17, out t))
+            {
+                bool on = v03 && flow.V03SecondLink;
+                t.text = on ? "□ 17 玄關" : "□ 17";
+                t.color = on ? fixedColor : normal;
+            }
         }
 
         // ---------------- v0.3 失序體形成演出 ----------------
@@ -1290,7 +1433,20 @@ namespace Shepherd.Exploration.Case01
             if (!flow.DefenseTriggered) return "調查夾層中央的核。";
             if (!s.Has(Case01Flags.BattleWon)) return "擊退異常中庭裡的失序體。";
             string back = currentRoom == Case01Room.Mezzanine || currentRoom == Case01Room.Courtyard ? "" : "（從樓梯平台的第三扇門回夾層）";
-            if (currentRoom == Case01Room.Courtyard && !s.Has(Case01Flags.MissingLinkRestored)) return "穿過南側的裂口回到夾層，再調查核。";
+            if (currentRoom == Case01Room.Courtyard && !flow.CoreStabilized && !s.Has(Case01Flags.MissingLinkRestored)) return "穿過南側的裂口回到夾層，再調查核。";
+            if (flow.Correction == Case01CorrectionMode.RevisedV03 && flow.CoreStabilized)
+            {
+                if (!flow.FamilyPhotoCollected) return "夾層裡多了一張照片（可選）。巡查完再從玄關前門離開十七號。";
+                return "可以再巡查一下房子，然後從玄關前門離開十七號。";
+            }
+            if (flow.Correction == Case01CorrectionMode.RevisedV03 && !flow.CoreStabilized)
+            {
+                if (!flow.V03EvidenceReady) return "用核旁的校正裝置（E）。資料不足時，先補看舊地圖與合照。" + back;
+                if (flow.PreviewConflict != 0) return "裝置在預演矛盾：撤銷後重新判斷。" + back;
+                if (!flow.V03Anchored) return "用核旁的校正裝置（E）比對現況與記錄，選一條可信的關係當錨點。" + back;
+                if (!flow.V03SecondLink) return "△ 已固定。用裝置處理仍在跳動的 ○。" + back;
+                return "走過 △ 門或北牆的 17 號門，把校正寫回。";
+            }
             if (!s.Has(Case01Flags.MissingLinkRestored))
             {
                 if (!s.Has(Case01Flags.MapObserved) || !s.Has(Case01Flags.PhotoObserved)) return "回到核。若資料不足，先補看舊地圖與合照。" + back;

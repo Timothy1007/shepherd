@@ -32,6 +32,10 @@ namespace Shepherd.Exploration.Editor
         [MenuItem("Shepherd/Case01/美術 QA（H0～H3／失序體形成）")]
         public static void LaunchArtQa() { Launch("art"); }
 
+        /// <summary>核校正 v0.3（關係校正）實驗 QA：直接從戰後核前開始；遊戲中 F5 可切回 v0.2 比較。</summary>
+        [MenuItem("Shepherd/Case01/核校正 v0.3 QA")]
+        public static void LaunchCoreV03() { Launch("v03"); }
+
         /// <summary>開啟室內 QA 場景並以指定模式進入 Play（一次性參數，Awake 讀取後刪除）。</summary>
         public static void Launch(string mode)
         {
