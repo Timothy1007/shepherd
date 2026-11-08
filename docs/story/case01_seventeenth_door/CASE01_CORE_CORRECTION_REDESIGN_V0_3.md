@@ -1,3 +1,5 @@
+> **2026-11-09 v0.4 優先級通知：** 本文的新核校正 v0.3 已有獨立可玩 QA；最新階段將補強**主角自我對話、玩家語與視覺回饋**，但不變更其錨點／第二連結／單次穿門寫回規則。H3 **不再恢復暖光**，以 [`CASE01_SPATIAL_NARRATIVE_PASS_CLAUDE_TASK_V0_4.md`](./CASE01_SPATIAL_NARRATIVE_PASS_CLAUDE_TASK_V0_4.md) 為準。
+
 # CASE01｜「核修復」玩法重設 v0.3｜Claude Code 實作規格
 日期：2026-11-08｜性質：**可執行的實驗 QA 規格；設計提案，尚非已驗收的正式玩法**
 Repo `Timothy1007/shepherd`｜`main`｜Unity 2022.3.18f1
