@@ -1,3 +1,10 @@
+# 2026-11-08｜Case01 公開 Demo 首戰：正式戰鬥 UI＋情境式教學（最新）
+使用者確認：現有戰鬥規則基本清楚，但目前 3D Combat Lab HUD 太像測試版；公開 Demo 的戰鬥必須是核心玩法與新手教學，**允許大幅重做戰鬥介面呈現，但嚴禁私改規則與卡牌數值**。
+新增 Claude Code 實作任務：`docs/story/case01_seventeenth_door/CASE01_COMBAT_DEMO_UI_TUTORIAL_CLAUDE_TASK_V0_3.md`。已讀當前 `unity/Assets/Battle/UI/Arena/CombatArenaView.cs`、`CombatArenaView.Hud.cs`、`docs/UNITY_BATTLE_V0.1_SPEC.md`：目前 7 手牌／3 AP／三學派／序列／承接／三連／真實預估及敵方預告已存在。工作為 Case01 專屬正式 HUD、首戰四節點非強制教學、術式演出、獨立兩敵 QA 模式。保持既有 CombatLab3D 與 AnomalyStreetDemo、BattleController / RoundResolver、Case01 住宅與核修復流程不變。
+**本輪只提交文件，未改 Unity 程式或執行測試，也未呼叫 Claude Code 實作**。其任務與同日的材質光影、失序體形成及核修復 v0.3 文檔並列，Claude 須拆成可獨立測試與提交的增量，避免同時碰同檔覆蓋。
+
+---
+
 # 2026-11-08｜Case01 真人試玩後 v0.3 開發任務（最新優先）
 使用者已實際試玩室內 v0.2：音效關閉後驚嚇感大幅下降；一般調查仍可保留文字與短註解、僅 FP-001 做旋轉檢視；房屋需要正式材質／貼圖／燈光精修；失序體希望由夾層的書籍／照片／紙張凝聚成形，配特殊音效／短音樂，但**暫不追逐玩家**。核修復目前存在四問題：簡單、跑腿、成果回饋弱、因果不易理解。
 本輪已新增並同步 **兩份供 Claude Code 實作的 v0.3 任務規格**：
