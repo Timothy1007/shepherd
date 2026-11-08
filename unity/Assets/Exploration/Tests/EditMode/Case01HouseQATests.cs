@@ -352,7 +352,7 @@ namespace Shepherd.Exploration.Tests
             WalkTo(qa, 40f, -0.4f);
             Interact(qa, Case01Ids.Core);
             Assert.AreEqual(Case01Mode.Defense, qa.Mode);
-            RunUntil(qa, () => qa.Mode == Case01Mode.Exploring && qa.CurrentRoom == Case01Room.Courtyard, "被拉進異常中庭", 6f);
+            RunUntil(qa, () => qa.Mode == Case01Mode.Exploring && qa.CurrentRoom == Case01Room.Courtyard && qa.Manifested, "被拉進異常中庭並看完失序體形成", 12f);
             Assert.IsTrue(qa.EncounterFiguresVisible);
             Assert.IsFalse(qa.Session.Has(Case01Flags.BattleStarted), "看到敵人還不算開戰");
             Assert.IsFalse(WalkTo(qa, 40f, 46f, 15f), "走近即遭遇");
@@ -457,7 +457,7 @@ namespace Shepherd.Exploration.Tests
             Assert.AreEqual(Case01Room.Mezzanine, qa.CurrentRoom);
             WalkTo(qa, 40f, -0.4f);
             Interact(qa, Case01Ids.Core);
-            RunUntil(qa, () => qa.Mode == Case01Mode.Exploring && qa.CurrentRoom == Case01Room.Courtyard, "被拉進中庭", 6f);
+            RunUntil(qa, () => qa.Mode == Case01Mode.Exploring && qa.CurrentRoom == Case01Room.Courtyard && qa.Manifested, "被拉進中庭並看完失序體形成", 12f);
             WalkTo(qa, 40f, 46f, 15f);
             RunUntil(qa, () => qa.Mode == Case01Mode.Battle, "進入戰鬥");
             var arena = qa.Arena;

@@ -123,7 +123,15 @@ namespace Shepherd.Exploration.Editor
                 Interact(qa, Case01Ids.Core);
                 Advance(qa, 1.2f);
                 Shot(qa, rt, prefix + "09_defense.png");
-                AdvanceUntil(qa, q => q.Mode == Case01Mode.Exploring && q.CurrentRoom == Case01Room.Courtyard, 0.6f);
+                // v0.3：失序體由碎片凝聚成形（前／中／後）。
+                AdvanceUntil(qa, q => q.Mode == Case01Mode.Manifesting, 0f);
+                Advance(qa, 0.6f);
+                Shot(qa, rt, prefix + "10a_manifest_tremble.png");
+                Advance(qa, 1.3f);
+                Shot(qa, rt, prefix + "10b_manifest_drift.png");
+                Advance(qa, 1.4f);
+                Shot(qa, rt, prefix + "10c_manifest_assemble.png");
+                AdvanceUntil(qa, q => q.Mode == Case01Mode.Exploring, 0.3f);
                 Shot(qa, rt, prefix + "10_courtyard.png");
                 for (int i = 0; i < 600 && qa.Mode == Case01Mode.Exploring; i++) qa.Tick(Step, ExploreInput.Forward());
                 AdvanceUntil(qa, q => q.Mode == Case01Mode.Battle, 0.4f);

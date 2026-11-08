@@ -25,6 +25,16 @@ namespace Shepherd.Exploration.Case01
         Ended,
         /// <summary>3D 證物檢視（移動暫停；滑鼠旋轉、滾輪縮放、E／Esc 收起）。</summary>
         Inspect,
+        /// <summary>失序體由環境碎片凝聚成形（移動暫停，可轉視角；E 跳過）。</summary>
+        Manifesting,
+    }
+
+    /// <summary>QA 啟動模式：一般流程、美術 QA（自由切 H0～H3、預覽形成演出、不開戰）、核校正 v0.3。</summary>
+    public enum Case01QaMode
+    {
+        Standard,
+        ArtPreview,
+        CoreV03,
     }
 
     /// <summary>
@@ -63,6 +73,27 @@ namespace Shepherd.Exploration.Case01
         public bool ReduceFlicker { get { return reduceFlicker; } set { reduceFlicker = value; } }
         public float ScareIntensity { get { return scareIntensity; } set { scareIntensity = Mathf.Clamp01(value); } }
         public bool LightShadowsEnabled { get { return lightShadows; } set { lightShadows = value; } }
+
+        [Header("v0.3 音量（Case01 區域）")]
+        [Range(0f, 1f)] [SerializeField] private float ambientVolume = 0.5f;
+        [Range(0f, 1f)] [SerializeField] private float effectsVolume = 0.8f;
+        [Range(0f, 1f)] [SerializeField] private float musicVolume = 0.7f;
+
+        [Tooltip("QA 模式：一般／美術 QA／核校正 v0.3。選單啟動時會自動設定。")]
+        [SerializeField] private Case01QaMode qaMode = Case01QaMode.Standard;
+
+        /// <summary>選單「美術 QA」「核校正 v0.3 QA」進入 Play 前寫入、Awake 讀取後刪除的一次性啟動參數。</summary>
+        public const string LaunchModeKey = "Shepherd.Case01.LaunchMode";
+
+        public Case01QaMode QaMode { get { return qaMode; } }
+        public Case01Audio Audio { get { return sfx; } }
+        public Case01Manifestation Manifestation { get { return manifestation; } }
+        public bool Manifested { get { return manifested; } }
+        public int ArtStage { get; private set; }
+
+        private Case01Audio sfx;
+        private Case01Manifestation manifestation;
+        private bool manifested;
 
         private Case01Palette palette;
         public Case01Palette Palette { get { return palette; } }
@@ -132,6 +163,13 @@ namespace Shepherd.Exploration.Case01
 
         private void Awake()
         {
+            var launch = PlayerPrefs.GetString(LaunchModeKey, "");
+            if (launch.Length > 0)
+            {
+                PlayerPrefs.DeleteKey(LaunchModeKey);
+                if (launch == "art") qaMode = Case01QaMode.ArtPreview;
+                else if (launch == "v03") qaMode = Case01QaMode.CoreV03;
+            }
             Build(true);
         }
 
@@ -142,6 +180,7 @@ namespace Shepherd.Exploration.Case01
                 palette.Dispose();
                 palette = null;
             }
+            if (sfx != null) sfx.Dispose();
             if (playMode)
             {
                 RestoreAtmosphere();
@@ -154,7 +193,7 @@ namespace Shepherd.Exploration.Case01
         /// 建立整個 QA。playMode＝false 供 EditMode 測試與截圖（不建立 EventSystem、不改 RenderSettings 與滑鼠）。
         /// scenario 供測試指定戰鬥情境；預設使用 Combat Lab 的標準兩敵情境（現有數值）。
         /// </summary>
-        public void Build(bool playMode, CombatLabScenario scenario = null, int? seedOverride = null, Case01Checkpoint? start = null)
+        public void Build(bool playMode, CombatLabScenario scenario = null, int? seedOverride = null, Case01Checkpoint? start = null, Case01QaMode? mode = null)
         {
             if (built) return;
             built = true;
@@ -196,7 +235,10 @@ namespace Shepherd.Exploration.Case01
             skyLight.intensity = 0.16f;
             skyLight.shadows = LightShadows.None;
 
+            if (mode.HasValue) qaMode = mode.Value;
             hud = new Case01Hud(transform);
+            sfx = new Case01Audio(transform);
+            ApplyVolumes();
             BuildContent(start ?? startCheckpoint);
         }
 
@@ -228,13 +270,21 @@ namespace Shepherd.Exploration.Case01
 
         private void BuildContent(Case01Checkpoint cp)
         {
+            BuildContent(Case01Flow.ForCheckpoint(cp), cp, null);
+        }
+
+        private void BuildContent(Case01Flow f, Case01Checkpoint cp, Case01Pose? poseOverride)
+        {
             EndInspect();
+            manifestation = null;
+            manifested = false;
+            if (sfx != null) sfx.StopAll();
             content = ArenaArt.Group("Case01Content", transform, Vector3.zero);
             if (palette != null) palette.Dispose();
             palette = new Case01Palette();
             layout = Case01HouseBuilder.Build(content, palette);
-            flow = Case01Flow.ForCheckpoint(cp);
-            var pose = CheckpointPose(layout, cp);
+            flow = f;
+            var pose = poseOverride ?? CheckpointPose(layout, cp);
             player = FirstPersonController.Create(content, pose.Position, pose.Yaw);
             BuildEncounter();
 
@@ -263,6 +313,24 @@ namespace Shepherd.Exploration.Case01
             Physics.SyncTransforms();
             UpdateObjective();
             UpdateQaText();
+            UpdateModeText();
+        }
+
+        /// <summary>左下第二行：依 QA 模式顯示可用的功能鍵（只改 Case01 自己的 HUD）。</summary>
+        private void UpdateModeText()
+        {
+            switch (qaMode)
+            {
+                case Case01QaMode.ArtPreview:
+                    hud.Base.ViewMode.text = "美術 QA：F6 房屋 H0～H3｜F7 失序體形成（不開戰）｜F8 降低閃爍｜F1～F4 檢查點";
+                    break;
+                case Case01QaMode.CoreV03:
+                    hud.Base.ViewMode.text = "核校正 v0.3 QA：F4 戰後核前｜F5 切回 v0.2｜F1～F3 檢查點｜F8 降低閃爍";
+                    break;
+                default:
+                    hud.Base.ViewMode.text = "QA 跳轉：F1 S00 玄關｜F2 S30 樓梯錯接｜F3 S40 夾層｜F4 S50 戰後修復｜F8 降低閃爍";
+                    break;
+            }
         }
 
         /// <summary>中庭的遭遇區與看得到的失序體（與戰鬥開始時的位置、高度、朝向相同）。</summary>
@@ -317,6 +385,21 @@ namespace Shepherd.Exploration.Case01
                 RetryBattle();
                 return;
             }
+            if (input.Function == 8)
+            {
+                reduceFlicker = !reduceFlicker;
+                hud.Base.ShowToast(reduceFlicker ? "QA：降低閃爍　開" : "QA：降低閃爍　關");
+            }
+            if (qaMode == Case01QaMode.ArtPreview && input.Function == 6)
+            {
+                SetArtStage((ArtStage + 1) % 4);
+                return;
+            }
+            if (qaMode == Case01QaMode.ArtPreview && input.Function == 7)
+            {
+                PreviewManifestation();
+                return;
+            }
             if (input.Jump >= 1 && input.Jump <= 4)
             {
                 JumpNow((Case01Checkpoint)(input.Jump - 1));
@@ -340,6 +423,7 @@ namespace Shepherd.Exploration.Case01
                     break;
                 case Case01Mode.ReturningToExplore: TickReturn(dt); break;
                 case Case01Mode.Inspect: TickInspect(input); break;
+                case Case01Mode.Manifesting: TickManifesting(dt, input); break;
             }
             if (!playMode && arena != null) arena.Tick(dt);
             UpdateQaText();
@@ -409,7 +493,12 @@ namespace Shepherd.Exploration.Case01
             }
 
             var check = EncounterCheck.None;
-            if (currentRoom == Case01Room.Courtyard && flow.CanStartBattle && encounter != null)
+            if (currentRoom == Case01Room.Courtyard && flow.CanStartBattle && encounter != null && !manifested)
+            {
+                BeginManifestation();
+                return;
+            }
+            if (currentRoom == Case01Room.Courtyard && flow.CanStartBattle && encounter != null && qaMode != Case01QaMode.ArtPreview)
             {
                 check = encounter.Check(cur);
                 if (check == EncounterCheck.Trigger)
@@ -464,6 +553,7 @@ namespace Shepherd.Exploration.Case01
             keepPanelOnRoomChange = false;
             Handle(flow.EnterRoom(from, r));
             NoteEnvironmentOnEntry(r);
+            if (sfx != null) sfx.SetAmbient(r == Case01Room.Mezzanine || r == Case01Room.Courtyard);
         }
 
         // ---------------- v0.2 階段異變（H0～H3） ----------------
@@ -754,6 +844,7 @@ namespace Shepherd.Exploration.Case01
             go.SetActive(true);
 
             encounterGroup.gameObject.SetActive(false);
+            if (manifestation != null) manifestation.SetVisible(false);
             SetCursorCaptured(false);
             Mode = Case01Mode.EnteringBattle;
             blendT = 0f;
@@ -847,6 +938,7 @@ namespace Shepherd.Exploration.Case01
             hud.Base.HideEncounter();
             Retries++;
             BuildEncounter();
+            if (manifested) RebuildManifestation(true);
             RefreshWorld();
             TeleportPlayer(layout.Arrivals[Case01Room.Courtyard]);
             SetCursorCaptured(true);
@@ -946,7 +1038,10 @@ namespace Shepherd.Exploration.Case01
             foreach (var l in L.MezzLights) l.color = mezzColor;
             foreach (var m in L.MezzLineMats) ArenaArt.SetEmission(m, (flow.CoreStabilized ? ArenaArt.LampWarm : ArenaArt.Rift) * 1.8f);
             if (L.CourtyardLight != null) L.CourtyardLight.intensity = flow.CourtyardTearOpen ? 0.9f : 2.2f;
-            if (encounterGroup != null) encounterGroup.gameObject.SetActive(flow.CanStartBattle && encounter != null && !encounter.Defeated);
+            bool enemiesVisible = flow.CanStartBattle && encounter != null && !encounter.Defeated;
+            if (encounterGroup != null) encounterGroup.gameObject.SetActive(enemiesVisible);
+            if (manifestation != null) manifestation.SetVisible(enemiesVisible);
+            ApplyVolumes();
 
             // 樓梯平台的聲音提示（線索足夠時、門錯接時各一次）。
             if ((flow.WrongConnectionArmed && !lastArmed) || (flow.WrongConnectionActive && !lastActive))
@@ -989,6 +1084,127 @@ namespace Shepherd.Exploration.Case01
                 layout.Overlaps[i].localRotation = Quaternion.Slerp(layout.Overlaps[i].localRotation, target, 1f - Mathf.Exp(-dt * 3f));
             }
             UpdateLights();
+        }
+
+        // ---------------- v0.3 失序體形成演出 ----------------
+
+        private void RebuildManifestation(bool complete)
+        {
+            if (manifestation != null) ArenaArt.Kill(manifestation.Root.gameObject);
+            var figs = new List<Transform>();
+            var heights = new List<float>();
+            var scenario = CurrentScenario();
+            for (int i = 0; i < encounterGroup.childCount; i++)
+            {
+                figs.Add(encounterGroup.GetChild(i));
+                heights.Add(CombatArenaView.EnemyHeightFor(i < scenario.Enemies.Count ? scenario.Enemies[i].Value : 40));
+            }
+            manifestation = new Case01Manifestation(content, palette, figs, heights);
+            if (complete) manifestation.CompleteSilently();
+            else manifestation.PhaseStarted += OnManifestationPhase;
+        }
+
+        /// <summary>第一次進入中庭時開始形成演出（只發生一次；戰敗重試不重播）。</summary>
+        private void BeginManifestation()
+        {
+            manifested = true;
+            RebuildManifestation(false);
+            // 視線轉向兩個失序體成形的位置。
+            var center = encounter.Center + Vector3.up * 1.1f - player.EyePosition;
+            player.Teleport(player.transform.position, Mathf.Atan2(center.x, center.z) * Mathf.Rad2Deg,
+                -Mathf.Atan2(center.y, new Vector2(center.x, center.z).magnitude) * Mathf.Rad2Deg);
+            Mode = Case01Mode.Manifesting;
+            hud.HidePanel();
+            hud.Base.SetHint("<color=#C79BFF>夾層的書頁與照片被吸進中庭……</color>　［E］跳過");
+        }
+
+        private void OnManifestationPhase(int phase)
+        {
+            if (sfx == null) return;
+            switch (phase)
+            {
+                case 0: sfx.PlayEffect(sfx.Rustle, 0.8f); break;
+                case 1: sfx.PlayEffect(sfx.Whoosh); break;
+                case 2:
+                    sfx.PlayEffect(sfx.Assemble);
+                    sfx.PlayMusic(sfx.Sting);
+                    break;
+                case 3: sfx.PlayEffect(sfx.Lock, 1.1f); break;
+            }
+        }
+
+        private void TickManifesting(float dt, Case01Input input)
+        {
+            var b = input.Base;
+            player.Step(dt, new ExploreInput { Look = b.Look }, cursorCaptured);
+            SnapCameraToPlayer();
+            if (b.Interact) manifestation.Skip();
+            else manifestation.Tick(dt);
+            // 演出期間鏡頭拉近（玩家位置不變），結束前 0.6 秒拉回。
+            float mt = manifestation.Time;
+            float zoom = Mathf.Min(Mathf.Clamp01(mt / 0.8f), Mathf.Clamp01((Case01Manifestation.Duration - mt) / 0.6f));
+            exploreCam.fieldOfView = Mathf.Lerp(ExploreFieldOfView, 30f, zoom * zoom * (3f - 2f * zoom));
+            if (!manifestation.Done) return;
+            hud.Base.SetHint(null);
+            Mode = Case01Mode.Exploring;
+        }
+
+        // ---------------- v0.3 美術 QA ----------------
+
+        /// <summary>美術 QA：切換房屋 H0～H3（重建狀態並站到客廳），不需要跑完整流程。</summary>
+        public void SetArtStage(int h)
+        {
+            ArtStage = Mathf.Clamp(h, 0, 3);
+            KillArena();
+            if (content != null)
+            {
+                content.gameObject.SetActive(false);
+                ArenaArt.Kill(content.gameObject);
+            }
+            encounterGroup = null;
+            exploreCam.enabled = true;
+            BuildContent(Case01Flow.ForHouseStage(ArtStage), Case01Checkpoint.S00, new Case01Pose(new Vector3(3.9f, 0.05f, 6.3f), -55f));
+            hud.Base.ShowToast("美術 QA：房屋 H" + ArtStage);
+        }
+
+        /// <summary>美術 QA：直接到中庭播放失序體形成（不開戰，可重複）。</summary>
+        public void PreviewManifestation()
+        {
+            KillArena();
+            if (content != null)
+            {
+                content.gameObject.SetActive(false);
+                ArenaArt.Kill(content.gameObject);
+            }
+            encounterGroup = null;
+            exploreCam.enabled = true;
+            var f = Case01Flow.ForCheckpoint(Case01Checkpoint.S40);
+            f.Interact(Case01Ids.Core);
+            BuildContent(f, Case01Checkpoint.S40, layout != null ? layout.Arrivals[Case01Room.Courtyard] : (Case01Pose?)null);
+            hud.Base.ShowToast("美術 QA：失序體形成（不開戰）");
+        }
+
+        private void ApplyVolumes()
+        {
+            if (sfx == null) return;
+            sfx.AmbientVolume = ambientVolume;
+            sfx.EffectsVolume = effectsVolume;
+            sfx.MusicVolume = musicVolume;
+            sfx.ScareIntensity = scareIntensity;
+            if (layout != null && layout.Creak != null) layout.Creak.volume = sfx.EffectGain;
+        }
+
+        public void SetVolumes(float ambient, float effects, float music)
+        {
+            ambientVolume = Mathf.Clamp01(ambient);
+            effectsVolume = Mathf.Clamp01(effects);
+            musicVolume = Mathf.Clamp01(music);
+            ApplyVolumes();
+        }
+
+        private void OnApplicationFocus(bool focus)
+        {
+            if (playMode && sfx != null) sfx.Pause(!focus);
         }
 
         // ---------------- v0.3 燈光（依房間基準色計算，不累積漂移；低頻、可降低閃爍） ----------------

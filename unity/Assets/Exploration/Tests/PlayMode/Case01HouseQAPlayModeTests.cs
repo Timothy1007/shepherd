@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Linq;
 using NUnit.Framework;
 using Shepherd.Exploration.Case01;
 using UnityEngine;
@@ -33,6 +34,7 @@ namespace Shepherd.Exploration.Tests
                     r.Base.Click |= o.Base.Click;
                     if (o.Choice != 0) r.Choice = o.Choice;
                     if (o.Jump != 0) r.Jump = o.Jump;
+                    if (o.Function != 0) r.Function = o.Function;
                     r.Journal |= o.Journal;
                     Once = null;
                 }
@@ -126,6 +128,34 @@ namespace Shepherd.Exploration.Tests
         }
 
         [UnityTest]
+        public IEnumerator ArtQaLaunch_ManifestationSkippable_AudioStopsWhenSceneUnloads_InRealPlayMode()
+        {
+            PlayerPrefs.SetString(Case01HouseQA.LaunchModeKey, "art");
+            yield return LoadScene();
+            var qa = Object.FindObjectOfType<Case01HouseQA>();
+            Assert.AreEqual(Case01QaMode.ArtPreview, qa.QaMode, "選單的一次性啟動參數");
+            Assert.IsFalse(PlayerPrefs.HasKey(Case01HouseQA.LaunchModeKey), "讀取後刪除");
+            var input = new ScriptedInput();
+            qa.InputSource = input;
+            yield return null;
+            input.Once = new Case01Input { Function = 6 };
+            yield return null;
+            yield return null;
+            Assert.AreEqual(1, qa.HouseStage, "F6 切換房屋階段");
+            input.Once = new Case01Input { Function = 7 };
+            yield return WaitUntil(() => qa.Mode == Case01Mode.Manifesting, 3f, "F7 開始形成演出");
+            yield return new WaitForSeconds(0.5f);
+            input.Once = Case01Input.From(new ExploreInput { Interact = true });
+            yield return WaitUntil(() => qa.Mode == Case01Mode.Exploring, 2f, "E 跳過");
+            Assert.IsTrue(qa.Manifestation.Skipped);
+            var sources = qa.GetComponentsInChildren<AudioSource>();
+            Assert.Greater(sources.Length, 0);
+            Object.Destroy(qa.gameObject);
+            yield return null;
+            Assert.IsTrue(sources.All(s => s == null || !s.isPlaying), "Case01 的聲音隨場景物件停止");
+        }
+
+        [UnityTest]
         public IEnumerator Scene_JumpToS40_CoreTriggersDefense_ThenExistingBattle_InRealPlayMode()
         {
             yield return LoadScene();
@@ -147,7 +177,7 @@ namespace Shepherd.Exploration.Tests
             yield return null;
             input.Once = Case01Input.From(new ExploreInput { Interact = true });
             yield return WaitUntil(() => qa.Mode == Case01Mode.Defense, 2f, "異域反制");
-            yield return WaitUntil(() => qa.Mode == Case01Mode.Exploring && qa.CurrentRoom == Case01Room.Courtyard, 6f, "被拉進中庭");
+            yield return WaitUntil(() => qa.Mode == Case01Mode.Exploring && qa.CurrentRoom == Case01Room.Courtyard && qa.Manifested && qa.Manifestation.Done, 14f, "被拉進中庭並看完失序體形成");
             yield return WalkTo(qa, input, 40f, 46f, 15f);
             yield return WaitUntil(() => qa.Mode == Case01Mode.Battle, 6f, "進入戰鬥");
             var arena = qa.Arena;

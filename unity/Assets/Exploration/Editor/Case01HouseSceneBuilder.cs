@@ -29,6 +29,21 @@ namespace Shepherd.Exploration.Editor
             EditorSceneManager.OpenScene(ScenePath);
         }
 
+        [MenuItem("Shepherd/Case01/美術 QA（H0～H3／失序體形成）")]
+        public static void LaunchArtQa() { Launch("art"); }
+
+        /// <summary>開啟室內 QA 場景並以指定模式進入 Play（一次性參數，Awake 讀取後刪除）。</summary>
+        public static void Launch(string mode)
+        {
+            if (EditorApplication.isPlaying) return;
+            if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
+            if (!File.Exists(ScenePath)) Build();
+            EditorSceneManager.OpenScene(ScenePath);
+            PlayerPrefs.SetString(Case01HouseQA.LaunchModeKey, mode);
+            PlayerPrefs.Save();
+            EditorApplication.isPlaying = true;
+        }
+
         /// <summary>batchmode 入口：Unity.exe -batchmode -executeMethod Shepherd.Exploration.Editor.Case01HouseSceneBuilder.Build -quit</summary>
         public static void Build()
         {

@@ -1,6 +1,8 @@
 # 2026-11-08｜Case01 v0.3 實作進度（本段最新）
 **A. 材質／燈光（已實作、已測）**：管線確認為 **Built-in Render Pipeline、Gamma 色彩空間、無 URP／後處理**。新增 `unity/Assets/Exploration/Case01Art/`：`Shaders/Case01Triplanar.shader`（Built-in Standard 光照的世界座標 triplanar Surface Shader，解決 Primitive UV 拉伸）、`Textures/`（22 張程序生成 PNG：木地板、家具木紋、灰泥、壁紙、漆面木作、織物、紙、書布、紙箱、石磚、磚牆、暗灰泥、裂隙、核脈絡、釉面，含 8 張法線貼圖）、`Materials/`（39 個 `M_*.mat`）、`Resources/Case01ArtSet.asset`（執行時載入）。重建：選單 `Shepherd/Case01/重建美術素材` 或 `-executeMethod Shepherd.Exploration.Editor.Case01ArtGenerator.Generate`（全部自製、無第三方授權）。程式：`Case01Palette`（共用資產＋本次建置擁有的衍生材質，F1／跳轉時釋放；核與裂隙線用獨立副本，不改共用資產）、`Case01ArtSet`。房屋加踢腳線、門框（第三扇門除外）、窗框／窗櫺／窗台、一樓灰泥天花板、各房吊燈（燈具與光源位置一致）、閱讀燈／檯燈／壁燈補光；環境光改三色（Trilight），離開時還原。燈光依 H 階段調整：H1 餐廳光色偏移並慢慢起伏、客廳略暗；H2 書房轉冷變暗（線索仍可讀）、樓梯平台低頻偏紫；H3 回到基準暖光（殘留物件不變）。`Case01HouseQA` Inspector 新增「降低閃爍」「驚嚇強度」「即時陰影」。只有餐廳、客廳主燈有柔和陰影。
 **測試（Stage A）**：EditMode 212/212（新增 `Case01ArtTests` 6 項）、PlayMode 4/4；Unity 2022.3.18f1 batchmode，無編譯錯誤或警告。
+**B. 夾層散落物＋失序體凝聚演出（已實作、已測）**：夾層四角與牆邊 9 堆散落的書、照片、紙張（無碰撞體，避開核、△○□ 門、FP-001 與通道）；H2 書房地上多了散落紙張。`Case01Manifestation`：第一次被拉進中庭時播放約 4.8 秒（E 可跳過）：①地上碎片輕震翻動 → ②漂向重心環繞 → ③兩組各 40 片碎片聚成兩個人形、既有失序體模型由小變大 → ④低頻扣合聲＋短音樂轉折；碎片留在身上成為外殼；鏡頭在演出期間拉近（玩家位置不變），之後接回原本的遭遇距離判定。不追玩家、不提前開戰、不改敵人數量／戰鬥；戰敗重試不重播；F1／跳轉不殘留。`Case01Audio`：環境（夾層／中庭低頻）、效果（翻頁、漂移、聚合、扣合；既有擠壓聲也套用）、音樂（短轉折）三組音量（`Case01HouseQA` Inspector），驚嚇強度會降低效果音；全部程式合成；視窗失去焦點時暫停、物件銷毀時停止；靜音不影響流程。**美術 QA**：選單 `Shepherd/Case01/美術 QA（H0～H3／失序體形成）`（一次性 PlayerPrefs 參數進入 Play）；F6 循環房屋 H0～H3（站在客廳）、F7 直接到中庭預覽形成（不開戰、可重複）、F8 降低閃爍（各模式都可用）。
+**測試（Stage B）**：EditMode 218/218（新增 `Case01ManifestationTests` 6 項），PlayMode 5/5（新增實際 Play 的美術 QA 啟動、跳過、離開時聲音停止；原有 S40 → 戰鬥 PlayMode 測試會實際看完形成演出再開戰）。
 
 
 ---

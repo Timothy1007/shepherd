@@ -33,6 +33,10 @@ namespace Shepherd.Exploration.Case01
         public readonly List<Vector3> FileBoxHome = new List<Vector3>();
         public readonly List<Vector3> FileBoxShuffled = new List<Vector3>();
         public readonly List<Quaternion> FileBoxShuffledRot = new List<Quaternion>();
+        /// <summary>H2：書房地上散落的紙張（核穩定後收起）。</summary>
+        public GameObject StudyScatteredPapers;
+        /// <summary>夾層裡散落的書、照片、紙張（形成演出的來源意象；只是外觀，不擋熱區與通道）。</summary>
+        public Transform MezzanineScatterRoot;
 
         // ---- H2：樓梯平台 ----
         /// <summary>儲藏室門外多出來的紙箱（H2 出現，H3 消失）。</summary>
@@ -103,6 +107,7 @@ namespace Shepherd.Exploration.Case01
             StudyStable = stabilized;
             bool on = changed && !stabilized;
             StudyDuplicateBook.SetActive(on);
+            if (StudyScatteredPapers != null) StudyScatteredPapers.SetActive(on);
             for (int i = 0; i < FileBoxes.Count; i++)
             {
                 FileBoxes[i].localPosition = on ? FileBoxShuffled[i] : FileBoxHome[i];
@@ -153,6 +158,7 @@ namespace Shepherd.Exploration.Case01
             Bedroom(L, root, R);
             Study(L, d, root, R);
             Landing(L, d, root);
+            MezzanineScatter(root, R);
             Evidence(L, d, root);
 
             d.ApplyLiving(false, false);
@@ -426,6 +432,40 @@ namespace Shepherd.Exploration.Case01
             Box(pic, Vector3.zero, new Vector3(0.24f, 0.18f, 0.02f), frameMat, "Frame");
             Box(pic, new Vector3(0f, 0f, -0.012f), new Vector3(0.2f, 0.14f, 0.004f), paperOld, "Print");
             Box(g, new Vector3(7.0f, y + 0.006f, 7.4f), new Vector3(1.8f, 0.012f, 1.2f), fabric2, "StudyRug");
+            var scatter = ArenaArt.Group("StudyScatteredPapers", g, Vector3.zero);
+            for (int i = 0; i < 7; i++)
+                Box(scatter, new Vector3(R(6.0f, 8.6f), y + 0.014f + i * 0.001f, R(6.2f, 8.2f)), new Vector3(0.21f, 0.002f, 0.29f), i % 3 == 0 ? paperOld : paper, "LoosePaper",
+                    new Vector3(0f, R(0f, 360f), 0f));
+            d.StudyScatteredPapers = scatter.gameObject;
+        }
+
+        /// <summary>夾層四角與牆邊散落的書、照片、紙張（避開核、△○□ 門洞、FP-001 台座與通道）。</summary>
+        private static void MezzanineScatter(Transform root, System.Func<float, float, float> R)
+        {
+            var c = Case01HouseBuilder.MezzCenter;
+            var g = ArenaArt.Group("MezzanineScatter", root, Vector3.zero);
+            Vector3[] spots =
+            {
+                c + new Vector3(-5.0f, 0f, -4.9f), c + new Vector3(5.0f, 0f, -4.9f), c + new Vector3(-5.0f, 0f, 4.8f), c + new Vector3(4.9f, 0f, 4.9f),
+                c + new Vector3(-2.2f, 0f, -5.5f), c + new Vector3(2.4f, 0f, -5.4f), c + new Vector3(2.6f, 0f, 5.5f), c + new Vector3(-5.5f, 0f, 2.4f),
+                c + new Vector3(5.5f, 0f, -2.4f),
+            };
+            for (int s = 0; s < spots.Length; s++)
+            {
+                var pile = ArenaArt.Group("Pile_" + s, g, spots[s]);
+                int books = s < 4 ? 3 : 1;
+                for (int i = 0; i < books; i++)
+                    Box(pile, new Vector3(R(-0.1f, 0.1f), 0.025f + i * 0.045f, R(-0.1f, 0.1f)), new Vector3(0.24f, 0.04f, 0.17f), bookMats[(s + i) % bookMats.Length], "Book",
+                        new Vector3(0f, R(0f, 360f), 0f));
+                for (int i = 0; i < 4; i++)
+                    Box(pile, new Vector3(R(-0.6f, 0.6f), 0.004f + i * 0.001f, R(-0.6f, 0.6f)), new Vector3(0.21f, 0.002f, 0.29f), i % 2 == 0 ? paper : paperOld, "Paper",
+                        new Vector3(R(-3f, 3f), R(0f, 360f), 0f));
+                // 照片：小相紙＋模糊的影像。
+                var photo = ArenaArt.Group("Photo", pile, new Vector3(R(-0.4f, 0.4f), 0.006f, R(-0.4f, 0.4f)));
+                photo.localRotation = Quaternion.Euler(0f, R(0f, 360f), 0f);
+                Box(photo, Vector3.zero, new Vector3(0.12f, 0.003f, 0.09f), pale, "PhotoCard");
+                Box(photo, new Vector3(0f, 0.002f, 0f), new Vector3(0.1f, 0.002f, 0.07f), M(new Color(0.35f, 0.38f, 0.4f), 0.3f), "PhotoImage");
+            }
         }
 
         private static void Landing(Case01HouseLayout L, Case01Decor d, Transform root)

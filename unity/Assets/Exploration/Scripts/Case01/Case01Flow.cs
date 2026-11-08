@@ -588,6 +588,32 @@ namespace Shepherd.Exploration.Case01
 
         // ---------------- QA 檢查點 ----------------
 
+        /// <summary>美術 QA：建立房屋 H0～H3 的狀態（以正常流程的操作重播；H3＝核已局部穩定）。</summary>
+        public static Case01Flow ForHouseStage(int h)
+        {
+            if (h <= 0) return new Case01Flow();
+            if (h == 1)
+            {
+                var f1 = new Case01Flow();
+                f1.Interact(Case01Ids.Table);
+                f1.Interact(Case01Ids.Photo);
+                f1.EnterRoom(Case01Room.Dining, Case01Room.Entrance);
+                f1.ApplyDiningRewrite();
+                f1.EnterRoom(Case01Room.Entrance, Case01Room.Dining);
+                return f1;
+            }
+            if (h == 2) return ForCheckpoint(Case01Checkpoint.S30);
+            var f = ForCheckpoint(Case01Checkpoint.S50);
+            f.Interact(Case01Ids.Core);
+            f.Traverse(Case01Door.MezzCircle);
+            f.Interact(Case01Ids.Core);
+            f.Choose(Case01Ids.ChoiceAnchor, 0);
+            f.Traverse(Case01Door.MezzTriangle);
+            f.Traverse(Case01Door.Mezz17);
+            f.Interact(Case01Ids.Core);
+            return f;
+        }
+
         /// <summary>建立指定檢查點的狀態：以正常流程的同一組操作重播，旗標、日誌與通路都一致。</summary>
         public static Case01Flow ForCheckpoint(Case01Checkpoint cp)
         {

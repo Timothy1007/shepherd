@@ -16,6 +16,8 @@ namespace Shepherd.Exploration.Case01
         public float Zoom;
         /// <summary>I：再次檢視已收藏的證物。</summary>
         public bool InspectEvidence;
+        /// <summary>F5～F8 的 QA 功能鍵（5＝切換核校正 v0.2／v0.3，6＝美術 QA 切換 H0～H3，7＝播放失序體形成，8＝降低閃爍），沒有為 0。</summary>
+        public int Function;
 
         public static Case01Input None { get { return new Case01Input(); } }
 
@@ -45,6 +47,10 @@ namespace Shepherd.Exploration.Case01
             else if (Input.GetKeyDown(KeyCode.F2)) r.Jump = 2;
             else if (Input.GetKeyDown(KeyCode.F3)) r.Jump = 3;
             else if (Input.GetKeyDown(KeyCode.F4)) r.Jump = 4;
+            if (Input.GetKeyDown(KeyCode.F5)) r.Function = 5;
+            else if (Input.GetKeyDown(KeyCode.F6)) r.Function = 6;
+            else if (Input.GetKeyDown(KeyCode.F7)) r.Function = 7;
+            else if (Input.GetKeyDown(KeyCode.F8)) r.Function = 8;
             return r;
         }
     }
