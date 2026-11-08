@@ -62,6 +62,29 @@ namespace Shepherd.Battle.UI.Arena
         public const string Log = "戰鬥紀錄";
         public const string QaReset = "重置戰鬥（QA）";
 
+        // ---- 首戰教學（四個節點，每節只說當下要做的一件事） ----
+        public const string TutorialTitle = "教學 {0}／4・{1}";
+        public const string TutorialContinue = "繼續";
+        public const string TutorialSkip = "跳過教學";
+        public const string TutorialClose = "關閉";
+        public const string TutorialReplay = "？教學";
+        public const string TutorialFreeHint = "可以直接操作，不必照順序。";
+        public const string T1Name = "看清威脅";
+        public const string T1Body = "這是兩個失序體。名牌上的「失序值」歸零就會解除；「下回合攻擊」是它下一回合會打你的量。\n點名牌或敵人本身，可以選定目標。";
+        public const string T2Name = "資源與學派";
+        public const string T2Body = "每回合有 3 AP，每張牌 1 AP，所以一回合最多排 3 張。\n右上的學派會改變同一元素的效果──切換看看，手牌上的效果會跟著變。學派在確認施放時才鎖定。";
+        public const string T2Done = "牌面已依新學派更新。哪個學派都可以，沒有固定答案。";
+        public const string T3Name = "編排術式";
+        public const string T3Body = "點一張手牌，它會放進第 1 槽。需要目標的牌會指向目前的目標（槽位上的「目標」可以更換）。\n下方的預估就是實際會結算的結果。";
+        public const string T3More = "順序有差：後一張會「承接」前一張的餘波；三張同元素會觸發「共鳴」。第一次不必湊齊，想好就好。";
+        public const string T4Name = "確認施放";
+        public const string T4Body = "準備好了就按「確認施放」。結算會照你排的順序逐張發生，接著是失序體的回合。\n錨定值是你的生命；擬態錨定會先吸收傷害。";
+        public const string TutorialDoneTitle = "教學完成";
+        public const string TutorialDone ="教學完成。之後每一回合由你判斷──先看敵人的下回合攻擊，再決定攻守。";
+        public const string NoteResidue = "承接生效：前一張牌的餘波影響了下一張。";
+        public const string NoteResonance = "共鳴生效：三張同元素，主要數值放大。";
+        public const string NoteEnemy = "失序體行動了：攻擊先打在擬態錨定，剩下的才扣錨定值。";
+
         // ---- 手牌 ----
         public const string CardCost = "1";
         public const string Staged = "第 {0} 張";

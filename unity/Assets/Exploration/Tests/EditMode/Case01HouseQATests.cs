@@ -461,9 +461,13 @@ namespace Shepherd.Exploration.Tests
             WalkTo(qa, 40f, 46f, 15f);
             RunUntil(qa, () => qa.Mode == Case01Mode.Battle, "進入戰鬥");
             var arena = qa.Arena;
+            Assert.IsTrue(qa.DemoHud.Tutorial.Active, "第一場戰鬥自動出現首戰教學");
             arena.CommitButton.onClick.Invoke();
             RunUntil(qa, () => !arena.IsPlaying, "事件播放");
             Assert.AreEqual(BattleOutcome.Defeat, arena.Session.Snapshot().Outcome);
+            Tick(qa, Case01Input.None);
+            Assert.IsFalse(qa.DemoHud.Tutorial.Active, "戰鬥結束時教學關閉，不與結果橫幅重疊");
+            Assert.IsFalse(qa.DemoHud.Tutorial.NoteVisible);
             Assert.AreEqual("返回檢查點重試", arena.BannerButtonText);
             arena.BannerButton.onClick.Invoke();
             Tick(qa, Case01Input.None);
@@ -478,6 +482,10 @@ namespace Shepherd.Exploration.Tests
             Assert.AreEqual(1, qa.Retries);
             Assert.IsFalse(WalkTo(qa, 40f, 46f, 15f), "可以再戰");
             Assert.AreEqual(Case01Mode.EnteringBattle, qa.Mode);
+            RunUntil(qa, () => qa.Mode == Case01Mode.Battle, "再次進入戰鬥");
+            Assert.IsFalse(qa.DemoHud.Tutorial.Active, "重試不再自動出現教學");
+            Assert.IsFalse(qa.DemoHud.Tutorial.PanelVisible);
+            Assert.IsTrue(qa.DemoHud.ReplayVisible, "可按「？教學」重看");
         }
 
         // ---------------- QA 跳轉 ----------------

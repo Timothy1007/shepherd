@@ -67,5 +67,45 @@ namespace Shepherd.Exploration.Tests
             Assert.AreEqual(1, Object.FindObjectsOfType<Shepherd.Battle.UI.Arena.CombatArenaView>().Length);
             Assert.AreEqual(0, qa.Arena.Session.Snapshot().Round);
         }
+
+        [UnityTest]
+        public IEnumerator Tutorial_CompletesInPlayMode_ThenTwoRestartsLeaveNoOverlay()
+        {
+            yield return LoadScene();
+            var qa = Object.FindObjectOfType<Case01CombatDemoQA>();
+            Assert.IsNotNull(qa);
+            yield return null;
+            var hud = qa.Hud;
+            var tut = hud.Tutorial;
+            Assert.IsTrue(qa.TutorialEnabled);
+            Assert.AreEqual(Shepherd.Battle.UI.Arena.CombatTutorialStep.Threat, tut.Step);
+            Assert.IsTrue(tut.PanelVisible);
+            tut.Continue();
+            tut.Continue();
+            hud.OnCard(0);
+            yield return null;
+            tut.Continue();
+            Assert.AreEqual(Shepherd.Battle.UI.Arena.CombatTutorialStep.Commit, tut.Step);
+            hud.OnCommit();
+            yield return null;
+            Assert.AreEqual(Shepherd.Battle.UI.Arena.CombatTutorialStep.Results, tut.Step);
+            yield return WaitUntil(() => tut.Step == Shepherd.Battle.UI.Arena.CombatTutorialStep.Wrap, 30f, "結算播放完畢後收尾");
+            tut.Continue();
+            yield return null;
+            Assert.IsFalse(tut.Active);
+            Assert.IsFalse(tut.PanelVisible);
+            Assert.IsTrue(hud.ReplayVisible);
+
+            qa.Restart();
+            yield return null;
+            qa.Restart();
+            yield return null;
+            yield return null;
+            int panels = 0;
+            foreach (var rt in Object.FindObjectsOfType<RectTransform>()) if (rt.name == "TutorialPanel") panels++;
+            Assert.AreEqual(1, panels, "重來兩次後只有一份教學面板");
+            Assert.AreEqual(1, Object.FindObjectsOfType<AudioListener>().Length);
+            Assert.AreEqual(Shepherd.Battle.UI.Arena.CombatTutorialStep.Threat, qa.Hud.Tutorial.Step);
+        }
     }
 }

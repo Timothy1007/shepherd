@@ -45,7 +45,66 @@ namespace Shepherd.Exploration.Editor
         public static void CaptureAll(string dir, Vector2Int[] sizes)
         {
             Directory.CreateDirectory(dir);
-            foreach (var size in sizes) Sequence(dir, size.x, size.y);
+            foreach (var size in sizes)
+            {
+                Sequence(dir, size.x, size.y);
+                TutorialSequence(dir, size.x, size.y);
+            }
+        }
+
+        /// <summary>首戰教學：四個節點、播放中的事件說明、收尾。</summary>
+        private static void TutorialSequence(string dir, int width, int height)
+        {
+            var rt = new RenderTexture(width, height, 24, RenderTextureFormat.ARGB32) { antiAliasing = 4 };
+            GameObject root = null;
+            Case01CombatDemoQA qa = null;
+            string prefix = Path.Combine(dir, "tutorial_" + width + "x" + height + "_");
+            try
+            {
+                root = new GameObject("CombatDemoTutorialCaptureRoot");
+                qa = root.AddComponent<Case01CombatDemoQA>();
+                qa.Build(false, null, null, true);
+                qa.Arena.ApplyAtmosphere();
+                var hud = qa.Hud;
+                var tut = hud.Tutorial;
+                Advance(qa, 0.3f);
+                Shot(qa, rt, prefix + "T1_threat.png");
+                tut.Continue();
+                hud.OnSchool(SchoolKind.Process);
+                Advance(qa, 0.1f);
+                Shot(qa, rt, prefix + "T2_resources_school.png");
+                tut.Continue();
+                Advance(qa, 0.1f);
+                Shot(qa, rt, prefix + "T3_compose.png");
+                hud.OnCard(0);
+                Advance(qa, 0.1f);
+                Shot(qa, rt, prefix + "T3b_compose_residue_tip.png");
+                hud.OnCard(1);
+                Advance(qa, 0.6f);
+                Shot(qa, rt, prefix + "T4_commit.png");
+                hud.OnCommit();
+                bool noted = false;
+                for (int i = 0; i < 1500 && qa.Arena.IsPlaying; i++)
+                {
+                    Advance(qa, Step);
+                    if (!noted && tut.NoteVisible)
+                    {
+                        noted = true;
+                        Advance(qa, 0.3f);
+                        Shot(qa, rt, prefix + "T5_result_note.png");
+                    }
+                }
+                Advance(qa, 0.2f);
+                Shot(qa, rt, prefix + "T6_wrap.png");
+                Debug.Log("[Case01CombatDemoQA] 教學截圖完成 " + prefix + "*.png（說明：" + string.Join("／", tut.Notes.ToArray()) + "）");
+            }
+            finally
+            {
+                if (qa != null && qa.Arena != null) qa.Arena.RestoreAtmosphere();
+                if (root != null) UnityEngine.Object.DestroyImmediate(root);
+                rt.Release();
+                UnityEngine.Object.DestroyImmediate(rt);
+            }
         }
 
         private static void Sequence(string dir, int width, int height)

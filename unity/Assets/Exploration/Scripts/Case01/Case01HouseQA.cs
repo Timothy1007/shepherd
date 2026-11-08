@@ -150,6 +150,10 @@ namespace Shepherd.Exploration.Case01
         public CombatArenaView Arena { get { return arena; } }
         /// <summary>目前戰鬥使用的 Demo 戰鬥 HUD（沒有戰鬥時為 null）。</summary>
         public CombatDemoHud DemoHud { get; private set; }
+        /// <summary>是否啟用首戰教學（QA 可關閉）。</summary>
+        public bool TutorialEnabled = true;
+        /// <summary>首戰教學已出現過（存在戰鬥規則與快照之外）。</summary>
+        public bool TutorialShown { get; set; }
         public EncounterZone Encounter { get { return encounter; } }
         public Case01Room CurrentRoom { get { return currentRoom; } }
         public bool CursorCaptured { get { return cursorCaptured; } }
@@ -877,7 +881,9 @@ namespace Shepherd.Exploration.Case01
             arena.Build(playMode, scenario, seed, options);
             arena.BattleEnded += OnBattleEnded;
             // Case01 公開 Demo 的戰鬥 HUD（舊 HUD 面板隱藏；結果橫幅、浮字照舊）。
-            DemoHud = CombatDemoHud.Attach(arena, new CombatDemoOptions { ShowQaTools = false });
+            // 首戰教學只在這個 QA 執行階段的第一場戰鬥出現；戰敗重試不再自動出現（可按「？教學」重看）。
+            DemoHud = CombatDemoHud.Attach(arena, new CombatDemoOptions { ShowQaTools = false, Tutorial = TutorialEnabled && !TutorialShown });
+            TutorialShown = true;
             arena.SetCameraPose(CombatArenaView.CameraPosition, CombatArenaView.CameraLookAt, CombatArenaView.DefaultFieldOfView);
             arena.HudVisible = false;
             arena.InteractionEnabled = false;

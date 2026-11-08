@@ -93,7 +93,8 @@ namespace Shepherd.Battle.UI.Arena
         private readonly List<Button> schoolTabs = new List<Button>();
         private readonly List<Text> schoolNames = new List<Text>();
         private readonly List<Text> schoolTags = new List<Text>();
-        private Button logButton, qaResetButton;
+        private Button logButton, qaResetButton, replayButton;
+        private CombatDemoTutorial tutorial;
         private RectTransform logPanel;
         private Text logText;
         private RectTransform handRow;
@@ -134,12 +135,23 @@ namespace Shepherd.Battle.UI.Arena
             if (arena.Tooltip != null) arena.Tooltip.gameObject.SetActive(false);
             foreach (var e in S.Snapshot().Enemies) maxValues[e.Id] = e.Value;
             BuildCanvas();
+            tutorial = new CombatDemoTutorial(this, arena, root);
             S.Changed += OnSessionChanged;
             Refresh();
+            if (options.Tutorial) tutorial.Start();
+        }
+
+        /// <summary>「？教學」：任何時候重看（戰鬥結束後不提供）。</summary>
+        public void ReplayTutorial()
+        {
+            if (tutorial == null || S.IsOver) return;
+            HideDetail(-1);
+            tutorial.Start();
         }
 
         private void OnDestroy()
         {
+            if (tutorial != null) tutorial.Stop();
             if (arena != null && arena.Session != null) arena.Session.Changed -= OnSessionChanged;
             if (canvas != null) CombatLabUi.Kill(canvas.gameObject);
         }
@@ -346,6 +358,11 @@ namespace Shepherd.Battle.UI.Arena
             qaResetButton = Btn("QaReset", tools, CombatDemoText.QaReset, () => arena.ResetButton.onClick.Invoke(), CombatDemoTheme.FontSmall);
             At((RectTransform)qaResetButton.transform, 0, 0, 0.5f, 1, 0, 0, 4, 0);
             qaResetButton.gameObject.SetActive(options.ShowQaTools);
+            replayButton = Btn("TutorialReplay", root, CombatDemoText.TutorialReplay, ReplayTutorial, CombatDemoTheme.FontSmall);
+            var rr = (RectTransform)replayButton.transform;
+            rr.anchorMin = rr.anchorMax = rr.pivot = new Vector2(1f, 1f);
+            rr.anchoredPosition = new Vector2(-CombatDemoTheme.Margin - 340f - 8f, -134f);
+            rr.sizeDelta = new Vector2(96f, 36f);
 
             logPanel = Box("LogPanel", root, new Vector2(1f, 1f), new Vector2(-CombatDemoTheme.Margin, -176f), new Vector2(440f, 230f), CombatDemoTheme.Charcoal);
             CombatLabUi.Vertical(logPanel, 4f, 8);
@@ -634,6 +651,11 @@ namespace Shepherd.Battle.UI.Arena
             if (dirty || playing || playing != wasPlaying) Refresh();
             wasPlaying = playing;
             PositionPlates();
+            if (tutorial != null)
+            {
+                tutorial.Tick(dt);
+                replayButton.gameObject.SetActive(!S.IsOver && !tutorial.Active);
+            }
             toastTime += dt;
             toastGroup.alpha = string.IsNullOrEmpty(toastText.text) ? 0f : toastTime < 3.5f ? 1f : Mathf.Clamp01(1f - (toastTime - 3.5f));
         }
@@ -957,5 +979,15 @@ namespace Shepherd.Battle.UI.Arena
             yield return handRow;
             yield return sequencePanel;
         }
+
+        // ---- 教學用的高亮目標 ----
+        public RectTransform ApRect { get { return (RectTransform)apText.transform.parent; } }
+        public RectTransform SchoolsRect { get { return (RectTransform)schoolHeader.transform.parent; } }
+        public RectTransform HandRect { get { return handRow; } }
+        public RectTransform SequenceRect { get { return sequencePanel; } }
+        public RectTransform CommitRect { get { return (RectTransform)commitButton.transform; } }
+        public CombatDemoTutorial Tutorial { get { return tutorial; } }
+        public bool ReplayVisible { get { return replayButton != null && replayButton.gameObject.activeSelf; } }
+        public void ClickReplay() { ReplayTutorial(); }
     }
 }
