@@ -1,3 +1,10 @@
+# 2026-11-09｜Case01 v0.4 最新真人試玩：空間敘事／格局／H3 氛圍（本段最新）
+新增可直接交 Claude Code 的詳細實作規格：`docs/story/case01_seventeenth_door/CASE01_SPATIAL_NARRATIVE_PASS_CLAUDE_TASK_V0_4.md`，優先於舊 v0.3 美術、核修復與 v0.5 關卡文檔中衝突的部分。**本輪僅 docs，同步任務與舊規格優先級；未修改 Unity 程式／素材、未執行測試、未啟動 Claude Code。**
+**使用者真人新回饋**：空間錯接後加主角自語（例如「書房門怎會通到餐廳？」）、第一章住宅默認不使用同伴常駐解題提示；在玄關／餐廳／女兒臥室或書房／樓梯平台加入母女生活的虛影與聲音殘響（內容不可提前證明艾琳結局）；失序 Portal 由純紫色光框／紫色膜變成 CRT 故障邊框＋雪花噪點，不改 portal route；H1 開始全屋漸暗漸冷、H2 更冷清灰塵舊化、**H3 修核後空間可恢復正常但房屋仍冷清、破舊、不回 H0 溫馨暖光**；一樓四方互通太直白，提出封閉玄關↔餐廳直接開口、真正反轉上樓方向，**要獨立格局 A/B QA、先驗收後才變一般正式布局**；核校正 v0.3 保留已實作玩法，只補低提示密度的自語與玩家理解術式的視覺導引；現行 Combat Demo UI 雖已新版仍被認為尖銳／粗糙／缺乏美術辨識度，**整套 UI 美術重設另立獨立輪次，本輪不做**。
+**已有實作背景（不是本輪新成果）**：前一輪 `main` 已有 Case01Art 的 Built-in 材質與燈光、失序體凝聚演出、核校正 v0.3 獨立模式、Combat Demo HUD／Tutorial／Fx；按下方已完成段核對當前程式，別以過時初版灰盒覆蓋。Claude 本輪執行建議：A 自語字幕 → B H0–H3 與 glitch 門 → C 記憶殘響 → D 一樓封門／反向樓梯可切換 QA；每階段測試與提交 `main`，要保留原 CombatLab3D、AnomalyStreetDemo、戰鬥核心與 FP-001。
+
+---
+
 # 2026-11-08｜Case01 公開 Demo 戰鬥 UI 與首戰教學 實作進度（本段最新）
 依 `CASE01_COMBAT_DEMO_UI_TUTORIAL_CLAUDE_TASK_V0_3.md`。**BattleController、RoundResolver、規則、數值、卡牌、敵人數量／AI、勝負條件都未修改。**
 **第一步：Demo 戰鬥 HUD＋獨立 QA（已實作、已測）**：新檔 `unity/Assets/Battle/UI/Arena/Demo/`（`CombatDemoHud.cs` 覆蓋式 view、`CombatDemoTheme.cs` 色票／尺寸、`CombatDemoText.cs` 集中文案）。它掛在既有 `CombatArenaView` 上，只讀 `CombatLabSession` 快照與 Core 預估、`CombatArenaView` 的播放狀態，所有操作轉發給同一個 Session 與既有按鈕邏輯（確認／略過、調度、重置），**不建立第二套戰鬥或公式**。舊 HUD 面板隱藏但物件保留（結果橫幅、浮字、畫面閃光照用；舊的公開存取與測試照舊）；CombatLab3D、AnomalyStreetDemo 不掛新 HUD。版面（參考 1600×900）：左上 錨定值（生命）條＋預估、擬態錨定（先吸收傷害）、敵方回合預估威脅；上方中央 AP 三顆菱形＋「每張 1 AP」；右上 三學派分頁（名稱＋方向描述，確認時鎖定）＋戰鬥紀錄（展開）；敵人頭上名牌（失序值條與回合後預估、下回合攻擊、預計影響、連結／校正／束縛）；下方左 七張手牌（元素色＋符號 ▲■◆、1 AP、目前學派的效果名與數值、功能；已排入的抬起並標「第 N 張」；懸停顯示詳情）；下方右 術式編排三槽（順序、效果、預估結果、目標「目標：甲 ⇄」可更換）、槽間承接標記、三連共鳴進度（「再一張…即成三連」／成立）、預估（你將得到→目標將受到→敵方回合→回合後，皆標「預估」）、主按鈕確認施放／略過動畫、次要調度與清空。正式 Case01 路徑不顯示「重置戰鬥」。Case01 房屋 QA 的戰鬥（`Case01HouseQA.StartEncounter`）已改用新 HUD。
