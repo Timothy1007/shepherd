@@ -53,6 +53,7 @@ namespace Shepherd.Exploration.Editor
                     if (sets.Contains("enemy")) Enemy(rt, prefix);
                     if (sets.Contains("portal")) Portal(rt, prefix);
                     if (sets.Contains("rooms")) Rooms(rt, prefix);
+                    if (sets.Contains("demo")) Demo(rt, prefix);
                 }
                 finally
                 {
@@ -159,6 +160,64 @@ namespace Shepherd.Exploration.Editor
                     Case01FloorplanCapture.TopDown(qa, rt, p + "map_" + tag + "_upper.png", 5.75f);
                 }, null, null, plan);
             }
+        }
+
+        /// <summary>Demo 切片：事務所、街區（巷口、十七號門前、名冊）。</summary>
+        private static void Demo(RenderTexture rt, string prefix)
+        {
+            var go = new GameObject("Case01DemoCaptureRoot");
+            try
+            {
+                var d = go.AddComponent<Case01DemoSlice>();
+                d.Build(false, Case01DemoArea.Office, Case01Floorplan.Original);
+                DemoShot(d, rt, prefix + "demo_office_start.png", null);
+                DemoShot(d, rt, prefix + "demo_office_desk.png", new Case01Pose(new Vector3(4.5f, 0.05f, 2.6f), 0f), 14f);
+                d.Interact(Case01DemoIds.OfficeCase);
+                DemoShot(d, rt, prefix + "demo_office_case_brief.png", null);
+                d.Hud.HidePanel();
+                DemoShot(d, rt, prefix + "demo_office_board.png", new Case01Pose(new Vector3(6.6f, 0.05f, 3.6f), 90f), 4f);
+                d.Interact(Case01DemoIds.OfficeDoor);
+                for (int i = 0; i < 60 && d.Transitioning; i++) d.Tick(Step, Case01Input.None);
+                DemoShot(d, rt, prefix + "demo_street_start.png", null);
+                DemoShot(d, rt, prefix + "demo_street_16_17_18.png", new Case01Pose(new Vector3(4.0f, 0.05f, -8.5f), 15f), -6f);
+                DemoShot(d, rt, prefix + "demo_street_door17.png", new Case01Pose(new Vector3(7.1f, 0.05f, -3.2f), 0f), -4f);
+                DemoShot(d, rt, prefix + "demo_street_listing.png", new Case01Pose(new Vector3(-3.4f, 0.05f, -3.8f), 0f), 8f);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+            }
+        }
+
+        private static void DemoShot(Case01DemoSlice d, RenderTexture rt, string path, Case01Pose? pose, float pitch = 0f)
+        {
+            if (pose.HasValue) d.Player.Teleport(pose.Value.Position, pose.Value.Yaw, pitch);
+            for (int i = 0; i < 4; i++) d.Tick(Step, Case01Input.None);
+            var cam = d.Camera;
+            cam.targetTexture = rt;
+            var c = d.Hud.Base.Canvas;
+            var mode = c.renderMode;
+            var scaler = c.GetComponent<UnityEngine.UI.CanvasScaler>();
+            float scale = Shepherd.Battle.UI.CombatLabView.ScaleFactorFor(scaler, rt.width, rt.height);
+            scaler.enabled = false;
+            c.renderMode = RenderMode.ScreenSpaceCamera;
+            c.worldCamera = cam;
+            c.planeDistance = 0.5f;
+            c.scaleFactor = scale;
+            Canvas.ForceUpdateCanvases();
+            cam.Render();
+            cam.targetTexture = null;
+            var prev = RenderTexture.active;
+            RenderTexture.active = rt;
+            var tex = new Texture2D(rt.width, rt.height, TextureFormat.RGB24, false);
+            tex.ReadPixels(new Rect(0, 0, rt.width, rt.height), 0, 0);
+            tex.Apply();
+            RenderTexture.active = prev;
+            File.WriteAllBytes(path, tex.EncodeToPNG());
+            UnityEngine.Object.DestroyImmediate(tex);
+            c.renderMode = mode;
+            c.worldCamera = null;
+            scaler.enabled = true;
         }
 
         private struct ShotSpec

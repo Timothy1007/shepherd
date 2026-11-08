@@ -40,6 +40,8 @@ namespace Shepherd.Exploration.Case01
         NarrativeV04,
         /// <summary>v0.5 Portal QA：F6 切失序門狀態、F7 切 v0.4／v0.5 外觀、F8 降低閃爍（站在同一扇門前比較）。</summary>
         PortalV05,
+        /// <summary>v0.5 Demo 切片中的正式遊玩：沒有 QA 快捷鍵與 QA 狀態列；前門回到街區（由 Case01DemoSlice 接手）。</summary>
+        Demo,
     }
 
     /// <summary>
@@ -296,12 +298,30 @@ namespace Shepherd.Exploration.Case01
             sfx = new Case01Audio(transform);
             echo = new Case01EchoPlayer(hud, sfx);
             ApplyVolumes();
-            BuildContent(start ?? (qaMode == Case01QaMode.CoreV03 ? Case01Checkpoint.S50 : startCheckpoint));
+            if (qaMode == Case01QaMode.Demo && demoFlow != null) BuildContent(demoFlow, Case01Checkpoint.S00, null);
+            else BuildContent(start ?? (qaMode == Case01QaMode.CoreV03 ? Case01Checkpoint.S50 : startCheckpoint));
             // 剛進門的第一句自語（只在 QA 啟動時；F1～F5 跳轉不重播）。
             Handle(flow.OnArrive());
             // Portal v0.5 QA：直接站到錯接的書房門前。
             if (qaMode == Case01QaMode.PortalV05) PreviewGlitch(0);
         }
+
+        // ---------------- v0.5 Demo 切片 ----------------
+
+        private Case01Flow demoFlow;
+
+        /// <summary>Demo：玩家在前門選擇離開（回到街區）。流程物件不變，由 Case01RunState 保存。</summary>
+        public event System.Action DemoExitRequested;
+
+        /// <summary>Demo：在 Build 之前指定要沿用的屋內流程（第一次進屋或再次進屋都從玄關開始）。</summary>
+        public void ConfigureDemo(Case01Flow flow, Case01Floorplan plan)
+        {
+            demoFlow = flow;
+            floorplan = plan;
+            qaMode = Case01QaMode.Demo;
+        }
+
+        public bool IsDemo { get { return qaMode == Case01QaMode.Demo; } }
 
         private CombatLabScenario CurrentScenario()
         {
@@ -392,6 +412,11 @@ namespace Shepherd.Exploration.Case01
         /// <summary>左下第二行：依 QA 模式顯示可用的功能鍵（只改 Case01 自己的 HUD）。</summary>
         private void UpdateModeText()
         {
+            if (qaMode == Case01QaMode.Demo)
+            {
+                hud.Base.ViewMode.text = "";
+                return;
+            }
             switch (qaMode)
             {
                 case Case01QaMode.ArtPreview:
@@ -510,6 +535,12 @@ namespace Shepherd.Exploration.Case01
         /// <summary>推進一個影格（Update 呼叫；測試可直接以指定輸入呼叫）。</summary>
         public void Tick(float dt, Case01Input input)
         {
+            // Demo：QA 快捷鍵（F1～F10、檢查點跳轉）不作用。
+            if (qaMode == Case01QaMode.Demo)
+            {
+                input.Function = 0;
+                input.Jump = 0;
+            }
             if (pendingJump.HasValue)
             {
                 var cp = pendingJump.Value;
@@ -712,6 +743,14 @@ namespace Shepherd.Exploration.Case01
             if (b.Interact)
             {
                 if (hud.PanelVisible && sameAsPanel) hud.HidePanel();
+                else if (CurrentTarget != null && CurrentTarget.Id == Case01Ids.FrontDoor && qaMode == Case01QaMode.Demo)
+                {
+                    // Demo：前門＝回到街上（不是 QA 重來／結束畫面）。進度留在同一個流程物件裡。
+                    if (echo != null) echo.Stop();
+                    hud.ClearMonologue();
+                    if (DemoExitRequested != null) DemoExitRequested();
+                    return;
+                }
                 else if (CurrentTarget != null && CurrentTarget.Id == Case01Ids.TeaTin)
                 {
                     // 真的可以操作的物件：打開／蓋上茶葉盒。
@@ -1255,6 +1294,11 @@ namespace Shepherd.Exploration.Case01
             L.StudyMarkLabel.text = flow.StairRouteRestored ? "△\n<size=20>歸位</size>" : "△";
             L.FrontDoorLabel.text = flow.CoreStabilized ? "離開十七號" : "QA 返回／重來";
             L.Interactables[Case01Ids.FrontDoor].Prompt = flow.CoreStabilized ? "前門（離開十七號）" : "前門（QA 返回／重來）";
+            if (qaMode == Case01QaMode.Demo)
+            {
+                L.FrontDoorLabel.text = "";
+                L.Interactables[Case01Ids.FrontDoor].Prompt = flow.CoreStabilized ? "前門（離開十七號，回到街上）" : "前門（先回到街上）";
+            }
             L.Door17Frame.SetActive(flow.Door17Open);
             L.TearFrame.SetActive(flow.CourtyardTearOpen);
             // v0.2：FP-001 只在核穩定後、尚未拾取時出現；各房間的安靜異變。
@@ -1946,7 +1990,8 @@ namespace Shepherd.Exploration.Case01
 
         private void UpdateObjective()
         {
-            hud.Base.Objective.text = "<b>〈第十七號門〉室內 Graybox QA v0.1</b>\n<color=#E6BD52>目標：</color>" + ObjectiveText();
+            hud.Base.Objective.text = (qaMode == Case01QaMode.Demo ? "<b>〈第十七號門〉十七號屋內</b>" : "<b>〈第十七號門〉室內 Graybox QA v0.1</b>") +
+                                      "\n<color=#E6BD52>目標：</color>" + ObjectiveText();
         }
 
         public string ObjectiveText()
@@ -1998,6 +2043,13 @@ namespace Shepherd.Exploration.Case01
 
         private void UpdateQaText()
         {
+            if (qaMode == Case01QaMode.Demo)
+            {
+                // Demo：不顯示 QA 狀態列。
+                var panel = hud.QaText.transform.parent.gameObject;
+                if (panel.activeSelf) panel.SetActive(false);
+                return;
+            }
             int n = 0;
             foreach (var f in Case01Flags.All) if (flow.Session.Has(f)) n++;
             hud.QaText.text = "<b>QA</b>　" + Case01Texts.StageName(flow.Session.Stage) + "｜旗標 " + n + "/" + TotalFlags +
