@@ -148,6 +148,8 @@ namespace Shepherd.Exploration.Case01
         public Case01Hud Hud { get { return hud; } }
         public Camera ExploreCamera { get { return exploreCam; } }
         public CombatArenaView Arena { get { return arena; } }
+        /// <summary>目前戰鬥使用的 Demo 戰鬥 HUD（沒有戰鬥時為 null）。</summary>
+        public CombatDemoHud DemoHud { get; private set; }
         public EncounterZone Encounter { get { return encounter; } }
         public Case01Room CurrentRoom { get { return currentRoom; } }
         public bool CursorCaptured { get { return cursorCaptured; } }
@@ -443,7 +445,11 @@ namespace Shepherd.Exploration.Case01
                 case Case01Mode.Inspect: TickInspect(input); break;
                 case Case01Mode.Manifesting: TickManifesting(dt, input); break;
             }
-            if (!playMode && arena != null) arena.Tick(dt);
+            if (!playMode && arena != null)
+            {
+                arena.Tick(dt);
+                if (DemoHud != null) DemoHud.Tick(dt);
+            }
             UpdateQaText();
         }
 
@@ -870,6 +876,8 @@ namespace Shepherd.Exploration.Case01
             options.OnDefeat = () => { pendingRetry = true; };
             arena.Build(playMode, scenario, seed, options);
             arena.BattleEnded += OnBattleEnded;
+            // Case01 公開 Demo 的戰鬥 HUD（舊 HUD 面板隱藏；結果橫幅、浮字照舊）。
+            DemoHud = CombatDemoHud.Attach(arena, new CombatDemoOptions { ShowQaTools = false });
             arena.SetCameraPose(CombatArenaView.CameraPosition, CombatArenaView.CameraLookAt, CombatArenaView.DefaultFieldOfView);
             arena.HudVisible = false;
             arena.InteractionEnabled = false;

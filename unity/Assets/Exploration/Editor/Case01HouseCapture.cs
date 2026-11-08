@@ -261,6 +261,7 @@ namespace Shepherd.Exploration.Editor
             var canvases = new List<Canvas>();
             if (qa.Hud.Visible) canvases.Add(qa.Hud.Base.Canvas);
             if (qa.Arena != null && qa.Arena.HudVisible) canvases.Add(qa.Arena.HudCanvas);
+            if (qa.DemoHud != null && qa.Arena != null && qa.Arena.HudVisible) canvases.Add(qa.DemoHud.Canvas);
             var saved = new List<KeyValuePair<Canvas, RenderMode>>();
             foreach (var c in canvases)
             {
@@ -270,7 +271,7 @@ namespace Shepherd.Exploration.Editor
                 scaler.enabled = false;
                 c.renderMode = RenderMode.ScreenSpaceCamera;
                 c.worldCamera = cam;
-                c.planeDistance = c == qa.Hud.Base.Canvas ? 0.5f : 1f;
+                c.planeDistance = c == qa.Hud.Base.Canvas ? 0.5f : qa.DemoHud != null && c == qa.DemoHud.Canvas ? 0.8f : 1f;
                 c.scaleFactor = scale;
             }
             Canvas.ForceUpdateCanvases();
@@ -278,6 +279,11 @@ namespace Shepherd.Exploration.Editor
             {
                 qa.Arena.Refresh();
                 if (qa.Arena.IsPlaying) qa.Arena.Tick(0f);
+                if (qa.DemoHud != null)
+                {
+                    qa.DemoHud.Refresh();
+                    qa.DemoHud.Tick(0f);
+                }
             }
             Canvas.ForceUpdateCanvases();
             cam.Render();

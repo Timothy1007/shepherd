@@ -29,6 +29,31 @@ namespace Shepherd.Exploration.Editor
             EditorSceneManager.OpenScene(ScenePath);
         }
 
+        public const string CombatScenePath = "Assets/Exploration/Scenes/Case01CombatDemoQA.unity";
+
+        /// <summary>戰鬥 Demo UI QA：只有 Case01 首戰的兩敵戰鬥＋新版戰鬥 HUD（不從房屋開頭玩）。</summary>
+        [MenuItem("Shepherd/Case01/戰鬥 Demo UI QA")]
+        public static void LaunchCombatDemo()
+        {
+            if (EditorApplication.isPlaying) return;
+            if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
+            if (!File.Exists(CombatScenePath)) BuildCombat();
+            EditorSceneManager.OpenScene(CombatScenePath);
+            EditorApplication.isPlaying = true;
+        }
+
+        /// <summary>batchmode 入口：-executeMethod Shepherd.Exploration.Editor.Case01HouseSceneBuilder.BuildCombat</summary>
+        public static void BuildCombat()
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(CombatScenePath));
+            var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+            new GameObject("Case01CombatDemoQA").AddComponent<Case01CombatDemoQA>();
+            if (!EditorSceneManager.SaveScene(scene, CombatScenePath))
+                throw new IOException("無法儲存場景 " + CombatScenePath);
+            AssetDatabase.SaveAssets();
+            Debug.Log("[Case01CombatDemoQA] 已產生場景 " + CombatScenePath);
+        }
+
         [MenuItem("Shepherd/Case01/美術 QA（H0～H3／失序體形成）")]
         public static void LaunchArtQa() { Launch("art"); }
 
