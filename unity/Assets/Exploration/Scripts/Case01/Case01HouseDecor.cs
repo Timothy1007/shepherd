@@ -354,7 +354,8 @@ namespace Shepherd.Exploration.Case01
             Cyl(g, new Vector3(1.0f, y + 0.62f, 9.65f), new Vector3(0.1f, 0.02f, 0.1f), metal, "LampBase");
             Cyl(g, new Vector3(1.0f, y + 0.72f, 9.65f), new Vector3(0.02f, 0.1f, 0.02f), metal, "LampStem");
             Cyl(g, new Vector3(1.0f, y + 0.86f, 9.65f), new Vector3(0.18f, 0.08f, 0.18f), lampShade, "LampShade");
-            ArenaArt.PointLight(g, new Vector3(1.0f, y + 0.9f, 9.4f), ArenaArt.LampWarm, 3.2f, 0.7f, false);
+            // v0.4：床頭燈也要跟著 H1～H3 失溫（登記為小燈）。
+            L.LampLights.Add(ArenaArt.PointLight(g, new Vector3(1.0f, y + 0.9f, 9.4f), ArenaArt.LampWarm, 3.2f, 0.7f, false));
             // 床上的衣物、地上的書。
             Box(g, new Vector3(2.0f, y + 0.52f, 8.0f), new Vector3(0.45f, 0.03f, 0.55f), bookMats[1], "Shirt", new Vector3(0f, 25f, 0f));
             Box(g, new Vector3(2.4f, y + 0.535f, 7.85f), new Vector3(0.3f, 0.02f, 0.6f), pale, "Scarf", new Vector3(0f, -40f, 0f));

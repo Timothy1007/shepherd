@@ -37,6 +37,14 @@ namespace Shepherd.Exploration.Case01
         public float Height;
         public GameObject Membrane;
         public GameObject Seal;
+        /// <summary>v0.4：這扇門自己的故障膜材質（只改外觀，不影響 Crossed）。</summary>
+        public Material MembraneMat;
+        /// <summary>v0.4：會「破訊」跳動的門框（沒有則為 null）與其原位、材質。</summary>
+        public Transform Frame;
+        public Vector3 FrameHome;
+        public Material FrameMat;
+        /// <summary>v0.4：電流雜音（由場景依狀態開關）。</summary>
+        public AudioSource Hum;
 
         /// <summary>從 prev 移動到 cur 是否由來源側穿過門洞。</summary>
         public bool Crossed(Vector3 prev, Vector3 cur)
@@ -93,6 +101,12 @@ namespace Shepherd.Exploration.Case01
         public readonly Dictionary<Case01Room, Color> RoomLightColor = new Dictionary<Case01Room, Color>();
         public readonly Dictionary<Case01Room, float> RoomLightIntensity = new Dictionary<Case01Room, float>();
         public readonly List<Light> LampLights = new List<Light>();
+        /// <summary>v0.4：吊燈燈泡（自發光要跟著 H1～H3 變冷）。</summary>
+        public readonly List<Renderer> Bulbs = new List<Renderer>();
+        /// <summary>v0.4：吊燈燈罩（暖色透光的外觀也要跟著冷下來）。</summary>
+        public readonly List<Renderer> Shades = new List<Renderer>();
+        /// <summary>v0.4：灰塵、污痕、剝落、散落紙張（依房間與階段切換）。</summary>
+        public Case01Aging Aging;
         public Transform DiningChairNorth;
         public Case01Decor Decor;
 
@@ -137,7 +151,7 @@ namespace Shepherd.Exploration.Case01
         private static Case01Palette P;
         private static bool trimWalls;
         private static Material wallMat, wallUp, floorWood, ceilMat, trim, wood, darkWood, fabric, white, metal, paper, glassNight;
-        private static Material riftMat, frameGlow, membraneMat, mezzFloor, mezzWall, courtFloor, courtWall, crystal;
+        private static Material riftMat, mezzFloor, mezzWall, courtFloor, courtWall, crystal;
 
         public static Case01HouseLayout Build(Transform parent, Case01Palette palette = null)
         {
@@ -160,6 +174,8 @@ namespace Shepherd.Exploration.Case01
 
             // v0.2：生活細節、階段異變物件與校正後證物（只加在現有空間內，不改牆、門、樓梯與熱區）。
             L.Decor = Case01HouseDecor.Build(L, ArenaArt.Group("LifeDetails", root, Vector3.zero));
+            // v0.4：H1～H3 的舊化痕跡（無碰撞體、不擋熱區）。
+            L.Aging = Case01Aging.Build(L, ArenaArt.Group("Aging", root, Vector3.zero), P);
 
             L.Arrivals[Case01Room.Entrance] = new Case01Pose(SpawnPoint, 0f);
             L.Arrivals[Case01Room.Dining] = new Case01Pose(new Vector3(6.5f, 0.05f, 5.8f), 0f);
@@ -186,8 +202,6 @@ namespace Shepherd.Exploration.Case01
             paper = P.Get("paper");
             glassNight = P.Get("glass_night");
             riftMat = P.Get("rift");
-            frameGlow = P.Get("frame_glow");
-            membraneMat = P.Own(ArenaArt.FadeMat(new Color(0.35f, 0.15f, 0.6f, 0.35f), ArenaArt.Rift * 0.6f));
             mezzFloor = P.Get("mezz_floor");
             mezzWall = P.Get("mezz_wall");
             courtFloor = P.Get("court_floor");
@@ -384,9 +398,10 @@ namespace Shepherd.Exploration.Case01
             var studyPortal = Portal(L, g, Case01Door.StudyDoor, new Vector3(StudyDoorX, y, 5f), Vector3.forward, DoorWidth, DoorHeight, false, false);
             studyPortal.Membrane.SetActive(false);
             // 第三扇門：外牆上的門框（異常時浮現）、封口、門後擋牆。
-            L.ThirdDoorFrame = DoorFrame(g, new Vector3(StudyDoorX, y, 0.1f), 0f, DoorWidth, DoorHeight, frameGlow, "ThirdDoorFrame");
+            var thirdFrameMat = Case01Glitch.NewFrame(P);
+            L.ThirdDoorFrame = DoorFrame(g, new Vector3(StudyDoorX, y, 0.1f), 0f, DoorWidth, DoorHeight, thirdFrameMat, "ThirdDoorFrame");
             L.ThirdDoorFrame.SetActive(false);
-            Portal(L, g, Case01Door.ThirdDoor, new Vector3(StudyDoorX, y, 0f), Vector3.back, DoorWidth, DoorHeight, true, true);
+            GlitchFrame(Portal(L, g, Case01Door.ThirdDoor, new Vector3(StudyDoorX, y, 0f), Vector3.back, DoorWidth, DoorHeight, true, true), L.ThirdDoorFrame, thirdFrameMat);
             Hotspot(L, g, Case01Ids.ThirdDoor, "外牆上的門框", new Vector3(StudyDoorX, y + 1.1f, 0.2f), new Vector3(1.1f, 2.0f, 0.1f));
             L.Interactables[Case01Ids.ThirdDoor].gameObject.SetActive(false);
             // 儲藏室（不開放）。
@@ -456,9 +471,11 @@ namespace Shepherd.Exploration.Case01
             Portal(L, g, Case01Door.MezzBack, c + new Vector3(0f, 0f, -6f), Vector3.back, DoorWidth, DoorHeight, false, true);
             Portal(L, g, Case01Door.MezzTriangle, c + new Vector3(-6f, 0f, 0f), Vector3.left, DoorWidth, DoorHeight, false, true);
             Portal(L, g, Case01Door.MezzCircle, c + new Vector3(6f, 0f, 0f), Vector3.right, DoorWidth, DoorHeight, false, true);
-            Portal(L, g, Case01Door.Mezz17, c + new Vector3(0f, 0f, 6f), Vector3.forward, DoorWidth, DoorHeight, true, true);
-            L.Door17Frame = DoorFrame(g, c + new Vector3(0f, 0f, 5.9f), 0f, DoorWidth, DoorHeight, frameGlow, "Door17Frame");
+            var p17 = Portal(L, g, Case01Door.Mezz17, c + new Vector3(0f, 0f, 6f), Vector3.forward, DoorWidth, DoorHeight, true, true);
+            var frame17Mat = Case01Glitch.NewFrame(P);
+            L.Door17Frame = DoorFrame(g, c + new Vector3(0f, 0f, 5.9f), 0f, DoorWidth, DoorHeight, frame17Mat, "Door17Frame");
             L.Door17Frame.SetActive(false);
+            GlitchFrame(p17, L.Door17Frame, frame17Mat);
 
             var labelColor = new Color(0.95f, 0.92f, 1f);
             Case01Hud.WorldLabel(g, c + new Vector3(0f, 2.75f, -5.91f), 180f, "返回樓梯平台", 26, labelColor, 220f);
@@ -516,7 +533,9 @@ namespace Shepherd.Exploration.Case01
             WallX(g, x1, z0, z1, 0f, h, courtWall);
             var tear = Portal(L, g, Case01Door.CourtyardTear, new Vector3(40f, 0f, z0), Vector3.back, 1.4f, 2.6f, true, true);
             tear.Seal.GetComponent<Renderer>().sharedMaterial = riftMat;
-            L.TearFrame = DoorFrame(g, new Vector3(40f, 0f, z0 + 0.1f), 0f, 1.4f, 2.6f, frameGlow, "TearFrame");
+            var tearFrameMat = Case01Glitch.NewFrame(P);
+            L.TearFrame = DoorFrame(g, new Vector3(40f, 0f, z0 + 0.1f), 0f, 1.4f, 2.6f, tearFrameMat, "TearFrame");
+            GlitchFrame(tear, L.TearFrame, tearFrameMat);
             Case01Hud.WorldLabel(g, new Vector3(40f, 3.1f, z0 + 0.09f), 180f, "裂口：返回夾層", 26, new Color(0.95f, 0.92f, 1f), 240f);
 
             // 重疊的房間碎片（在兩側，不擋戰術鏡頭）。
@@ -653,8 +672,10 @@ namespace Shepherd.Exploration.Case01
             var fx = ArenaArt.Group("Pendant_" + room, g, pos);
             float cord = ceiling - (pos.y + 0.2f);
             ArenaArt.Prim(PrimitiveType.Cylinder, fx, new Vector3(0f, 0.2f + cord * 0.5f, 0f), new Vector3(0.015f, cord * 0.5f, 0.015f), darkWood, null, "Cord", false, false);
-            ArenaArt.Prim(PrimitiveType.Cylinder, fx, new Vector3(0f, 0.13f, 0f), new Vector3(0.42f, 0.07f, 0.42f), P.Get("lamp_shade"), null, "Shade", false, false);
-            ArenaArt.Prim(PrimitiveType.Sphere, fx, new Vector3(0f, 0.05f, 0f), new Vector3(0.1f, 0.1f, 0.1f), P.Get("glow"), null, "Bulb", false, false);
+            var shade = ArenaArt.Prim(PrimitiveType.Cylinder, fx, new Vector3(0f, 0.13f, 0f), new Vector3(0.42f, 0.07f, 0.42f), P.Get("lamp_shade"), null, "Shade", false, false);
+            L.Shades.Add(shade.GetComponent<Renderer>());
+            var bulb = ArenaArt.Prim(PrimitiveType.Sphere, fx, new Vector3(0f, 0.05f, 0f), new Vector3(0.1f, 0.1f, 0.1f), P.Get("glow"), null, "Bulb", false, false);
+            L.Bulbs.Add(bulb.GetComponent<Renderer>());
             var light = ArenaArt.PointLight(g, pos - Vector3.up * 0.05f, color, 7f, intensity, shadows);
             if (shadows)
             {
@@ -704,7 +725,9 @@ namespace Shepherd.Exploration.Case01
             var right = Vector3.Cross(Vector3.up, normal).normalized;
             var p = new Case01Portal { Door = door, PlanePoint = plane, Normal = normal, Right = right, HalfWidth = w * 0.5f, Height = h };
             var rot = Quaternion.LookRotation(normal, Vector3.up);
-            var mem = ArenaArt.Prim(PrimitiveType.Cube, g, plane + normal * 0.06f + Vector3.up * h * 0.5f, new Vector3(w, h, 0.02f), membraneMat, null,
+            // v0.4：每扇門自己的「訊號故障」膜（取代整片紫色膜；狀態由場景控制，只改外觀）。
+            p.MembraneMat = Case01Glitch.NewMembrane(P);
+            var mem = ArenaArt.Prim(PrimitiveType.Cube, g, plane + normal * 0.06f + Vector3.up * h * 0.5f, new Vector3(w, h, 0.02f), p.MembraneMat, null,
                 "PortalMembrane_" + door, false, false);
             mem.localRotation = rot;
             p.Membrane = mem.gameObject;
@@ -725,6 +748,13 @@ namespace Shepherd.Exploration.Case01
             }
             L.Portals.Add(p);
             return p;
+        }
+
+        private static void GlitchFrame(Case01Portal p, GameObject frame, Material m)
+        {
+            p.Frame = frame.transform;
+            p.FrameHome = frame.transform.localPosition;
+            p.FrameMat = m;
         }
 
         /// <summary>可調查物件的 Trigger 熱區。</summary>

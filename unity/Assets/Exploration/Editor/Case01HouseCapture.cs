@@ -225,7 +225,7 @@ namespace Shepherd.Exploration.Editor
             return s;
         }
 
-        private static void Interact(Case01HouseQA qa, string id)
+        internal static void Interact(Case01HouseQA qa, string id)
         {
             var it = qa.Layout.Interactables[id];
             var target = it.transform.TransformPoint(it.GetComponent<BoxCollider>().center);
@@ -240,24 +240,24 @@ namespace Shepherd.Exploration.Editor
             qa.Tick(Step, new ExploreInput { Interact = true });
         }
 
-        private static void Pose(Case01HouseQA qa, Vector3 pos, float yaw, float pitch)
+        internal static void Pose(Case01HouseQA qa, Vector3 pos, float yaw, float pitch)
         {
             qa.Player.Teleport(pos, yaw, pitch);
             Advance(qa, 0.1f);
         }
 
-        private static void Advance(Case01HouseQA qa, float seconds)
+        internal static void Advance(Case01HouseQA qa, float seconds)
         {
             for (float t = 0; t < seconds; t += Step) qa.Tick(Step, Case01Input.None);
         }
 
-        private static void AdvanceUntil(Case01HouseQA qa, Func<Case01HouseQA, bool> done, float extra)
+        internal static void AdvanceUntil(Case01HouseQA qa, Func<Case01HouseQA, bool> done, float extra)
         {
             for (int i = 0; i < 30 * 20 && !done(qa); i++) qa.Tick(Step, Case01Input.None);
             Advance(qa, extra);
         }
 
-        private static void Shot(Case01HouseQA qa, RenderTexture rt, string path)
+        internal static void Shot(Case01HouseQA qa, RenderTexture rt, string path)
         {
             var cam = qa.ActiveCamera;
             bool wasEnabled = cam.enabled;
@@ -310,7 +310,7 @@ namespace Shepherd.Exploration.Editor
             }
         }
 
-        private static string Arg(string name)
+        internal static string Arg(string name)
         {
             var args = Environment.GetCommandLineArgs();
             for (int i = 0; i < args.Length - 1; i++)

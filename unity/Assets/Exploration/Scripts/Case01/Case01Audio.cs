@@ -24,7 +24,11 @@ namespace Shepherd.Exploration.Case01
         public AudioClip Lock { get; private set; }
         public AudioClip Sting { get; private set; }
         public AudioClip Settle { get; private set; }
+        /// <summary>v0.4 失序門的輕微電流雜音（循環）。</summary>
+        public AudioClip Static { get; private set; }
 
+        /// <summary>v0.4 失序門雜音的獨立音量。</summary>
+        public float PortalVolume = 0.35f;
         public float AmbientVolume = 0.5f;
         public float EffectsVolume = 0.8f;
         public float MusicVolume = 0.7f;
@@ -49,7 +53,36 @@ namespace Shepherd.Exploration.Case01
             Lock = Make("Case01Lock", 1.1f, LockSample);
             Sting = Make("Case01Sting", 3.8f, StingSample);
             Settle = Make("Case01Settle", 1.4f, SettleSample);
+            Static = Make("Case01PortalStatic", 2f, Case01Glitch.StaticSample);
             Ambient.clip = AmbientLoop;
+        }
+
+        /// <summary>場景中的 3D 循環音源（失序門、記憶殘響）：登記後同樣受失焦暫停與 StopAll 管理。</summary>
+        public AudioSource AddSpatialLoop(Transform at, AudioClip clip, float maxDistance)
+        {
+            var s = at.gameObject.AddComponent<AudioSource>();
+            s.playOnAwake = false;
+            s.loop = true;
+            s.clip = clip;
+            s.spatialBlend = 1f;
+            s.rolloffMode = AudioRolloffMode.Linear;
+            s.minDistance = 0.8f;
+            s.maxDistance = maxDistance;
+            s.volume = 0f;
+            sources.Add(s);
+            return s;
+        }
+
+        public bool Paused { get { return paused; } }
+
+        /// <summary>依目標音量開關循環音源（0＝停止）。</summary>
+        public void DriveLoop(AudioSource s, float volume)
+        {
+            if (s == null) return;
+            s.volume = volume;
+            if (!s.isActiveAndEnabled) return;
+            if (volume > 0.001f && !s.isPlaying && !paused) s.Play();
+            else if (volume <= 0.001f && s.isPlaying) s.Stop();
         }
 
         private AudioSource Source(Transform parent, string name, bool loop)
@@ -119,6 +152,7 @@ namespace Shepherd.Exploration.Case01
         public void StopAll()
         {
             foreach (var s in sources) if (s != null) s.Stop();
+            sources.RemoveAll(s => s == null);
         }
 
         public void Dispose()

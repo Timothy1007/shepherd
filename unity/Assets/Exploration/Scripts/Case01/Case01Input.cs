@@ -16,7 +16,7 @@ namespace Shepherd.Exploration.Case01
         public float Zoom;
         /// <summary>I：再次檢視已收藏的證物。</summary>
         public bool InspectEvidence;
-        /// <summary>F5～F8 的 QA 功能鍵（5＝切換核校正 v0.2／v0.3，6＝美術 QA 切換 H0～H3，7＝播放失序體形成，8＝降低閃爍），沒有為 0。</summary>
+        /// <summary>F5～F10 的 QA 功能鍵（5＝切換核校正 v0.2／v0.3，6＝H0～H3，7＝形成演出／自語預覽，8＝降低閃爍，9＝失序門預覽，10＝記憶殘響預覽），沒有為 0。</summary>
         public int Function;
         /// <summary>Tab：略過目前的自語字幕。</summary>
         public bool SkipLine;
@@ -54,6 +54,8 @@ namespace Shepherd.Exploration.Case01
             else if (Input.GetKeyDown(KeyCode.F6)) r.Function = 6;
             else if (Input.GetKeyDown(KeyCode.F7)) r.Function = 7;
             else if (Input.GetKeyDown(KeyCode.F8)) r.Function = 8;
+            else if (Input.GetKeyDown(KeyCode.F9)) r.Function = 9;
+            else if (Input.GetKeyDown(KeyCode.F10)) r.Function = 10;
             return r;
         }
     }

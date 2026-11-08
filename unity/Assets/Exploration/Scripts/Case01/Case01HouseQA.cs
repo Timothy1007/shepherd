@@ -303,7 +303,9 @@ namespace Shepherd.Exploration.Case01
             content = ArenaArt.Group("Case01Content", transform, Vector3.zero);
             if (palette != null) palette.Dispose();
             palette = new Case01Palette();
+            ResetMood();
             layout = Case01HouseBuilder.Build(content, palette);
+            BuildPortalHums();
             flow = f;
             var pose = poseOverride ?? CheckpointPose(layout, cp);
             player = FirstPersonController.Create(content, pose.Position, pose.Yaw);
@@ -350,7 +352,7 @@ namespace Shepherd.Exploration.Case01
                     hud.Base.ViewMode.text = "核校正 v0.3 QA：F4 戰後核前｜F5 切回 v0.2｜F1～F3 檢查點｜F8 降低閃爍";
                     break;
                 case Case01QaMode.NarrativeV04:
-                    hud.Base.ViewMode.text = "空間敘事 v0.4 QA：F6 房屋 H0～H3｜F7 下一句自語｜F8 降低閃爍｜F1～F4 檢查點";
+                    hud.Base.ViewMode.text = "空間敘事 v0.4 QA：F6 H0～H3｜F7 自語｜F9 失序門｜F8 降低閃爍｜F1～F4 檢查點";
                     break;
                 default:
                     hud.Base.ViewMode.text = "QA 跳轉：F1 S00 玄關｜F2 S30 樓梯錯接｜F3 S40 夾層｜F4 S50 戰後修復｜F5 核校正 v0.3｜F8 降低閃爍";
@@ -431,6 +433,11 @@ namespace Shepherd.Exploration.Case01
             if (qaMode == Case01QaMode.NarrativeV04 && input.Function == 7)
             {
                 PreviewNextMonologue();
+                return;
+            }
+            if (qaMode == Case01QaMode.NarrativeV04 && input.Function == 9)
+            {
+                PreviewGlitch((GlitchPreview + 1) % GlitchPreviewCount);
                 return;
             }
             if (qaMode == Case01QaMode.ArtPreview && input.Function == 7)
@@ -617,6 +624,7 @@ namespace Shepherd.Exploration.Case01
             if ((h1 != d.DiningChanged || st != d.DiningStable) && (force || currentRoom != Case01Room.Dining)) d.ApplyDining(h1, st);
             if ((h2 != d.StudyChanged || st != d.StudyStable) && (force || currentRoom != Case01Room.Study)) d.ApplyStudy(h2, st);
             if ((h2 != d.LandingChanged || st != d.LandingStable) && (force || currentRoom != Case01Room.Landing)) d.ApplyLanding(h2, st);
+            UpdateAging(force);
         }
 
         /// <summary>目前房屋的異變階段（0～3，取已發生的最高階段；供 QA 面板與測試）。</summary>
@@ -1098,12 +1106,13 @@ namespace Shepherd.Exploration.Case01
             hud.Base.Controls.text = "WASD 移動｜滑鼠 視角｜Shift 奔跑｜E 調查／互動｜1–3 選擇｜J 日誌" +
                                      (flow.FamilyPhotoCollected ? "｜I 檢視證物" : "") + "｜Tab 略過自語｜Esc 釋放滑鼠";
 
-            Color coreColor = flow.CoreStabilized ? ArenaArt.LampWarm : flow.DefenseActive ? new Color(1f, 0.25f, 0.35f) : ArenaArt.Rift;
+            // v0.4：校正後是冷白（穩定），不是暖光。
+            Color coreColor = flow.CoreStabilized ? Case01Mood.CoreStable : flow.DefenseActive ? new Color(1f, 0.25f, 0.35f) : ArenaArt.Rift;
             ArenaArt.SetEmission(L.CoreMat, coreColor * (flow.CoreStabilized ? 1.2f : 2.2f));
             L.CoreLight.color = coreColor;
-            var mezzColor = flow.CoreStabilized ? new Color(1f, 0.85f, 0.65f) : flow.DefenseActive ? new Color(0.95f, 0.4f, 0.5f) : new Color(0.6f, 0.55f, 0.85f);
+            var mezzColor = flow.CoreStabilized ? Case01Mood.MezzStable : flow.DefenseActive ? new Color(0.95f, 0.4f, 0.5f) : new Color(0.6f, 0.55f, 0.85f);
             foreach (var l in L.MezzLights) l.color = mezzColor;
-            foreach (var m in L.MezzLineMats) ArenaArt.SetEmission(m, (flow.CoreStabilized ? ArenaArt.LampWarm : ArenaArt.Rift) * 1.8f);
+            foreach (var m in L.MezzLineMats) ArenaArt.SetEmission(m, (flow.CoreStabilized ? Case01Mood.CoreStable : ArenaArt.Rift) * 1.8f);
             if (L.CourtyardLight != null) L.CourtyardLight.intensity = flow.CourtyardTearOpen ? 0.9f : 2.2f;
             RefreshMezzLabels();
             bool enemiesVisible = flow.CanStartBattle && encounter != null && !encounter.Defeated;
@@ -1151,7 +1160,8 @@ namespace Shepherd.Exploration.Case01
                 if (Mode == Case01Mode.Defense) target *= Quaternion.Euler(Mathf.Sin(clock * 9f + i) * 8f, Mathf.Sin(clock * 7f + i) * 12f, 0f);
                 layout.Overlaps[i].localRotation = Quaternion.Slerp(layout.Overlaps[i].localRotation, target, 1f - Mathf.Exp(-dt * 3f));
             }
-            UpdateLights();
+            UpdateLights(dt);
+            UpdatePortalFx(dt);
             AnimateDoorSnap(dt);
             if (flow.PreviewConflict != 0)
             {
@@ -1161,6 +1171,72 @@ namespace Shepherd.Exploration.Case01
             else if (layout.CoreLight.intensity != 2.0f && !flow.CoreStabilized)
             {
                 layout.CoreLight.intensity = 2.0f;
+            }
+        }
+
+        // ---------------- v0.4 失序門的訊號故障（只改外觀；傳送仍由 Flow 與 Portal.Crossed 決定） ----------------
+
+        [Tooltip("v0.4 失序門電流雜音的音量。")]
+        [Range(0f, 1f)] [SerializeField] private float portalVolume = 0.35f;
+
+        public float PortalVolume { get { return portalVolume; } set { portalVolume = Mathf.Clamp01(value); } }
+
+        private float glitchClock;
+
+        /// <summary>門的路由狀態 → 故障外觀等級。</summary>
+        public Case01PortalState PortalState(Case01Door door)
+        {
+            if (flow == null || !flow.PortalActive(door)) return Case01PortalState.Dormant;
+            if (flow.CoreStabilized) return Case01PortalState.Corrected;
+            switch (door)
+            {
+                case Case01Door.StudyDoor:
+                    return Case01PortalState.Wrong;
+                case Case01Door.MezzTriangle:
+                    if (!flow.MatchesMark(door)) return Case01PortalState.Wrong;
+                    return flow.V03Anchored || flow.Session.Has(Case01Flags.RouteAnchorSet) ? Case01PortalState.Anchored : Case01PortalState.Unstable;
+                case Case01Door.MezzCircle:
+                    if (!flow.MatchesMark(door)) return Case01PortalState.Wrong;
+                    return flow.V03SecondLink ? Case01PortalState.Anchored : Case01PortalState.Unstable;
+                case Case01Door.Mezz17:
+                    return flow.V03SecondLink ? Case01PortalState.Anchored : Case01PortalState.Unstable;
+                default:
+                    return Case01PortalState.Unstable;
+            }
+        }
+
+        private void BuildPortalHums()
+        {
+            if (sfx == null || layout == null) return;
+            foreach (var p in layout.Portals)
+                if (p.Membrane != null) p.Hum = sfx.AddSpatialLoop(p.Membrane.transform, sfx.Static, 6f);
+        }
+
+        private void UpdatePortalFx(float dt)
+        {
+            if (layout == null) return;
+            glitchClock += dt;
+            // 每 0.1 秒一個「破訊」時間片。
+            int slice = Mathf.FloorToInt(glitchClock * 10f);
+            foreach (var p in layout.Portals)
+            {
+                var state = PortalState(p.Door);
+                var look = Case01Glitch.For(state, reduceFlicker);
+                Case01Glitch.Apply(p.MembraneMat, look);
+                if (p.Frame != null && p.Frame.gameObject.activeInHierarchy)
+                {
+                    float r = Mathf.Abs(Mathf.Sin(slice * 12.9898f + (int)p.Door * 78.233f) * 43758.5453f) % 1f;
+                    float jump = r < look.JitterChance ? (r / Mathf.Max(0.0001f, look.JitterChance) - 0.5f) * 2f * look.JitterAmount : 0f;
+                    p.Frame.localPosition = p.FrameHome + p.Frame.localRotation * Vector3.right * jump;
+                    // 黑灰門框上斷續的冷白光（降低閃爍時固定亮度）。
+                    float pulse = reduceFlicker ? 0.7f : 0.55f + 0.45f * Mathf.PerlinNoise(glitchClock * 3f, (int)p.Door);
+                    ArenaArt.SetEmission(p.FrameMat, new Color(0.62f, 0.66f, 0.74f) * look.FrameGlow * pulse);
+                }
+                if (sfx != null && p.Hum != null)
+                {
+                    bool audible = state != Case01PortalState.Dormant && p.Membrane.activeInHierarchy && Mode != Case01Mode.Battle && Mode != Case01Mode.EnteringBattle;
+                    sfx.DriveLoop(p.Hum, audible ? portalVolume * look.Hum * Mathf.Lerp(0.5f, 1f, scareIntensity) * 0.5f : 0f);
+                }
             }
         }
 
@@ -1206,7 +1282,7 @@ namespace Shepherd.Exploration.Case01
                 snapTo.Add(pos[i]);
                 snapRotFrom.Add(p.localRotation);
             }
-            snapLight = ArenaArt.PointLight(g, new Vector3(0f, 1.2f, 0.6f), ArenaArt.LampWarm, 5f, 0f, false);
+            snapLight = ArenaArt.PointLight(g, new Vector3(0f, 1.2f, 0.6f), Case01Mood.CoreStable, 5f, 0f, false);
             snapT = 0f;
         }
 
@@ -1345,6 +1421,61 @@ namespace Shepherd.Exploration.Case01
             hud.Base.ShowToast("美術 QA：房屋 H" + ArtStage);
         }
 
+        public const int GlitchPreviewCount = 5;
+        /// <summary>目前的失序門預覽（-1＝沒有）。</summary>
+        public int GlitchPreview { get; private set; } = -1;
+
+        /// <summary>空間敘事 QA：失序門的五種狀態（錯接的書房門、夾層未定、△ 錯接、△ 已錨定、校正後），站在門前。</summary>
+        public void PreviewGlitch(int n)
+        {
+            GlitchPreview = Mathf.Clamp(n, 0, GlitchPreviewCount - 1);
+            KillArena();
+            if (content != null)
+            {
+                content.gameObject.SetActive(false);
+                ArenaArt.Kill(content.gameObject);
+            }
+            encounterGroup = null;
+            exploreCam.enabled = true;
+            var mezzFacingTriangle = new Case01Pose(Case01HouseBuilder.MezzCenter + new Vector3(-3.2f, 0.05f, 0f), -90f);
+            Case01Flow f;
+            Case01Pose pose;
+            string label;
+            switch (GlitchPreview)
+            {
+                case 0:
+                    f = Case01Flow.ForCheckpoint(Case01Checkpoint.S30);
+                    pose = new Case01Pose(new Vector3(Case01HouseBuilder.StudyDoorX, Case01HouseBuilder.FloorHeight + 0.05f, 3.2f), 0f);
+                    label = "錯接：書房門通往餐廳";
+                    break;
+                case 1:
+                    f = Case01Flow.ForCheckpoint(Case01Checkpoint.S40);
+                    pose = mezzFacingTriangle;
+                    label = "夾層 △ 門：狀態未定";
+                    break;
+                case 2:
+                    f = Case01Flow.ForCheckpoint(Case01Checkpoint.S50, Case01CorrectionMode.RevisedV03);
+                    pose = mezzFacingTriangle;
+                    label = "△ 門錯接（戰後）";
+                    break;
+                case 3:
+                    f = Case01Flow.ForCheckpoint(Case01Checkpoint.S50, Case01CorrectionMode.RevisedV03);
+                    f.Traverse(Case01Door.MezzTriangle);
+                    f.Interact(Case01Ids.Core);
+                    f.Choose(Case01IdsV03.ChoiceAnchor, 0);
+                    pose = mezzFacingTriangle;
+                    label = "△ 門已錨定";
+                    break;
+                default:
+                    f = Case01Flow.ForHouseStage(3);
+                    pose = mezzFacingTriangle;
+                    label = "校正後：故障停止";
+                    break;
+            }
+            BuildContent(f, Case01Checkpoint.S00, pose);
+            hud.Base.ShowToast("失序門預覽 " + (GlitchPreview + 1) + "／" + GlitchPreviewCount + "：" + label);
+        }
+
         private int previewLine = -1;
 
         /// <summary>空間敘事 QA：依序預覽下一句自語（只顯示，不改流程或去重狀態）。</summary>
@@ -1402,37 +1533,167 @@ namespace Shepherd.Exploration.Case01
         /// <summary>閃爍強度：關閉「降低閃爍」時 1，開啟時 0.25；再乘上驚嚇強度。</summary>
         public float FlickerScale { get { return (reduceFlicker ? 0.25f : 1f) * Mathf.Lerp(0.3f, 1f, scareIntensity); } }
 
-        private void UpdateLights()
+        // ---------------- v0.4 H0→H3 光色（Case01Mood；H3 不回暖；階段之間約 1.5 秒漸變） ----------------
+
+        public const float MoodBlendRate = 2.2f;
+        private bool moodSnap = true;
+        private readonly Dictionary<Light, Color> moodColor = new Dictionary<Light, Color>();
+        private readonly Dictionary<Light, float> moodIntensity = new Dictionary<Light, float>();
+        private readonly Dictionary<Light, Color> lampBaseColor = new Dictionary<Light, Color>();
+        private readonly Dictionary<Light, float> lampBaseIntensity = new Dictionary<Light, float>();
+        private Material[] bulbMats;
+        private Material[] shadeMats;
+        private int bulbStage = -1;
+        private Color moodSky, moodEquator, moodGround, moodWindow;
+        private float moodWindowI;
+
+        /// <summary>目前套用到房屋的光色階段（測試用）。</summary>
+        public int LightStage { get { return HouseStage; } }
+
+        private void ResetMood()
+        {
+            moodSnap = true;
+            moodColor.Clear();
+            moodIntensity.Clear();
+            lampBaseColor.Clear();
+            lampBaseIntensity.Clear();
+            bulbMats = null;
+            shadeMats = null;
+            bulbStage = -1;
+        }
+
+        private void Blend(Light light, Color target, float targetI, float k, out Color c, out float i)
+        {
+            Color pc;
+            float pi;
+            if (moodSnap || !moodColor.TryGetValue(light, out pc)) pc = target;
+            if (moodSnap || !moodIntensity.TryGetValue(light, out pi)) pi = targetI;
+            c = Color.Lerp(pc, target, k);
+            i = Mathf.Lerp(pi, targetI, k);
+            moodColor[light] = c;
+            moodIntensity[light] = i;
+        }
+
+        private void UpdateMoodExtras(int stage, float k)
+        {
+            var L = layout;
+            // 小燈：H1 失溫、H2 失效或不合常理、H3 不再亮回來。
+            for (int n = 0; n < L.LampLights.Count; n++)
+            {
+                var lamp = L.LampLights[n];
+                if (lamp == null) continue;
+                if (!lampBaseColor.ContainsKey(lamp))
+                {
+                    lampBaseColor[lamp] = lamp.color;
+                    lampBaseIntensity[lamp] = lamp.intensity;
+                }
+                Color tc;
+                float ti;
+                Case01Mood.Lamp(stage, n, lampBaseColor[lamp], lampBaseIntensity[lamp], out tc, out ti);
+                Color c;
+                float i;
+                Blend(lamp, tc, ti, k, out c, out i);
+                lamp.color = c;
+                lamp.intensity = i;
+            }
+            // 吊燈燈泡的自發光（材質也要冷下來，不只是光源）。
+            if (bulbStage != stage)
+            {
+                bulbStage = stage;
+                if (bulbMats == null && palette != null)
+                {
+                    bulbMats = new Material[4];
+                    shadeMats = new Material[4];
+                    for (int s = 1; s < 4; s++)
+                    {
+                        bulbMats[s] = palette.Instance("glow");
+                        var e = Case01Mood.BulbEmission(s);
+                        bulbMats[s].color = e;
+                        ArenaArt.SetEmission(bulbMats[s], e);
+                        // 燈罩：H1 微暖、H2／H3 灰冷，不再是透著暖光的橘色。
+                        shadeMats[s] = palette.Instance("lamp_shade");
+                        var shadeColor = Case01Mood.ShadeColor(s);
+                        shadeMats[s].color = shadeColor;
+                        ArenaArt.SetEmission(shadeMats[s], shadeColor * Case01Mood.ShadeGlow(s));
+                    }
+                }
+                foreach (var b in L.Bulbs)
+                    if (b != null) b.sharedMaterial = stage == 0 || bulbMats == null ? palette.Get("glow") : bulbMats[stage];
+                foreach (var sh in L.Shades)
+                    if (sh != null) sh.sharedMaterial = stage == 0 || shadeMats == null ? palette.Get("lamp_shade") : shadeMats[stage];
+            }
+            // 窗邊冷光（方向光）。
+            Color wc;
+            float wi;
+            Case01Mood.WindowLight(stage, out wc, out wi);
+            if (moodSnap)
+            {
+                moodWindow = wc;
+                moodWindowI = wi;
+            }
+            moodWindow = Color.Lerp(moodWindow, wc, k);
+            moodWindowI = Mathf.Lerp(moodWindowI, wi, k);
+            if (skyLight != null)
+            {
+                skyLight.color = moodWindow;
+                skyLight.intensity = moodWindowI;
+            }
+            // 環境光（只在已套用房屋氛圍時；離開時由 RestoreAtmosphere 還原）。
+            if (atmosphereSaved)
+            {
+                Color sky, eq, gr;
+                Case01Mood.Ambient(stage, out sky, out eq, out gr);
+                if (moodSnap)
+                {
+                    moodSky = sky;
+                    moodEquator = eq;
+                    moodGround = gr;
+                }
+                moodSky = Color.Lerp(moodSky, sky, k);
+                moodEquator = Color.Lerp(moodEquator, eq, k);
+                moodGround = Color.Lerp(moodGround, gr, k);
+                RenderSettings.ambientSkyColor = moodSky;
+                RenderSettings.ambientEquatorColor = moodEquator;
+                RenderSettings.ambientGroundColor = moodGround;
+            }
+        }
+
+        /// <summary>舊化痕跡：玩家不在該房間時才切換（不當面硬閃）；重建時直接套用。</summary>
+        private void UpdateAging(bool force)
+        {
+            var a = layout.Aging;
+            if (a == null) return;
+            int stage = HouseStage;
+            foreach (var room in a.Rooms)
+            {
+                int level = Case01Mood.AgingLevel(stage, room);
+                if (level == a.LevelOf(room)) continue;
+                if (force || room != currentRoom) a.Apply(room, level);
+            }
+        }
+
+        private void UpdateLights(float dt)
         {
             var L = layout;
             var d = L.Decor;
             float flick = FlickerScale;
+            int stage = HouseStage;
+            float k = moodSnap ? 1f : 1f - Mathf.Exp(-dt * MoodBlendRate);
             foreach (var kv in L.RoomLights)
             {
                 var room = kv.Key;
                 var light = kv.Value;
-                var c = L.RoomLightColor[room];
-                float i = L.RoomLightIntensity[room];
+                Color tc;
+                float ti;
+                Case01Mood.RoomLight(stage, room, L.RoomLightColor[room], L.RoomLightIntensity[room], out tc, out ti);
+                Color c;
+                float i;
+                Blend(light, tc, ti, k, out c, out i);
                 switch (room)
                 {
                     case Case01Room.Dining:
-                        // H1：光色略偏、亮度慢慢起伏（週期約 10 秒）。
-                        if (d.DiningChanged && !d.DiningStable)
-                        {
-                            c = Color.Lerp(c, new Color(0.92f, 0.86f, 0.66f), 0.45f);
-                            i *= 0.82f + 0.06f * flick * Mathf.Sin(clock * 0.6f);
-                        }
-                        break;
-                    case Case01Room.Living:
-                        if (d.LivingChanged && !d.LivingStable) i *= 0.88f;
-                        break;
-                    case Case01Room.Study:
-                        // H2：書房轉冷、變暗，但線索仍看得清楚。
-                        if (d.StudyChanged && !d.StudyStable)
-                        {
-                            c = Color.Lerp(c, new Color(0.72f, 0.78f, 1f), 0.6f);
-                            i *= 0.82f;
-                        }
+                        // H1～H2：亮度慢慢起伏（週期約 10 秒）；H3 起停止。
+                        if (d.DiningChanged && !d.DiningStable) i *= 1f + 0.06f * flick * Mathf.Sin(clock * 0.6f);
                         break;
                     case Case01Room.Landing:
                         bool uneasy = ((flow.WrongConnectionArmed || flow.WrongConnectionActive) && !flow.StairRouteRestored) || flow.DefenseActive;
@@ -1449,6 +1710,8 @@ namespace Shepherd.Exploration.Case01
                 light.intensity = i;
                 light.shadows = lightShadows && light.shadowStrength > 0f && (room == Case01Room.Dining || room == Case01Room.Living) ? LightShadows.Soft : LightShadows.None;
             }
+            UpdateMoodExtras(stage, k);
+            moodSnap = false;
         }
 
         private void SnapCameraToPlayer()
@@ -1559,6 +1822,8 @@ namespace Shepherd.Exploration.Case01
             RenderSettings.ambientGroundColor = new Color(0.09f, 0.08f, 0.075f);
             RenderSettings.ambientLight = new Color(0.30f, 0.29f, 0.32f);
             RenderSettings.skybox = null;
+            // v0.4：環境光接著依 H0～H3 套用（直接到位）。
+            moodSnap = true;
         }
 
         public void RestoreAtmosphere()
