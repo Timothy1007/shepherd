@@ -141,6 +141,7 @@ namespace Shepherd.Exploration.Case01
         public static Case01Decor Build(Case01HouseLayout L, Transform root)
         {
             var d = new Case01Decor();
+            P = L.Palette ?? new Case01Palette();
             Materials();
             var rng = new System.Random(2026);
             System.Func<float, float, float> R = (a, b) => a + (float)rng.NextDouble() * (b - a);
@@ -163,31 +164,34 @@ namespace Shepherd.Exploration.Case01
             return d;
         }
 
+        private static Case01Palette P;
+
         private static void Materials()
         {
-            wood = ArenaArt.Mat(new Color(0.45f, 0.31f, 0.19f), 0.25f);
-            darkWood = ArenaArt.Mat(new Color(0.24f, 0.16f, 0.11f), 0.3f);
-            pale = ArenaArt.Mat(new Color(0.78f, 0.75f, 0.68f), 0.15f);
-            fabric = ArenaArt.Mat(new Color(0.55f, 0.33f, 0.28f), 0.05f);
-            fabric2 = ArenaArt.Mat(new Color(0.36f, 0.45f, 0.36f), 0.05f);
-            paper = ArenaArt.Mat(new Color(0.93f, 0.9f, 0.8f), 0.05f, new Color(0.07f, 0.07f, 0.05f));
-            paperOld = ArenaArt.Mat(new Color(0.82f, 0.74f, 0.55f), 0.05f, new Color(0.05f, 0.04f, 0.02f));
-            card = ArenaArt.Mat(new Color(0.85f, 0.55f, 0.45f), 0.1f, new Color(0.06f, 0.03f, 0.02f));
-            metal = ArenaArt.Mat(new Color(0.55f, 0.56f, 0.58f), 0.65f, null, 0.7f);
-            ceramic = ArenaArt.Mat(new Color(0.92f, 0.92f, 0.9f), 0.7f);
-            leaf = ArenaArt.Mat(new Color(0.22f, 0.42f, 0.2f), 0.2f);
-            pot = ArenaArt.Mat(new Color(0.62f, 0.33f, 0.2f), 0.2f);
-            cardboard = ArenaArt.Mat(new Color(0.6f, 0.46f, 0.3f), 0.05f);
-            glow = ArenaArt.Mat(new Color(0.9f, 0.75f, 0.5f), 0.4f, ArenaArt.LampWarm * 1.6f);
-            lampShade = ArenaArt.Mat(new Color(0.9f, 0.84f, 0.7f), 0.2f, ArenaArt.LampWarm * 0.9f);
-            frameMat = ArenaArt.Mat(new Color(0.2f, 0.14f, 0.1f), 0.35f);
-            bookMats = new[]
-            {
-                ArenaArt.Mat(new Color(0.55f, 0.12f, 0.1f), 0.2f), ArenaArt.Mat(new Color(0.15f, 0.25f, 0.45f), 0.2f),
-                ArenaArt.Mat(new Color(0.2f, 0.4f, 0.25f), 0.2f), ArenaArt.Mat(new Color(0.75f, 0.62f, 0.3f), 0.2f),
-                ArenaArt.Mat(new Color(0.35f, 0.3f, 0.32f), 0.2f), ArenaArt.Mat(new Color(0.8f, 0.78f, 0.7f), 0.2f),
-                ArenaArt.Mat(new Color(0.45f, 0.2f, 0.4f), 0.2f),
-            };
+            wood = P.Get("wood_warm");
+            darkWood = P.Get("wood_dark");
+            pale = P.Get("fabric_cream");
+            fabric = P.Get("fabric_red");
+            fabric2 = P.Get("fabric_green");
+            paper = P.Get("paper");
+            paperOld = P.Get("paper_old");
+            card = P.Tint("paper", new Color(0.95f, 0.66f, 0.56f));
+            metal = P.Get("brass");
+            ceramic = P.Get("ceramic");
+            leaf = P.Get("leaf");
+            pot = P.Get("pot");
+            cardboard = P.Get("cardboard");
+            glow = P.Get("glow");
+            lampShade = P.Get("lamp_shade");
+            frameMat = P.Get("frame_wood");
+            bookMats = new Material[7];
+            for (int i = 0; i < bookMats.Length; i++) bookMats[i] = P.Get("book_" + i);
+        }
+
+        /// <summary>本次建置擁有的純色小道具材質（重建時釋放）。</summary>
+        private static Material M(Color c, float smooth = 0.15f, Color? emission = null, float metallic = 0f)
+        {
+            return P.Own(ArenaArt.Mat(c, smooth, emission, metallic));
         }
 
         // ---------------- 一樓 ----------------
@@ -219,20 +223,20 @@ namespace Shepherd.Exploration.Case01
             Color[] spice = { new Color(0.7f, 0.3f, 0.15f), new Color(0.85f, 0.75f, 0.3f), new Color(0.3f, 0.5f, 0.25f), new Color(0.9f, 0.9f, 0.88f) };
             for (int i = 0; i < spice.Length; i++)
                 Cyl(g, new Vector3(0.35f + (i % 2) * 0.1f, 0.96f + i * 0.004f, 3.15f + i * 0.13f), new Vector3(0.07f, 0.05f + i * 0.01f, 0.07f),
-                    ArenaArt.Mat(spice[i], 0.6f), "SpiceJar");
+                    M(spice[i], 0.6f), "SpiceJar");
             // 碗盤架。
             var rack = ArenaArt.Group("DishRack", g, new Vector3(0.45f, 0.9f, 1.2f));
             Box(rack, new Vector3(0f, 0.01f, 0f), new Vector3(0.32f, 0.02f, 0.4f), metal, "Base");
             for (int i = 0; i < 4; i++) Cyl(rack, new Vector3(0f, 0.12f, -0.15f + i * 0.1f), new Vector3(0.22f, 0.006f, 0.22f), ceramic, "Plate", new Vector3(90f, 0f, 0f));
             // 茶葉盒（可以打開／蓋上）。
             var tin = ArenaArt.Group("TeaTin", g, new Vector3(0.55f, 0.9f, 2.6f));
-            Cyl(tin, new Vector3(0f, 0.09f, 0f), new Vector3(0.12f, 0.09f, 0.12f), ArenaArt.Mat(new Color(0.2f, 0.35f, 0.35f), 0.6f, null, 0.4f), "Body");
-            d.TeaTinLid = Cyl(tin, Vector3.zero, new Vector3(0.13f, 0.012f, 0.13f), ArenaArt.Mat(new Color(0.75f, 0.6f, 0.25f), 0.6f, null, 0.6f), "Lid");
+            Cyl(tin, new Vector3(0f, 0.09f, 0f), new Vector3(0.12f, 0.09f, 0.12f), M(new Color(0.2f, 0.35f, 0.35f), 0.6f, null, 0.4f), "Body");
+            d.TeaTinLid = Cyl(tin, Vector3.zero, new Vector3(0.13f, 0.012f, 0.13f), M(new Color(0.75f, 0.6f, 0.25f), 0.6f, null, 0.6f), "Lid");
             d.TeaLidClosedPos = new Vector3(0f, 0.185f, 0f);
             d.TeaLidClosedRot = Quaternion.identity;
             d.TeaLidOpenPos = new Vector3(0.1f, 0.12f, 0.02f);
             d.TeaLidOpenRot = Quaternion.Euler(0f, 0f, 75f);
-            Cyl(tin, new Vector3(0f, 0.17f, 0f), new Vector3(0.1f, 0.005f, 0.1f), ArenaArt.Mat(new Color(0.25f, 0.18f, 0.1f), 0.1f), "Leaves");
+            Cyl(tin, new Vector3(0f, 0.17f, 0f), new Vector3(0.1f, 0.005f, 0.1f), M(new Color(0.25f, 0.18f, 0.1f), 0.1f), "Leaves");
             Case01HouseBuilder.Hotspot(L, g, Case01Ids.TeaTin, "茶葉盒", new Vector3(0.55f, 1.0f, 2.6f), new Vector3(0.3f, 0.3f, 0.3f));
             // 小圓桌與凳子。
             Solid(PrimitiveType.Cylinder, g, new Vector3(2.0f, 0.36f, 1.4f), new Vector3(0.8f, 0.36f, 0.8f), wood, "KitchenTable");
@@ -280,8 +284,8 @@ namespace Shepherd.Exploration.Case01
             Box(frame, Vector3.zero, new Vector3(0.62f, 0.46f, 0.04f), frameMat, "Frame");
             d.LivingFrameBlank = Box(frame, new Vector3(0f, 0f, -0.022f), new Vector3(0.54f, 0.38f, 0.005f), pale, "BlankPrint").gameObject;
             var photo = ArenaArt.Group("Photo", frame, Vector3.zero);
-            Box(photo, new Vector3(0f, 0.06f, -0.025f), new Vector3(0.54f, 0.26f, 0.005f), ArenaArt.Mat(new Color(0.45f, 0.62f, 0.75f), 0.1f), "Sky");
-            Box(photo, new Vector3(0f, -0.12f, -0.025f), new Vector3(0.54f, 0.14f, 0.005f), ArenaArt.Mat(new Color(0.75f, 0.68f, 0.5f), 0.1f), "Sand");
+            Box(photo, new Vector3(0f, 0.06f, -0.025f), new Vector3(0.54f, 0.26f, 0.005f), M(new Color(0.45f, 0.62f, 0.75f), 0.1f), "Sky");
+            Box(photo, new Vector3(0f, -0.12f, -0.025f), new Vector3(0.54f, 0.14f, 0.005f), M(new Color(0.75f, 0.68f, 0.5f), 0.1f), "Sand");
             Box(photo, new Vector3(-0.07f, -0.04f, -0.03f), new Vector3(0.05f, 0.18f, 0.004f), frameMat, "FigureA");
             Box(photo, new Vector3(0.05f, -0.05f, -0.03f), new Vector3(0.045f, 0.15f, 0.004f), frameMat, "FigureB");
             d.LivingFramePhoto = photo.gameObject;
@@ -291,6 +295,7 @@ namespace Shepherd.Exploration.Case01
             Cyl(lamp, new Vector3(0f, 0.02f, 0f), new Vector3(0.3f, 0.02f, 0.3f), metal, "Base");
             Solid(PrimitiveType.Cylinder, lamp, new Vector3(0f, 0.75f, 0f), new Vector3(0.04f, 0.75f, 0.04f), metal, "Pole");
             Cyl(lamp, new Vector3(0f, 1.55f, 0f), new Vector3(0.36f, 0.14f, 0.36f), lampShade, "Shade");
+            L.LampLights.Add(ArenaArt.PointLight(lamp, new Vector3(0f, 1.4f, -0.15f), new Color(1f, 0.74f, 0.45f), 3.2f, 0.6f, false));
             Box(g, new Vector3(2.9f, 0.82f, 9.15f), new Vector3(0.9f, 0.03f, 0.55f), fabric2, "Blanket", new Vector3(0f, 12f, 4f));
             Box(g, new Vector3(3.3f, 0.6f, 8.85f), new Vector3(0.5f, 0.4f, 0.03f), fabric2, "BlanketDrape", new Vector3(10f, 12f, 0f));
             var plant = ArenaArt.Group("Plant", g, new Vector3(4.5f, 0f, 5.55f));
@@ -315,7 +320,7 @@ namespace Shepherd.Exploration.Case01
             var g = ArenaArt.Group("Dining", root, Vector3.zero);
             var table = L.DiningChairNorth.parent;
             // 布巾（桌面中央）與餐墊。
-            d.DiningRunner = Box(table, new Vector3(0f, 0.754f, 0f), new Vector3(1.75f, 0.004f, 0.32f), ArenaArt.Mat(new Color(0.7f, 0.25f, 0.22f), 0.05f), "TableRunner").gameObject;
+            d.DiningRunner = Box(table, new Vector3(0f, 0.754f, 0f), new Vector3(1.75f, 0.004f, 0.32f), M(new Color(0.7f, 0.25f, 0.22f), 0.05f), "TableRunner").gameObject;
             Box(table, new Vector3(0f, 0.752f, -0.32f), new Vector3(0.6f, 0.004f, 0.4f), pale, "PlacematSouth");
             Box(L.DiningSecondSet.transform, new Vector3(0f, 0.002f, 0f), new Vector3(0.6f, 0.004f, 0.4f), pale, "PlacematNorth");
             d.BindChair(L.DiningChairNorth);
@@ -329,7 +334,7 @@ namespace Shepherd.Exploration.Case01
             // 西北角小櫃子與購物清單（可調查）。
             Solid(PrimitiveType.Cube, g, new Vector3(5.45f, 0.4f, 9.45f), new Vector3(0.55f, 0.8f, 0.6f), wood, "SmallCabinet");
             Box(g, new Vector3(5.45f, 0.805f, 9.4f), new Vector3(0.12f, 0.004f, 0.2f), paper, "ShoppingList", new Vector3(0f, 14f, 0f));
-            Cyl(g, new Vector3(5.6f, 0.86f, 9.6f), new Vector3(0.1f, 0.06f, 0.1f), ArenaArt.Mat(new Color(0.4f, 0.55f, 0.7f), 0.7f), "Vase");
+            Cyl(g, new Vector3(5.6f, 0.86f, 9.6f), new Vector3(0.1f, 0.06f, 0.1f), M(new Color(0.4f, 0.55f, 0.7f), 0.7f), "Vase");
             Case01HouseBuilder.Hotspot(L, g, Case01Ids.ShoppingList, "櫃子上的購物清單", new Vector3(5.45f, 0.9f, 9.4f), new Vector3(0.35f, 0.25f, 0.4f));
         }
 
@@ -391,7 +396,7 @@ namespace Shepherd.Exploration.Case01
                 var home = new Vector3(5.38f, y, 8.35f + i * 0.45f);
                 var box = ArenaArt.Group("FileBox_" + i, g, home);
                 Solid(PrimitiveType.Cube, box, new Vector3(0f, 0.17f, 0f), new Vector3(0.36f, 0.34f, 0.4f), cardboard, "Box");
-                Box(box, new Vector3(0.185f, 0.25f, 0f), new Vector3(0.01f, 0.06f, 0.14f), ArenaArt.Mat(tabs[i], 0.3f), "Tab");
+                Box(box, new Vector3(0.185f, 0.25f, 0f), new Vector3(0.01f, 0.06f, 0.14f), M(tabs[i], 0.3f), "Tab");
                 d.FileBoxes.Add(box);
                 d.FileBoxHome.Add(home);
             }
@@ -404,7 +409,7 @@ namespace Shepherd.Exploration.Case01
             Case01HouseBuilder.Hotspot(L, g, Case01Ids.FileBoxes, "檔案盒", new Vector3(5.5f, y + 0.45f, 8.8f), new Vector3(0.3f, 0.2f, 1.2f));
             // 桌角分色文件夾、修復工具（可調查）、檯燈、舊照片。
             for (int i = 0; i < 4; i++)
-                Box(g, new Vector3(8.2f, y + 0.765f + i * 0.012f, 9.45f), new Vector3(0.3f, 0.01f, 0.22f), ArenaArt.Mat(i % 2 == 0 ? new Color(0.7f, 0.65f, 0.5f) : tabs[i % 3], 0.2f), "Folder",
+                Box(g, new Vector3(8.2f, y + 0.765f + i * 0.012f, 9.45f), new Vector3(0.3f, 0.01f, 0.22f), M(i % 2 == 0 ? new Color(0.7f, 0.65f, 0.5f) : tabs[i % 3], 0.2f), "Folder",
                     new Vector3(0f, i * 4f - 6f, 0f));
             var kit = ArenaArt.Group("RepairKit", g, new Vector3(8.25f, y + 0.755f, 9.15f));
             Box(kit, Vector3.zero, new Vector3(0.3f, 0.004f, 0.18f), fabric2, "Cloth");
@@ -416,6 +421,7 @@ namespace Shepherd.Exploration.Case01
             Cyl(desk, new Vector3(0f, 0.015f, 0f), new Vector3(0.14f, 0.015f, 0.14f), metal, "Base");
             Cyl(desk, new Vector3(0f, 0.2f, 0f), new Vector3(0.02f, 0.2f, 0.02f), metal, "Arm", new Vector3(0f, 0f, 12f));
             Cyl(desk, new Vector3(0.06f, 0.4f, 0f), new Vector3(0.14f, 0.06f, 0.14f), glow, "Head", new Vector3(0f, 0f, 30f));
+            L.LampLights.Add(ArenaArt.PointLight(desk, new Vector3(0.1f, 0.3f, -0.15f), new Color(1f, 0.9f, 0.75f), 2.4f, 0.55f, false));
             var pic = ArenaArt.Group("OldPhoto", g, new Vector3(7.3f, y + 1.35f, 9.91f));
             Box(pic, Vector3.zero, new Vector3(0.24f, 0.18f, 0.02f), frameMat, "Frame");
             Box(pic, new Vector3(0f, 0f, -0.012f), new Vector3(0.2f, 0.14f, 0.004f), paperOld, "Print");
@@ -430,17 +436,18 @@ namespace Shepherd.Exploration.Case01
             // 南牆壁燈。
             Box(g, new Vector3(5.75f, y + 1.9f, 0.1f), new Vector3(0.08f, 0.2f, 0.06f), metal, "SconceBracket");
             Cyl(g, new Vector3(5.75f, y + 2.05f, 0.16f), new Vector3(0.14f, 0.08f, 0.14f), glow, "SconceShade");
+            L.LampLights.Add(ArenaArt.PointLight(g, new Vector3(5.75f, y + 1.95f, 0.35f), new Color(0.9f, 0.88f, 1f), 3f, 0.45f, false));
             // 南牆小置物架與花瓶。
             Box(g, new Vector3(5.55f, y + 1.35f, 0.16f), new Vector3(0.5f, 0.03f, 0.18f), darkWood, "WallShelf");
-            Cyl(g, new Vector3(5.45f, y + 1.46f, 0.16f), new Vector3(0.08f, 0.08f, 0.08f), ArenaArt.Mat(new Color(0.35f, 0.5f, 0.6f), 0.7f), "Vase");
+            Cyl(g, new Vector3(5.45f, y + 1.46f, 0.16f), new Vector3(0.08f, 0.08f, 0.08f), M(new Color(0.35f, 0.5f, 0.6f), 0.7f), "Vase");
             Prim(PrimitiveType.Sphere, g, new Vector3(5.66f, y + 1.42f, 0.16f), new Vector3(0.09f, 0.09f, 0.09f), pot, "Ornament");
             // 西牆掛畫：H2 歪斜並往下滑。
             d.LandingPicture = ArenaArt.Group("LandingPicture", g, new Vector3(5.09f, y + 1.65f, 4.0f));
             // 正面（本地 -z）朝東，面向樓梯平台。
             d.LandingPicture.localRotation = Quaternion.Euler(0f, -90f, 0f);
             Box(d.LandingPicture, Vector3.zero, new Vector3(0.7f, 0.5f, 0.03f), frameMat, "Frame");
-            Box(d.LandingPicture, new Vector3(0f, 0f, -0.018f), new Vector3(0.62f, 0.42f, 0.004f), ArenaArt.Mat(new Color(0.35f, 0.45f, 0.4f), 0.1f), "Landscape");
-            Box(d.LandingPicture, new Vector3(0.1f, -0.06f, -0.022f), new Vector3(0.3f, 0.12f, 0.004f), ArenaArt.Mat(new Color(0.55f, 0.5f, 0.35f), 0.1f), "Hill");
+            Box(d.LandingPicture, new Vector3(0f, 0f, -0.018f), new Vector3(0.62f, 0.42f, 0.004f), M(new Color(0.35f, 0.45f, 0.4f), 0.1f), "Landscape");
+            Box(d.LandingPicture, new Vector3(0.1f, -0.06f, -0.022f), new Vector3(0.3f, 0.12f, 0.004f), M(new Color(0.55f, 0.5f, 0.35f), 0.1f), "Hill");
             d.PictureHomePos = d.LandingPicture.localPosition;
             d.PictureHomeRot = d.LandingPicture.localRotation;
             d.PictureMovedPos = d.PictureHomePos + new Vector3(0f, -0.22f, -0.3f);
@@ -460,7 +467,7 @@ namespace Shepherd.Exploration.Case01
             var c = Case01HouseBuilder.MezzCenter;
             var g = ArenaArt.Group("EvidenceFP001", root, c + new Vector3(-2.6f, 0f, 1.2f));
             Solid(PrimitiveType.Cylinder, g, new Vector3(0f, 0.45f, 0f), new Vector3(0.18f, 0.45f, 0.18f), frameMat, "Stand");
-            Cyl(g, new Vector3(0f, 0.91f, 0f), new Vector3(0.4f, 0.02f, 0.4f), ArenaArt.Mat(new Color(0.3f, 0.25f, 0.2f), 0.4f, ArenaArt.LampWarm * 0.5f), "Plate");
+            Cyl(g, new Vector3(0f, 0.91f, 0f), new Vector3(0.4f, 0.02f, 0.4f), M(new Color(0.3f, 0.25f, 0.2f), 0.4f, ArenaArt.LampWarm * 0.5f), "Plate");
             d.EvidenceModel = BuildPhotoModel(g);
             d.EvidenceModel.localPosition = new Vector3(0f, 1.2f, 0f);
             // 正面朝向夾層中央（核的方向）。
@@ -474,20 +481,25 @@ namespace Shepherd.Exploration.Case01
         /// FP-001 照片模型：正面（本地 -z）兩人並肩、第二人只剩空白輪廓；背面（+z）鉛筆字與撕掉的一角。
         /// 正反兩面都是真的幾何與文字，檢視模式可轉到背面看。
         /// </summary>
+        private static Material PaperCard()
+        {
+            return P != null ? P.PaperStandard(new Color(0.9f, 0.87f, 0.78f)) : ArenaArt.Mat(new Color(0.88f, 0.85f, 0.76f), 0.1f);
+        }
+
         public static Transform BuildPhotoModel(Transform parent)
         {
             var m = ArenaArt.Group("FP001_Photo", parent, Vector3.zero);
-            Box(m, Vector3.zero, new Vector3(0.3f, 0.22f, 0.012f), ArenaArt.Mat(new Color(0.88f, 0.85f, 0.76f), 0.1f), "Card");
+            Box(m, Vector3.zero, new Vector3(0.3f, 0.22f, 0.012f), PaperCard(), "Card");
             // 正面。
-            Box(m, new Vector3(0f, 0.01f, -0.007f), new Vector3(0.26f, 0.17f, 0.002f), ArenaArt.Mat(new Color(0.55f, 0.6f, 0.58f), 0.1f), "Image");
-            Box(m, new Vector3(0f, -0.045f, -0.009f), new Vector3(0.26f, 0.06f, 0.002f), ArenaArt.Mat(new Color(0.48f, 0.4f, 0.32f), 0.1f), "Floor");
-            Box(m, new Vector3(-0.045f, 0.0f, -0.011f), new Vector3(0.035f, 0.11f, 0.002f), ArenaArt.Mat(new Color(0.2f, 0.17f, 0.17f), 0.1f), "FigureA");
-            var outline = ArenaArt.Mat(new Color(0.92f, 0.92f, 0.88f), 0.1f, new Color(0.25f, 0.25f, 0.22f));
+            Box(m, new Vector3(0f, 0.01f, -0.007f), new Vector3(0.26f, 0.17f, 0.002f), M(new Color(0.55f, 0.6f, 0.58f), 0.1f), "Image");
+            Box(m, new Vector3(0f, -0.045f, -0.009f), new Vector3(0.26f, 0.06f, 0.002f), M(new Color(0.48f, 0.4f, 0.32f), 0.1f), "Floor");
+            Box(m, new Vector3(-0.045f, 0.0f, -0.011f), new Vector3(0.035f, 0.11f, 0.002f), M(new Color(0.2f, 0.17f, 0.17f), 0.1f), "FigureA");
+            var outline = M(new Color(0.92f, 0.92f, 0.88f), 0.1f, new Color(0.25f, 0.25f, 0.22f));
             Box(m, new Vector3(0.025f, 0.0f, -0.011f), new Vector3(0.004f, 0.1f, 0.002f), outline, "OutlineL");
             Box(m, new Vector3(0.055f, 0.0f, -0.011f), new Vector3(0.004f, 0.1f, 0.002f), outline, "OutlineR");
             Box(m, new Vector3(0.04f, 0.05f, -0.011f), new Vector3(0.034f, 0.004f, 0.002f), outline, "OutlineTop");
             // 背面：鉛筆字＋撕掉的一角。
-            Box(m, new Vector3(0.12f, -0.085f, 0.0065f), new Vector3(0.06f, 0.05f, 0.002f), ArenaArt.Mat(new Color(0.08f, 0.07f, 0.06f), 0.1f), "TornCorner",
+            Box(m, new Vector3(0.12f, -0.085f, 0.0065f), new Vector3(0.06f, 0.05f, 0.002f), M(new Color(0.08f, 0.07f, 0.06f), 0.1f), "TornCorner",
                 new Vector3(0f, 0f, 35f));
             var back = Case01Hud.WorldLabel(m, new Vector3(-0.01f, 0.02f, 0.0075f), 180f, "週日。兩個人。\n<size=18>（第二行的字被擦掉了）</size>", 28, new Color(0.25f, 0.22f, 0.2f), 300f);
             back.rectTransform.parent.localScale = Vector3.one * 0.0008f;

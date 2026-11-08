@@ -1,11 +1,19 @@
-# 2026-11-08｜Case01 公開 Demo 首戰：正式戰鬥 UI＋情境式教學（最新）
+# 2026-11-08｜Case01 v0.3 實作進度（本段最新）
+**A. 材質／燈光（已實作、已測）**：管線確認為 **Built-in Render Pipeline、Gamma 色彩空間、無 URP／後處理**。新增 `unity/Assets/Exploration/Case01Art/`：`Shaders/Case01Triplanar.shader`（Built-in Standard 光照的世界座標 triplanar Surface Shader，解決 Primitive UV 拉伸）、`Textures/`（22 張程序生成 PNG：木地板、家具木紋、灰泥、壁紙、漆面木作、織物、紙、書布、紙箱、石磚、磚牆、暗灰泥、裂隙、核脈絡、釉面，含 8 張法線貼圖）、`Materials/`（39 個 `M_*.mat`）、`Resources/Case01ArtSet.asset`（執行時載入）。重建：選單 `Shepherd/Case01/重建美術素材` 或 `-executeMethod Shepherd.Exploration.Editor.Case01ArtGenerator.Generate`（全部自製、無第三方授權）。程式：`Case01Palette`（共用資產＋本次建置擁有的衍生材質，F1／跳轉時釋放；核與裂隙線用獨立副本，不改共用資產）、`Case01ArtSet`。房屋加踢腳線、門框（第三扇門除外）、窗框／窗櫺／窗台、一樓灰泥天花板、各房吊燈（燈具與光源位置一致）、閱讀燈／檯燈／壁燈補光；環境光改三色（Trilight），離開時還原。燈光依 H 階段調整：H1 餐廳光色偏移並慢慢起伏、客廳略暗；H2 書房轉冷變暗（線索仍可讀）、樓梯平台低頻偏紫；H3 回到基準暖光（殘留物件不變）。`Case01HouseQA` Inspector 新增「降低閃爍」「驚嚇強度」「即時陰影」。只有餐廳、客廳主燈有柔和陰影。
+**測試（Stage A）**：EditMode 212/212（新增 `Case01ArtTests` 6 項）、PlayMode 4/4；Unity 2022.3.18f1 batchmode，無編譯錯誤或警告。
+
+
+---
+
+# 2026-11-08｜Case01 公開 Demo 首戰：正式戰鬥 UI＋情境式教學
 使用者確認：現有戰鬥規則基本清楚，但目前 3D Combat Lab HUD 太像測試版；公開 Demo 的戰鬥必須是核心玩法與新手教學，**允許大幅重做戰鬥介面呈現，但嚴禁私改規則與卡牌數值**。
 新增 Claude Code 實作任務：`docs/story/case01_seventeenth_door/CASE01_COMBAT_DEMO_UI_TUTORIAL_CLAUDE_TASK_V0_3.md`。已讀當前 `unity/Assets/Battle/UI/Arena/CombatArenaView.cs`、`CombatArenaView.Hud.cs`、`docs/UNITY_BATTLE_V0.1_SPEC.md`：目前 7 手牌／3 AP／三學派／序列／承接／三連／真實預估及敵方預告已存在。工作為 Case01 專屬正式 HUD、首戰四節點非強制教學、術式演出、獨立兩敵 QA 模式。保持既有 CombatLab3D 與 AnomalyStreetDemo、BattleController / RoundResolver、Case01 住宅與核修復流程不變。
 **本輪只提交文件，未改 Unity 程式或執行測試，也未呼叫 Claude Code 實作**。其任務與同日的材質光影、失序體形成及核修復 v0.3 文檔並列，Claude 須拆成可獨立測試與提交的增量，避免同時碰同檔覆蓋。
 
+
 ---
 
-# 2026-11-08｜Case01 真人試玩後 v0.3 開發任務（最新優先）
+# 2026-11-08｜Case01 真人試玩後 v0.3 開發任務
 使用者已實際試玩室內 v0.2：音效關閉後驚嚇感大幅下降；一般調查仍可保留文字與短註解、僅 FP-001 做旋轉檢視；房屋需要正式材質／貼圖／燈光精修；失序體希望由夾層的書籍／照片／紙張凝聚成形，配特殊音效／短音樂，但**暫不追逐玩家**。核修復目前存在四問題：簡單、跑腿、成果回饋弱、因果不易理解。
 本輪已新增並同步 **兩份供 Claude Code 實作的 v0.3 任務規格**：
 - `docs/story/case01_seventeenth_door/CASE01_ART_PASS_AND_MANIFESTATION_CLAUDE_TASK_V0_3.md`：先做 Case01 材質光影 Art Pass，再做失序體凝聚動畫／音效；保留溫馨家居→異變侵蝕→局部修復的階段性美術；不更改戰鬥、房屋布局、現有修核規則。

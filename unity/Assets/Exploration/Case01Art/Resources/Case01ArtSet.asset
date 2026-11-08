@@ -1,0 +1,94 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d36c8b02407d64343b2777830ab30b08, type: 3}
+  m_Name: Case01ArtSet
+  m_EditorClassIdentifier: 
+  Materials:
+  - Key: floor_wood
+    Material: {fileID: 2100000, guid: e3af318e787fb5a4baaf794122582b71, type: 2}
+  - Key: floor_wood_up
+    Material: {fileID: 2100000, guid: 8c1c5c8f60418434d94c1a089b2a4192, type: 2}
+  - Key: wall_plaster
+    Material: {fileID: 2100000, guid: b15876e92417d3248bc34cc7062b45de, type: 2}
+  - Key: wall_paper
+    Material: {fileID: 2100000, guid: b61e1f6681cbe6f45a097481ad053f37, type: 2}
+  - Key: ceiling
+    Material: {fileID: 2100000, guid: ac8fc19c3af8c5745ab91a1e49c58efd, type: 2}
+  - Key: trim_paint
+    Material: {fileID: 2100000, guid: f50b9f5a8a92aa7418b72eb4d043c594, type: 2}
+  - Key: wood_dark
+    Material: {fileID: 2100000, guid: d7f419955656c65478e9586e7baa4397, type: 2}
+  - Key: wood_warm
+    Material: {fileID: 2100000, guid: 88296383bde53544181b155573532447, type: 2}
+  - Key: frame_wood
+    Material: {fileID: 2100000, guid: c2d969cf266613a4c83e3f9d4154d50b, type: 2}
+  - Key: fabric_blue
+    Material: {fileID: 2100000, guid: 122d41059e3d7c04f9a038311024de8b, type: 2}
+  - Key: fabric_red
+    Material: {fileID: 2100000, guid: 5bdccdc8b79822a428704434712337fc, type: 2}
+  - Key: fabric_green
+    Material: {fileID: 2100000, guid: 7abe5e676eba42241a3228132b52c41f, type: 2}
+  - Key: fabric_cream
+    Material: {fileID: 2100000, guid: 99bbb34d038aacb43a17c4f43e57756d, type: 2}
+  - Key: paper
+    Material: {fileID: 2100000, guid: 426eda66e2a2efe47ad4308878da4901, type: 2}
+  - Key: paper_old
+    Material: {fileID: 2100000, guid: 9252b711fc805344cb881926e4fa4b7e, type: 2}
+  - Key: book_0
+    Material: {fileID: 2100000, guid: b80ac73b2bfee61499d78fb6e59eb5d4, type: 2}
+  - Key: book_1
+    Material: {fileID: 2100000, guid: 8c8be37041ff7da47b2bdaf4e6ae2d4b, type: 2}
+  - Key: book_2
+    Material: {fileID: 2100000, guid: b4f09e401c920da4a95de1d8f3e38e26, type: 2}
+  - Key: book_3
+    Material: {fileID: 2100000, guid: c2c7d018ccaab764389176d6bc79000a, type: 2}
+  - Key: book_4
+    Material: {fileID: 2100000, guid: c273a6c60553df943b88525c51026c29, type: 2}
+  - Key: book_5
+    Material: {fileID: 2100000, guid: 11594629f2358ec4c85c416081d3a722, type: 2}
+  - Key: book_6
+    Material: {fileID: 2100000, guid: 9ef7540b595dcfe43a78966fbc6dfe7c, type: 2}
+  - Key: cardboard
+    Material: {fileID: 2100000, guid: fc2dcde965a8f2c47a30709866b45243, type: 2}
+  - Key: ceramic
+    Material: {fileID: 2100000, guid: 79fa9a6b6e4e94e4f96cfcaf8112671d, type: 2}
+  - Key: brass
+    Material: {fileID: 2100000, guid: 77372346a46695342aaff1d90f936129, type: 2}
+  - Key: metal
+    Material: {fileID: 2100000, guid: 83d80bfd6cff8104399647d29a92408b, type: 2}
+  - Key: glass_night
+    Material: {fileID: 2100000, guid: f78203dbb0d19194cba59b612d9df9ba, type: 2}
+  - Key: pot
+    Material: {fileID: 2100000, guid: c91948760cc2e9a439b1f29f17f89e42, type: 2}
+  - Key: leaf
+    Material: {fileID: 2100000, guid: 7f8d14e421ae4774aa4270da55650e9b, type: 2}
+  - Key: lamp_shade
+    Material: {fileID: 2100000, guid: abf62846083b22d40a0aba8359ed3dfa, type: 2}
+  - Key: glow
+    Material: {fileID: 2100000, guid: c1f43de9f7cc6264f90eff2566a03d4d, type: 2}
+  - Key: mezz_floor
+    Material: {fileID: 2100000, guid: 84cfc830a5bee6a479b59c5cbbab3eaf, type: 2}
+  - Key: mezz_wall
+    Material: {fileID: 2100000, guid: 63a98dbfe06955b4cb34c70678f38714, type: 2}
+  - Key: core_body
+    Material: {fileID: 2100000, guid: 59afca36635cb6744807007bfd771a35, type: 2}
+  - Key: rift
+    Material: {fileID: 2100000, guid: ad79c0fc02c68094bacaafd0192906fb, type: 2}
+  - Key: frame_glow
+    Material: {fileID: 2100000, guid: 7c00c656f982d1640b1a661107e44663, type: 2}
+  - Key: crystal
+    Material: {fileID: 2100000, guid: 4128e516c7c11974ab6d38fc4c7ac492, type: 2}
+  - Key: court_floor
+    Material: {fileID: 2100000, guid: 1e15f4ba03152af4886caeb1b27654b9, type: 2}
+  - Key: court_wall
+    Material: {fileID: 2100000, guid: 7b6e600ead8140748ab14028e654b7f7, type: 2}
+  PaperTexture: {fileID: 2800000, guid: 375c2be31b740394ebca827216033ef9, type: 3}

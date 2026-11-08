@@ -50,6 +50,23 @@ namespace Shepherd.Exploration.Case01
         [Tooltip("按 Play 時的起始檢查點（QA 調整用；正常流程為 S00）。")]
         [SerializeField] private Case01Checkpoint startCheckpoint = Case01Checkpoint.S00;
 
+        [Header("v0.3 美術／舒適度")]
+        [Tooltip("降低燈光閃爍幅度（異常期間的燈光仍會變色，但起伏較小）。")]
+        [SerializeField] private bool reduceFlicker;
+
+        [Tooltip("驚嚇強度：影響效果音音量與燈光起伏。0＝最低，1＝預設。")]
+        [Range(0f, 1f)] [SerializeField] private float scareIntensity = 1f;
+
+        [Tooltip("餐廳、客廳主燈的即時陰影（低規格可關閉）。")]
+        [SerializeField] private bool lightShadows = true;
+
+        public bool ReduceFlicker { get { return reduceFlicker; } set { reduceFlicker = value; } }
+        public float ScareIntensity { get { return scareIntensity; } set { scareIntensity = Mathf.Clamp01(value); } }
+        public bool LightShadowsEnabled { get { return lightShadows; } set { lightShadows = value; } }
+
+        private Case01Palette palette;
+        public Case01Palette Palette { get { return palette; } }
+
         private bool built;
         private bool playMode;
         private CombatLabScenario scenarioOverride;
@@ -120,6 +137,11 @@ namespace Shepherd.Exploration.Case01
 
         private void OnDestroy()
         {
+            if (palette != null)
+            {
+                palette.Dispose();
+                palette = null;
+            }
             if (playMode)
             {
                 RestoreAtmosphere();
@@ -171,7 +193,7 @@ namespace Shepherd.Exploration.Case01
             skyLight = skyGo.AddComponent<Light>();
             skyLight.type = LightType.Directional;
             skyLight.color = new Color(0.62f, 0.66f, 0.82f);
-            skyLight.intensity = 0.28f;
+            skyLight.intensity = 0.16f;
             skyLight.shadows = LightShadows.None;
 
             hud = new Case01Hud(transform);
@@ -208,7 +230,9 @@ namespace Shepherd.Exploration.Case01
         {
             EndInspect();
             content = ArenaArt.Group("Case01Content", transform, Vector3.zero);
-            layout = Case01HouseBuilder.Build(content);
+            if (palette != null) palette.Dispose();
+            palette = new Case01Palette();
+            layout = Case01HouseBuilder.Build(content, palette);
             flow = Case01Flow.ForCheckpoint(cp);
             var pose = CheckpointPose(layout, cp);
             player = FirstPersonController.Create(content, pose.Position, pose.Yaw);
@@ -921,8 +945,6 @@ namespace Shepherd.Exploration.Case01
             var mezzColor = flow.CoreStabilized ? new Color(1f, 0.85f, 0.65f) : flow.DefenseActive ? new Color(0.95f, 0.4f, 0.5f) : new Color(0.6f, 0.55f, 0.85f);
             foreach (var l in L.MezzLights) l.color = mezzColor;
             foreach (var m in L.MezzLineMats) ArenaArt.SetEmission(m, (flow.CoreStabilized ? ArenaArt.LampWarm : ArenaArt.Rift) * 1.8f);
-            var houseColor = flow.DefenseActive ? new Color(0.78f, 0.74f, 0.95f) : ArenaArt.LampWarm;
-            foreach (var l in L.HouseLights) if (l != L.LandingLight) l.color = houseColor;
             if (L.CourtyardLight != null) L.CourtyardLight.intensity = flow.CourtyardTearOpen ? 0.9f : 2.2f;
             if (encounterGroup != null) encounterGroup.gameObject.SetActive(flow.CanStartBattle && encounter != null && !encounter.Defeated);
 
@@ -966,17 +988,60 @@ namespace Shepherd.Exploration.Case01
                 if (Mode == Case01Mode.Defense) target *= Quaternion.Euler(Mathf.Sin(clock * 9f + i) * 8f, Mathf.Sin(clock * 7f + i) * 12f, 0f);
                 layout.Overlaps[i].localRotation = Quaternion.Slerp(layout.Overlaps[i].localRotation, target, 1f - Mathf.Exp(-dt * 3f));
             }
-            // 樓梯平台的燈：異常期間閃爍偏紫，歸位後恢復。
-            bool uneasy = ((flow.WrongConnectionArmed || flow.WrongConnectionActive) && !flow.StairRouteRestored) || flow.DefenseActive;
-            if (uneasy)
+            UpdateLights();
+        }
+
+        // ---------------- v0.3 燈光（依房間基準色計算，不累積漂移；低頻、可降低閃爍） ----------------
+
+        /// <summary>閃爍強度：關閉「降低閃爍」時 1，開啟時 0.25；再乘上驚嚇強度。</summary>
+        public float FlickerScale { get { return (reduceFlicker ? 0.25f : 1f) * Mathf.Lerp(0.3f, 1f, scareIntensity); } }
+
+        private void UpdateLights()
+        {
+            var L = layout;
+            var d = L.Decor;
+            float flick = FlickerScale;
+            foreach (var kv in L.RoomLights)
             {
-                layout.LandingLight.color = Color.Lerp(ArenaArt.LampWarm, ArenaArt.Rift, 0.55f);
-                layout.LandingLight.intensity = 0.7f + 0.35f * Mathf.PerlinNoise(clock * 6f, 0.3f);
-            }
-            else
-            {
-                layout.LandingLight.color = ArenaArt.LampWarm;
-                layout.LandingLight.intensity = 1.0f;
+                var room = kv.Key;
+                var light = kv.Value;
+                var c = L.RoomLightColor[room];
+                float i = L.RoomLightIntensity[room];
+                switch (room)
+                {
+                    case Case01Room.Dining:
+                        // H1：光色略偏、亮度慢慢起伏（週期約 10 秒）。
+                        if (d.DiningChanged && !d.DiningStable)
+                        {
+                            c = Color.Lerp(c, new Color(0.92f, 0.86f, 0.66f), 0.45f);
+                            i *= 0.82f + 0.06f * flick * Mathf.Sin(clock * 0.6f);
+                        }
+                        break;
+                    case Case01Room.Living:
+                        if (d.LivingChanged && !d.LivingStable) i *= 0.88f;
+                        break;
+                    case Case01Room.Study:
+                        // H2：書房轉冷、變暗，但線索仍看得清楚。
+                        if (d.StudyChanged && !d.StudyStable)
+                        {
+                            c = Color.Lerp(c, new Color(0.72f, 0.78f, 1f), 0.6f);
+                            i *= 0.82f;
+                        }
+                        break;
+                    case Case01Room.Landing:
+                        bool uneasy = ((flow.WrongConnectionArmed || flow.WrongConnectionActive) && !flow.StairRouteRestored) || flow.DefenseActive;
+                        if (uneasy)
+                        {
+                            c = Color.Lerp(c, ArenaArt.Rift, 0.5f);
+                            i = 0.8f + 0.3f * flick * (Mathf.PerlinNoise(clock * 1.6f, 0.3f) - 0.5f);
+                        }
+                        break;
+                }
+                // 反制後、修復前：整屋略冷（不是全屋藍紫）。
+                if (flow.DefenseActive && room != Case01Room.Landing) c = Color.Lerp(c, new Color(0.78f, 0.76f, 0.95f), 0.4f);
+                light.color = c;
+                light.intensity = i;
+                light.shadows = lightShadows && light.shadowStrength > 0f && (room == Case01Room.Dining || room == Case01Room.Living) ? LightShadows.Soft : LightShadows.None;
             }
         }
 
@@ -1063,9 +1128,16 @@ namespace Shepherd.Exploration.Case01
                 savedAmbientMode = RenderSettings.ambientMode;
                 savedAmbient = RenderSettings.ambientLight;
                 savedSkybox = RenderSettings.skybox;
+                savedSky = RenderSettings.ambientSkyColor;
+                savedEquator = RenderSettings.ambientEquatorColor;
+                savedGround = RenderSettings.ambientGroundColor;
             }
             RenderSettings.fog = false;
-            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
+            // v0.3：三色環境光（上方略亮、地面較暗），讓房間有方向對比，不再是平均的灰光。
+            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Trilight;
+            RenderSettings.ambientSkyColor = new Color(0.27f, 0.26f, 0.29f);
+            RenderSettings.ambientEquatorColor = new Color(0.2f, 0.18f, 0.17f);
+            RenderSettings.ambientGroundColor = new Color(0.09f, 0.08f, 0.075f);
             RenderSettings.ambientLight = new Color(0.30f, 0.29f, 0.32f);
             RenderSettings.skybox = null;
         }
@@ -1078,6 +1150,11 @@ namespace Shepherd.Exploration.Case01
             RenderSettings.ambientMode = savedAmbientMode;
             RenderSettings.ambientLight = savedAmbient;
             RenderSettings.skybox = savedSkybox;
+            RenderSettings.ambientSkyColor = savedSky;
+            RenderSettings.ambientEquatorColor = savedEquator;
+            RenderSettings.ambientGroundColor = savedGround;
         }
+
+        private Color savedSky, savedEquator, savedGround;
     }
 }

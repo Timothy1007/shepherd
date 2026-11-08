@@ -84,6 +84,13 @@ namespace Shepherd.Exploration.Case01
         public readonly List<Transform> Floating = new List<Transform>();
         public readonly List<Vector3> FloatingHome = new List<Vector3>();
 
+        /// <summary>本次建置的材質（重建／離開時 Dispose）。</summary>
+        public Case01Palette Palette;
+        /// <summary>各房間的主燈與其基準顏色／亮度（H1～H3 依此調整，不累積漂移）。</summary>
+        public readonly Dictionary<Case01Room, Light> RoomLights = new Dictionary<Case01Room, Light>();
+        public readonly Dictionary<Case01Room, Color> RoomLightColor = new Dictionary<Case01Room, Color>();
+        public readonly Dictionary<Case01Room, float> RoomLightIntensity = new Dictionary<Case01Room, float>();
+        public readonly List<Light> LampLights = new List<Light>();
         public Transform DiningChairNorth;
         public Case01Decor Decor;
 
@@ -125,21 +132,27 @@ namespace Shepherd.Exploration.Case01
         public const float StairZ0 = 1.0f;
         public const float StairZ1 = 4.6f;
 
+        private static Case01Palette P;
+        private static bool trimWalls;
         private static Material wallMat, wallUp, floorWood, ceilMat, trim, wood, darkWood, fabric, white, metal, paper, glassNight;
         private static Material riftMat, frameGlow, membraneMat, mezzFloor, mezzWall, courtFloor, courtWall, crystal;
 
-        public static Case01HouseLayout Build(Transform parent)
+        public static Case01HouseLayout Build(Transform parent, Case01Palette palette = null)
         {
             var L = new Case01HouseLayout();
             var root = ArenaArt.Group("Case01House", parent, Vector3.zero);
             L.Root = root;
             L.Spawn = new Case01Pose(SpawnPoint, 0f);
+            L.Palette = palette ?? new Case01Palette();
+            P = L.Palette;
             Materials();
 
             BuildRooms(L);
+            trimWalls = true;
             BuildGroundFloor(L, ArenaArt.Group("GroundFloor", root, Vector3.zero));
             BuildStairs(L, ArenaArt.Group("Stairs", root, Vector3.zero));
             BuildSecondFloor(L, ArenaArt.Group("SecondFloor", root, Vector3.zero));
+            trimWalls = false;
             BuildMezzanine(L, ArenaArt.Group("Mezzanine", root, Vector3.zero));
             BuildCourtyard(L, ArenaArt.Group("Courtyard", root, Vector3.zero));
 
@@ -155,28 +168,35 @@ namespace Shepherd.Exploration.Case01
             return L;
         }
 
+        /// <summary>從 Case01 材質資產取得主要材質（共用資產，不在執行時修改）。</summary>
         private static void Materials()
         {
-            wallMat = ArenaArt.Mat(new Color(0.55f, 0.52f, 0.47f), 0.05f);
-            wallUp = ArenaArt.Mat(new Color(0.47f, 0.50f, 0.52f), 0.05f);
-            floorWood = ArenaArt.Mat(new Color(0.33f, 0.24f, 0.17f), 0.25f);
-            ceilMat = ArenaArt.Mat(new Color(0.62f, 0.61f, 0.58f), 0.02f);
-            trim = ArenaArt.Mat(new Color(0.85f, 0.83f, 0.78f), 0.2f);
-            wood = ArenaArt.Mat(new Color(0.42f, 0.29f, 0.18f), 0.2f);
-            darkWood = ArenaArt.Mat(new Color(0.22f, 0.15f, 0.10f), 0.25f);
-            fabric = ArenaArt.Mat(new Color(0.28f, 0.33f, 0.40f), 0.05f);
-            white = ArenaArt.Mat(new Color(0.9f, 0.9f, 0.88f), 0.5f);
-            metal = ArenaArt.Mat(new Color(0.5f, 0.52f, 0.55f), 0.6f, null, 0.6f);
-            paper = ArenaArt.Mat(new Color(0.93f, 0.9f, 0.8f), 0.05f, new Color(0.08f, 0.08f, 0.06f));
-            glassNight = ArenaArt.Mat(new Color(0.04f, 0.06f, 0.1f), 0.9f, new Color(0.05f, 0.08f, 0.16f));
-            riftMat = ArenaArt.Mat(new Color(0.12f, 0.03f, 0.2f), 0.9f, ArenaArt.Rift * 2.4f);
-            frameGlow = ArenaArt.Mat(new Color(0.2f, 0.08f, 0.3f), 0.8f, ArenaArt.Rift * 1.6f);
-            membraneMat = ArenaArt.FadeMat(new Color(0.35f, 0.15f, 0.6f, 0.35f), ArenaArt.Rift * 0.6f);
-            mezzFloor = ArenaArt.Mat(new Color(0.18f, 0.16f, 0.2f), 0.3f);
-            mezzWall = ArenaArt.Mat(new Color(0.3f, 0.28f, 0.33f), 0.05f);
-            courtFloor = ArenaArt.Mat(new Color(0.22f, 0.21f, 0.23f), 0.25f);
-            courtWall = ArenaArt.Mat(new Color(0.32f, 0.27f, 0.25f), 0.05f);
-            crystal = ArenaArt.Mat(new Color(0.2f, 0.06f, 0.3f), 0.95f, ArenaArt.Rift * 1.3f, 0.2f);
+            wallMat = P.Get("wall_plaster");
+            wallUp = P.Get("wall_paper");
+            floorWood = P.Get("floor_wood");
+            ceilMat = P.Get("ceiling");
+            trim = P.Get("trim_paint");
+            wood = P.Get("wood_warm");
+            darkWood = P.Get("wood_dark");
+            fabric = P.Get("fabric_blue");
+            white = P.Get("ceramic");
+            metal = P.Get("brass");
+            paper = P.Get("paper");
+            glassNight = P.Get("glass_night");
+            riftMat = P.Get("rift");
+            frameGlow = P.Get("frame_glow");
+            membraneMat = P.Own(ArenaArt.FadeMat(new Color(0.35f, 0.15f, 0.6f, 0.35f), ArenaArt.Rift * 0.6f));
+            mezzFloor = P.Get("mezz_floor");
+            mezzWall = P.Get("mezz_wall");
+            courtFloor = P.Get("court_floor");
+            courtWall = P.Get("court_wall");
+            crystal = P.Get("crystal");
+        }
+
+        /// <summary>本次建置擁有的純色小道具材質（重建時釋放）。</summary>
+        private static Material M(Color c, float smooth = 0.15f, Color? emission = null, float metallic = 0f)
+        {
+            return P.Own(ArenaArt.Mat(c, smooth, emission, metallic));
         }
 
         // ---------------- 房間範圍 ----------------
@@ -227,7 +247,7 @@ namespace Shepherd.Exploration.Case01
             Hotspot(L, g, Case01Ids.FrontDoor, "前門（QA 返回／重來）", new Vector3(7.1f, 1.1f, 0.15f), new Vector3(1.1f, 2.0f, 0.12f));
             L.FrontDoorLabel = Case01Hud.WorldLabel(g, new Vector3(7.1f, 2.5f, 0.09f), 180f, "QA 返回／重來", 26, new Color(1f, 0.85f, 0.5f), 220f);
             Solid(g, new Vector3(5.6f, 0.45f, 0.35f), new Vector3(0.8f, 0.9f, 0.4f), wood, "ShoeCabinet");
-            L.HouseLights.Add(ArenaArt.PointLight(g, new Vector3(7f, 2.5f, 2.5f), ArenaArt.LampWarm, 7f, 1.1f, false));
+            RoomLight(L, Case01Room.Entrance, g, new Vector3(7f, 2.35f, 2.5f), new Color(1f, 0.78f, 0.52f), 1.0f, false, 2.8f);
 
             // ---- 廚房 ----
             Solid(g, new Vector3(0.45f, 0.45f, 2.3f), new Vector3(0.7f, 0.9f, 3.0f), white, "Counter");
@@ -237,14 +257,14 @@ namespace Shepherd.Exploration.Case01
             Prim(PrimitiveType.Cylinder, g, new Vector3(0.55f, 0.95f, 1.8f), new Vector3(0.08f, 0.05f, 0.08f), white, "Cup");
             Prim(PrimitiveType.Cylinder, g, new Vector3(0.6f, 0.95f, 2.05f), new Vector3(0.08f, 0.05f, 0.08f), white, "Cup");
             Hotspot(L, g, Case01Ids.Tea, "茶杯", new Vector3(0.6f, 1.0f, 1.95f), new Vector3(0.5f, 0.3f, 0.6f));
-            L.HouseLights.Add(ArenaArt.PointLight(g, new Vector3(2.5f, 2.5f, 2.5f), ArenaArt.LampWarm, 7f, 0.9f, false));
+            RoomLight(L, Case01Room.Kitchen, g, new Vector3(2.5f, 2.35f, 2.5f), new Color(1f, 0.86f, 0.66f), 0.95f, false, 2.8f);
 
             // ---- 客廳 ----
             Solid(g, new Vector3(2.5f, 0.4f, 9.3f), new Vector3(2.2f, 0.8f, 0.8f), fabric, "Sofa");
             Solid(g, new Vector3(2.5f, 0.2f, 8.1f), new Vector3(1.2f, 0.4f, 0.6f), wood, "CoffeeTable");
             Deco(g, new Vector3(0.09f, 1.5f, 6.5f), new Vector3(0.02f, 0.55f, 0.42f), paper, "Calendar");
             Hotspot(L, g, Case01Ids.Calendar, "日曆", new Vector3(0.15f, 1.5f, 6.5f), new Vector3(0.12f, 0.7f, 0.6f));
-            L.HouseLights.Add(ArenaArt.PointLight(g, new Vector3(2.5f, 2.5f, 7.5f), ArenaArt.LampWarm, 7f, 0.9f, false));
+            RoomLight(L, Case01Room.Living, g, new Vector3(2.5f, 2.3f, 7.5f), new Color(1f, 0.74f, 0.46f), 1.0f, true, 2.8f);
 
             // ---- 餐廳 ----
             var table = ArenaArt.Group("DiningTable", g, new Vector3(7.5f, 0f, 7.6f));
@@ -261,7 +281,7 @@ namespace Shepherd.Exploration.Case01
             L.DiningSecondSet = Setting(table, 0.32f, "SetNorth").gameObject;
             // 再訪時：收走的那一側，桌面比較乾淨。
             L.DiningTrace = Deco(table, new Vector3(0f, 0.753f, 0.32f), new Vector3(0.55f, 0.005f, 0.42f),
-                ArenaArt.Mat(new Color(0.55f, 0.42f, 0.3f), 0.5f), "CleanPatch").gameObject;
+                P.Tint("wood_warm", new Color(1.15f, 1f, 0.85f)), "CleanPatch").gameObject;
             L.DiningTrace.SetActive(false);
             L.TablePoint = table.position + Vector3.up * 0.95f;
             Hotspot(L, table, Case01Ids.Table, "餐桌", new Vector3(0f, 0.95f, 0f), new Vector3(1.6f, 0.4f, 1.2f));
@@ -271,15 +291,15 @@ namespace Shepherd.Exploration.Case01
             // 正面（本地 -z）朝西，面向餐廳。
             frame.localRotation = Quaternion.Euler(0f, 90f, 0f);
             Deco(frame, Vector3.zero, new Vector3(0.5f, 0.38f, 0.03f), darkWood, "Frame");
-            Deco(frame, new Vector3(0f, 0f, -0.016f), new Vector3(0.42f, 0.3f, 0.005f), ArenaArt.Mat(new Color(0.7f, 0.68f, 0.62f), 0.1f), "Print");
-            L.PhotoFigureMat = ArenaArt.Mat(new Color(0.25f, 0.22f, 0.22f), 0.1f);
-            L.PhotoFadedMat = ArenaArt.Mat(new Color(0.6f, 0.58f, 0.53f), 0.1f);
+            Deco(frame, new Vector3(0f, 0f, -0.016f), new Vector3(0.42f, 0.3f, 0.005f), P.Get("paper_old"), "Print");
+            L.PhotoFigureMat = M(new Color(0.25f, 0.22f, 0.22f), 0.1f);
+            L.PhotoFadedMat = M(new Color(0.6f, 0.58f, 0.53f), 0.1f);
             Deco(frame, new Vector3(-0.08f, -0.02f, -0.02f), new Vector3(0.07f, 0.2f, 0.005f), L.PhotoFigureMat, "FigureA");
             L.PhotoSecondFigure = Deco(frame, new Vector3(0.08f, -0.03f, -0.02f), new Vector3(0.065f, 0.18f, 0.005f), L.PhotoFigureMat, "FigureB")
                 .GetComponent<Renderer>();
             Case01Hud.WorldLabel(frame, new Vector3(0f, -0.25f, -0.02f), 0f, "合照（佔位）", 14, new Color(0.9f, 0.88f, 0.8f), 120f);
             Hotspot(L, g, Case01Ids.Photo, "合照", new Vector3(9.5f, 1.15f, 7.6f), new Vector3(0.3f, 0.55f, 0.7f));
-            L.HouseLights.Add(ArenaArt.PointLight(g, new Vector3(7.5f, 2.4f, 7.5f), ArenaArt.LampWarm, 7f, 1.2f, true));
+            RoomLight(L, Case01Room.Dining, g, new Vector3(7.5f, 2.2f, 7.6f), new Color(1f, 0.72f, 0.42f), 1.2f, true, 2.8f);
 
             // 天花板（二樓地板）見 BuildSecondFloor。
         }
@@ -355,8 +375,7 @@ namespace Shepherd.Exploration.Case01
             Solid(g, new Vector3((StairX0 + 10f) * 0.5f, y + 0.5f, StairZ0), new Vector3(10f - StairX0, 1.0f, 0.08f), darkWood, "Rail");
 
             // ---- 樓梯平台 ----
-            L.LandingLight = ArenaArt.PointLight(g, new Vector3(7f, y + 2.5f, 2.5f), ArenaArt.LampWarm, 7f, 1.0f, false);
-            L.HouseLights.Add(L.LandingLight);
+            L.LandingLight = RoomLight(L, Case01Room.Landing, g, new Vector3(7f, y + 2.35f, 2.5f), new Color(0.86f, 0.88f, 1f), 0.95f, false, y + 2.8f);
             // 書房門左側門框上的記號（樓梯平台側）。
             L.StudyMarkLabel = Case01Hud.WorldLabel(g, new Vector3(StudyDoorX - 0.9f, y + 1.6f, 4.91f), 0f, "△", 40, new Color(0.95f, 0.95f, 0.9f), 80f);
             Hotspot(L, g, Case01Ids.StudyMark, "書房門框上的記號", new Vector3(StudyDoorX - 0.9f, y + 1.6f, 4.85f), new Vector3(0.5f, 0.7f, 0.12f));
@@ -384,21 +403,21 @@ namespace Shepherd.Exploration.Case01
             Deco(g, new Vector3(6.9f, y + 0.76f, 9.35f), new Vector3(0.5f, 0.01f, 0.36f), paper, "OldMap");
             Deco(g, new Vector3(6.85f, y + 0.77f, 9.35f), new Vector3(0.02f, 0.012f, 0.3f), riftMat, "MapPencil17");
             Hotspot(L, g, Case01Ids.Map, "街區舊地圖", new Vector3(6.85f, y + 0.9f, 9.3f), new Vector3(0.55f, 0.3f, 0.5f));
-            Deco(g, new Vector3(7.75f, y + 0.79f, 9.35f), new Vector3(0.3f, 0.05f, 0.22f), ArenaArt.Mat(new Color(0.35f, 0.12f, 0.1f), 0.2f), "Notebook");
+            Deco(g, new Vector3(7.75f, y + 0.79f, 9.35f), new Vector3(0.3f, 0.05f, 0.22f), P.Get("book_0"), "Notebook");
             Hotspot(L, g, Case01Ids.EllieNotes, "艾琳的手記", new Vector3(7.75f, y + 0.9f, 9.3f), new Vector3(0.45f, 0.3f, 0.5f));
             Solid(g, new Vector3(9.7f, y + 1.1f, 7.5f), new Vector3(0.45f, 2.2f, 2.0f), wood, "Bookshelf");
-            Deco(g, new Vector3(9.45f, y + 1.35f, 7.5f), new Vector3(0.04f, 0.32f, 0.26f), ArenaArt.Mat(new Color(0.25f, 0.25f, 0.28f), 0.1f), "RecordFolder");
+            Deco(g, new Vector3(9.45f, y + 1.35f, 7.5f), new Vector3(0.04f, 0.32f, 0.26f), P.Tint("cardboard", new Color(0.45f, 0.45f, 0.5f)), "RecordFolder");
             Deco(g, new Vector3(9.43f, y + 1.35f, 7.5f), new Vector3(0.01f, 0.12f, 0.2f), riftMat, "BlackedOut");
             Hotspot(L, g, Case01Ids.OldRecord, "書架上的校正記錄", new Vector3(9.35f, y + 1.35f, 7.5f), new Vector3(0.25f, 0.5f, 0.5f));
             Solid(g, new Vector3(7.5f, y + 0.25f, 8.7f), new Vector3(0.45f, 0.5f, 0.45f), darkWood, "DeskChair");
-            L.HouseLights.Add(ArenaArt.PointLight(g, new Vector3(7.5f, y + 2.4f, 7.5f), ArenaArt.LampWarm, 7f, 1.1f, false));
+            RoomLight(L, Case01Room.Study, g, new Vector3(7.5f, y + 2.3f, 7.5f), new Color(1f, 0.93f, 0.82f), 1.05f, false, y + 2.8f);
 
             // ---- 臥室 ----
             Solid(g, new Vector3(2.4f, y + 0.25f, 8.6f), new Vector3(1.6f, 0.5f, 2.0f), fabric, "Bed");
             Solid(g, new Vector3(1.1f, y + 0.3f, 9.55f), new Vector3(0.5f, 0.6f, 0.5f), wood, "Nightstand");
             Deco(g, new Vector3(1.1f, y + 0.61f, 9.55f), new Vector3(0.16f, 0.01f, 0.11f), paper, "Postcard");
             Hotspot(L, g, Case01Ids.Postcard, "明信片", new Vector3(1.1f, y + 0.75f, 9.5f), new Vector3(0.5f, 0.3f, 0.5f));
-            L.HouseLights.Add(ArenaArt.PointLight(g, new Vector3(2.5f, y + 2.4f, 7.5f), ArenaArt.LampWarm, 7f, 0.8f, false));
+            RoomLight(L, Case01Room.Bedroom, g, new Vector3(2.5f, y + 2.3f, 7.5f), new Color(1f, 0.76f, 0.5f), 0.75f, false, y + 2.8f);
         }
 
         private static AudioClip CreakClip()
@@ -462,7 +481,7 @@ namespace Shepherd.Exploration.Case01
             for (int i = 0; i < 6; i++)
             {
                 float a = i * 60f;
-                var m = ArenaArt.Mat(new Color(0.15f, 0.05f, 0.25f), 0.8f, ArenaArt.Rift * 1.8f);
+                var m = P.Instance("rift");
                 L.MezzLineMats.Add(m);
                 var d = Quaternion.Euler(0f, a, 0f) * Vector3.forward;
                 Deco(g, c + new Vector3(0f, 0.012f, 1.2f) + d * (i % 2 == 0 ? 1.6f : 2.2f), new Vector3(0.06f, 0.01f, i % 2 == 0 ? 1.4f : 0.8f), m, "BrokenLine",
@@ -472,7 +491,7 @@ namespace Shepherd.Exploration.Case01
             // 核：幾何物（暫用，不是正式外觀）。
             var core = ArenaArt.Group("Core", g, c + new Vector3(0f, 0f, 1.2f));
             Solid(core, new Vector3(0f, 0.3f, 0f), new Vector3(0.9f, 0.6f, 0.9f), mezzWall, "Pedestal");
-            L.CoreMat = ArenaArt.Mat(new Color(0.25f, 0.08f, 0.35f), 0.95f, ArenaArt.Rift * 2.2f, 0.2f);
+            L.CoreMat = P.Instance("core_body");
             L.Core = ArenaArt.Group("CoreShape", core, new Vector3(0f, 1.35f, 0f));
             Deco(L.Core, Vector3.zero, new Vector3(0.38f, 0.38f, 0.38f), L.CoreMat, "Cube", true, new Vector3(35f, 45f, 0f));
             Deco(L.Core, Vector3.zero, new Vector3(0.3f, 0.6f, 0.3f), L.CoreMat, "Shard", true, new Vector3(0f, 20f, 25f));
@@ -551,25 +570,100 @@ namespace Shepherd.Exploration.Case01
         private static void Slab(Transform g, float x0, float x1, float z0, float z1, float top)
         {
             Solid(g, new Vector3((x0 + x1) * 0.5f, top - 0.1f, (z0 + z1) * 0.5f), new Vector3(x1 - x0, 0.2f, z1 - z0), floorWood, "Slab");
+            // 一樓天花板：樓板下方的灰泥面（只是外觀）。
+            Deco(g, new Vector3((x0 + x1) * 0.5f, top - 0.205f, (z0 + z1) * 0.5f), new Vector3(x1 - x0, 0.01f, z1 - z0), ceilMat, "CeilingPlaster");
         }
 
+        /// <summary>夜晚的窗：玻璃＋窗框、十字窗櫺與窗台（木作漆面）。</summary>
         private static void Window(Transform g, Vector3 pos, float yaw)
         {
-            Deco(g, pos, new Vector3(1.0f, 1.1f, 0.02f), glassNight, "Window", false, new Vector3(0f, yaw, 0f));
+            var w = ArenaArt.Group("Window", g, pos);
+            w.localRotation = Quaternion.Euler(0f, yaw, 0f);
+            Deco(w, Vector3.zero, new Vector3(1.0f, 1.1f, 0.02f), glassNight, "Glass");
+            Deco(w, new Vector3(0f, 0.58f, 0f), new Vector3(1.12f, 0.07f, 0.06f), trim, "FrameTop");
+            Deco(w, new Vector3(0f, -0.58f, 0f), new Vector3(1.12f, 0.07f, 0.06f), trim, "FrameBottom");
+            Deco(w, new Vector3(-0.53f, 0f, 0f), new Vector3(0.07f, 1.2f, 0.06f), trim, "FrameLeft");
+            Deco(w, new Vector3(0.53f, 0f, 0f), new Vector3(0.07f, 1.2f, 0.06f), trim, "FrameRight");
+            Deco(w, Vector3.zero, new Vector3(0.035f, 1.1f, 0.04f), trim, "MullionV");
+            Deco(w, new Vector3(0f, 0.12f, 0f), new Vector3(1.0f, 0.035f, 0.04f), trim, "MullionH");
+            Deco(w, new Vector3(0f, -0.63f, 0f), new Vector3(1.24f, 0.045f, 0.16f), trim, "Sill", true);
         }
 
-        /// <summary>沿 x 方向（固定 z）的牆，openings＝門洞中心的 x。</summary>
+        /// <summary>沿 x 方向（固定 z）的牆，openings＝門洞中心的 x。室內牆另加踢腳線與門框（只是外觀）。</summary>
         private static void WallZ(Transform g, float z, float x0, float x1, float y, float h, Material m, params float[] openings)
         {
-            Segments(g, x0, x1, openings, DoorWidth, (a, b) => Solid(g, new Vector3((a + b) * 0.5f, y + h * 0.5f, z), new Vector3(b - a, h, WallThickness), m, "Wall"),
-                (a, b) => Solid(g, new Vector3((a + b) * 0.5f, y + DoorHeight + (h - DoorHeight) * 0.5f, z), new Vector3(b - a, h - DoorHeight, WallThickness), m, "Lintel"));
+            float o = WallThickness * 0.5f + 0.012f;
+            Segments(g, x0, x1, openings, DoorWidth,
+                (a, b) =>
+                {
+                    Solid(g, new Vector3((a + b) * 0.5f, y + h * 0.5f, z), new Vector3(b - a, h, WallThickness), m, "Wall");
+                    if (!trimWalls) return;
+                    Deco(g, new Vector3((a + b) * 0.5f, y + 0.07f, z - o), new Vector3(b - a, 0.14f, 0.025f), trim, "Skirting");
+                    Deco(g, new Vector3((a + b) * 0.5f, y + 0.07f, z + o), new Vector3(b - a, 0.14f, 0.025f), trim, "Skirting");
+                },
+                (a, b) =>
+                {
+                    Solid(g, new Vector3((a + b) * 0.5f, y + DoorHeight + (h - DoorHeight) * 0.5f, z), new Vector3(b - a, h - DoorHeight, WallThickness), m, "Lintel");
+                    if (!trimWalls || IsThirdDoor((a + b) * 0.5f, y, z)) return;
+                    foreach (var s in new[] { -o, o })
+                    {
+                        Deco(g, new Vector3(a - 0.04f, y + DoorHeight * 0.5f, z + s), new Vector3(0.08f, DoorHeight, 0.03f), trim, "Casing");
+                        Deco(g, new Vector3(b + 0.04f, y + DoorHeight * 0.5f, z + s), new Vector3(0.08f, DoorHeight, 0.03f), trim, "Casing");
+                        Deco(g, new Vector3((a + b) * 0.5f, y + DoorHeight + 0.04f, z + s), new Vector3(b - a + 0.16f, 0.08f, 0.03f), trim, "Casing");
+                    }
+                });
         }
 
         /// <summary>沿 z 方向（固定 x）的牆，openings＝門洞中心的 z。</summary>
         private static void WallX(Transform g, float x, float z0, float z1, float y, float h, Material m, params float[] openings)
         {
-            Segments(g, z0, z1, openings, DoorWidth, (a, b) => Solid(g, new Vector3(x, y + h * 0.5f, (a + b) * 0.5f), new Vector3(WallThickness, h, b - a), m, "Wall"),
-                (a, b) => Solid(g, new Vector3(x, y + DoorHeight + (h - DoorHeight) * 0.5f, (a + b) * 0.5f), new Vector3(WallThickness, h - DoorHeight, b - a), m, "Lintel"));
+            float o = WallThickness * 0.5f + 0.012f;
+            Segments(g, z0, z1, openings, DoorWidth,
+                (a, b) =>
+                {
+                    Solid(g, new Vector3(x, y + h * 0.5f, (a + b) * 0.5f), new Vector3(WallThickness, h, b - a), m, "Wall");
+                    if (!trimWalls) return;
+                    Deco(g, new Vector3(x - o, y + 0.07f, (a + b) * 0.5f), new Vector3(0.025f, 0.14f, b - a), trim, "Skirting");
+                    Deco(g, new Vector3(x + o, y + 0.07f, (a + b) * 0.5f), new Vector3(0.025f, 0.14f, b - a), trim, "Skirting");
+                },
+                (a, b) =>
+                {
+                    Solid(g, new Vector3(x, y + DoorHeight + (h - DoorHeight) * 0.5f, (a + b) * 0.5f), new Vector3(WallThickness, h - DoorHeight, b - a), m, "Lintel");
+                    if (!trimWalls) return;
+                    foreach (var s in new[] { -o, o })
+                    {
+                        Deco(g, new Vector3(x + s, y + DoorHeight * 0.5f, a - 0.04f), new Vector3(0.03f, DoorHeight, 0.08f), trim, "Casing");
+                        Deco(g, new Vector3(x + s, y + DoorHeight * 0.5f, b + 0.04f), new Vector3(0.03f, DoorHeight, 0.08f), trim, "Casing");
+                        Deco(g, new Vector3(x + s, y + DoorHeight + 0.04f, (a + b) * 0.5f), new Vector3(0.03f, 0.08f, b - a + 0.16f), trim, "Casing");
+                    }
+                });
+        }
+
+        /// <summary>二樓外牆的第三扇門：平時是封住的牆，不加門框。</summary>
+        private static bool IsThirdDoor(float x, float y, float z)
+        {
+            return Mathf.Abs(z) < 0.01f && y > 1f && Mathf.Abs(x - StudyDoorX) < 0.01f;
+        }
+
+        /// <summary>房間主燈：吊燈（電線、燈罩、燈泡）＋燈泡正下方的點光源。燈罩與燈泡不投影，避免擋住自己的光。</summary>
+        private static Light RoomLight(Case01HouseLayout L, Case01Room room, Transform g, Vector3 pos, Color color, float intensity, bool shadows, float ceiling)
+        {
+            var fx = ArenaArt.Group("Pendant_" + room, g, pos);
+            float cord = ceiling - (pos.y + 0.2f);
+            ArenaArt.Prim(PrimitiveType.Cylinder, fx, new Vector3(0f, 0.2f + cord * 0.5f, 0f), new Vector3(0.015f, cord * 0.5f, 0.015f), darkWood, null, "Cord", false, false);
+            ArenaArt.Prim(PrimitiveType.Cylinder, fx, new Vector3(0f, 0.13f, 0f), new Vector3(0.42f, 0.07f, 0.42f), P.Get("lamp_shade"), null, "Shade", false, false);
+            ArenaArt.Prim(PrimitiveType.Sphere, fx, new Vector3(0f, 0.05f, 0f), new Vector3(0.1f, 0.1f, 0.1f), P.Get("glow"), null, "Bulb", false, false);
+            var light = ArenaArt.PointLight(g, pos - Vector3.up * 0.05f, color, 7f, intensity, shadows);
+            if (shadows)
+            {
+                light.shadows = LightShadows.Soft;
+                light.shadowStrength = 0.7f;
+            }
+            L.HouseLights.Add(light);
+            L.RoomLights[room] = light;
+            L.RoomLightColor[room] = color;
+            L.RoomLightIntensity[room] = intensity;
+            return light;
         }
 
         private static void Segments(Transform g, float a0, float a1, float[] openings, float w, System.Action<float, float> wall, System.Action<float, float> lintel)
