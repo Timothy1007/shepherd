@@ -71,6 +71,7 @@ namespace Shepherd.Battle.UI.Arena
             public Text Intent;
             public Text Status;
             public CanvasGroup Group;
+            public Image Flash;
         }
 
         private CombatArenaView arena;
@@ -95,6 +96,8 @@ namespace Shepherd.Battle.UI.Arena
         private readonly List<Text> schoolTags = new List<Text>();
         private Button logButton, qaResetButton, replayButton;
         private CombatDemoTutorial tutorial;
+        private CombatDemoFx fx;
+        private Image playerFlashImage;
         private RectTransform logPanel;
         private Text logText;
         private RectTransform handRow;
@@ -135,6 +138,7 @@ namespace Shepherd.Battle.UI.Arena
             if (arena.Tooltip != null) arena.Tooltip.gameObject.SetActive(false);
             foreach (var e in S.Snapshot().Enemies) maxValues[e.Id] = e.Value;
             BuildCanvas();
+            fx = new CombatDemoFx(this, arena, root, sequencePanel);
             tutorial = new CombatDemoTutorial(this, arena, root);
             S.Changed += OnSessionChanged;
             Refresh();
@@ -201,6 +205,28 @@ namespace Shepherd.Battle.UI.Arena
                 o.effectDistance = new Vector2(1.5f, -1.5f);
             }
             return rt;
+        }
+
+        /// <summary>命中閃光層（在文字之下、不攔截點擊），由 CombatDemoFx 控制透明度。</summary>
+        private static Image FlashLayer(RectTransform parent)
+        {
+            var f = CombatLabUi.Panel("Flash", parent, new Color(1f, 1f, 1f, 0f));
+            CombatLabUi.Stretch(f);
+            var img = f.GetComponent<Image>();
+            img.raycastTarget = false;
+            return img;
+        }
+
+        internal void SetPlateFlash(int id, Color color, float amount)
+        {
+            PlateView p;
+            if (!plates.TryGetValue(id, out p) || p.Flash == null) return;
+            p.Flash.color = new Color(color.r, color.g, color.b, 0.4f * Mathf.Clamp01(amount));
+        }
+
+        internal void SetPlayerFlash(Color color, float amount)
+        {
+            if (playerFlashImage != null) playerFlashImage.color = new Color(color.r, color.g, color.b, 0.3f * Mathf.Clamp01(amount));
         }
 
         private static Text Txt(string name, Transform parent, string text, int size, TextAnchor align, Color color, bool bold = false)
@@ -281,6 +307,7 @@ namespace Shepherd.Battle.UI.Arena
         private void BuildPlayer()
         {
             var p = Box("Player", root, new Vector2(0f, 1f), new Vector2(CombatDemoTheme.Margin, -CombatDemoTheme.Margin), new Vector2(440f, 132f), CombatDemoTheme.Panel);
+            playerFlashImage = FlashLayer(p);
             roundText = Txt("Round", p, "", CombatDemoTheme.FontBody, TextAnchor.MiddleLeft, CombatDemoTheme.Brass, true);
             At(roundText.rectTransform, 0, 1, 1, 1, 14, -30, 14, 6);
             var barRow = CombatLabUi.Rect("AnchorBar", p);
@@ -385,6 +412,7 @@ namespace Shepherd.Battle.UI.Arena
             p.Button.targetGraphic = p.Frame;
             p.Button.onClick.AddListener(() => OnPlate(id));
             p.Group = rt.gameObject.AddComponent<CanvasGroup>();
+            p.Flash = FlashLayer(rt);
             var o = rt.gameObject.AddComponent<Outline>();
             o.effectColor = new Color(0, 0, 0, 0.7f);
             p.Name = Txt("Name", rt, "", CombatDemoTheme.FontBody, TextAnchor.MiddleLeft, CombatDemoTheme.Ivory, true);
@@ -651,6 +679,7 @@ namespace Shepherd.Battle.UI.Arena
             if (dirty || playing || playing != wasPlaying) Refresh();
             wasPlaying = playing;
             PositionPlates();
+            if (fx != null) fx.Tick(dt);
             if (tutorial != null)
             {
                 tutorial.Tick(dt);
@@ -958,7 +987,8 @@ namespace Shepherd.Battle.UI.Arena
         public string SchoolText(int i) { return schoolNames[i].text + "｜" + schoolTags[i].text; }
         public bool SchoolInteractable(int i) { return schoolTabs[i].interactable; }
         public string PlateText(int id) { var p = plates[id]; return p.Name.text + "｜" + p.Value.text + "｜" + p.Intent.text + "｜" + p.Status.text; }
-        public RectTransform PlateRect(int id) { return plates[id].Rect; }
+        public RectTransform PlateRect(int id) { PlateView p; return plates.TryGetValue(id, out p) ? p.Rect : null; }
+        public CombatDemoFx Fx { get { return fx; } }
         public string CommitText { get { return commitButton.GetComponentInChildren<Text>().text; } }
         public bool CommitInteractable { get { return commitButton.interactable; } }
         public string RedrawText { get { return redrawButton.GetComponentInChildren<Text>().text; } }

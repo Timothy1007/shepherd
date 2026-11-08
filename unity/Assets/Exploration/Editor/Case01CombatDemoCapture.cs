@@ -49,7 +49,80 @@ namespace Shepherd.Exploration.Editor
             {
                 Sequence(dir, size.x, size.y);
                 TutorialSequence(dir, size.x, size.y);
+                FxSequence(dir, size.x, size.y);
             }
+        }
+
+        /// <summary>施放演出：逐張點亮與數值標籤、三連聚合、回合結果、勝利時 HUD 淡出。</summary>
+        private static void FxSequence(string dir, int width, int height)
+        {
+            var rt = new RenderTexture(width, height, 24, RenderTextureFormat.ARGB32) { antiAliasing = 4 };
+            string prefix = Path.Combine(dir, "fx_" + width + "x" + height + "_");
+            foreach (bool victory in new[] { false, true })
+            {
+                GameObject root = null;
+                Case01CombatDemoQA qa = null;
+                try
+                {
+                    root = new GameObject("CombatDemoFxCaptureRoot");
+                    qa = root.AddComponent<Case01CombatDemoQA>();
+                    CombatLabScenario scenario = null;
+                    if (victory)
+                    {
+                        scenario = new CombatLabScenario { Name = "capture-victory" };
+                        scenario.Enemies.Add(new EnemyState { Id = 1, Name = "E1 失序體・甲", Value = 1, Corrections = 1, AttackPattern = new[] { 12 } });
+                        scenario.Enemies.Add(new EnemyState { Id = 2, Name = "E2 失序體・乙", Value = 1, Corrections = 1, AttackPattern = new[] { 6 } });
+                    }
+                    qa.Build(false, scenario, null, false);
+                    qa.Arena.ApplyAtmosphere();
+                    var hud = qa.Hud;
+                    var s = qa.Arena.Session;
+                    Advance(qa, 0.2f);
+                    var hand = s.Snapshot().Hand;
+                    var pick = new List<int>();
+                    foreach (ElementKind el in Enum.GetValues(typeof(ElementKind)))
+                    {
+                        pick.Clear();
+                        for (int i = 0; i < hand.Count && pick.Count < 3; i++) if (hand[i].Element == el) pick.Add(i);
+                        if (pick.Count == 3) break;
+                    }
+                    if (pick.Count < 3) pick = new List<int> { 0, 1, 2 };
+                    foreach (var i in pick) hud.OnCard(i);
+                    hud.OnCommit();
+                    bool cast = false, agg = false, hit = false;
+                    for (int i = 0; i < 3000 && qa.Arena.IsPlaying; i++)
+                    {
+                        Advance(qa, Step);
+                        if (!victory && !agg && hud.Fx.AggregateVisible)
+                        {
+                            agg = true;
+                            Advance(qa, 0.25f);
+                            Shot(qa, rt, prefix + "01_resonance_aggregate.png");
+                        }
+                        if (!victory && !cast && hud.Fx.CellLit(1) && hud.Fx.LiveChips > 0)
+                        {
+                            cast = true;
+                            Shot(qa, rt, prefix + "02_cast_and_chips.png");
+                        }
+                        var log = hud.Fx.ChipLog;
+                        if (!victory && !hit && log.Count > 0 && log[log.Count - 1].StartsWith("錨定值"))
+                        {
+                            hit = true;
+                            Advance(qa, 0.15f);
+                            Shot(qa, rt, prefix + "02b_enemy_attack.png");
+                        }
+                    }
+                    Advance(qa, 0.8f);
+                    Shot(qa, rt, prefix + (victory ? "04_victory_fade.png" : "03_round_recap.png"));
+                }
+                finally
+                {
+                    if (qa != null && qa.Arena != null) qa.Arena.RestoreAtmosphere();
+                    if (root != null) UnityEngine.Object.DestroyImmediate(root);
+                }
+            }
+            rt.Release();
+            UnityEngine.Object.DestroyImmediate(rt);
         }
 
         /// <summary>首戰教學：四個節點、播放中的事件說明、收尾。</summary>

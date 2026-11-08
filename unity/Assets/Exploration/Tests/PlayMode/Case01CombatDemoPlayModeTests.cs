@@ -57,6 +57,9 @@ namespace Shepherd.Exploration.Tests
             yield return WaitUntil(() => !qa.Arena.IsPlaying, 30f, "事件播放完畢（Update 驅動）");
             Assert.Greater(qa.Arena.Stats.Casts, 0);
             yield return null;
+            Assert.IsTrue(hud.Fx.CastVisible && hud.Fx.CellLit(0) && hud.Fx.CellLit(1), "施放條逐張點亮（Update 驅動）");
+            Assert.IsTrue(hud.Fx.RecapVisible, "回合結果");
+            Assert.Greater(hud.Fx.ChipLog.Count, 0, "數值標籤");
             StringAssert.Contains("第 2 回合", hud.PlayerText);
             Assert.AreEqual(qa.Arena.Session.Snapshot().Anchor, qa.Arena.DisplayAnchor, "畫面與引擎狀態一致");
 

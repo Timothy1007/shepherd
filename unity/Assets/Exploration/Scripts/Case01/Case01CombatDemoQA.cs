@@ -22,6 +22,9 @@ namespace Shepherd.Exploration.Case01
         [Tooltip("顯示舊版 Combat Lab HUD（比較用）。")]
         [SerializeField] private bool legacyHud;
 
+        [Tooltip("降低動態：演出不位移、不縮放、不閃。")]
+        [SerializeField] private bool reduceMotion;
+
         private bool built;
         private bool playMode;
         private CombatLabScenario scenario;
@@ -33,6 +36,7 @@ namespace Shepherd.Exploration.Case01
         public CombatDemoHud Hud { get; private set; }
         public bool TutorialEnabled { get { return tutorial; } }
         public bool LegacyHud { get { return legacyHud; } }
+        public bool ReduceMotion { get { return reduceMotion; } }
         public int Rebuilds { get; private set; }
 
         private void Awake()
@@ -77,7 +81,7 @@ namespace Shepherd.Exploration.Case01
             battleRoot.transform.SetParent(transform, false);
             Arena = battleRoot.AddComponent<CombatArenaView>();
             Arena.Build(playMode, Scenario(), seed, ArenaHostOptions.Standalone());
-            Hud = legacyHud ? null : CombatDemoHud.Attach(Arena, new CombatDemoOptions { ShowQaTools = true, Tutorial = tutorial });
+            Hud = legacyHud ? null : CombatDemoHud.Attach(Arena, new CombatDemoOptions { ShowQaTools = true, Tutorial = tutorial, ReduceMotion = reduceMotion });
             battleRoot.SetActive(true);
             RefreshQaText();
         }
@@ -102,6 +106,14 @@ namespace Shepherd.Exploration.Case01
             else if (Input.GetKeyDown(KeyCode.F9)) ResetBattle();
             else if (Input.GetKeyDown(KeyCode.F10)) ToggleLegacy();
             else if (Input.GetKeyDown(KeyCode.T)) ToggleTutorial();
+            else if (Input.GetKeyDown(KeyCode.M)) ToggleReduceMotion();
+        }
+
+        /// <summary>M：降低動態開／關（重建戰鬥）。</summary>
+        public void ToggleReduceMotion()
+        {
+            reduceMotion = !reduceMotion;
+            Restart();
         }
 
         /// <summary>F1：重新建立整場戰鬥（新的 HUD 與教學狀態）。</summary>
@@ -159,7 +171,7 @@ namespace Shepherd.Exploration.Case01
         private void RefreshQaText()
         {
             if (qaText == null) return;
-            qaText.text = "戰鬥 Demo UI QA｜F1 重來｜F9 重置戰鬥｜F10 " + (legacyHud ? "改用新版 HUD" : "比較舊版 HUD") + "｜T 教學：" + (tutorial ? "開" : "關");
+            qaText.text = "戰鬥 Demo UI QA｜F1 重來｜F9 重置戰鬥｜F10 " + (legacyHud ? "改用新版 HUD" : "比較舊版 HUD") + "｜T 教學：" + (tutorial ? "開" : "關") + "｜M 降低動態：" + (reduceMotion ? "開" : "關");
         }
     }
 }

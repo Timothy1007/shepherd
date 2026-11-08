@@ -85,6 +85,30 @@ namespace Shepherd.Battle.UI.Arena
         public const string NoteResonance = "共鳴生效：三張同元素，主要數值放大。";
         public const string NoteEnemy = "失序體行動了：攻擊先打在擬態錨定，剩下的才扣錨定值。";
 
+        // ---- 施放演出與回合結果（數字全部取自實際播放的事件） ----
+        public const string CastTitle = "施放中";
+        public const string CastValue = "主要數值 {0}";
+        public const string CastFizzled = "失效：目標已解除";
+        public const string CastWaiting = "等待";
+        public const string ResidueFired = "承接 ✓\n{0}";
+        public const string ResonanceFired = "★ 共鳴：{0}×3　主要數值 ×{1}";
+        public const string ChipDisorder = "失序值 {0}";
+        public const string ChipConduction = "傳導 {0}";
+        public const string ChipLinks = "連結 {0}";
+        public const string ChipCorrection = "校正 {0}";
+        public const string ChipBind = "束縛 {0}";
+        public const string ChipResolved = "解除！";
+        public const string ChipAttack = "攻擊 {0}";
+        public const string ChipShield = "擬態錨定 {0}";
+        public const string ChipAnchor = "錨定值 {0}";
+        public const string ChipResiduePrefix = "承接・";
+        public const string RecapTitle = "本回合結果";
+        public const string RecapLine1 = "失序值 −{0}（解除 {1}）｜擬態錨定 +{2}｜校正 +{3}｜連結 +{4}";
+        public const string RecapLine2 = "承接 {0} 次｜共鳴 {1}｜敵方：擬態吸收 {2}、錨定值 {3}";
+        public const string RecapYes = "成立";
+        public const string RecapNo = "無";
+        public const string RecapHint = "點此或開始編排即收起";
+
         // ---- 手牌 ----
         public const string CardCost = "1";
         public const string Staged = "第 {0} 張";

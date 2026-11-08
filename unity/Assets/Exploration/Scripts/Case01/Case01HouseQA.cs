@@ -882,7 +882,7 @@ namespace Shepherd.Exploration.Case01
             arena.BattleEnded += OnBattleEnded;
             // Case01 公開 Demo 的戰鬥 HUD（舊 HUD 面板隱藏；結果橫幅、浮字照舊）。
             // 首戰教學只在這個 QA 執行階段的第一場戰鬥出現；戰敗重試不再自動出現（可按「？教學」重看）。
-            DemoHud = CombatDemoHud.Attach(arena, new CombatDemoOptions { ShowQaTools = false, Tutorial = TutorialEnabled && !TutorialShown });
+            DemoHud = CombatDemoHud.Attach(arena, new CombatDemoOptions { ShowQaTools = false, Tutorial = TutorialEnabled && !TutorialShown, ReduceMotion = reduceFlicker });
             TutorialShown = true;
             arena.SetCameraPose(CombatArenaView.CameraPosition, CombatArenaView.CameraLookAt, CombatArenaView.DefaultFieldOfView);
             arena.HudVisible = false;
