@@ -23,10 +23,56 @@ namespace Shepherd.Exploration.Case01
     /// 門框改成黑灰＋冷白的斷續發光與輕微橫向跳動；取代 v0.3 的整片紫色膜與紫色發光門框。
     /// 降低閃爍時：噪點更新變慢、撕裂減少、門框不跳動。
     /// </summary>
+    /// <summary>失序門外觀版本：V04＝單色雪花＋固定門框；V05＝彩色 RGB 訊號破損＋流動、斷裂的邊界（預設）。</summary>
+    public enum Case01PortalStyle
+    {
+        V04,
+        V05,
+    }
+
     public static class Case01Glitch
     {
         public const string ShaderResource = "Case01PortalGlitch";
+        public const string ShaderResourceV05 = "Case01PortalGlitchV05";
         private static Shader shader;
+        private static Shader shaderV05;
+
+        public static Shader ShaderV05
+        {
+            get
+            {
+                if (shaderV05 == null) shaderV05 = Resources.Load<Shader>(ShaderResourceV05);
+                if (shaderV05 == null) shaderV05 = Shader.Find("Shepherd/Case01PortalGlitchV05");
+                return shaderV05;
+            }
+        }
+
+        /// <summary>v0.5 彩色故障膜（本次建置擁有）。找不到 shader 時退回 v0.4 的膜。</summary>
+        public static Material NewMembraneV05(Case01Palette p)
+        {
+            var s = ShaderV05;
+            if (s == null || !s.isSupported) return NewMembrane(p);
+            var m = new Material(s) { name = "Case01PortalGlitchV05_instance" };
+            return p.Own(m);
+        }
+
+        /// <summary>v0.5：降低閃爍時更慢、更灰（飽和度 0.35）；校正後完全去飽和。</summary>
+        public static float SaturationFor(Case01PortalState state, bool reduceFlicker)
+        {
+            if (state == Case01PortalState.Corrected || state == Case01PortalState.Dormant) return 0f;
+            float s = state == Case01PortalState.Anchored ? 0.45f : 1f;
+            return reduceFlicker ? s * 0.35f : s;
+        }
+
+        /// <summary>套用到 v0.5 膜（同一組 Look，另加飽和度）。</summary>
+        /// <summary>clock＝已依速度縮放後的動畫時間（由場景累加，速度改變時不會跳格）。</summary>
+        public static void ApplyV05(Material m, Look l, float saturation, float clock)
+        {
+            if (m == null) return;
+            Apply(m, l);
+            if (m.HasProperty("_Sat")) m.SetFloat("_Sat", saturation);
+            if (m.HasProperty("_Clock")) m.SetFloat("_Clock", clock);
+        }
 
         public static Shader Shader
         {

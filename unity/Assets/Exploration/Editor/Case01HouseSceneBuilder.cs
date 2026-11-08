@@ -69,6 +69,10 @@ namespace Shepherd.Exploration.Editor
         [MenuItem("Shepherd/Case01/一樓反向樓梯 v0.4 QA")]
         public static void LaunchFloorplanV04() { Launch("floor"); }
 
+        /// <summary>Portal v0.5 QA：站在錯接的書房門前；F6 切門的狀態、F7 切 v0.4／v0.5 外觀、F8 降低閃爍。</summary>
+        [MenuItem("Shepherd/Case01/Portal v0.5 QA（彩色失序門）")]
+        public static void LaunchPortalV05() { Launch("portal"); }
+
         /// <summary>開啟室內 QA 場景並以指定模式進入 Play（一次性參數，Awake 讀取後刪除）。</summary>
         public static void Launch(string mode)
         {

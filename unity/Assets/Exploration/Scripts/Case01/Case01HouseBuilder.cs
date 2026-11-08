@@ -45,6 +45,11 @@ namespace Shepherd.Exploration.Case01
         public Material FrameMat;
         /// <summary>v0.4：電流雜音（由場景依狀態開關）。</summary>
         public AudioSource Hum;
+        /// <summary>v0.5：彩色訊號破損膜（與 v0.4 膜共用同一個膜物件，依外觀版本切換材質）。</summary>
+        public Material MembraneMatV05;
+        /// <summary>v0.5：流動、斷裂的發光邊界（只是外觀）。</summary>
+        public Case01PortalEdge Edge;
+        public Renderer[] FrameRenderers;
 
         /// <summary>從 prev 移動到 cur 是否由來源側穿過門洞。</summary>
         public bool Crossed(Vector3 prev, Vector3 cur)
@@ -775,6 +780,8 @@ namespace Shepherd.Exploration.Case01
                 "PortalMembrane_" + door, false, false);
             mem.localRotation = rot;
             p.Membrane = mem.gameObject;
+            p.MembraneMatV05 = Case01Glitch.NewMembraneV05(P);
+            p.Edge = Case01PortalEdge.Build(g, p, P);
             if (seal)
             {
                 var s = ArenaArt.Prim(PrimitiveType.Cube, g, plane + Vector3.up * h * 0.5f, new Vector3(w, h, WallThickness), wallUp, null,
@@ -797,6 +804,7 @@ namespace Shepherd.Exploration.Case01
         private static void GlitchFrame(Case01Portal p, GameObject frame, Material m)
         {
             p.Frame = frame.transform;
+            p.FrameRenderers = frame.GetComponentsInChildren<Renderer>(true);
             p.FrameHome = frame.transform.localPosition;
             p.FrameMat = m;
         }

@@ -38,6 +38,8 @@ namespace Shepherd.Exploration.Case01
         CoreV03,
         /// <summary>v0.4 空間敘事 QA：F6 H0～H3、F7 下一句自語預覽（之後的階段加上失序門與記憶殘響）。</summary>
         NarrativeV04,
+        /// <summary>v0.5 Portal QA：F6 切失序門狀態、F7 切 v0.4／v0.5 外觀、F8 降低閃爍（站在同一扇門前比較）。</summary>
+        PortalV05,
     }
 
     /// <summary>
@@ -95,6 +97,10 @@ namespace Shepherd.Exploration.Case01
         private bool floorplanQa;
 
         public Case01Floorplan Floorplan { get { return floorplan; } }
+
+        [Tooltip("v0.5 失序門外觀：V05＝彩色訊號破損＋流動邊界（預設）；V04＝舊版單色雪花。只改外觀，不動路由。")]
+        [SerializeField] private Case01PortalStyle portalStyle = Case01PortalStyle.V05;
+        public Case01PortalStyle PortalStyle { get { return portalStyle; } set { portalStyle = value; } }
         /// <summary>由「一樓反向樓梯 v0.4 QA」啟動（F9 可切換新舊格局比較）。</summary>
         public bool FloorplanQa { get { return floorplanQa; } }
         /// <summary>核修復玩法：一般／美術 QA 使用 v0.2；核校正 v0.3 QA 使用新規則。</summary>
@@ -196,6 +202,7 @@ namespace Shepherd.Exploration.Case01
                 if (launch == "art") qaMode = Case01QaMode.ArtPreview;
                 else if (launch == "v03") qaMode = Case01QaMode.CoreV03;
                 else if (launch == "v04") qaMode = Case01QaMode.NarrativeV04;
+                else if (launch == "portal") qaMode = Case01QaMode.PortalV05;
                 else if (launch == "floor")
                 {
                     floorplan = Case01Floorplan.V04;
@@ -281,6 +288,8 @@ namespace Shepherd.Exploration.Case01
             BuildContent(start ?? (qaMode == Case01QaMode.CoreV03 ? Case01Checkpoint.S50 : startCheckpoint));
             // 剛進門的第一句自語（只在 QA 啟動時；F1～F5 跳轉不重播）。
             Handle(flow.OnArrive());
+            // Portal v0.5 QA：直接站到錯接的書房門前。
+            if (qaMode == Case01QaMode.PortalV05) PreviewGlitch(0);
         }
 
         private CombatLabScenario CurrentScenario()
@@ -382,6 +391,10 @@ namespace Shepherd.Exploration.Case01
                 case Case01QaMode.NarrativeV04:
                     hud.Base.ViewMode.text = "空間敘事 v0.4 QA：F6 H0～H3｜F7 自語｜F9 失序門｜F10 殘響｜F8 降低閃爍｜F1～F4";
                     break;
+                case Case01QaMode.PortalV05:
+                    hud.Base.ViewMode.text = "Portal v0.5 QA（外觀：" + (portalStyle == Case01PortalStyle.V05 ? "v0.5 彩色" : "v0.4 單色") + (reduceFlicker ? "｜降低閃爍" : "") +
+                                             "）：F6 門的狀態｜F7 切 v0.4／v0.5｜F8 降低閃爍｜可以直接走過門";
+                    break;
                 default:
                     hud.Base.ViewMode.text = "QA 跳轉：F1 S00 玄關｜F2 S30 樓梯錯接｜F3 S40 夾層｜F4 S50 戰後修復｜F5 核校正 v0.3｜F8 降低閃爍";
                     break;
@@ -479,6 +492,19 @@ namespace Shepherd.Exploration.Case01
             {
                 reduceFlicker = !reduceFlicker;
                 hud.Base.ShowToast(reduceFlicker ? "QA：降低閃爍　開" : "QA：降低閃爍　關");
+                UpdateModeText();
+            }
+            if (qaMode == Case01QaMode.PortalV05 && input.Function == 6)
+            {
+                PreviewGlitch((GlitchPreview + 1) % GlitchPreviewCount);
+                return;
+            }
+            if (qaMode == Case01QaMode.PortalV05 && input.Function == 7)
+            {
+                portalStyle = portalStyle == Case01PortalStyle.V05 ? Case01PortalStyle.V04 : Case01PortalStyle.V05;
+                UpdateModeText();
+                hud.Base.ShowToast(portalStyle == Case01PortalStyle.V05 ? "QA：失序門 v0.5（彩色訊號破損）" : "QA：失序門 v0.4（單色雪花）");
+                return;
             }
             if (input.Function == 5)
             {
@@ -1278,6 +1304,7 @@ namespace Shepherd.Exploration.Case01
         public float PortalVolume { get { return portalVolume; } set { portalVolume = Mathf.Clamp01(value); } }
 
         private float glitchClock;
+        private float portalShaderClock;
 
         /// <summary>門的路由狀態 → 故障外觀等級。</summary>
         public Case01PortalState PortalState(Case01Door door)
@@ -1312,14 +1339,29 @@ namespace Shepherd.Exploration.Case01
         {
             if (layout == null) return;
             glitchClock += dt;
+            // v0.5 膜的動畫時間：降低閃爍時以 1/4 速度累加（切換時不跳格）。
+            portalShaderClock += dt * (reduceFlicker ? 0.25f : 1f);
             // 每 0.1 秒一個「破訊」時間片。
             int slice = Mathf.FloorToInt(glitchClock * 10f);
+            bool v05 = portalStyle == Case01PortalStyle.V05;
             foreach (var p in layout.Portals)
             {
                 var state = PortalState(p.Door);
                 var look = Case01Glitch.For(state, reduceFlicker);
                 Case01Glitch.Apply(p.MembraneMat, look);
-                if (p.Frame != null && p.Frame.gameObject.activeInHierarchy)
+                Case01Glitch.ApplyV05(p.MembraneMatV05, look, Case01Glitch.SaturationFor(state, reduceFlicker),
+                    portalShaderClock * Case01Glitch.For(state, false).Speed);
+                // v0.5：同一個膜物件換材質；邊界框只在 v0.5 顯示（v0.4 門框改為不渲染，物件的開關邏輯不變）。
+                var memR = p.Membrane.GetComponent<Renderer>();
+                var want = v05 && p.MembraneMatV05 != null ? p.MembraneMatV05 : p.MembraneMat;
+                if (memR.sharedMaterial != want) memR.sharedMaterial = want;
+                if (p.Edge != null) p.Edge.Tick(glitchClock, state, reduceFlicker, v05 && p.Membrane.activeInHierarchy);
+                // 門框物件仍照流程開關（第三扇門浮現的提示不變）；v0.5 邊界出現時才不畫舊門框，避免重疊。
+                bool frameHidden = v05 && p.Membrane.activeInHierarchy;
+                if (p.FrameRenderers != null)
+                    foreach (var fr in p.FrameRenderers)
+                        if (fr.enabled == frameHidden) fr.enabled = !frameHidden;
+                if (!frameHidden && p.Frame != null && p.Frame.gameObject.activeInHierarchy)
                 {
                     float r = Mathf.Abs(Mathf.Sin(slice * 12.9898f + (int)p.Door * 78.233f) * 43758.5453f) % 1f;
                     float jump = r < look.JitterChance ? (r / Mathf.Max(0.0001f, look.JitterChance) - 0.5f) * 2f * look.JitterAmount : 0f;

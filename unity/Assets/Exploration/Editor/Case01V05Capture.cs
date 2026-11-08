@@ -43,7 +43,7 @@ namespace Shepherd.Exploration.Editor
         public static void CaptureAll(string dir, Vector2Int[] sizes, string set)
         {
             Directory.CreateDirectory(dir);
-            var sets = new HashSet<string>(string.IsNullOrEmpty(set) ? new[] { "enemy" } : set.Split(','));
+            var sets = new HashSet<string>(string.IsNullOrEmpty(set) ? new[] { "enemy", "portal" } : set.Split(','));
             foreach (var size in sizes)
             {
                 var rt = new RenderTexture(size.x, size.y, 24, RenderTextureFormat.ARGB32) { antiAliasing = 4 };
@@ -51,6 +51,7 @@ namespace Shepherd.Exploration.Editor
                 {
                     string prefix = Path.Combine(dir, "v05_" + size.x + "x" + size.y + "_");
                     if (sets.Contains("enemy")) Enemy(rt, prefix);
+                    if (sets.Contains("portal")) Portal(rt, prefix);
                 }
                 finally
                 {
@@ -76,6 +77,80 @@ namespace Shepherd.Exploration.Editor
             {
                 if (qa != null) qa.RestoreAtmosphere();
                 UnityEngine.Object.DestroyImmediate(root);
+            }
+        }
+
+        /// <summary>
+        /// Portal：同一扇錯接的書房門，近距離連續 12 格（每格 0.1 秒）拼成一張接觸印樣，
+        /// 依序為 v0.5 彩色、v0.5 降低閃爍、v0.4 舊版、夾層 △ 門校正後；另存單張大圖。
+        /// </summary>
+        private static void Portal(RenderTexture rt, string prefix)
+        {
+            WithQa(qa =>
+            {
+                qa.Hud.Visible = false;
+                var cases = new[] { "v05_wrong", "v05_reduced", "v04_wrong", "v05_corrected" };
+                foreach (var c in cases)
+                {
+                    qa.ReduceFlicker = c == "v05_reduced";
+                    qa.PortalStyle = c.StartsWith("v04") ? Case01PortalStyle.V04 : Case01PortalStyle.V05;
+                    qa.PreviewGlitch(c == "v05_corrected" ? 4 : 0);
+                    qa.Hud.Visible = false;
+                    if (c == "v05_corrected")
+                        qa.Player.Teleport(Case01HouseBuilder.MezzCenter + new Vector3(-4.2f, 0.05f, 0f), -90f, 4f);
+                    else
+                        qa.Player.Teleport(new Vector3(Case01HouseBuilder.StudyDoorX, Case01HouseBuilder.FloorHeight + 0.05f, 3.4f), 0f, 4f);
+                    Case01HouseCapture.Advance(qa, 0.6f);
+                    Sheet(qa, rt, prefix + "portal_" + c + "_sheet.png", 12, 0.1f);
+                    Case01HouseCapture.Shot(qa, rt, prefix + "portal_" + c + ".png");
+                }
+            }, null, Case01QaMode.PortalV05);
+        }
+
+        /// <summary>連續 n 格（每格間隔 step 秒）縮小拼成 4 欄的接觸印樣。</summary>
+        private static void Sheet(Case01HouseQA qa, RenderTexture rt, string path, int n, float step)
+        {
+            const int cols = 4;
+            int rows = (n + cols - 1) / cols;
+            int cw = rt.width / 2, ch = rt.height / 2;
+            var sheet = new Texture2D(cw * cols, ch * rows, TextureFormat.RGB24, false);
+            var tex = new Texture2D(rt.width, rt.height, TextureFormat.RGB24, false);
+            var cell = new Color[cw * ch];
+            try
+            {
+                for (int i = 0; i < n; i++)
+                {
+                    // 先以完整尺寸渲染，再 2×2 取平均縮小（避免攝影機 viewport 沿用舊尺寸而只拍到一角）。
+                    var cam = qa.ActiveCamera;
+                    bool was = cam.enabled;
+                    cam.enabled = true;
+                    cam.targetTexture = rt;
+                    cam.Render();
+                    cam.targetTexture = null;
+                    cam.enabled = was;
+                    var prev = RenderTexture.active;
+                    RenderTexture.active = rt;
+                    tex.ReadPixels(new Rect(0, 0, rt.width, rt.height), 0, 0);
+                    tex.Apply();
+                    RenderTexture.active = prev;
+                    var full = tex.GetPixels();
+                    for (int y = 0; y < ch; y++)
+                        for (int x = 0; x < cw; x++)
+                        {
+                            int a = (y * 2) * rt.width + x * 2;
+                            cell[y * cw + x] = (full[a] + full[a + 1] + full[a + rt.width] + full[a + rt.width + 1]) * 0.25f;
+                        }
+                    int cx = i % cols, cy = rows - 1 - i / cols;
+                    sheet.SetPixels(cx * cw, cy * ch, cw, ch, cell);
+                    Case01HouseCapture.Advance(qa, step);
+                }
+                sheet.Apply();
+                File.WriteAllBytes(path, sheet.EncodeToPNG());
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(sheet);
+                UnityEngine.Object.DestroyImmediate(tex);
             }
         }
 
