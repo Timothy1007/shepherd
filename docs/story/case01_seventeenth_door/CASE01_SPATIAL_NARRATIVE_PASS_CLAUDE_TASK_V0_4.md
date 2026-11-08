@@ -1,3 +1,5 @@
+> **2026-11-09 真人試玩後 v0.5 優先通知：** 本文 v0.4 的自語、記憶殘響、H3 冷清與核校正引導仍有效；但**住宅房間用途／樓梯方向、失序門故障視覺、失序體與戰鬥外觀銜接，以及事務所／街區整合**，請改依 [`CASE01_RESIDENTIAL_ART_DIRECTION_AND_DEMO_INTEGRATION_V0_5.md`](./CASE01_RESIDENTIAL_ART_DIRECTION_AND_DEMO_INTEGRATION_V0_5.md)。v0.4 已有實作，不能直接覆寫或宣稱 v0.5 已完成。
+
 # CASE01〈第十七號門〉｜空間敘事、記憶殘響、格局與失序氛圍升級 v0.4
 日期：2026-11-09｜**最新真人試玩意見／Claude Code 直接實作任務**
 Repo：`Timothy1007/shepherd`，`main`；Unity 2022.3.18f1。
