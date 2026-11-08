@@ -197,6 +197,37 @@ namespace Shepherd.Exploration.Tests
             Assert.IsTrue(sources.All(s => s == null || !s.isPlaying), "門的雜音、殘響低語隨場景停止");
         }
 
+        [UnityTest]
+        public IEnumerator FloorplanQa_ReversedStair_ClimbSouthToLanding_AndToggleAB_InRealPlayMode()
+        {
+            PlayerPrefs.SetString(Case01HouseQA.LaunchModeKey, "floor");
+            yield return LoadScene();
+            var qa = Object.FindObjectOfType<Case01HouseQA>();
+            Assert.IsTrue(qa.FloorplanQa);
+            Assert.AreEqual(Case01Floorplan.V04, qa.Layout.Floorplan, "選單啟動格局 B");
+            var input = new ScriptedInput();
+            qa.InputSource = input;
+            yield return null;
+            // 玄關直走餐廳被牆擋住。
+            yield return WalkTo(qa, input, 6.5f, 4.3f);
+            yield return WalkTo(qa, input, 6.5f, 5.8f, 3f);
+            Assert.AreEqual(Case01Room.Entrance, qa.CurrentRoom, "玄關↔餐廳已封住");
+            // 東北角起步，往南爬上反向樓梯。
+            yield return WalkTo(qa, input, 8.2f, 4.5f);
+            yield return WalkTo(qa, input, 9.4f, 4.55f);
+            yield return WalkTo(qa, input, 9.4f, 0.6f);
+            yield return WalkTo(qa, input, 8.0f, 0.6f);
+            yield return WalkTo(qa, input, 6.95f, 3.4f);
+            Assert.AreEqual(Case01Room.Landing, qa.CurrentRoom, "真實 Play：爬上反向樓梯到平台");
+            Assert.Greater(qa.Player.transform.position.y, 2.9f);
+            // F9：切回原版格局比較。
+            input.Once = new Case01Input { Function = 9 };
+            yield return null;
+            yield return null;
+            Assert.AreEqual(Case01Floorplan.Original, qa.Layout.Floorplan);
+            Assert.AreEqual(Case01Room.Entrance, qa.CurrentRoom);
+        }
+
         private static IEnumerator AimAndPress(Case01HouseQA qa, ScriptedInput input, string id)
         {
             var hot = qa.Layout.Interactables[id];

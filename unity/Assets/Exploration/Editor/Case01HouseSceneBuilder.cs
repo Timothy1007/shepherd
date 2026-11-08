@@ -65,6 +65,10 @@ namespace Shepherd.Exploration.Editor
         [MenuItem("Shepherd/Case01/空間敘事 v0.4 QA")]
         public static void LaunchNarrativeV04() { Launch("v04"); }
 
+        /// <summary>一樓反向樓梯 v0.4 QA：只為 A/B 動線測試（封住玄關↔餐廳、樓梯反向上行）；F9 切回原版比較。不影響正式 QA。</summary>
+        [MenuItem("Shepherd/Case01/一樓反向樓梯 v0.4 QA")]
+        public static void LaunchFloorplanV04() { Launch("floor"); }
+
         /// <summary>開啟室內 QA 場景並以指定模式進入 Play（一次性參數，Awake 讀取後刪除）。</summary>
         public static void Launch(string mode)
         {

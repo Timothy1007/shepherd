@@ -58,11 +58,24 @@ namespace Shepherd.Exploration.Case01
         }
     }
 
+    /// <summary>
+    /// 一樓格局：Original＝現行正式格局；V04＝試玩意見的 A/B 實驗（玄關↔餐廳開口封住、樓梯真的改成反向上行）。
+    /// 沒有真人試玩確認前，正式 QA 一律使用 Original。
+    /// </summary>
+    public enum Case01Floorplan
+    {
+        Original,
+        V04,
+    }
+
     /// <summary>建好的室內 QA 空間中，流程需要操作的物件與資料。</summary>
     public sealed class Case01HouseLayout
     {
         public Transform Root;
         public Case01Pose Spawn;
+        public Case01Floorplan Floorplan;
+        /// <summary>樓梯：底端／頂端的 z（反向樓梯時底端在北、頂端在南）與坡度（度）。</summary>
+        public float StairBottomZ, StairTopZ, StairAngle;
         public readonly List<Case01RoomVolume> Rooms = new List<Case01RoomVolume>();
         public readonly Dictionary<Case01Room, Case01Pose> Arrivals = new Dictionary<Case01Room, Case01Pose>();
         public readonly List<Case01Portal> Portals = new List<Case01Portal>();
@@ -147,15 +160,24 @@ namespace Shepherd.Exploration.Case01
         public const float StairX0 = 8.8f;
         public const float StairZ0 = 1.0f;
         public const float StairZ1 = 4.6f;
+        /// <summary>v0.4 反向樓梯：同一個樓梯井，梯段縮短到 3.0 m（約 45°，在角色 50° 爬坡上限內），北端留 1 m 起步空間。</summary>
+        public const float StairZ1V04 = 4.0f;
+
+        private static Case01Floorplan plan;
+
+        /// <summary>樓板開口（樓梯井）北緣：反向樓梯較短。</summary>
+        public static float StairWellNorth(Case01Floorplan p) { return p == Case01Floorplan.V04 ? StairZ1V04 : StairZ1; }
 
         private static Case01Palette P;
         private static bool trimWalls;
         private static Material wallMat, wallUp, floorWood, ceilMat, trim, wood, darkWood, fabric, white, metal, paper, glassNight;
         private static Material riftMat, mezzFloor, mezzWall, courtFloor, courtWall, crystal;
 
-        public static Case01HouseLayout Build(Transform parent, Case01Palette palette = null)
+        public static Case01HouseLayout Build(Transform parent, Case01Palette palette = null, Case01Floorplan floorplan = Case01Floorplan.Original)
         {
             var L = new Case01HouseLayout();
+            plan = floorplan;
+            L.Floorplan = floorplan;
             var root = ArenaArt.Group("Case01House", parent, Vector3.zero);
             L.Root = root;
             L.Spawn = new Case01Pose(SpawnPoint, 0f);
@@ -249,8 +271,10 @@ namespace Shepherd.Exploration.Case01
             WallX(g, 0f, 0f, 10f, 0f, FloorHeight, wallMat);
             WallX(g, 10f, 0f, 10f, 0f, FloorHeight, wallMat);
             // 內牆：x=5（廚房↔玄關 z2.5、客廳↔餐廳 z7.5），z=5（廚房↔客廳 x2.5、玄關↔餐廳 x6.5）。
+            // v0.4 格局 B：玄關↔餐廳的開口封住（有碰撞的牆），餐廳改由客廳進出。
             WallX(g, 5f, 0f, 10f, 0f, 2.8f, wallMat, 2.5f, 7.5f);
-            WallZ(g, 5f, 0f, 10f, 0f, 2.8f, wallMat, 2.5f, 6.5f);
+            if (plan == Case01Floorplan.V04) WallZ(g, 5f, 0f, 10f, 0f, 2.8f, wallMat, 2.5f);
+            else WallZ(g, 5f, 0f, 10f, 0f, 2.8f, wallMat, 2.5f, 6.5f);
             // 夜晚的窗。
             Window(g, new Vector3(2.5f, 1.5f, 0.09f), 0f);
             Window(g, new Vector3(2.5f, 1.5f, 9.91f), 0f);
@@ -335,7 +359,12 @@ namespace Shepherd.Exploration.Case01
 
         private static void BuildStairs(Case01HouseLayout L, Transform g)
         {
-            float run = StairZ1 - StairZ0;
+            // 原版：南端起步、往北上行（頂端在 z4.6）。v0.4 反向：北端起步、往南上行，頂端落在南側樓板（第三扇門旁）。
+            bool reversed = plan == Case01Floorplan.V04;
+            float zLow = reversed ? StairZ1V04 : StairZ0;
+            float zHigh = reversed ? StairZ0 : StairZ1;
+            float run = Mathf.Abs(zHigh - zLow);
+            float dir = Mathf.Sign(zHigh - zLow);
             float width = 10f - StairX0;
             float cx = StairX0 + width * 0.5f;
             const int steps = 12;
@@ -344,22 +373,33 @@ namespace Shepherd.Exploration.Case01
             for (int i = 0; i < steps; i++)
             {
                 float top = (i + 1) * rise;
-                Deco(g, new Vector3(cx, top * 0.5f, StairZ0 + (i + 0.5f) * depth), new Vector3(width, top, depth), i % 2 == 0 ? wood : darkWood, "Step", true);
+                Deco(g, new Vector3(cx, top * 0.5f, zLow + dir * (i + 0.5f) * depth), new Vector3(width, top, depth), i % 2 == 0 ? wood : darkWood, "Step", true);
             }
-            // 走路用的斜坡碰撞體（約 40°，CharacterController 可直接走上去）。
+            // 走路用的斜坡碰撞體（原版約 40°、反向約 45°；CharacterController 爬坡上限 50°）。
             float len = Mathf.Sqrt(run * run + FloorHeight * FloorHeight);
             float ang = Mathf.Atan2(FloorHeight, run) * Mathf.Rad2Deg;
             var ramp = new GameObject("StairRamp");
             ramp.transform.SetParent(g, false);
-            ramp.transform.localRotation = Quaternion.Euler(-ang, 0f, 0f);
+            ramp.transform.localRotation = Quaternion.Euler(-ang * dir, 0f, 0f);
             var up = ramp.transform.up;
-            ramp.transform.localPosition = new Vector3(cx, FloorHeight * 0.5f, (StairZ0 + StairZ1) * 0.5f) - up * 0.1f;
+            ramp.transform.localPosition = new Vector3(cx, FloorHeight * 0.5f, (zLow + zHigh) * 0.5f) - up * 0.1f;
             ramp.AddComponent<BoxCollider>().size = new Vector3(width, 0.2f, len);
-            // 樓梯下方封住（不能鑽到樓梯底下）。
+            // 樓梯高的那一端下方封住（不能鑽到樓梯底下）。
             var under = new GameObject("UnderStairBlock").AddComponent<BoxCollider>();
             under.transform.SetParent(g, false);
-            under.center = new Vector3(cx, 0.65f, 3.6f);
-            under.size = new Vector3(width, 1.3f, 2.0f);
+            if (reversed)
+            {
+                under.center = new Vector3(cx, 0.65f, 1.25f);
+                under.size = new Vector3(width, 1.3f, 2.3f);
+            }
+            else
+            {
+                under.center = new Vector3(cx, 0.65f, 3.6f);
+                under.size = new Vector3(width, 1.3f, 2.0f);
+            }
+            L.StairBottomZ = zLow;
+            L.StairTopZ = zHigh;
+            L.StairAngle = ang;
         }
 
         // ---------------- 二樓 ----------------
@@ -367,11 +407,12 @@ namespace Shepherd.Exploration.Case01
         private static void BuildSecondFloor(Case01HouseLayout L, Transform g)
         {
             float y = FloorHeight;
-            // 樓板（一樓天花板）：樓梯井 x8.8～10、z1.0～4.6 留空。
+            // 樓板（一樓天花板）：樓梯井 x8.8～10、z1.0～4.6（反向樓梯為 z1.0～4.0）留空。
+            float well = StairWellNorth(plan);
             Slab(g, 0f, 10f, 5f, 10f, y);
             Slab(g, 0f, StairX0, 0f, 5f, y);
             Slab(g, StairX0, 10f, 0f, StairZ0, y);
-            Slab(g, StairX0, 10f, StairZ1, 5f, y);
+            Slab(g, StairX0, 10f, well, 5f, y);
             // 屋頂。
             Solid(g, new Vector3(5f, 2f * FloorHeight + 0.1f, 5f), new Vector3(10.4f, 0.2f, 10.4f), ceilMat, "Roof");
             // 外牆：南牆 x6.95 是「第三扇門」的位置（平時封住）。
@@ -386,9 +427,12 @@ namespace Shepherd.Exploration.Case01
             Window(g, new Vector3(8.5f, y + 1.5f, 9.91f), 0f);
             Window(g, new Vector3(9.91f, y + 1.5f, 7.5f), 90f);
 
-            // 樓梯井欄杆。
+            // 樓梯井欄杆：原版在南緣（北端上樓）；反向樓梯在北緣（南端上樓，南側留出走上平台的開口）。
             Solid(g, new Vector3(StairX0, y + 0.5f, (StairZ0 + 4.0f) * 0.5f), new Vector3(0.08f, 1.0f, 4.0f - StairZ0), darkWood, "Rail");
-            Solid(g, new Vector3((StairX0 + 10f) * 0.5f, y + 0.5f, StairZ0), new Vector3(10f - StairX0, 1.0f, 0.08f), darkWood, "Rail");
+            if (plan == Case01Floorplan.V04)
+                Solid(g, new Vector3((StairX0 + 10f) * 0.5f, y + 0.5f, well), new Vector3(10f - StairX0, 1.0f, 0.08f), darkWood, "Rail");
+            else
+                Solid(g, new Vector3((StairX0 + 10f) * 0.5f, y + 0.5f, StairZ0), new Vector3(10f - StairX0, 1.0f, 0.08f), darkWood, "Rail");
 
             // ---- 樓梯平台 ----
             L.LandingLight = RoomLight(L, Case01Room.Landing, g, new Vector3(7f, y + 2.35f, 2.5f), new Color(0.86f, 0.88f, 1f), 0.95f, false, y + 2.8f);

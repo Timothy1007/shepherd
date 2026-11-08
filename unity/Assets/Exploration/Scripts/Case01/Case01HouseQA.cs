@@ -89,6 +89,14 @@ namespace Shepherd.Exploration.Case01
         public const string LaunchModeKey = "Shepherd.Case01.LaunchMode";
 
         public Case01QaMode QaMode { get { return qaMode; } }
+
+        [Tooltip("v0.4 一樓格局（A/B 實驗）。正式流程維持 Original；「一樓反向樓梯 v0.4 QA」選單使用 V04。")]
+        [SerializeField] private Case01Floorplan floorplan = Case01Floorplan.Original;
+        private bool floorplanQa;
+
+        public Case01Floorplan Floorplan { get { return floorplan; } }
+        /// <summary>由「一樓反向樓梯 v0.4 QA」啟動（F9 可切換新舊格局比較）。</summary>
+        public bool FloorplanQa { get { return floorplanQa; } }
         /// <summary>核修復玩法：一般／美術 QA 使用 v0.2；核校正 v0.3 QA 使用新規則。</summary>
         public Case01CorrectionMode Correction { get { return qaMode == Case01QaMode.CoreV03 ? Case01CorrectionMode.RevisedV03 : Case01CorrectionMode.LegacyV02; } }
         public Case01Audio Audio { get { return sfx; } }
@@ -188,6 +196,11 @@ namespace Shepherd.Exploration.Case01
                 if (launch == "art") qaMode = Case01QaMode.ArtPreview;
                 else if (launch == "v03") qaMode = Case01QaMode.CoreV03;
                 else if (launch == "v04") qaMode = Case01QaMode.NarrativeV04;
+                else if (launch == "floor")
+                {
+                    floorplan = Case01Floorplan.V04;
+                    floorplanQa = true;
+                }
             }
             Build(true);
         }
@@ -212,10 +225,16 @@ namespace Shepherd.Exploration.Case01
         /// 建立整個 QA。playMode＝false 供 EditMode 測試與截圖（不建立 EventSystem、不改 RenderSettings 與滑鼠）。
         /// scenario 供測試指定戰鬥情境；預設使用 Combat Lab 的標準兩敵情境（現有數值）。
         /// </summary>
-        public void Build(bool playMode, CombatLabScenario scenario = null, int? seedOverride = null, Case01Checkpoint? start = null, Case01QaMode? mode = null)
+        public void Build(bool playMode, CombatLabScenario scenario = null, int? seedOverride = null, Case01Checkpoint? start = null, Case01QaMode? mode = null,
+            Case01Floorplan? plan = null)
         {
             if (built) return;
             built = true;
+            if (plan.HasValue)
+            {
+                floorplan = plan.Value;
+                floorplanQa = plan.Value == Case01Floorplan.V04;
+            }
             this.playMode = playMode;
             scenarioOverride = scenario;
             if (seedOverride.HasValue) seed = seedOverride.Value;
@@ -313,7 +332,7 @@ namespace Shepherd.Exploration.Case01
             if (palette != null) palette.Dispose();
             palette = new Case01Palette();
             ResetMood();
-            layout = Case01HouseBuilder.Build(content, palette);
+            layout = Case01HouseBuilder.Build(content, palette, floorplan);
             BuildPortalHums();
             flow = f;
             var pose = poseOverride ?? CheckpointPose(layout, cp);
@@ -367,6 +386,8 @@ namespace Shepherd.Exploration.Case01
                     hud.Base.ViewMode.text = "QA 跳轉：F1 S00 玄關｜F2 S30 樓梯錯接｜F3 S40 夾層｜F4 S50 戰後修復｜F5 核校正 v0.3｜F8 降低閃爍";
                     break;
             }
+            if (floorplanQa)
+                hud.Base.ViewMode.text = "一樓格局 v0.4 QA（目前：" + (floorplan == Case01Floorplan.V04 ? "B 反向樓梯" : "A 原版") + "）：F9 切換 A/B｜F1～F4 檢查點｜F5 核校正 v0.2／v0.3";
         }
 
         /// <summary>中庭的遭遇區與看得到的失序體（與戰鬥開始時的位置、高度、朝向相同）。</summary>
@@ -442,6 +463,14 @@ namespace Shepherd.Exploration.Case01
             if (qaMode == Case01QaMode.NarrativeV04 && input.Function == 7)
             {
                 PreviewNextMonologue();
+                return;
+            }
+            if (floorplanQa && input.Function == 9)
+            {
+                // A/B：切換新舊一樓格局（回到玄關起點）。
+                floorplan = floorplan == Case01Floorplan.V04 ? Case01Floorplan.Original : Case01Floorplan.V04;
+                JumpNow(Case01Checkpoint.S00);
+                hud.Base.ShowToast(floorplan == Case01Floorplan.V04 ? "QA：一樓格局 B（封住玄關↔餐廳、反向樓梯）" : "QA：一樓格局 A（原版）");
                 return;
             }
             if (qaMode == Case01QaMode.NarrativeV04 && input.Function == 9)
@@ -1801,9 +1830,10 @@ namespace Shepherd.Exploration.Case01
         {
             var s = flow.Session;
             if (Mode == Case01Mode.Ended) return "QA 結束。F1 可從玄關重玩。";
-            if (!s.Has(Case01Flags.TableTwo)) return "先在一樓走走。餐廳在玄關北側。";
+            bool b = floorplan == Case01Floorplan.V04;
+            if (!s.Has(Case01Flags.TableTwo)) return b ? "先在一樓走走。餐廳在客廳東側（從玄關經廚房、客廳過去）。" : "先在一樓走走。餐廳在玄關北側。";
             if (!s.HasJournal("table_rewritten") && !s.Has(Case01Flags.EllieStudyKnown))
-                return "離開餐廳，到別的房間走一圈再回來看看。（二樓：樓梯在玄關東側）";
+                return "離開餐廳，到別的房間走一圈再回來看看。" + (b ? "（二樓：樓梯在玄關東北角，往南上樓）" : "（二樓：樓梯在玄關東側）");
             if (!s.Has(Case01Flags.EllieStudyKnown) || !s.Has(Case01Flags.OldCorrectionRecord)) return "上二樓，調查書房裡的資料。（樓梯在玄關東側）";
             if (!flow.WrongConnectionActive) return "離開書房，到樓梯平台看看。";
             if (!s.Has(Case01Flags.RouteMismatchSeen)) return "從樓梯平台走進書房門，親自確認它通往哪裡。";
