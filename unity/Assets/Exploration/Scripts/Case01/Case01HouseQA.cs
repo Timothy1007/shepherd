@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Shepherd.Battle.Core;
 using Shepherd.Battle.UI;
 using Shepherd.Battle.UI.Arena;
@@ -95,6 +95,9 @@ namespace Shepherd.Exploration.Case01
         [Tooltip("v0.4 一樓格局（A/B 實驗）。正式流程維持 Original；「一樓反向樓梯 v0.4 QA」選單使用 V04。")]
         [SerializeField] private Case01Floorplan floorplan = Case01Floorplan.Original;
         private bool floorplanQa;
+        private bool residentialQa;
+        /// <summary>由「住宅 v0.5 A/B QA」啟動（F9 依序切 v0.5 A／B／原版／v0.4 B）。</summary>
+        public bool ResidentialQa { get { return residentialQa; } }
 
         public Case01Floorplan Floorplan { get { return floorplan; } }
 
@@ -203,6 +206,12 @@ namespace Shepherd.Exploration.Case01
                 else if (launch == "v03") qaMode = Case01QaMode.CoreV03;
                 else if (launch == "v04") qaMode = Case01QaMode.NarrativeV04;
                 else if (launch == "portal") qaMode = Case01QaMode.PortalV05;
+                else if (launch == "res")
+                {
+                    floorplan = Case01Floorplan.V05A;
+                    floorplanQa = true;
+                    residentialQa = true;
+                }
                 else if (launch == "floor")
                 {
                     floorplan = Case01Floorplan.V04;
@@ -240,7 +249,8 @@ namespace Shepherd.Exploration.Case01
             if (plan.HasValue)
             {
                 floorplan = plan.Value;
-                floorplanQa = plan.Value == Case01Floorplan.V04;
+                floorplanQa = plan.Value != Case01Floorplan.Original;
+                residentialQa = Case01HouseBuilder.IsV05(plan.Value);
             }
             this.playMode = playMode;
             scenarioOverride = scenario;
@@ -260,7 +270,8 @@ namespace Shepherd.Exploration.Case01
             camGo.transform.SetParent(transform, false);
             exploreCam = camGo.AddComponent<Camera>();
             exploreCam.clearFlags = CameraClearFlags.SolidColor;
-            exploreCam.backgroundColor = new Color(0.03f, 0.03f, 0.05f);
+            // v0.5：窗外夜空（深藍，不是 Unity 的空白背景）。
+            exploreCam.backgroundColor = new Color(0.045f, 0.055f, 0.095f);
             exploreCam.fieldOfView = ExploreFieldOfView;
             exploreCam.nearClipPlane = 0.05f;
             exploreCam.farClipPlane = 120f;
@@ -344,6 +355,7 @@ namespace Shepherd.Exploration.Case01
             layout = Case01HouseBuilder.Build(content, palette, floorplan);
             BuildPortalHums();
             flow = f;
+            flow.PhotoPlace = layout.PhotoPlace;
             var pose = poseOverride ?? CheckpointPose(layout, cp);
             player = FirstPersonController.Create(content, pose.Position, pose.Yaw);
             BuildEncounter();
@@ -400,7 +412,30 @@ namespace Shepherd.Exploration.Case01
                     break;
             }
             if (floorplanQa)
-                hud.Base.ViewMode.text = "一樓格局 v0.4 QA（目前：" + (floorplan == Case01Floorplan.V04 ? "B 反向樓梯" : "A 原版") + "）：F9 切換 A/B｜F1～F4 檢查點｜F5 核校正 v0.2／v0.3";
+                hud.Base.ViewMode.text = (residentialQa ? "住宅 v0.5 A/B QA（目前：" + FloorplanName(floorplan) + "）：F9 切換 A → B → 原版 → v0.4 B" : "一樓格局 v0.4 QA（目前：" + (floorplan == Case01Floorplan.V04 ? "B 反向樓梯" : "A 原版") + "）：F9 切換 A/B") + "｜F1～F4 檢查點｜F5 核校正 v0.2／v0.3";
+        }
+
+        /// <summary>F9 的切換順序：v0.5 A → v0.5 B → 原版 → v0.4 B → v0.5 A。</summary>
+        public static Case01Floorplan NextFloorplan(Case01Floorplan p)
+        {
+            switch (p)
+            {
+                case Case01Floorplan.V05A: return Case01Floorplan.V05B;
+                case Case01Floorplan.V05B: return Case01Floorplan.Original;
+                case Case01Floorplan.Original: return Case01Floorplan.V04;
+                default: return Case01Floorplan.V05A;
+            }
+        }
+
+        public static string FloorplanName(Case01Floorplan p)
+        {
+            switch (p)
+            {
+                case Case01Floorplan.V05A: return "v0.5 方案 A：客廳→餐廳→廚房，樓梯在廚房側";
+                case Case01Floorplan.V05B: return "v0.5 方案 B：原分區＋樓梯下收納";
+                case Case01Floorplan.V04: return "v0.4 B 反向樓梯";
+                default: return "原版";
+            }
         }
 
         /// <summary>中庭的遭遇區與看得到的失序體（與戰鬥開始時的位置、高度、朝向相同）。</summary>
@@ -527,9 +562,10 @@ namespace Shepherd.Exploration.Case01
             if (floorplanQa && input.Function == 9)
             {
                 // A/B：切換新舊一樓格局（回到玄關起點）。
-                floorplan = floorplan == Case01Floorplan.V04 ? Case01Floorplan.Original : Case01Floorplan.V04;
+                floorplan = residentialQa ? NextFloorplan(floorplan) : floorplan == Case01Floorplan.V04 ? Case01Floorplan.Original : Case01Floorplan.V04;
                 JumpNow(Case01Checkpoint.S00);
-                hud.Base.ShowToast(floorplan == Case01Floorplan.V04 ? "QA：一樓格局 B（封住玄關↔餐廳、反向樓梯）" : "QA：一樓格局 A（原版）");
+                UpdateModeText();
+                hud.Base.ShowToast("QA：一樓格局　" + FloorplanName(floorplan));
                 return;
             }
             if (qaMode == Case01QaMode.NarrativeV04 && input.Function == 9)
@@ -857,7 +893,7 @@ namespace Shepherd.Exploration.Case01
             if (r.Toast != null) hud.Base.ShowToast(r.Toast);
             if (r.Radio != null) hud.ShowRadio(r.Radio);
             // 殘響先排（生活片段），自語接在後面。
-            if (r.Echo != null && echo != null) echo.Play(r.Echo, content, palette);
+            if (r.Echo != null && echo != null) echo.Play(r.Echo, content, palette, layout);
             if (r.Monologue != null)
                 foreach (var id in r.Monologue) hud.EnqueueMonologue(Case01Texts.SayLine(id));
             if (r.Choice != null) hud.ShowChoice(r.Choice);
@@ -1558,7 +1594,7 @@ namespace Shepherd.Exploration.Case01
             }
             encounterGroup = null;
             exploreCam.enabled = true;
-            BuildContent(Case01Flow.ForHouseStage(ArtStage), Case01Checkpoint.S00, new Case01Pose(new Vector3(3.9f, 0.05f, 6.3f), -55f));
+            BuildContent(Case01Flow.ForHouseStage(ArtStage), Case01Checkpoint.S00, layout != null ? layout.ArtPose : new Case01Pose(new Vector3(3.9f, 0.05f, 6.3f), -55f));
             hud.Base.ShowToast("美術 QA：房屋 H" + ArtStage);
         }
 
@@ -1640,11 +1676,11 @@ namespace Shepherd.Exploration.Case01
             {
                 case Case01Echoes.Entrance:
                     f = Case01Flow.ForHouseStage(0);
-                    pose = new Case01Pose(Case01HouseBuilder.SpawnPoint, 0f);
+                    pose = layout != null ? layout.Spawn : new Case01Pose(Case01HouseBuilder.SpawnPoint, 0f);
                     break;
                 case Case01Echoes.Dining:
                     f = Case01Flow.ForHouseStage(0);
-                    pose = new Case01Pose(new Vector3(6.5f, 0.05f, 5.6f), 25f);
+                    pose = layout != null && Case01HouseBuilder.IsV05(floorplan) ? layout.Arrivals[Case01Room.Dining] : new Case01Pose(new Vector3(6.5f, 0.05f, 5.6f), 25f);
                     break;
                 case Case01Echoes.Study:
                     f = Case01Flow.ForHouseStage(1);
@@ -1657,7 +1693,7 @@ namespace Shepherd.Exploration.Case01
             }
             BuildContent(f, Case01Checkpoint.S00, pose);
             hud.ClearMonologue();
-            echo.Play(id, content, palette);
+            echo.Play(id, content, palette, layout);
             hud.Base.ShowToast("殘響預覽 " + (EchoPreview + 1) + "／" + Case01Echoes.All.Length + "：" + Case01Texts.EchoRoomName(id) + Case01Texts.EchoPlaceholderNote);
         }
 
@@ -1918,10 +1954,13 @@ namespace Shepherd.Exploration.Case01
             var s = flow.Session;
             if (Mode == Case01Mode.Ended) return "QA 結束。F1 可從玄關重玩。";
             bool b = floorplan == Case01Floorplan.V04;
-            if (!s.Has(Case01Flags.TableTwo)) return b ? "先在一樓走走。餐廳在客廳東側（從玄關經廚房、客廳過去）。" : "先在一樓走走。餐廳在玄關北側。";
+            bool a5 = floorplan == Case01Floorplan.V05A;
+            string stairs = a5 ? "樓梯在廚房東南角，往南上樓" : b ? "樓梯在玄關東北角，往南上樓" : "樓梯在玄關東側";
+            if (!s.Has(Case01Flags.TableTwo))
+                return a5 ? "先在一樓走走。客廳在玄關左手邊，餐廳在客廳裡面。" : b ? "先在一樓走走。餐廳在客廳東側（從玄關經廚房、客廳過去）。" : "先在一樓走走。餐廳在玄關北側。";
             if (!s.HasJournal("table_rewritten") && !s.Has(Case01Flags.EllieStudyKnown))
-                return "離開餐廳，到別的房間走一圈再回來看看。" + (b ? "（二樓：樓梯在玄關東北角，往南上樓）" : "（二樓：樓梯在玄關東側）");
-            if (!s.Has(Case01Flags.EllieStudyKnown) || !s.Has(Case01Flags.OldCorrectionRecord)) return "上二樓，調查書房裡的資料。（樓梯在玄關東側）";
+                return "離開餐廳，到別的房間走一圈再回來看看。（二樓：" + stairs + "）";
+            if (!s.Has(Case01Flags.EllieStudyKnown) || !s.Has(Case01Flags.OldCorrectionRecord)) return "上二樓，調查書房裡的資料。（" + stairs + "）";
             if (!flow.WrongConnectionActive) return "離開書房，到樓梯平台看看。";
             if (!s.Has(Case01Flags.RouteMismatchSeen)) return "從樓梯平台走進書房門，親自確認它通往哪裡。";
             if (!flow.StairRouteRestored) return "回到樓梯平台，依艾琳的記號覆寫書房門框（E）。";

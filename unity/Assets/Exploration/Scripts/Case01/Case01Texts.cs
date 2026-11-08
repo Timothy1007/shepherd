@@ -1,4 +1,4 @@
-namespace Shepherd.Exploration.Case01
+﻿namespace Shepherd.Exploration.Case01
 {
     /// <summary>
     /// 室內 QA 的玩家可見文字（B 版碎片化觀測，暫定文案，可依試玩修改）。
@@ -39,7 +39,7 @@ namespace Shepherd.Exploration.Case01
         public const string Record =
             "第一次校正的記錄，大半被塗黑。殘存一行：\n「……17 的參照被省略，以維持 16 與 18 相鄰……」\n旁邊是艾琳的筆跡：「缺口在樓梯之間。」";
         public const string Postcard = "床頭有一張沒寄出的明信片：「媽，下週日我晚點到。」";
-        public const string Storage = "儲藏室的門鎖著。（QA：此房間不開放）";
+        public const string Storage = "門鎖住了。門縫裡有股陳年的紙張氣味。";
         public const string ArmedToast = "樓梯平台那邊傳來木板擠壓的聲音……";
         public const string ActivatedToast = "身後的門框輕輕一震。";
 
@@ -75,6 +75,8 @@ namespace Shepherd.Exploration.Case01
         public const string CoreNeedEvidence = "要補上被省略的 17，需要能證明它存在的資料。\n還缺：";
         public const string CoreNeedMap = "街區舊地圖（二樓書房）";
         public const string CoreNeedPhoto = "合照（一樓餐廳）";
+        /// <summary>v0.5：合照的地點依格局（原版在一樓餐廳；方案 A／B 在一樓客廳）。</summary>
+        public static string PhotoNeed(string place) { return "合照（" + place + "）"; }
         public const string Step1 = "你照著舊地圖補上的那一格，把「17」寫回術式。\n北牆出現了一扇真正的門。\n但核同時把△和○兩扇門的去向扭在一起了。";
         public const string Step1Title = "17 的參照已補回";
         public const string Step1Journal = "依舊地圖與合照，把被省略的「17」寫回術式。夾層北牆出現 17 號門（□，通往玄關）。核把△／○兩扇門的去向互換了。";
@@ -101,8 +103,8 @@ namespace Shepherd.Exploration.Case01
         public const string ConfirmedPrefix = "上次走過：通往";
         public const string NotConfirmed = "還沒走過。";
 
-        public const string EvidenceTitle = "案卷：餐廳合照的觀測";
-        public const string Evidence = "餐廳合照的觀測已寫入案卷（原件留在原處）。照片裡的第二個人影只剩輪廓，但案卷保留了「原本有兩人」的觀測。";
+        public const string EvidenceTitle = "案卷：合照的觀測";
+        public const string Evidence = "合照的觀測已寫入案卷（原件留在原處）。照片裡的第二個人影只剩輪廓，但案卷保留了「原本有兩人」的觀測。";
         public const string EndTitle = "〈第十七號門〉室內 QA 結束";
         public const string EndBody = "房屋：暫時穩定\n艾琳：下落未明\n街區沒有永久復原。";
 
@@ -138,7 +140,7 @@ namespace Shepherd.Exploration.Case01
         public const string EvidenceId = "FP-001";
         public const string EvidenceKey = "case01.family_photo";
         public const string FamilyPhotoTitle = "FP-001　十七號的合照（夾層殘留）";
-        public const string FamilyPhotoSource = "來源：局部校正後，在不存在的夾層中顯現。與餐廳那張合照是同一個畫面，但這是一個異常的實體殘留；餐廳的原件仍留在原處。";
+        public const string FamilyPhotoSource = "來源：局部校正後，在不存在的夾層中顯現。與屋裡那張合照是同一個畫面，但這是一個異常的實體殘留；屋裡的原件仍留在原處。";
         public const string FamilyPhotoDescription = "正面：兩個人並肩，第二個人的位置只剩一圈空白輪廓。\n背面：鉛筆字「週日。兩個人。」，第二行被擦掉，右下角撕掉了一角。";
         public const string FamilyPhotoUnresolved = "未解：為什麼核穩定後，它會出現在這裡？輪廓裡缺席的那個人，現在在哪裡？";
         public const string FamilyPhotoToast = "已收入證物：FP-001 十七號的合照（本次 QA 收藏）";

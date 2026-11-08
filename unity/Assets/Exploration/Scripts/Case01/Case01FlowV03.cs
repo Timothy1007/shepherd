@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Text;
 
 namespace Shepherd.Exploration.Case01
@@ -87,7 +87,7 @@ namespace Shepherd.Exploration.Case01
             string squNow = V03SecondLink ? "玄關（17 號門已出現）" : "不存在（北牆沒有門）";
             string squRec = Has(Case01Flags.MapObserved) && Has(Case01Flags.PhotoObserved)
                 ? "玄關＝十七號的門（推定：舊地圖補畫的一格＋合照）"
-                : "未知（舊地圖在二樓書房、合照在一樓餐廳）";
+                : "未知（舊地圖在二樓書房、合照在" + PhotoPlace + "）";
             sb.Append("<b>△書房門</b>\n　現況：").Append(triNow).Append("\n　記錄：").Append(triRec).Append('\n');
             sb.Append("<b>○餐廳門</b>\n　現況：").Append(cirNow).Append("\n　記錄：餐廳（推定：記號○）\n");
             sb.Append("<b>□17</b>\n　現況：").Append(squNow).Append("\n　記錄：").Append(squRec);
@@ -102,7 +102,7 @@ namespace Shepherd.Exploration.Case01
             {
                 var missing = new List<string>();
                 if (!Has(Case01Flags.MapObserved)) missing.Add("街區舊地圖（二樓書房）");
-                if (!Has(Case01Flags.PhotoObserved)) missing.Add("合照（一樓餐廳）");
+                if (!Has(Case01Flags.PhotoObserved)) missing.Add(Case01Texts.PhotoNeed(PhotoPlace));
                 if (!Has(Case01Flags.EllieStudyKnown)) missing.Add("艾琳的手記（二樓書房）");
                 return new Case01Response { Text = readout + "\n\n記錄還推不出來。去查：" + string.Join("、", missing.ToArray()) + "（從樓梯平台的第三扇門回來）" };
             }

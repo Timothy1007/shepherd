@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -214,7 +214,7 @@ namespace Shepherd.Exploration.Editor
         }
 
         /// <summary>正交俯視（相機放在樓板／屋頂下方往下看；不顯示 HUD）。</summary>
-        private static void TopDown(Case01HouseQA qa, RenderTexture rt, string path, float camY)
+        internal static void TopDown(Case01HouseQA qa, RenderTexture rt, string path, float camY)
         {
             var go = new GameObject("TopDownCamera");
             try

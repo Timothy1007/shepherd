@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Shepherd.Battle.UI.Arena;
 using UnityEngine;
 
@@ -145,16 +145,21 @@ namespace Shepherd.Exploration.Case01
 
         public static Case01Decor Build(Case01HouseLayout L, Transform root)
         {
-            var d = new Case01Decor();
+            // v0.5 方案 A／B：一樓的生活物件與 H0～H3 物件已由 Case01HouseBuilder 建好並放在 L.Decor。
+            bool v05 = Case01HouseBuilder.IsV05(L.Floorplan) && L.Decor != null;
+            var d = v05 ? L.Decor : new Case01Decor();
             P = L.Palette ?? new Case01Palette();
             Materials();
             var rng = new System.Random(2026);
             System.Func<float, float, float> R = (a, b) => a + (float)rng.NextDouble() * (b - a);
 
-            Entrance(L, root);
-            Kitchen(L, d, root);
-            Living(L, d, root, R);
-            Dining(L, d, root);
+            if (!v05)
+            {
+                Entrance(L, root);
+                Kitchen(L, d, root);
+                Living(L, d, root, R);
+                Dining(L, d, root);
+            }
             Bedroom(L, root, R);
             Study(L, d, root, R);
             Landing(L, d, root);
@@ -356,14 +361,58 @@ namespace Shepherd.Exploration.Case01
             Cyl(g, new Vector3(1.0f, y + 0.86f, 9.65f), new Vector3(0.18f, 0.08f, 0.18f), lampShade, "LampShade");
             // v0.4：床頭燈也要跟著 H1～H3 失溫（登記為小燈）。
             L.LampLights.Add(ArenaArt.PointLight(g, new Vector3(1.0f, y + 0.9f, 9.4f), ArenaArt.LampWarm, 3.2f, 0.7f, false));
-            // 床上的衣物、地上的書。
-            Box(g, new Vector3(2.0f, y + 0.52f, 8.0f), new Vector3(0.45f, 0.03f, 0.55f), bookMats[1], "Shirt", new Vector3(0f, 25f, 0f));
-            Box(g, new Vector3(2.4f, y + 0.535f, 7.85f), new Vector3(0.3f, 0.02f, 0.6f), pale, "Scarf", new Vector3(0f, -40f, 0f));
+            // v0.5：床頭板、枕頭、被子（床尾半邊）、床邊地毯——床看起來是有人睡的床，而不是一塊布面方塊。
+            Box(g, new Vector3(2.4f, y + 0.62f, 9.63f), new Vector3(1.72f, 1.05f, 0.07f), wood, "Headboard");
+            Box(g, new Vector3(2.4f, y + 1.17f, 9.63f), new Vector3(1.8f, 0.05f, 0.1f), darkWood, "HeadboardCap");
+            for (int i = 0; i < 2; i++)
+                Box(g, new Vector3(1.98f + i * 0.84f, y + 0.56f, 9.33f), new Vector3(0.62f, 0.12f, 0.36f), pale, "Pillow", new Vector3(0f, i == 0 ? 4f : -6f, 0f));
+            Box(g, new Vector3(2.4f, y + 0.53f, 8.15f), new Vector3(1.64f, 0.07f, 1.1f), fabric2, "Duvet");
+            Box(g, new Vector3(2.4f, y + 0.3f, 7.61f), new Vector3(1.64f, 0.5f, 0.04f), fabric2, "DuvetFold");
+            Box(g, new Vector3(3.55f, y + 0.006f, 8.4f), new Vector3(0.7f, 0.012f, 1.3f), fabric, "BedsideRug");
+            // 床上的衣物（隨手丟著）、地上的書。
+            Box(g, new Vector3(2.0f, y + 0.575f, 8.0f), new Vector3(0.45f, 0.03f, 0.55f), bookMats[1], "Shirt", new Vector3(0f, 25f, 0f));
+            Box(g, new Vector3(2.4f, y + 0.58f, 7.85f), new Vector3(0.3f, 0.02f, 0.6f), pale, "Scarf", new Vector3(0f, -40f, 0f));
             for (int i = 0; i < 3; i++)
                 Box(g, new Vector3(3.65f, y + 0.03f + i * 0.05f, 9.5f), new Vector3(0.3f, 0.045f, 0.22f), bookMats[i + 2], "FloorBook", new Vector3(0f, R(-20f, 20f), 0f));
             // 衣櫃。
             Solid(PrimitiveType.Cube, g, new Vector3(0.4f, y + 1.0f, 6.0f), new Vector3(0.6f, 2.0f, 1.2f), wood, "Wardrobe");
             Box(g, new Vector3(0.71f, y + 1.0f, 6.0f), new Vector3(0.01f, 1.9f, 0.01f), darkWood, "WardrobeGap");
+            // v0.5 衣櫃：兩扇門板、把手、頂飾、底座；一扇門沒關好，露出掛著的衣服。
+            Box(g, new Vector3(0.715f, y + 1.02f, 5.71f), new Vector3(0.025f, 1.86f, 0.56f), wood, "WardrobeDoor");
+            var openDoor = Box(g, new Vector3(0.88f, y + 1.02f, 6.5f), new Vector3(0.025f, 1.86f, 0.56f), wood, "WardrobeDoorAjar", new Vector3(0f, -38f, 0f));
+            Box(g, new Vector3(0.74f, y + 1.05f, 5.96f), new Vector3(0.03f, 0.18f, 0.025f), metal, "Handle");
+            Box(openDoor.parent, openDoor.localPosition + new Vector3(0.12f, 0.03f, -0.22f), new Vector3(0.03f, 0.18f, 0.025f), metal, "Handle", new Vector3(0f, -38f, 0f));
+            Box(g, new Vector3(0.42f, y + 2.03f, 6.0f), new Vector3(0.68f, 0.06f, 1.28f), darkWood, "WardrobeCornice");
+            Box(g, new Vector3(0.42f, y + 0.04f, 6.0f), new Vector3(0.64f, 0.08f, 1.24f), darkWood, "WardrobeBase");
+            for (int i = 0; i < 3; i++)
+                Box(g, new Vector3(0.45f, y + 1.25f, 6.28f + i * 0.09f), new Vector3(0.38f, 0.75f, 0.05f), bookMats[(i + 2) % bookMats.Length], "HangingClothes");
+            // 收到一半的行李箱：旅行計畫還沒完成。
+            var case1 = ArenaArt.Group("Suitcase", g, new Vector3(1.25f, y, 7.0f));
+            case1.localRotation = Quaternion.Euler(0f, 12f, 0f);
+            Box(case1, new Vector3(0f, 0.1f, 0f), new Vector3(0.72f, 0.2f, 0.46f), M(new Color(0.35f, 0.22f, 0.18f), 0.4f), "Shell");
+            Box(case1, new Vector3(-0.36f, 0.32f, 0f), new Vector3(0.04f, 0.44f, 0.46f), M(new Color(0.35f, 0.22f, 0.18f), 0.4f), "Lid", new Vector3(0f, 0f, 14f));
+            Box(case1, new Vector3(0.05f, 0.2f, -0.05f), new Vector3(0.5f, 0.06f, 0.3f), pale, "FoldedClothes");
+            Box(case1, new Vector3(0.12f, 0.24f, 0.08f), new Vector3(0.3f, 0.04f, 0.22f), bookMats[4], "FoldedClothes");
+            // 書桌椅、桌上的旅行手冊與相機、桌上方的軟木板（車票、地圖、明信片、紅線）與小照片牆。
+            Box(g, new Vector3(4.3f, y + 0.45f, 8.95f), new Vector3(0.42f, 0.05f, 0.42f), darkWood, "DeskChairSeat");
+            Box(g, new Vector3(4.3f, y + 0.72f, 8.75f), new Vector3(0.42f, 0.5f, 0.04f), darkWood, "DeskChairBack");
+            for (int i = 0; i < 4; i++)
+                Box(g, new Vector3(4.3f + (i % 2 == 0 ? -0.18f : 0.18f), y + 0.22f, 8.95f + (i < 2 ? -0.18f : 0.18f)), new Vector3(0.035f, 0.44f, 0.035f), darkWood, "DeskChairLeg");
+            Box(g, new Vector3(4.58f, y + 0.735f, 9.32f), new Vector3(0.14f, 0.02f, 0.2f), M(new Color(0.25f, 0.55f, 0.65f), 0.2f), "Brochure", new Vector3(0f, 18f, 0f));
+            Box(g, new Vector3(4.6f, y + 0.745f, 9.3f), new Vector3(0.14f, 0.02f, 0.2f), M(new Color(0.85f, 0.6f, 0.3f), 0.2f), "Brochure", new Vector3(0f, -10f, 0f));
+            Box(g, new Vector3(3.98f, y + 0.77f, 9.55f), new Vector3(0.12f, 0.08f, 0.07f), M(new Color(0.12f, 0.12f, 0.13f), 0.6f), "Camera");
+            var cork = ArenaArt.Group("Corkboard", g, new Vector3(4.3f, y + 1.55f, 9.915f));
+            Box(cork, Vector3.zero, new Vector3(0.95f, 0.62f, 0.025f), M(new Color(0.55f, 0.4f, 0.26f), 0.05f), "Board");
+            Box(cork, new Vector3(-0.2f, 0.05f, -0.016f), new Vector3(0.36f, 0.26f, 0.004f), paperOld, "PinnedMap");
+            Box(cork, new Vector3(0.25f, 0.14f, -0.016f), new Vector3(0.16f, 0.11f, 0.004f), card, "PinnedPostcard", new Vector3(0f, 0f, 6f));
+            Box(cork, new Vector3(0.28f, -0.13f, -0.016f), new Vector3(0.2f, 0.08f, 0.004f), paper, "PinnedTicket", new Vector3(0f, 0f, -5f));
+            Box(cork, new Vector3(0.0f, 0.02f, -0.019f), new Vector3(0.5f, 0.006f, 0.003f), M(new Color(0.75f, 0.1f, 0.1f), 0.2f), "RedString", new Vector3(0f, 0f, 14f));
+            for (int i = 0; i < 4; i++)
+            {
+                var ph = ArenaArt.Group("PhotoWall_" + i, g, new Vector3(3.4f + (i % 2) * 0.32f, y + 1.45f + (i / 2) * 0.3f, 9.915f));
+                Box(ph, Vector3.zero, new Vector3(0.22f, 0.17f, 0.02f), frameMat, "Frame");
+                Box(ph, new Vector3(0f, 0f, -0.012f), new Vector3(0.18f, 0.13f, 0.004f), M(i % 2 == 0 ? new Color(0.5f, 0.6f, 0.68f) : new Color(0.65f, 0.58f, 0.45f), 0.1f), "Print");
+            }
             // 小書桌：旅行路線（可調查）。
             Solid(PrimitiveType.Cube, g, new Vector3(4.3f, y + 0.36f, 9.45f), new Vector3(0.8f, 0.72f, 0.5f), darkWood, "WritingTable");
             Box(g, new Vector3(4.25f, y + 0.725f, 9.42f), new Vector3(0.42f, 0.004f, 0.3f), paperOld, "TravelRoute", new Vector3(0f, -8f, 0f));
@@ -379,23 +428,52 @@ namespace Shepherd.Exploration.Case01
         {
             float y = Case01HouseBuilder.FloorHeight;
             var g = ArenaArt.Group("Study", root, Vector3.zero);
-            // 書架西面的書（避開校正記錄的位置 z 7.25～7.75、y 4.1～4.6）。
-            float[] rows = { y + 0.25f, y + 0.75f, y + 1.75f };
+            // v0.5 層板書櫃：側板／頂板／背板／踢腳板／四片層板，書立在（或橫放在）層板上、在櫃體之內。
+            float fx = Case01HouseBuilder.BookcaseFrontX, dep = Case01HouseBuilder.BookcaseDepth;
+            var shelves = Case01HouseBuilder.BookcaseShelves;
+            var bc = ArenaArt.Group("StudyBookcase", g, Vector3.zero);
+            float cx = fx + dep * 0.5f;
+            Box(bc, new Vector3(fx + dep - 0.015f, y + 1.1f, 7.5f), new Vector3(0.03f, 2.2f, 2.0f), darkWood, "Back");
+            Box(bc, new Vector3(cx, y + 1.1f, 6.52f), new Vector3(dep, 2.2f, 0.04f), wood, "Side");
+            Box(bc, new Vector3(cx, y + 1.1f, 8.48f), new Vector3(dep, 2.2f, 0.04f), wood, "Side");
+            Box(bc, new Vector3(cx - 0.01f, y + 2.19f, 7.5f), new Vector3(dep + 0.04f, 0.04f, 2.06f), wood, "Top");
+            Box(bc, new Vector3(cx, y + 0.05f, 7.5f), new Vector3(dep, 0.1f, 1.92f), wood, "Plinth");
+            for (int s = 1; s < shelves.Length; s++)
+                Box(bc, new Vector3(cx, y + shelves[s] - 0.015f, 7.5f), new Vector3(dep - 0.03f, 0.03f, 1.92f), wood, "Shelf");
             int n = 0;
-            foreach (var ry in rows)
+            for (int s = 0; s < shelves.Length; s++)
             {
-                float z = 6.6f;
-                while (z < 8.4f)
+                float baseY = y + shelves[s];
+                float z = 6.56f;
+                while (z < 8.42f)
                 {
-                    float w = R(0.04f, 0.075f), h = R(0.25f, 0.36f);
-                    Box(g, new Vector3(9.4f, ry + h * 0.5f, z + w * 0.5f), new Vector3(0.18f, h, w), bookMats[n % bookMats.Length], "StudyBook");
-                    z += w + 0.006f;
+                    // 第三層中段是校正記錄（灰色檔案盒）；最上層兩端留給紅色舊書與 H2 的複本。
+                    if (s == 2 && z > 7.22f && z < 7.78f) { z = 7.78f; continue; }
+                    if (s == 4 && z < 6.7f) { z = 6.7f; continue; }
+                    if (s == 4 && z > 8.28f) break;
+                    if (n % 11 == 6)
+                    {
+                        // 少量橫放的一疊書。
+                        int stack = 2 + n % 2;
+                        for (int k = 0; k < stack; k++)
+                            Box(bc, new Vector3(fx + 0.15f, baseY + 0.022f + k * 0.045f, z + 0.12f), new Vector3(R(0.2f, 0.26f), 0.042f, R(0.18f, 0.24f)), bookMats[(n + k) % bookMats.Length], "BookFlat",
+                                new Vector3(0f, R(-8f, 8f), 0f));
+                        z += 0.27f;
+                        n++;
+                        continue;
+                    }
+                    float w = R(0.025f, 0.07f), h = R(0.22f, 0.36f), dd = R(0.17f, 0.27f);
+                    // 書背貼齊前緣往內 2 公分，偶爾一本略往外凸或微微傾斜。
+                    float lean = n % 9 == 4 ? 7f : 0f;
+                    Box(bc, new Vector3(fx + 0.02f + dd * 0.5f, baseY + h * 0.5f, z + w * 0.5f), new Vector3(dd, h, w), bookMats[n % bookMats.Length], "StudyBook",
+                        new Vector3(lean, 0f, 0f));
+                    z += w + (n % 13 == 9 ? 0.09f : 0.004f);
                     n++;
                 }
             }
             // H0 就有的一本紅色舊書（最上層前端），H2 時在另一端出現一模一樣的第二本。
-            Box(g, new Vector3(9.36f, rows[2] + 0.2f, 6.55f), new Vector3(0.2f, 0.4f, 0.08f), bookMats[0], "RedLedger");
-            d.StudyDuplicateBook = Box(g, new Vector3(9.36f, rows[2] + 0.2f, 8.45f), new Vector3(0.2f, 0.4f, 0.08f), bookMats[0], "RedLedgerDuplicate").gameObject;
+            Box(bc, new Vector3(fx + 0.14f, y + shelves[4] + 0.18f, 6.62f), new Vector3(0.24f, 0.36f, 0.08f), bookMats[0], "RedLedger");
+            d.StudyDuplicateBook = Box(bc, new Vector3(fx + 0.14f, y + shelves[4] + 0.18f, 8.36f), new Vector3(0.24f, 0.36f, 0.08f), bookMats[0], "RedLedgerDuplicate").gameObject;
             // 檔案盒（西牆下，分色標籤）：H2 重排。
             Color[] tabs = { new Color(0.8f, 0.25f, 0.2f), new Color(0.25f, 0.45f, 0.8f), new Color(0.85f, 0.75f, 0.25f) };
             for (int i = 0; i < 3; i++)

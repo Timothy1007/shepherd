@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
 using Shepherd.Battle.UI;
@@ -311,7 +311,7 @@ namespace Shepherd.Exploration.Tests
             Assert.IsTrue(qa.Session.Has(Case01Texts.EvidenceKey));
             Assert.IsTrue(qa.Session.HasJournal("evidence_fp001"));
             StringAssert.Contains("FP-001", qa.Hud.Base.InspectText.text);
-            StringAssert.Contains("餐廳的原件仍留在原處", qa.Hud.Base.InspectText.text, "區分前期調查來源與最後的實體證物");
+            StringAssert.Contains("原件仍留在原處", qa.Hud.Base.InspectText.text, "區分前期調查來源與最後的實體證物");
             StringAssert.DoesNotContain("死亡", qa.Hud.Base.InspectText.text);
             // 背面是真的幾何與文字。
             Assert.IsTrue(qa.InspectObject.GetComponentsInChildren<Text>().Any(t => t.text.Contains("週日")));

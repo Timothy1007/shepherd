@@ -43,7 +43,7 @@ namespace Shepherd.Exploration.Editor
         public static void CaptureAll(string dir, Vector2Int[] sizes, string set)
         {
             Directory.CreateDirectory(dir);
-            var sets = new HashSet<string>(string.IsNullOrEmpty(set) ? new[] { "enemy", "portal" } : set.Split(','));
+            var sets = new HashSet<string>(string.IsNullOrEmpty(set) ? new[] { "enemy", "portal", "rooms" } : set.Split(','));
             foreach (var size in sizes)
             {
                 var rt = new RenderTexture(size.x, size.y, 24, RenderTextureFormat.ARGB32) { antiAliasing = 4 };
@@ -52,6 +52,7 @@ namespace Shepherd.Exploration.Editor
                     string prefix = Path.Combine(dir, "v05_" + size.x + "x" + size.y + "_");
                     if (sets.Contains("enemy")) Enemy(rt, prefix);
                     if (sets.Contains("portal")) Portal(rt, prefix);
+                    if (sets.Contains("rooms")) Rooms(rt, prefix);
                 }
                 finally
                 {
@@ -105,6 +106,71 @@ namespace Shepherd.Exploration.Editor
                     Case01HouseCapture.Shot(qa, rt, prefix + "portal_" + c + ".png");
                 }
             }, null, Case01QaMode.PortalV05);
+        }
+
+        /// <summary>住宅 v0.5：方案 A／B 的俯視圖與各房間第一人稱視角、書房書櫃、艾琳臥室、窗外（H0／H3）。</summary>
+        private static void Rooms(RenderTexture rt, string prefix)
+        {
+            var shotsA = new[]
+            {
+                Shot("a01_entrance_front_wall", 7.1f, 0f, 0.9f, 0f, 4f),
+                Shot("a02_entrance_to_living", 7.0f, 0f, 1.2f, -75f, 6f),
+                Shot("a03_living_fireplace_photo", 4.75f, 0f, 0.95f, -62f, 10f),
+                Shot("a04_dining_table", 3.7f, 0f, 5.95f, -20f, 18f),
+                Shot("a05_kitchen", 5.9f, 0f, 5.6f, 32f, 10f),
+                Shot("a06_kitchen_to_stair", 7.6f, 0f, 6.8f, 135f, 12f),
+                Shot("a07_study_bookcase", 7.7f, 3f, 7.5f, 90f, 6f),
+                Shot("a08_bedroom", 4.3f, 3f, 5.9f, -35f, 12f),
+                Shot("a09_window_street_H0", 2.7f, 0f, 1.6f, 180f, 2f),
+            };
+            var shotsB = new[]
+            {
+                Shot("b01_entrance_stair_storage", 6.6f, 0f, 1.4f, 45f, 8f),
+                Shot("b02_under_stair_cupboard", 7.4f, 0f, 3.4f, 80f, 10f),
+                Shot("b03_living", 4.4f, 0f, 5.9f, -62f, 10f),
+                Shot("b04_dining", 6.5f, 0f, 5.75f, 25f, 18f),
+                Shot("b05_kitchen", 3.9f, 0f, 3.6f, -150f, 10f),
+            };
+            foreach (var plan in new[] { Case01Floorplan.V05A, Case01Floorplan.V05B })
+            {
+                WithQa(qa =>
+                {
+                    string p = prefix + "rooms_";
+                    foreach (var s in plan == Case01Floorplan.V05A ? shotsA : shotsB)
+                    {
+                        if (qa.Echo != null) qa.Echo.Stop();
+                        qa.Hud.ClearMonologue();
+                        Case01HouseCapture.Pose(qa, s.Pos, s.Yaw, s.Pitch);
+                        if (qa.Echo != null) qa.Echo.Stop();
+                        qa.Hud.ClearMonologue();
+                        Case01HouseCapture.Shot(qa, rt, p + s.Name + ".png");
+                    }
+                    if (plan == Case01Floorplan.V05A)
+                    {
+                        qa.SetArtStage(3);
+                        if (qa.Echo != null) qa.Echo.Stop();
+                        qa.Hud.ClearMonologue();
+                        Case01HouseCapture.Pose(qa, new Vector3(2.7f, 0.05f, 1.6f), 180f, 2f);
+                        Case01HouseCapture.Advance(qa, 2f);
+                        Case01HouseCapture.Shot(qa, rt, p + "a10_window_street_H3.png");
+                    }
+                    string tag = plan == Case01Floorplan.V05A ? "A" : "B";
+                    Case01FloorplanCapture.TopDown(qa, rt, p + "map_" + tag + "_ground.png", 2.55f);
+                    Case01FloorplanCapture.TopDown(qa, rt, p + "map_" + tag + "_upper.png", 5.75f);
+                }, null, null, plan);
+            }
+        }
+
+        private struct ShotSpec
+        {
+            public string Name;
+            public Vector3 Pos;
+            public float Yaw, Pitch;
+        }
+
+        private static ShotSpec Shot(string name, float x, float floorY, float z, float yaw, float pitch)
+        {
+            return new ShotSpec { Name = name, Pos = new Vector3(x, floorY + 0.05f, z), Yaw = yaw, Pitch = pitch };
         }
 
         /// <summary>連續 n 格（每格間隔 step 秒）縮小拼成 4 欄的接觸印樣。</summary>

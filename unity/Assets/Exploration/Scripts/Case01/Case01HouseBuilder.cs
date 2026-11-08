@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Shepherd.Battle.UI.Arena;
 using UnityEngine;
 using UnityEngine.UI;
@@ -71,6 +71,10 @@ namespace Shepherd.Exploration.Case01
     {
         Original,
         V04,
+        /// <summary>v0.5 方案 A：玄關→左側客廳→餐廳→廚房，樓梯從廚房側起步往南上行。</summary>
+        V05A,
+        /// <summary>v0.5 方案 B：保留 v0.4 分區＋原版樓梯方向，樓梯旁畸零處做成真正的收納。</summary>
+        V05B,
     }
 
     /// <summary>建好的室內 QA 空間中，流程需要操作的物件與資料。</summary>
@@ -129,6 +133,13 @@ namespace Shepherd.Exploration.Case01
         public Case01Decor Decor;
 
         public Transform EncounterAnchor;
+        public Case01Exterior.Result Exterior;
+        /// <summary>v0.5：依格局覆寫的記憶殘響位置（沒有的用 <see cref="Case01EchoPlayer.SpotOf(string)"/> 的預設）。</summary>
+        public readonly Dictionary<string, Case01EchoPlayer.Spot> EchoSpots = new Dictionary<string, Case01EchoPlayer.Spot>();
+        /// <summary>v0.5：美術 QA（H0～H3）站位：客廳。</summary>
+        public Case01Pose ArtPose = new Case01Pose(new Vector3(3.9f, 0.05f, 6.3f), -55f);
+        /// <summary>v0.5：合照所在的地點文字（劇情／核校正提示用）。</summary>
+        public string PhotoPlace = "一樓餐廳";
         public Light CourtyardLight;
         public GameObject TearFrame;
 
@@ -152,7 +163,7 @@ namespace Shepherd.Exploration.Case01
     /// 另有兩個「不存在」的空間：夾層（x≈40）與異常中庭（z≈24～58），只能經由錯接的門到達。
     /// 牆、家具保留碰撞體；可調查物件是 Trigger 熱區。實際座標見 <see cref="Case01HouseBuilder"/> 的常數。
     /// </summary>
-    public static class Case01HouseBuilder
+    public static partial class Case01HouseBuilder
     {
         public const float FloorHeight = 3f;
         public const float DoorWidth = 1.1f;
@@ -169,6 +180,11 @@ namespace Shepherd.Exploration.Case01
         public const float StairZ1V04 = 4.0f;
 
         private static Case01Floorplan plan;
+
+        /// <summary>v0.5 書房層板書櫃（靠東牆）：前緣 x、深度、各層層板上緣（相對二樓地板）。</summary>
+        public const float BookcaseFrontX = 9.5f;
+        public const float BookcaseDepth = 0.42f;
+        public static readonly float[] BookcaseShelves = { 0.1f, 0.52f, 0.94f, 1.36f, 1.78f };
 
         /// <summary>樓板開口（樓梯井）北緣：反向樓梯較短。</summary>
         public static float StairWellNorth(Case01Floorplan p) { return p == Case01Floorplan.V04 ? StairZ1V04 : StairZ1; }
@@ -189,6 +205,8 @@ namespace Shepherd.Exploration.Case01
             L.Palette = palette ?? new Case01Palette();
             P = L.Palette;
             Materials();
+            windowCuts.Clear();
+            glassMat = null;
 
             BuildRooms(L);
             trimWalls = true;
@@ -200,12 +218,15 @@ namespace Shepherd.Exploration.Case01
             BuildCourtyard(L, ArenaArt.Group("Courtyard", root, Vector3.zero));
 
             // v0.2：生活細節、階段異變物件與校正後證物（只加在現有空間內，不改牆、門、樓梯與熱區）。
+            // v0.5 方案 A／B：一樓的生活物件與 H0～H3 物件已由 BuildGroundFloorV05 建好（L.Decor 已存在），這裡只補二樓與夾層。
             L.Decor = Case01HouseDecor.Build(L, ArenaArt.Group("LifeDetails", root, Vector3.zero));
+            // v0.5：窗外的街景（無碰撞體；只在窗外可見）。
+            L.Exterior = Case01Exterior.Build(root, P);
             // v0.4：H1～H3 的舊化痕跡（無碰撞體、不擋熱區）。
             L.Aging = Case01Aging.Build(L, ArenaArt.Group("Aging", root, Vector3.zero), P);
 
-            L.Arrivals[Case01Room.Entrance] = new Case01Pose(SpawnPoint, 0f);
-            L.Arrivals[Case01Room.Dining] = new Case01Pose(new Vector3(6.5f, 0.05f, 5.8f), 0f);
+            L.Arrivals[Case01Room.Entrance] = L.Spawn;
+            if (!L.Arrivals.ContainsKey(Case01Room.Dining)) L.Arrivals[Case01Room.Dining] = new Case01Pose(new Vector3(6.5f, 0.05f, 5.8f), 0f);
             L.Arrivals[Case01Room.Study] = new Case01Pose(new Vector3(StudyDoorX, FloorHeight + 0.05f, 5.8f), 0f);
             L.Arrivals[Case01Room.Landing] = new Case01Pose(new Vector3(StudyDoorX, FloorHeight + 0.05f, 0.95f), 0f);
             L.Arrivals[Case01Room.Mezzanine] = new Case01Pose(MezzCenter + new Vector3(0f, 0.05f, -4.7f), 0f);
@@ -246,10 +267,22 @@ namespace Shepherd.Exploration.Case01
 
         private static void BuildRooms(Case01HouseLayout L)
         {
-            Room(L, Case01Room.Kitchen, 0, 5, 0, 5, -1f, 2.75f);
-            Room(L, Case01Room.Entrance, 5, 10, 0, 5, -1f, 2.75f);
-            Room(L, Case01Room.Living, 0, 5, 5, 10, -1f, 2.75f);
-            Room(L, Case01Room.Dining, 5, 10, 5, 10, -1f, 2.75f);
+            if (plan == Case01Floorplan.V05A)
+            {
+                // 方案 A：玄關較小；樓梯在廚房側（樓梯井下方算廚房）。
+                Room(L, Case01Room.Entrance, V05A.HallX0, V05A.HallX1, 0, V05A.HallZ1, -1f, 2.75f);
+                Room(L, Case01Room.Living, 0, V05A.HallX0, 0, V05A.LivingZ1, -1f, 2.75f);
+                Room(L, Case01Room.Dining, 0, V05A.HallX0, V05A.LivingZ1, 10, -1f, 2.75f);
+                Room(L, Case01Room.Kitchen, V05A.HallX0, 10, V05A.HallZ1, 10, -1f, 2.75f);
+                Room(L, Case01Room.Kitchen, V05A.HallX1, 10, 0, V05A.HallZ1, -1f, 2.75f);
+            }
+            else
+            {
+                Room(L, Case01Room.Kitchen, 0, 5, 0, 5, -1f, 2.75f);
+                Room(L, Case01Room.Entrance, 5, 10, 0, 5, -1f, 2.75f);
+                Room(L, Case01Room.Living, 0, 5, 5, 10, -1f, 2.75f);
+                Room(L, Case01Room.Dining, 5, 10, 5, 10, -1f, 2.75f);
+            }
             Room(L, Case01Room.Storage, 0, 5, 0, 5, 2.75f, 6.5f);
             Room(L, Case01Room.Landing, 5, 10, -0.8f, 5, 2.75f, 6.5f);
             Room(L, Case01Room.Bedroom, 0, 5, 5, 10, 2.75f, 6.5f);
@@ -269,7 +302,17 @@ namespace Shepherd.Exploration.Case01
 
         private static void BuildGroundFloor(Case01HouseLayout L, Transform g)
         {
+            if (IsV05(plan))
+            {
+                BuildGroundFloorV05(L, g);
+                return;
+            }
             Solid(g, new Vector3(5f, -0.1f, 5f), new Vector3(10.4f, 0.2f, 10.4f), floorWood, "Floor");
+            // 夜晚的窗（v0.5：先登記，牆會開出真正的窗洞）。
+            Window(g, new Vector3(2.5f, 1.5f, 0.09f), 0f);
+            Window(g, new Vector3(2.5f, 1.5f, 9.91f), 0f);
+            Window(g, new Vector3(7.5f, 1.5f, 9.91f), 0f);
+            Window(g, new Vector3(0.09f, 1.5f, 7.5f), 90f);
             // 外牆（兩層高）；前門在南牆 x=7.1。
             WallZ(g, 0f, 0f, 10f, 0f, FloorHeight, wallMat, 7.1f);
             WallZ(g, 10f, 0f, 10f, 0f, FloorHeight, wallMat);
@@ -280,11 +323,6 @@ namespace Shepherd.Exploration.Case01
             WallX(g, 5f, 0f, 10f, 0f, 2.8f, wallMat, 2.5f, 7.5f);
             if (plan == Case01Floorplan.V04) WallZ(g, 5f, 0f, 10f, 0f, 2.8f, wallMat, 2.5f);
             else WallZ(g, 5f, 0f, 10f, 0f, 2.8f, wallMat, 2.5f, 6.5f);
-            // 夜晚的窗。
-            Window(g, new Vector3(2.5f, 1.5f, 0.09f), 0f);
-            Window(g, new Vector3(2.5f, 1.5f, 9.91f), 0f);
-            Window(g, new Vector3(7.5f, 1.5f, 9.91f), 0f);
-            Window(g, new Vector3(0.09f, 1.5f, 7.5f), 90f);
 
             // ---- 玄關 ----
             var door = Solid(g, new Vector3(7.1f, DoorHeight * 0.5f, 0.02f), new Vector3(DoorWidth, DoorHeight, 0.08f), darkWood, "FrontDoor");
@@ -365,8 +403,9 @@ namespace Shepherd.Exploration.Case01
         private static void BuildStairs(Case01HouseLayout L, Transform g)
         {
             // 原版：南端起步、往北上行（頂端在 z4.6）。v0.4 反向：北端起步、往南上行，頂端落在南側樓板（第三扇門旁）。
-            bool reversed = plan == Case01Floorplan.V04;
-            float zLow = reversed ? StairZ1V04 : StairZ0;
+            // v0.5 A：同樣從北端起步、往南上行，但起步在廚房側、梯段完整 3.6 m（約 40°）。
+            bool reversed = plan == Case01Floorplan.V04 || plan == Case01Floorplan.V05A;
+            float zLow = plan == Case01Floorplan.V04 ? StairZ1V04 : reversed ? StairZ1 : StairZ0;
             float zHigh = reversed ? StairZ0 : StairZ1;
             float run = Mathf.Abs(zHigh - zLow);
             float dir = Mathf.Sign(zHigh - zLow);
@@ -420,6 +459,9 @@ namespace Shepherd.Exploration.Case01
             Slab(g, StairX0, 10f, well, 5f, y);
             // 屋頂。
             Solid(g, new Vector3(5f, 2f * FloorHeight + 0.1f, 5f), new Vector3(10.4f, 0.2f, 10.4f), ceilMat, "Roof");
+            Window(g, new Vector3(2.5f, y + 1.5f, 9.91f), 0f);
+            // v0.5：書房東牆是層板書櫃（不再擋住窗戶），書房只留北窗。
+            Window(g, new Vector3(8.5f, y + 1.5f, 9.91f), 0f);
             // 外牆：南牆 x6.95 是「第三扇門」的位置（平時封住）。
             WallZ(g, 0f, 0f, 10f, y, FloorHeight, wallUp, StudyDoorX);
             WallZ(g, 10f, 0f, 10f, y, FloorHeight, wallUp);
@@ -428,13 +470,12 @@ namespace Shepherd.Exploration.Case01
             // 內牆：x=5（儲藏室門 z2.5、臥室↔書房 z7.5），z=5（樓梯平台↔書房 x6.95）。
             WallX(g, 5f, 0f, 10f, y, FloorHeight, wallUp, 2.5f, 7.5f);
             WallZ(g, 5f, 0f, 10f, y, FloorHeight, wallUp, StudyDoorX);
-            Window(g, new Vector3(2.5f, y + 1.5f, 9.91f), 0f);
-            Window(g, new Vector3(8.5f, y + 1.5f, 9.91f), 0f);
-            Window(g, new Vector3(9.91f, y + 1.5f, 7.5f), 90f);
 
             // 樓梯井欄杆：原版在南緣（北端上樓）；反向樓梯在北緣（南端上樓，南側留出走上平台的開口）。
-            Solid(g, new Vector3(StairX0, y + 0.5f, (StairZ0 + 4.0f) * 0.5f), new Vector3(0.08f, 1.0f, 4.0f - StairZ0), darkWood, "Rail");
-            if (plan == Case01Floorplan.V04)
+            bool reversedStair = plan == Case01Floorplan.V04 || plan == Case01Floorplan.V05A;
+            float railEnd = reversedStair ? well : 4.0f;
+            Solid(g, new Vector3(StairX0, y + 0.5f, (StairZ0 + railEnd) * 0.5f), new Vector3(0.08f, 1.0f, railEnd - StairZ0), darkWood, "Rail");
+            if (reversedStair)
                 Solid(g, new Vector3((StairX0 + 10f) * 0.5f, y + 0.5f, well), new Vector3(10f - StairX0, 1.0f, 0.08f), darkWood, "Rail");
             else
                 Solid(g, new Vector3((StairX0 + 10f) * 0.5f, y + 0.5f, StairZ0), new Vector3(10f - StairX0, 1.0f, 0.08f), darkWood, "Rail");
@@ -471,10 +512,14 @@ namespace Shepherd.Exploration.Case01
             Hotspot(L, g, Case01Ids.Map, "街區舊地圖", new Vector3(6.85f, y + 0.9f, 9.3f), new Vector3(0.55f, 0.3f, 0.5f));
             Deco(g, new Vector3(7.75f, y + 0.79f, 9.35f), new Vector3(0.3f, 0.05f, 0.22f), P.Get("book_0"), "Notebook");
             Hotspot(L, g, Case01Ids.EllieNotes, "艾琳的手記", new Vector3(7.75f, y + 0.9f, 9.3f), new Vector3(0.45f, 0.3f, 0.5f));
-            Solid(g, new Vector3(9.7f, y + 1.1f, 7.5f), new Vector3(0.45f, 2.2f, 2.0f), wood, "Bookshelf");
-            Deco(g, new Vector3(9.45f, y + 1.35f, 7.5f), new Vector3(0.04f, 0.32f, 0.26f), P.Tint("cardboard", new Color(0.45f, 0.45f, 0.5f)), "RecordFolder");
-            Deco(g, new Vector3(9.43f, y + 1.35f, 7.5f), new Vector3(0.01f, 0.12f, 0.2f), riftMat, "BlackedOut");
-            Hotspot(L, g, Case01Ids.OldRecord, "書架上的校正記錄", new Vector3(9.35f, y + 1.35f, 7.5f), new Vector3(0.25f, 0.5f, 0.5f));
+            // v0.5：層板書櫃的外形與書在 Case01HouseDecor.Study；這裡只放碰撞體與校正記錄（立在第三層層板上的灰色檔案盒）。
+            var bookcaseBlock = new GameObject("BookcaseBlock").AddComponent<BoxCollider>();
+            bookcaseBlock.transform.SetParent(g, false);
+            bookcaseBlock.center = new Vector3(BookcaseFrontX + BookcaseDepth * 0.5f, y + 1.1f, 7.5f);
+            bookcaseBlock.size = new Vector3(BookcaseDepth, 2.2f, 2.0f);
+            Deco(g, new Vector3(BookcaseFrontX + 0.15f, y + BookcaseShelves[2] + 0.165f, 7.5f), new Vector3(0.28f, 0.33f, 0.11f), P.Tint("cardboard", new Color(0.45f, 0.45f, 0.5f)), "RecordFolder");
+            Deco(g, new Vector3(BookcaseFrontX + 0.008f, y + BookcaseShelves[2] + 0.2f, 7.5f), new Vector3(0.006f, 0.12f, 0.08f), riftMat, "BlackedOut");
+            Hotspot(L, g, Case01Ids.OldRecord, "書架上的校正記錄", new Vector3(BookcaseFrontX - 0.05f, y + BookcaseShelves[2] + 0.17f, 7.5f), new Vector3(0.3f, 0.45f, 0.45f));
             Solid(g, new Vector3(7.5f, y + 0.25f, 8.7f), new Vector3(0.45f, 0.5f, 0.45f), darkWood, "DeskChair");
             RoomLight(L, Case01Room.Study, g, new Vector3(7.5f, y + 2.3f, 7.5f), new Color(1f, 0.93f, 0.82f), 1.05f, false, y + 2.8f);
 
@@ -647,66 +692,140 @@ namespace Shepherd.Exploration.Case01
         /// <summary>夜晚的窗：玻璃＋窗框、十字窗櫺與窗台（木作漆面）。</summary>
         private static void Window(Transform g, Vector3 pos, float yaw)
         {
-            var w = ArenaArt.Group("Window", g, pos);
-            w.localRotation = Quaternion.Euler(0f, yaw, 0f);
-            Deco(w, Vector3.zero, new Vector3(1.0f, 1.1f, 0.02f), glassNight, "Glass");
-            Deco(w, new Vector3(0f, 0.58f, 0f), new Vector3(1.12f, 0.07f, 0.06f), trim, "FrameTop");
-            Deco(w, new Vector3(0f, -0.58f, 0f), new Vector3(1.12f, 0.07f, 0.06f), trim, "FrameBottom");
-            Deco(w, new Vector3(-0.53f, 0f, 0f), new Vector3(0.07f, 1.2f, 0.06f), trim, "FrameLeft");
-            Deco(w, new Vector3(0.53f, 0f, 0f), new Vector3(0.07f, 1.2f, 0.06f), trim, "FrameRight");
-            Deco(w, Vector3.zero, new Vector3(0.035f, 1.1f, 0.04f), trim, "MullionV");
-            Deco(w, new Vector3(0f, 0.12f, 0f), new Vector3(1.0f, 0.035f, 0.04f), trim, "MullionH");
-            Deco(w, new Vector3(0f, -0.63f, 0f), new Vector3(1.24f, 0.045f, 0.16f), trim, "Sill", true);
+            // v0.5：真正的窗洞（牆自動開洞）＋透明玻璃（Built-in Transparent、保留反光）＋兩面窗框；窗外看得到街景（Case01Exterior）。
+            bool alongX = Mathf.Abs(Mathf.DeltaAngle(yaw, 0f)) < 45f || Mathf.Abs(Mathf.DeltaAngle(yaw, 180f)) < 45f;
+            float line = alongX ? Mathf.Round(pos.z) : Mathf.Round(pos.x);
+            var center = alongX ? new Vector3(pos.x, pos.y, line) : new Vector3(line, pos.y, pos.z);
+            windowCuts.Add(new WindowCut { AlongX = alongX, Line = line, C = alongX ? pos.x : pos.z, Bottom = pos.y - 0.6f, Top = pos.y + 0.6f });
+            var w = ArenaArt.Group("Window", g, center);
+            w.localRotation = Quaternion.Euler(0f, alongX ? 0f : 90f, 0f);
+            var glass = Deco(w, Vector3.zero, new Vector3(1.0f, 1.1f, 0.012f), Glass(), "Glass");
+            glass.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            foreach (var f in new[] { -1f, 1f })
+            {
+                float d = f * (WallThickness * 0.5f + 0.01f);
+                Deco(w, new Vector3(0f, 0.58f, d), new Vector3(1.12f, 0.07f, 0.05f), trim, "FrameTop");
+                Deco(w, new Vector3(0f, -0.58f, d), new Vector3(1.12f, 0.07f, 0.05f), trim, "FrameBottom");
+                Deco(w, new Vector3(-0.53f, 0f, d), new Vector3(0.07f, 1.2f, 0.05f), trim, "FrameLeft");
+                Deco(w, new Vector3(0.53f, 0f, d), new Vector3(0.07f, 1.2f, 0.05f), trim, "FrameRight");
+            }
+            // 窗櫺在玻璃兩側（細），窗洞四周的內側板（牆厚）。
+            Deco(w, Vector3.zero, new Vector3(0.035f, 1.1f, 0.05f), trim, "MullionV");
+            Deco(w, new Vector3(0f, 0.12f, 0f), new Vector3(1.0f, 0.035f, 0.05f), trim, "MullionH");
+            Deco(w, new Vector3(0f, -0.555f, 0f), new Vector3(1.06f, 0.02f, WallThickness), trim, "Reveal");
+            Deco(w, new Vector3(0f, 0.555f, 0f), new Vector3(1.06f, 0.02f, WallThickness), trim, "Reveal");
+            Deco(w, new Vector3(-0.52f, 0f, 0f), new Vector3(0.02f, 1.1f, WallThickness), trim, "Reveal");
+            Deco(w, new Vector3(0.52f, 0f, 0f), new Vector3(0.02f, 1.1f, WallThickness), trim, "Reveal");
+            // 室內側的窗台。
+            var inward = alongX ? (line < 5f ? 1f : -1f) : (line < 5f ? 1f : -1f);
+            Deco(w, new Vector3(0f, -0.63f, inward * (WallThickness * 0.5f + 0.06f)), new Vector3(1.24f, 0.045f, 0.16f), trim, "Sill", true);
         }
 
-        /// <summary>沿 x 方向（固定 z）的牆，openings＝門洞中心的 x。室內牆另加踢腳線與門框（只是外觀）。</summary>
+        private static Material glassMat;
+
+        /// <summary>透明窗玻璃：Standard Transparent（預乘 alpha，保留反光／高光）、不寫深度、不投影。</summary>
+        private static Material Glass()
+        {
+            if (glassMat != null && P.OwnsMaterial(glassMat)) return glassMat;
+            var m = ArenaArt.Mat(new Color(0.62f, 0.7f, 0.78f, 0.14f), 0.94f);
+            m.name = "Case01WindowGlass";
+            m.SetFloat("_Mode", 3f);
+            m.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.One);
+            m.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+            m.SetInt("_ZWrite", 0);
+            m.DisableKeyword("_ALPHATEST_ON");
+            m.DisableKeyword("_ALPHABLEND_ON");
+            m.EnableKeyword("_ALPHAPREMULTIPLY_ON");
+            m.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+            glassMat = P.Own(m);
+            return glassMat;
+        }
+
+        /// <summary>牆上的開口：門洞（底＝樓板）、寬開口或窗洞（有窗台高度）。C／W 沿牆方向，Bottom／Top 為相對樓層高度。</summary>
+        internal struct Cut
+        {
+            public float C, W, Bottom, Top;
+            public bool Door { get { return Bottom <= 0.001f; } }
+        }
+
+        /// <summary>v0.5：已登記的窗洞（Window() 先登記，之後建的牆自動開洞）。</summary>
+        private sealed class WindowCut
+        {
+            public bool AlongX;
+            public float Line, C, Bottom, Top;
+        }
+
+        private static readonly List<WindowCut> windowCuts = new List<WindowCut>();
+        public const float WindowCutWidth = 1.06f;
+
+        private static List<Cut> Cuts(bool alongX, float line, float y, float h, float[] doors, Vector2[] wide)
+        {
+            var list = new List<Cut>();
+            if (doors != null) foreach (var d in doors) list.Add(new Cut { C = d, W = DoorWidth, Bottom = 0f, Top = DoorHeight });
+            if (wide != null) foreach (var w in wide) list.Add(new Cut { C = w.x, W = w.y, Bottom = 0f, Top = DoorHeight });
+            foreach (var wc in windowCuts)
+                if (wc.AlongX == alongX && Mathf.Abs(wc.Line - line) < 0.12f && wc.Bottom >= y - 0.01f && wc.Top <= y + h + 0.01f)
+                    list.Add(new Cut { C = wc.C, W = WindowCutWidth, Bottom = wc.Bottom - y, Top = wc.Top - y });
+            list.Sort((a, b) => a.C.CompareTo(b.C));
+            return list;
+        }
+
+        /// <summary>沿 x 方向（固定 z）的牆，openings＝門洞中心的 x。室內牆另加踢腳線與門框（只是外觀）。已登記的窗會自動開洞。</summary>
         private static void WallZ(Transform g, float z, float x0, float x1, float y, float h, Material m, params float[] openings)
         {
-            float o = WallThickness * 0.5f + 0.012f;
-            Segments(g, x0, x1, openings, DoorWidth,
-                (a, b) =>
-                {
-                    Solid(g, new Vector3((a + b) * 0.5f, y + h * 0.5f, z), new Vector3(b - a, h, WallThickness), m, "Wall");
-                    if (!trimWalls) return;
-                    Deco(g, new Vector3((a + b) * 0.5f, y + 0.07f, z - o), new Vector3(b - a, 0.14f, 0.025f), trim, "Skirting");
-                    Deco(g, new Vector3((a + b) * 0.5f, y + 0.07f, z + o), new Vector3(b - a, 0.14f, 0.025f), trim, "Skirting");
-                },
-                (a, b) =>
-                {
-                    Solid(g, new Vector3((a + b) * 0.5f, y + DoorHeight + (h - DoorHeight) * 0.5f, z), new Vector3(b - a, h - DoorHeight, WallThickness), m, "Lintel");
-                    if (!trimWalls || IsThirdDoor((a + b) * 0.5f, y, z)) return;
-                    foreach (var s in new[] { -o, o })
-                    {
-                        Deco(g, new Vector3(a - 0.04f, y + DoorHeight * 0.5f, z + s), new Vector3(0.08f, DoorHeight, 0.03f), trim, "Casing");
-                        Deco(g, new Vector3(b + 0.04f, y + DoorHeight * 0.5f, z + s), new Vector3(0.08f, DoorHeight, 0.03f), trim, "Casing");
-                        Deco(g, new Vector3((a + b) * 0.5f, y + DoorHeight + 0.04f, z + s), new Vector3(b - a + 0.16f, 0.08f, 0.03f), trim, "Casing");
-                    }
-                });
+            WallRun(g, true, z, x0, x1, y, h, m, Cuts(true, z, y, h, openings, null));
         }
 
         /// <summary>沿 z 方向（固定 x）的牆，openings＝門洞中心的 z。</summary>
         private static void WallX(Transform g, float x, float z0, float z1, float y, float h, Material m, params float[] openings)
         {
+            WallRun(g, false, x, z0, z1, y, h, m, Cuts(false, x, y, h, openings, null));
+        }
+
+        /// <summary>v0.5：可指定寬度的開口（Vector2＝中心、寬度），例如客廳與餐廳之間的半開放寬開口。</summary>
+        internal static void WallZWide(Transform g, float z, float x0, float x1, float y, float h, Material m, params Vector2[] openings)
+        {
+            WallRun(g, true, z, x0, x1, y, h, m, Cuts(true, z, y, h, null, openings));
+        }
+
+        internal static void WallXWide(Transform g, float x, float z0, float z1, float y, float h, Material m, params Vector2[] openings)
+        {
+            WallRun(g, false, x, z0, z1, y, h, m, Cuts(false, x, y, h, null, openings));
+        }
+
+        /// <summary>沿牆建實心段、開口上方的楣、窗洞下方的牆裙；門洞加門框、踢腳線（只是外觀）。</summary>
+        private static void WallRun(Transform g, bool alongX, float line, float a0, float a1, float y, float h, Material m, List<Cut> cuts)
+        {
             float o = WallThickness * 0.5f + 0.012f;
-            Segments(g, z0, z1, openings, DoorWidth,
-                (a, b) =>
+            System.Func<float, float, float, Vector3> P3 = (along, height, off) => alongX ? new Vector3(along, height, line + off) : new Vector3(line + off, height, along);
+            System.Func<float, float, float, Vector3> S3 = (len, height, depth) => alongX ? new Vector3(len, height, depth) : new Vector3(depth, height, len);
+            System.Action<float, float, float, float, string, bool> piece = (a, b, bottom, top, name, skirt) =>
+            {
+                if (b - a < 0.005f || top - bottom < 0.005f) return;
+                Solid(g, P3((a + b) * 0.5f, y + (bottom + top) * 0.5f, 0f), S3(b - a, top - bottom, WallThickness), m, name);
+                if (!skirt || !trimWalls) return;
+                Deco(g, P3((a + b) * 0.5f, y + 0.07f, -o), S3(b - a, 0.14f, 0.025f), trim, "Skirting");
+                Deco(g, P3((a + b) * 0.5f, y + 0.07f, o), S3(b - a, 0.14f, 0.025f), trim, "Skirting");
+            };
+            float cur = a0;
+            foreach (var c in cuts)
+            {
+                float s = c.C - c.W * 0.5f, e = c.C + c.W * 0.5f;
+                if (s > cur) piece(cur, s, 0f, h, "Wall", true);
+                piece(s, e, c.Top, h, c.Door ? "Lintel" : "WindowHead", false);
+                if (!c.Door) piece(s, e, 0f, c.Bottom, "WindowApron", true);
+                if (c.Door && trimWalls && !(alongX && IsThirdDoor(c.C, y, line)))
                 {
-                    Solid(g, new Vector3(x, y + h * 0.5f, (a + b) * 0.5f), new Vector3(WallThickness, h, b - a), m, "Wall");
-                    if (!trimWalls) return;
-                    Deco(g, new Vector3(x - o, y + 0.07f, (a + b) * 0.5f), new Vector3(0.025f, 0.14f, b - a), trim, "Skirting");
-                    Deco(g, new Vector3(x + o, y + 0.07f, (a + b) * 0.5f), new Vector3(0.025f, 0.14f, b - a), trim, "Skirting");
-                },
-                (a, b) =>
-                {
-                    Solid(g, new Vector3(x, y + DoorHeight + (h - DoorHeight) * 0.5f, (a + b) * 0.5f), new Vector3(WallThickness, h - DoorHeight, b - a), m, "Lintel");
-                    if (!trimWalls) return;
-                    foreach (var s in new[] { -o, o })
+                    foreach (var side in new[] { -o, o })
                     {
-                        Deco(g, new Vector3(x + s, y + DoorHeight * 0.5f, a - 0.04f), new Vector3(0.03f, DoorHeight, 0.08f), trim, "Casing");
-                        Deco(g, new Vector3(x + s, y + DoorHeight * 0.5f, b + 0.04f), new Vector3(0.03f, DoorHeight, 0.08f), trim, "Casing");
-                        Deco(g, new Vector3(x + s, y + DoorHeight + 0.04f, (a + b) * 0.5f), new Vector3(0.03f, 0.08f, b - a + 0.16f), trim, "Casing");
+                        Deco(g, P3(s - 0.04f, y + c.Top * 0.5f, side), S3(0.08f, c.Top, 0.03f), trim, "Casing");
+                        Deco(g, P3(e + 0.04f, y + c.Top * 0.5f, side), S3(0.08f, c.Top, 0.03f), trim, "Casing");
+                        Deco(g, P3(c.C, y + c.Top + 0.04f, side), S3(c.W + 0.16f, 0.08f, 0.03f), trim, "Casing");
                     }
-                });
+                }
+                cur = Mathf.Max(cur, e);
+            }
+            if (a1 > cur) piece(cur, a1, 0f, h, "Wall", true);
         }
 
         /// <summary>二樓外牆的第三扇門：平時是封住的牆，不加門框。</summary>
@@ -736,21 +855,6 @@ namespace Shepherd.Exploration.Case01
             L.RoomLightColor[room] = color;
             L.RoomLightIntensity[room] = intensity;
             return light;
-        }
-
-        private static void Segments(Transform g, float a0, float a1, float[] openings, float w, System.Action<float, float> wall, System.Action<float, float> lintel)
-        {
-            var list = new List<float>(openings);
-            list.Sort();
-            float cur = a0;
-            foreach (var o in list)
-            {
-                float s = o - w * 0.5f, e = o + w * 0.5f;
-                if (s > cur) wall(cur, s);
-                lintel(s, e);
-                cur = e;
-            }
-            if (a1 > cur) wall(cur, a1);
         }
 
         /// <summary>門框（三根細條），只是外觀。</summary>

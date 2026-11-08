@@ -91,14 +91,22 @@ namespace Shepherd.Exploration.Case01
             }
         }
 
+        /// <summary>v0.5：依格局覆寫的位置（方案 A／B 的玄關與餐廳家具位置不同）。</summary>
+        public static Spot SpotOf(string id, Case01HouseLayout layout)
+        {
+            Spot s;
+            if (layout != null && layout.EchoSpots.TryGetValue(id, out s)) return s;
+            return SpotOf(id);
+        }
+
         /// <summary>開始一段殘響：字幕排入隊列；剪影與聲音跟著字幕。</summary>
-        public void Play(string id, Transform parent, Case01Palette p)
+        public void Play(string id, Transform parent, Case01Palette p, Case01HouseLayout layout = null)
         {
             Stop();
             var lines = Case01Texts.EchoLines(id);
             if (lines.Length == 0) return;
             active = id;
-            spot = SpotOf(id);
+            spot = SpotOf(id, layout);
             palette = p;
             started = false;
             lastLine = null;

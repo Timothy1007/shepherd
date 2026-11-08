@@ -69,6 +69,10 @@ namespace Shepherd.Exploration.Editor
         [MenuItem("Shepherd/Case01/一樓反向樓梯 v0.4 QA")]
         public static void LaunchFloorplanV04() { Launch("floor"); }
 
+        /// <summary>住宅 v0.5 A/B QA：一樓方案 A（預設）；F9 依序切到方案 B、原版、v0.4 B 比較。不影響正式 QA。</summary>
+        [MenuItem("Shepherd/Case01/住宅 v0.5 A／B QA（一樓格局）")]
+        public static void LaunchResidentialV05() { Launch("res"); }
+
         /// <summary>Portal v0.5 QA：站在錯接的書房門前；F6 切門的狀態、F7 切 v0.4／v0.5 外觀、F8 降低閃爍。</summary>
         [MenuItem("Shepherd/Case01/Portal v0.5 QA（彩色失序門）")]
         public static void LaunchPortalV05() { Launch("portal"); }

@@ -70,6 +70,11 @@ namespace Shepherd.Exploration.Case01
             return m;
         }
 
+        public bool OwnsMaterial(Material m)
+        {
+            return m != null && owned.Contains(m);
+        }
+
         public Material Own(Material m)
         {
             owned.Add(m);

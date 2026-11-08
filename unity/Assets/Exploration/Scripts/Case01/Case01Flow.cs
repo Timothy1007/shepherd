@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace Shepherd.Exploration.Case01
 {
@@ -146,6 +146,9 @@ namespace Shepherd.Exploration.Case01
     /// </summary>
     public sealed partial class Case01Flow
     {
+        /// <summary>v0.5：合照所在地點（格局不同；只影響提示文字，不改證據 ID 或規則門檻）。</summary>
+        public string PhotoPlace = "一樓餐廳";
+
         public Case01Session Session { get; private set; }
 
         private readonly Dictionary<Case01Door, Case01Room> routes = new Dictionary<Case01Door, Case01Room>();
@@ -473,7 +476,7 @@ namespace Shepherd.Exploration.Case01
             {
                 var missing = new List<string>();
                 if (!Has(Case01Flags.MapObserved)) missing.Add(Case01Texts.CoreNeedMap);
-                if (!Has(Case01Flags.PhotoObserved)) missing.Add(Case01Texts.CoreNeedPhoto);
+                if (!Has(Case01Flags.PhotoObserved)) missing.Add(Case01Texts.PhotoNeed(PhotoPlace));
                 if (missing.Count > 0) return new Case01Response { Text = Case01Texts.CoreNeedEvidence + string.Join("、", missing.ToArray()) };
                 Session.Set(Case01Flags.MissingLinkRestored);
                 Session.Advance(Case01Stage.LinkRestoration);
