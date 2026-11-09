@@ -95,7 +95,7 @@ namespace Shepherd.Exploration.Case01
             string where = Area == Case01DemoArea.House
                 ? (QaHouseView >= 0 ? "屋內 " + (QaHouseView + 1) + "/" + HouseViews.Length + " " + HouseViews[QaHouseView].Name : "屋內（玄關）") + "｜H" + QaStage
                 : Area == Case01DemoArea.Office ? "事務所" : "街區";
-            return "Demo Phase 1 品質回歸 QA［" + where + "］：F1 事務所｜F2 街區看 17 號｜F3 進 17 號｜F4 下一個視點｜F6 屋內 H0→H3";
+            return "Demo Phase 1 品質回歸 QA［" + where + "｜" + (ArtOn ? "新美術" : "舊版") + "］：F1 事務所｜F2 街區看 17 號｜F3 進 17 號｜F4 下一個視點｜F6 屋內 H0→H3｜F7 新／舊";
         }
 
         private bool HandleQaKeys(Case01Input input)
@@ -109,8 +109,26 @@ namespace Shepherd.Exploration.Case01
             }
             else if (input.Jump == 4) QaNextView();
             else if (input.Function == 6) QaNextStage();
+            else if (input.Function == 7) SetArt(!ArtOn);
             else return false;
             return true;
+        }
+
+        /// <summary>v0.7 Phase 1 美術是否顯示（品質回歸 QA 的 F7；跨區域保留）。</summary>
+        public bool ArtOn { get; private set; } = true;
+
+        /// <summary>新（true）／舊（false）美術：目前的事務所／街區，或屋內（方案 A 的客廳與其他房間）。</summary>
+        public void SetArt(bool on)
+        {
+            ArtOn = on;
+            if (areaLayout != null && areaLayout.Art != null) areaLayout.Art.SetActive(on);
+            if (House != null)
+            {
+                House.SetDemoArt(on);
+                House.DemoBanner = QaMode ? QaBanner() : House.DemoBanner;
+            }
+            Physics.SyncTransforms();
+            UpdateTexts();
         }
 
         /// <summary>F4：屋內依序切換房間／異常門視點；屋外在事務所或街區的幾個固定視點之間切換。</summary>
@@ -263,6 +281,9 @@ namespace Shepherd.Exploration.Case01
             }
             Hud.Visible = true;
             areaLayout = area == Case01DemoArea.Office ? Case01OfficeBuilder.Build(areaRoot, palette) : Case01StreetBuilder.Build(areaRoot, palette, floorplan);
+            // v0.7 Phase 1：事務所與街區的美術換皮（兩種格局都套用；品質回歸 QA 的 F7 切新舊）。
+            var art = area == Case01DemoArea.Office ? Case01AreaArt.Office(areaLayout, palette) : Case01AreaArt.Street(areaLayout, palette, floorplan);
+            if (art != null) art.SetActive(ArtOn);
             Case01Pose pose;
             if (spawn == null || !areaLayout.Spawns.TryGetValue(spawn, out pose))
                 pose = areaLayout.Spawns[area == Case01DemoArea.Office ? Case01DemoIds.SpawnOfficeStart : Case01DemoIds.SpawnStreetStart];
@@ -311,6 +332,7 @@ namespace Shepherd.Exploration.Case01
             qa.DemoExitRequested += OnHouseExit;
             go.SetActive(true);
             House = qa;
+            if (!ArtOn) qa.SetDemoArt(false);
             if (QaMode) qa.DemoBanner = QaBanner();
         }
 

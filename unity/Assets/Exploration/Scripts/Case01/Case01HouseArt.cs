@@ -30,6 +30,8 @@ namespace Shepherd.Exploration.Case01
             a.Kitchen();
             a.Dining();
             a.Upstairs();
+            // 窗外的街景與 Demo 街區同一套外景美術。
+            Case01AreaArt.DressExterior(layout.Exterior, a.Kit, a.Pieces);
             layout.HouseArt = a;
             return a;
         }

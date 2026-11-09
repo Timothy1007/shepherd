@@ -413,6 +413,9 @@ def terrace_front(W, door_x, windows, name, upper=True, bay=False):
     原點在立面底部中心（立面平面 y=0，細節往 +Y 凸出＝街道側）。"""
     p = M.Part(name)
     S, Wp = "P1_Stone", "P1_WoodPaint"
+    # door_x／windows 用 Unity 立面的本地 x（立面朝 -Z）。Unity 以 yaw 180 擺放模組（細節 +Y→朝街），會把 x 鏡射，所以這裡先取負號。
+    door_x = -door_x
+    windows = [-w for w in windows]
     # 一樓窗（或凸窗）。
     for wx in windows:
         if bay:

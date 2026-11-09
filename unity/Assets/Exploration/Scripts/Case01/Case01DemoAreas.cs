@@ -81,6 +81,8 @@ namespace Shepherd.Exploration.Case01
         public readonly List<Light> Lights = new List<Light>();
         public Text Plate17Label;
         public Case01Exterior.Result Exterior;
+        /// <summary>v0.7 Phase 1 美術（Blender 模型換皮；資源不存在時為 null）。</summary>
+        public Case01AreaArt Art;
         public Color SkyColor = new Color(0.045f, 0.055f, 0.095f);
     }
 
@@ -417,9 +419,12 @@ namespace Shepherd.Exploration.Case01
             Case01OfficeBuilder.Block(g, new Vector3(22.6f, 2f, -6f), new Vector3(0.4f, 4f, 14f), "EastEdge");
             Case01OfficeBuilder.Block(g, new Vector3(2.9f, 0.5f, Case01Exterior.PavementNorth + 0.1f), new Vector3(7.6f, 1f, 0.22f), "FrontWallBlock");
             Case01OfficeBuilder.Block(g, new Vector3(9.15f, 0.5f, Case01Exterior.PavementNorth + 0.1f), new Vector3(2.5f, 1f, 0.22f), "FrontWallBlock");
-            // 鄰居家前院的矮牆（16、18 號也有前院，路線才清楚）。
+            // 鄰居家前院的矮牆（16、18 號也有前院，路線才清楚）。v0.7：碰撞處也有看得到的矮牆（不再是隱形牆）。
             Case01OfficeBuilder.Block(g, new Vector3(-6.3f, 0.5f, Case01Exterior.PavementNorth + 0.1f), new Vector3(9.4f, 1f, 0.22f), "FrontWallBlock");
             Case01OfficeBuilder.Block(g, new Vector3(16.3f, 0.5f, Case01Exterior.PavementNorth + 0.1f), new Vector3(9.4f, 1f, 0.22f), "FrontWallBlock");
+            var wallMat = p.Tint("court_wall", new Color(0.62f, 0.5f, 0.46f));
+            Case01OfficeBuilder.Box(g, new Vector3(-6.3f, 0.35f, Case01Exterior.PavementNorth + 0.1f), new Vector3(9.4f, 0.7f, 0.22f), wallMat, "NeighbourWall");
+            Case01OfficeBuilder.Box(g, new Vector3(16.3f, 0.35f, Case01Exterior.PavementNorth + 0.1f), new Vector3(9.4f, 0.7f, 0.22f), wallMat, "NeighbourWall");
             foreach (var lamp in L.Exterior.Lamps)
             {
                 Case01OfficeBuilder.Block(g, lamp.position + new Vector3(0f, 1.2f, 0f), new Vector3(0.25f, 2.4f, 0.25f), "LampBlock");

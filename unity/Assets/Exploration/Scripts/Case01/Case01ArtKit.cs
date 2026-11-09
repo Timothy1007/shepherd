@@ -223,12 +223,71 @@ namespace Shepherd.Exploration.Case01
             go.SetActive(Active);
         }
 
+        private sealed class SwapRec
+        {
+            public Renderer R;
+            public Material[] Old, Art;
+        }
+
+        private sealed class MoveRec
+        {
+            public Transform T;
+            public Vector3 OldPos, OldScale, ArtPos, ArtScale;
+        }
+
+        private readonly List<SwapRec> swaps = new List<SwapRec>();
+        private readonly List<MoveRec> moves = new List<MoveRec>();
+        public int SwapCount { get { return swaps.Count; } }
+
+        /// <summary>換材質（保留舊材質，新舊切換時換回）。Primitive 方塊的貼圖密度由呼叫端給平鋪後的材質。</summary>
+        public void Swap(Renderer r, Material m)
+        {
+            if (r == null || m == null) return;
+            foreach (var s in swaps)
+                if (s.R == r) return;
+            var old = r.sharedMaterials;
+            var art = new Material[old.Length];
+            for (int i = 0; i < art.Length; i++) art[i] = m;
+            swaps.Add(new SwapRec { R = r, Old = old, Art = art });
+            r.sharedMaterials = Active ? art : old;
+        }
+
+        /// <summary>依方塊的世界尺寸平鋪（tile＝貼圖代表的公尺數；u 取 x、v 取 y 或 z 中較大者）。</summary>
+        public void SwapTiled(Renderer r, string name, float tile, bool useZForV = false)
+        {
+            if (r == null) return;
+            var s = r.transform.lossyScale;
+            float u = Mathf.Max(Mathf.Abs(s.x), 0.05f) / tile;
+            float v = Mathf.Max(Mathf.Abs(useZForV ? s.z : s.y), 0.05f) / tile;
+            Swap(r, Tiled(name, new Vector2(Mathf.Max(0.25f, u), Mathf.Max(0.25f, v))));
+        }
+
+        /// <summary>移動／縮放既有物件（例如把亮著的舊窗玻璃對齊新窗框），新舊切換時還原。</summary>
+        public void Retransform(Transform t, Vector3 localPos, Vector3 localScale)
+        {
+            if (t == null) return;
+            var m = new MoveRec { T = t, OldPos = t.localPosition, OldScale = t.localScale, ArtPos = localPos, ArtScale = localScale };
+            moves.Add(m);
+            if (Active)
+            {
+                t.localPosition = localPos;
+                t.localScale = localScale;
+            }
+        }
+
         /// <summary>新（true）／舊（false）切換：舊 Renderer 與新模型互換顯示。</summary>
         public void SetActive(bool art)
         {
             Active = art;
             foreach (var r in hidden) if (r != null) r.enabled = !art;
             foreach (var g in added) if (g != null) g.SetActive(art);
+            foreach (var s in swaps) if (s.R != null) s.R.sharedMaterials = art ? s.Art : s.Old;
+            foreach (var m in moves)
+                if (m.T != null)
+                {
+                    m.T.localPosition = art ? m.ArtPos : m.OldPos;
+                    m.T.localScale = art ? m.ArtScale : m.OldScale;
+                }
         }
 
         /// <summary>單面方片（法線 normal），UV 以公尺平鋪。</summary>
@@ -256,13 +315,13 @@ namespace Shepherd.Exploration.Case01
         }
 
         /// <summary>依矩形範圍貼牆面：對每段現有的牆／門楣／窗裙（Renderer 範圍）在房間那一側貼一片，門窗洞自然留空。</summary>
-        public int DressWalls(Transform wallsRoot, Transform parent, float x0, float x1, float z0, float z1, float y0, float ceiling, Material m)
+        public int DressWalls(Transform wallsRoot, Transform parent, float x0, float x1, float z0, float z1, float y0, float ceiling, Material m, params string[] extraNames)
         {
             int n = 0;
             foreach (var rend in wallsRoot.GetComponentsInChildren<MeshRenderer>(true))
             {
                 var nm = rend.name;
-                if (nm != "Wall" && nm != "Lintel" && nm != "WindowHead" && nm != "WindowApron") continue;
+                if (nm != "Wall" && nm != "Lintel" && nm != "WindowHead" && nm != "WindowApron" && System.Array.IndexOf(extraNames, nm) < 0) continue;
                 var b = rend.bounds;
                 float ya = Mathf.Max(y0, b.min.y), yb = Mathf.Min(ceiling, b.max.y);
                 if (yb - ya < 0.01f) continue;

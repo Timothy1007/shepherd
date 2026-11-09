@@ -340,6 +340,16 @@ namespace Shepherd.Exploration.Case01
             }
         }
 
+        /// <summary>Demo（方案 A）屋內的 v0.6／v0.7 美術新舊切換（品質回歸 QA 的 F7）；重建屋內時沿用。</summary>
+        public void SetDemoArt(bool on)
+        {
+            livingArtOn = on;
+            if (layout == null) return;
+            if (layout.LivingArt != null) layout.LivingArt.SetActive(on);
+            if (layout.HouseArt != null) layout.HouseArt.SetActive(on);
+            Physics.SyncTransforms();
+        }
+
         /// <summary>品質回歸 QA：以指定流程狀態重建屋內並站到指定視點（視角不變的同角度檢查用）。</summary>
         public void QaView(Case01Flow f, Case01Pose pose, float pitch)
         {

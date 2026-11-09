@@ -277,18 +277,26 @@ namespace Shepherd.Exploration.Editor
                 d.Build(false, Case01DemoArea.Street, Case01Floorplan.V05A);
                 string p = prefix + "phase1_";
                 d.Hud.Visible = false;
-                foreach (var spawn in new[] { "street_qa17", "street_door17", Case01DemoIds.SpawnStreetStart })
+                foreach (var on in new[] { false, true })
                 {
-                    Case01Pose pose;
-                    if (d.AreaLayout.Spawns.TryGetValue(spawn, out pose)) DemoShot(d, rt, p + "street_" + spawn + ".png", pose, spawn == "street_qa17" ? -8f : 2f);
+                    d.SetArt(on);
+                    foreach (var spawn in new[] { "street_qa17", "street_door17", Case01DemoIds.SpawnStreetStart, "street_listing" })
+                    {
+                        Case01Pose pose;
+                        if (d.AreaLayout.Spawns.TryGetValue(spawn, out pose)) DemoShot(d, rt, p + "street_" + spawn + (on ? "_new" : "_old") + ".png", pose, spawn == "street_qa17" ? -8f : 2f);
+                    }
                 }
                 d.Tick(Step, new Case01Input { Jump = 1 });
                 for (int i = 0; i < 60 && d.Transitioning; i++) d.Tick(Step, Case01Input.None);
                 d.Hud.Visible = false;
-                foreach (var spawn in new[] { Case01DemoIds.SpawnOfficeStart, "office_desk", "office_board" })
+                foreach (var on in new[] { false, true })
                 {
-                    Case01Pose pose;
-                    if (d.AreaLayout.Spawns.TryGetValue(spawn, out pose)) DemoShot(d, rt, p + "office_" + spawn + ".png", pose, 6f);
+                    d.SetArt(on);
+                    foreach (var spawn in new[] { Case01DemoIds.SpawnOfficeStart, "office_desk", "office_board" })
+                    {
+                        Case01Pose pose;
+                        if (d.AreaLayout.Spawns.TryGetValue(spawn, out pose)) DemoShot(d, rt, p + "office_" + spawn + (on ? "_new" : "_old") + ".png", pose, 6f);
+                    }
                 }
                 d.Tick(Step, new Case01Input { Jump = 3 });
                 for (int i = 0; i < 60 && d.Transitioning; i++) d.Tick(Step, Case01Input.None);
