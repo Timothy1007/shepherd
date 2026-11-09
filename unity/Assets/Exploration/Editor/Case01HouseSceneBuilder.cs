@@ -69,6 +69,10 @@ namespace Shepherd.Exploration.Editor
         [MenuItem("Shepherd/Case01/一樓反向樓梯 v0.4 QA")]
         public static void LaunchFloorplanV04() { Launch("floor"); }
 
+        /// <summary>客廳美術標準間 QA（v0.6）：方案 A 客廳入口；F7 新／舊美術、F6 H0→H2→H3、F1 回入口。不影響其他 QA 與 Demo。</summary>
+        [MenuItem("Shepherd/Case01/客廳美術標準間 QA（v0.6）")]
+        public static void LaunchLivingArt() { Launch("living"); }
+
         /// <summary>住宅 v0.5 A/B QA：一樓方案 A（預設）；F9 依序切到方案 B、原版、v0.4 B 比較。不影響正式 QA。</summary>
         [MenuItem("Shepherd/Case01/住宅 v0.5 A／B QA（一樓格局）")]
         public static void LaunchResidentialV05() { Launch("res"); }

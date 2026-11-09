@@ -134,6 +134,14 @@ namespace Shepherd.Exploration.Case01
 
         public Transform EncounterAnchor;
         public Case01Exterior.Result Exterior;
+        /// <summary>v0.6：方案 A 客廳的原家具群組與兩扇客廳窗（客廳美術標準間 QA 切換新舊用）。</summary>
+        public Transform LivingOldRoot;
+        public readonly List<Transform> LivingWindows = new List<Transform>();
+        /// <summary>v0.6 客廳美術標準間（只有客廳美術 QA 會建立）。</summary>
+        public Case01LivingArt LivingArt;
+        /// <summary>v0.6：新美術版合照裡的第二個人（與 <see cref="PhotoSecondFigure"/> 同步換材質）。</summary>
+        public Renderer PhotoSecondFigureAlt;
+        public Material PhotoFigureMatAlt, PhotoFadedMatAlt;
         /// <summary>v0.5：依格局覆寫的記憶殘響位置（沒有的用 <see cref="Case01EchoPlayer.SpotOf(string)"/> 的預設）。</summary>
         public readonly Dictionary<string, Case01EchoPlayer.Spot> EchoSpots = new Dictionary<string, Case01EchoPlayer.Spot>();
         /// <summary>v0.5：美術 QA（H0～H3）站位：客廳。</summary>

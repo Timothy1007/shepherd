@@ -1,4 +1,15 @@
-# 2026-11-09｜Case01 客廳美術標準間 v0.6：完成規格與可行性評估（最新）
+# 2026-11-09｜Case01 客廳美術標準間 v0.6：第一版已實作（Claude；待真人驗收）
+依 `CASE01_LIVING_ROOM_ART_STANDARD_IMPLEMENTATION_V0_6.md` 與使用者提供的兩張概念圖（只作美術參考）。**只升級 v0.5 方案 A 的客廳 H0 標準間，只在新的獨立 QA 中出現；住宅一般 QA、住宅 A/B QA、Demo、事務所、街區、戰鬥、失序門、核校正都沒有套用或改動。**
+- **建模方式**：本機 Blender 5.2（背景模式、Python／bmesh 程序建模；沒有用 Blender MCP，也沒有外部模型／貼圖素材）。腳本 `tools/blender/case01_living_room/`（`build.py` 重建全部、`models.py` 19 個模型、`textures.py` 23 張繪畫感貼圖、`preview.py` Workbench 預覽）。輸出 `unity/Assets/Exploration/Case01Art/LivingRoom/Resources/Case01LivingRoom/`（FBX＋PNG＋.meta，約 3.5 MB）。重建：`blender -b --factory-startup --python tools/blender/case01_living_room/build.py`。
+- **模型**：雙人沙發（捲邊扶手、分件座墊／靠墊鼓起與下陷、車削小腳、搭在扶手上的格紋毯）、扶手椅、抱枕、茶几（圓角桌面、桌裙抽屜＋黃銅把手、車削腳、下層板）、側桌、客廳書櫃（側板／企口背板／上方線腳／踢腳／四層層板，書由 Unity 依原版相同亂數擺在層板上）、書（圓角書背＋書頁塊、7 色書背圖集）、英式上下拉窗（外框、上下兩扇、會合橫檔、直櫺、室內窗套、窗台與裙板；保留原本透明玻璃與窗外街景）、厚重落地窗簾（鐵桿＋尾飾、褶、束帶）、陶瓷黃銅桌燈＋鼓形燈罩、地毯（花心＋雙邊框＋流蘇）、維多利亞式壁爐架＋鑄鐵爐框＋爐柵炭火＋磁磚爐床、電視與矮櫃、相框／畫框、盆栽（葉卡）、壁爐鐘／燭台／花瓶／茶杯、天花板線板。牆面貼壁紙（依現有牆段自動逐段貼、門窗洞留空）、長條木地板、天花灰泥。
+- **整合**：方案 A 客廳原家具改放在 `LivingOld` 群組（調查熱區移回一樓群組，不受切換影響）；`Case01LivingArt` 在同一錨點擺新家具、依外形加碰撞、合照第二人與牆上相框 H1 空白透過 `PhotoSecondFigureAlt`／`LivingFramePhotoAlt/BlankAlt` 與原版同步、H1 缺書加入同一份清單；桌燈交給 `Case01Mood`（H1～H3 失溫、H3 不回暖），爐火與燈罩自發光只在 H0。
+- **QA**：選單 `Shepherd/Case01/客廳美術標準間 QA（v0.6）`（啟動鍵 "living"）：直接站在客廳入口；F7 新／舊美術切換（同一位置）；F6 H0→H2→H3（玩家位置與視角不變）；F1 回客廳入口；F8 降低閃爍；可自由走動檢查尺度與碰撞。截圖：`Case01V05Capture` 的 "living" 組（新舊同角度、H2／H3、近景）。
+- **測試**：EditMode 317/317（新增 `Case01LivingArtTests` 7 個：模型確實載入且非 Primitive、無洋紅 shader、新舊切換只換顯示與碰撞、合照／朋友卡片／夾便箋的書兩版都可調查並走到餐廳、H0／H2／H3、門洞淨空、F1 不殘留、其他 QA 不套用）；PlayMode 11/11（新增 1 個：實際 Play 啟動、走到壁爐前對準合照、F7／F6、走到餐廳）。**全部是 batchmode 腳本測試，沒有真人鍵鼠試玩。**
+- **未完成／待驗收**：真人判斷風格是否達到「正式產品」與概念圖方向；牆面整體偏暗、壁紙花紋很淡；窗簾與格紋毯仍是程序布片，沒有布料模擬；沒有雨景與窗玻璃雨痕；家具沒有法線貼圖或 AO 烘焙（只有繪畫感底色）；餐廳／廚房／玄關／二樓尚未套用；是否成為正式預設由使用者決定。
+
+---
+
+# 2026-11-09｜Case01 客廳美術標準間 v0.6：完成規格與可行性評估
 使用者已選定一組風格化半寫實的英倫住宅概念圖方向與 ChatGPT 一樓概念板，但**生成圖片只是美術參考，不能當有真實座標的 Unity 施工圖**。新施工規格：`docs/story/case01_seventeenth_door/CASE01_LIVING_ROOM_ART_STANDARD_IMPLEMENTATION_V0_6.md`，已讀現行 main 住宅 `Case01HouseBuilder.cs`、`Case01HouseDecor.cs`、`Case01HouseQA.cs`、`Case01ArtSet.cs`。目前 v0.5 A/B 布局、透明窗與窗外場景、H0–H3、Hotspot 已存在；建議只做 v0.5 A **客廳獨立美術 QA**，優先沙發、茶几、書架／合照、窗、燈具；不改格局、不強制加壁爐、不換 URP/HDRP、不覆蓋街區/事務所新成果；先實測客廳空間與保留線索，再做 old/new + H0/H2/H3 對照。可用 Blender 建模，但 Blender MCP 非必要。**本次實際僅新增規格文件與更新交接，未修改 Unity、美術模型、場景或執行測試，也未直接指派 Claude Code。** 使用者確認後再由 Claude 實裝並提交。概念圖在聊天附件，未加入 repo，需另提供給 Claude 或以文件文字規格起步。
 
 ---

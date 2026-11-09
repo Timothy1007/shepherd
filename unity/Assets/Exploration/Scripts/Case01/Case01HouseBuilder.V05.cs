@@ -111,19 +111,25 @@ namespace Shepherd.Exploration.Case01
 
             // ---------------- 客廳（母女日常休息） ----------------
             // 西牆壁爐（合照在壁爐架右側）、北側凹處書櫃、西南角電視、面向壁爐的沙發與茶几、扶手椅＋閱讀燈。
-            var fire = Fireplace(g, new Vector3(0f, 0f, 3.0f), 90f);
-            PhotoOnMantel(L, g, fire.TransformPoint(new Vector3(0.58f, 1.3f, 0.6f)), 90f);
-            MantelClutter(g, fire);
-            LivingBookcase(L, g, new Vector3(0.27f, 0f, 4.6f), 90f, 1.3f);
-            TvCorner(g, new Vector3(0.62f, 0f, 0.62f), 45f);
-            var sofa = Sofa(g, new Vector3(3.62f, 0f, 3.05f), -90f, 2.0f, fabricGreen);
-            CoffeeTable(L, g, new Vector3(2.2f, 0f, 3.05f), 90f);
-            Box(g, new Vector3(2.35f, 0.006f, 3.05f), new Vector3(2.2f, 0.012f, 2.6f), fabricRed, "Rug");
-            Armchair(g, new Vector3(2.6f, 0f, 4.45f), 200f, pale);
-            ReadingLamp(L, g, new Vector3(3.3f, 0f, 4.85f));
+            // v0.6：客廳家具集中在 LivingOld 群組（客廳美術標準間 QA 可整組換成新美術）；調查熱區移回一樓群組，不受切換影響。
+            var lg = ArenaArt.Group("LivingOld", g, Vector3.zero);
+            L.LivingOldRoot = lg;
+            var fire = Fireplace(lg, new Vector3(0f, 0f, 3.0f), 90f);
+            PhotoOnMantel(L, lg, fire.TransformPoint(new Vector3(0.58f, 1.3f, 0.6f)), 90f);
+            MantelClutter(lg, fire);
+            LivingBookcase(L, lg, new Vector3(0.27f, 0f, 4.6f), 90f, 1.3f);
+            TvCorner(lg, new Vector3(0.62f, 0f, 0.62f), 45f);
+            Sofa(lg, new Vector3(3.62f, 0f, 3.05f), -90f, 2.0f, fabricGreen);
+            CoffeeTable(L, lg, new Vector3(2.2f, 0f, 3.05f), 90f);
+            Box(lg, new Vector3(2.35f, 0.006f, 3.05f), new Vector3(2.2f, 0.012f, 2.6f), fabricRed, "Rug");
+            Armchair(lg, new Vector3(2.6f, 0f, 4.45f), 200f, pale);
+            ReadingLamp(L, lg, new Vector3(3.3f, 0f, 4.85f));
             Calendar(L, g, new Vector3(hx0 - 0.085f, 1.5f, 3.4f), 90f);
-            LivingWallFrame(L, g, new Vector3(4.65f, 1.7f, lz1 - 0.085f), 0f);
-            Plant(g, new Vector3(2.7f, 0f, 0.4f));
+            LivingWallFrame(L, lg, new Vector3(4.65f, 1.7f, lz1 - 0.085f), 0f);
+            Plant(lg, new Vector3(2.7f, 0f, 0.4f));
+            foreach (var it in lg.GetComponentsInChildren<Case01Interactable>(true)) it.transform.SetParent(g, true);
+            foreach (Transform w in g)
+                if (w.name == "Window" && w.position.y < 2f && w.position.x < hx0 && w.position.z < lz1) L.LivingWindows.Add(w);
             RoomLight(L, Case01Room.Living, g, new Vector3(2.5f, 2.3f, 2.8f), new Color(1f, 0.74f, 0.46f), 1.0f, true, 2.8f);
 
             // ---------------- 餐廳（二→一的主要矛盾） ----------------

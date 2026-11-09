@@ -17,6 +17,9 @@ namespace Shepherd.Exploration.Case01
         /// <summary>客廳北牆相框：照片內容（H0）／空白（H1 起，H3 仍空白＝殘留）。</summary>
         public GameObject LivingFramePhoto;
         public GameObject LivingFrameBlank;
+        /// <summary>v0.6：客廳美術標準間的同一個相框（新美術版）；與上面兩個同步切換。</summary>
+        public GameObject LivingFramePhotoAlt;
+        public GameObject LivingFrameBlankAlt;
 
         // ---- H1：餐廳 ----
         /// <summary>餐桌布巾（H1 不見，H3 回來）。</summary>
@@ -85,6 +88,8 @@ namespace Shepherd.Exploration.Case01
             foreach (var b in LivingMissingBooks) b.SetActive(!changed || stabilized);
             LivingFramePhoto.SetActive(!changed);
             LivingFrameBlank.SetActive(changed);
+            if (LivingFramePhotoAlt != null) LivingFramePhotoAlt.SetActive(!changed);
+            if (LivingFrameBlankAlt != null) LivingFrameBlankAlt.SetActive(changed);
         }
 
         public void ApplyDining(bool changed, bool stabilized)

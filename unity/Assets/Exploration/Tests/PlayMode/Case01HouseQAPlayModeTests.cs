@@ -132,6 +132,50 @@ namespace Shepherd.Exploration.Tests
             Assert.IsFalse(qa.Hud.MonologueVisible, "調查面板開著時自語不疊在上面");
         }
 
+        /// <summary>v0.6 客廳美術標準間：選單啟動 → 站在客廳 → 實際走過新家具之間到合照與餐廳；F7 新舊切換、F6 H2，玻璃仍透明。</summary>
+        [UnityTest]
+        public IEnumerator LivingArtQa_WalkBetweenNewFurniture_ToggleAndStage_InRealPlayMode()
+        {
+            PlayerPrefs.SetString(Case01HouseQA.LaunchModeKey, "living");
+            yield return LoadScene();
+            var qa = Object.FindObjectOfType<Case01HouseQA>();
+            Assert.AreEqual(Case01QaMode.LivingArt, qa.QaMode);
+            var input = new ScriptedInput();
+            qa.InputSource = input;
+            yield return null;
+            Assert.AreEqual(Case01Room.Living, qa.CurrentRoom, "直接在客廳");
+            Assert.IsTrue(qa.LivingArtOn, "新美術");
+            yield return WalkTo(qa, input, 1.6f, 1.5f);
+            Assert.Less(Vector2.Distance(new Vector2(qa.Player.transform.position.x, qa.Player.transform.position.z), new Vector2(1.6f, 1.5f)), 0.4f, "走到壁爐前");
+            var photo = qa.Layout.Interactables[Case01Ids.Photo];
+            input.Hold = Case01Input.None;
+            for (int i = 0; i < 3; i++)
+            {
+                input.Once = Case01Input.From(new ExploreInput { Look = LookDelta(qa.Player, photo.transform.position, false) });
+                yield return null;
+            }
+            Assert.AreEqual(Case01Ids.Photo, qa.CurrentTarget != null ? qa.CurrentTarget.Id : null, "準星對到壁爐架上的合照");
+            input.Once = new Case01Input { Function = 7 };
+            yield return null;
+            yield return null;
+            Assert.IsFalse(qa.LivingArtOn, "F7 切回舊版");
+            input.Once = new Case01Input { Function = 7 };
+            yield return null;
+            yield return null;
+            Assert.IsTrue(qa.LivingArtOn);
+            yield return WalkTo(qa, input, 4.7f, 1.4f);
+            yield return WalkTo(qa, input, 4.7f, 4.7f);
+            yield return WalkTo(qa, input, 3.4f, 5.05f);
+            yield return WalkTo(qa, input, 3.4f, 6.0f);
+            Assert.AreEqual(Case01Room.Dining, qa.CurrentRoom, "新家具之間的走道可以走到餐廳");
+            input.Once = new Case01Input { Function = 6 };
+            yield return null;
+            yield return null;
+            Assert.AreEqual(2, qa.HouseStage, "F6 → H2");
+            Assert.IsTrue(qa.LivingArtOn, "切階段後仍是新美術");
+            Assert.IsFalse(qa.Layout.LivingArt.FireLight.enabled, "H2 爐火熄滅");
+        }
+
         [UnityTest]
         public IEnumerator ArtQaLaunch_ManifestationSkippable_AudioStopsWhenSceneUnloads_InRealPlayMode()
         {

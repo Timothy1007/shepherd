@@ -54,6 +54,7 @@ namespace Shepherd.Exploration.Editor
                     if (sets.Contains("portal")) Portal(rt, prefix);
                     if (sets.Contains("rooms")) Rooms(rt, prefix);
                     if (sets.Contains("demo")) Demo(rt, prefix);
+                    if (sets.Contains("living")) Living(rt, prefix);
                 }
                 finally
                 {
@@ -160,6 +161,54 @@ namespace Shepherd.Exploration.Editor
                     Case01FloorplanCapture.TopDown(qa, rt, p + "map_" + tag + "_upper.png", 5.75f);
                 }, null, null, plan);
             }
+        }
+
+        /// <summary>v0.6 客廳美術標準間：同角度的舊版／新版（H0）、新版 H2／H3、近景（沙發、書櫃與合照、窗、桌燈、壁爐）。不顯示 HUD。</summary>
+        private static void Living(RenderTexture rt, string prefix)
+        {
+            var angles = new[]
+            {
+                Shot("view1_entrance", 4.75f, 0f, 1.35f, -78f, 6f),
+                Shot("view2_corner_to_fireplace", 4.6f, 0f, 4.85f, -128f, 10f),
+                Shot("view3_to_windows", 2.3f, 0f, 4.3f, 168f, 3f),
+                Shot("view4_fireplace_side", 1.3f, 0f, 1.7f, 62f, 8f),
+            };
+            var close = new[]
+            {
+                Shot("close_sofa", 2.35f, 0f, 1.75f, 52f, 20f),
+                Shot("close_bookcase_photo", 1.75f, 0f, 3.5f, -104f, 12f),
+                Shot("close_photo_mantel", 1.35f, 0f, 2.3f, -102f, 16f),
+                Shot("close_window", 2.7f, 0f, 2.0f, 180f, 2f),
+                Shot("close_lamp_table", 2.75f, 0f, 3.75f, 52f, 24f),
+                Shot("close_coffee_table", 2.2f, 0f, 1.75f, 0f, 38f),
+            };
+            WithQa(qa =>
+            {
+                string p = prefix + "living_";
+                System.Action<ShotSpec, string> take = (s, tag) =>
+                {
+                    if (qa.Echo != null) qa.Echo.Stop();
+                    qa.Hud.ClearMonologue();
+                    qa.Player.Teleport(s.Pos, s.Yaw, s.Pitch);
+                    Case01HouseCapture.Advance(qa, 0.2f);
+                    qa.Hud.Visible = false;
+                    Case01HouseCapture.Shot(qa, rt, p + tag + "_" + s.Name + ".png");
+                    qa.Hud.Visible = true;
+                };
+                Case01HouseCapture.Advance(qa, 1.0f);
+                foreach (var s in angles) take(s, "new_H0");
+                foreach (var s in close) take(s, "new_H0");
+                qa.Tick(Step, new Case01Input { Function = 7 });
+                foreach (var s in angles) take(s, "old_H0");
+                qa.Tick(Step, new Case01Input { Function = 7 });
+                foreach (int h in new[] { 2, 3 })
+                {
+                    qa.SetLivingStage(h);
+                    Case01HouseCapture.Advance(qa, 2.0f);
+                    take(angles[0], "new_H" + h);
+                    take(angles[1], "new_H" + h);
+                }
+            }, null, Case01QaMode.LivingArt);
         }
 
         /// <summary>Demo 切片：事務所、街區（巷口、十七號門前、名冊）。</summary>

@@ -40,6 +40,8 @@ namespace Shepherd.Exploration.Case01
         NarrativeV04,
         /// <summary>v0.5 Portal QA：F6 切失序門狀態、F7 切 v0.4／v0.5 外觀、F8 降低閃爍（站在同一扇門前比較）。</summary>
         PortalV05,
+        /// <summary>v0.6 客廳美術標準間 QA：方案 A、直接站在客廳入口；F6 H0／H2／H3、F7 新舊美術切換。</summary>
+        LivingArt,
         /// <summary>v0.5 Demo 切片中的正式遊玩：沒有 QA 快捷鍵與 QA 狀態列；前門回到街區（由 Case01DemoSlice 接手）。</summary>
         Demo,
     }
@@ -208,6 +210,7 @@ namespace Shepherd.Exploration.Case01
                 else if (launch == "v03") qaMode = Case01QaMode.CoreV03;
                 else if (launch == "v04") qaMode = Case01QaMode.NarrativeV04;
                 else if (launch == "portal") qaMode = Case01QaMode.PortalV05;
+                else if (launch == "living") qaMode = Case01QaMode.LivingArt;
                 else if (launch == "res")
                 {
                     floorplan = Case01Floorplan.V05A;
@@ -294,6 +297,8 @@ namespace Shepherd.Exploration.Case01
             skyLight.shadows = LightShadows.None;
 
             if (mode.HasValue) qaMode = mode.Value;
+            // 客廳美術標準間 QA 只用方案 A。
+            if (qaMode == Case01QaMode.LivingArt) floorplan = Case01Floorplan.V05A;
             hud = new Case01Hud(transform);
             sfx = new Case01Audio(transform);
             echo = new Case01EchoPlayer(hud, sfx);
@@ -338,8 +343,16 @@ namespace Shepherd.Exploration.Case01
             return copy;
         }
 
+        /// <summary>客廳美術 QA 的起點：玄關→客廳開口內側，面向壁爐與沙發。</summary>
+        public static readonly Case01Pose LivingEntrancePose = new Case01Pose(new Vector3(4.75f, 0.05f, 1.35f), -78f);
+
+        private bool livingArtOn = true;
+        /// <summary>客廳美術 QA：目前是否顯示新美術（F7 切換）。</summary>
+        public bool LivingArtOn { get { return layout != null && layout.LivingArt != null && layout.LivingArt.Active; } }
+
         public static Case01Pose CheckpointPose(Case01HouseLayout l, Case01Checkpoint cp)
         {
+            if (cp == Case01Checkpoint.S00 && l.LivingArt != null) return LivingEntrancePose;
             switch (cp)
             {
                 case Case01Checkpoint.S30: return new Case01Pose(new Vector3(7.6f, Case01HouseBuilder.FloorHeight + 0.05f, 2.4f), -12f);
@@ -373,6 +386,12 @@ namespace Shepherd.Exploration.Case01
             palette = new Case01Palette();
             ResetMood();
             layout = Case01HouseBuilder.Build(content, palette, floorplan);
+            // v0.6：客廳美術標準間（只在客廳美術 QA 建立；其他 QA 與 Demo 不受影響）。
+            if (qaMode == Case01QaMode.LivingArt)
+            {
+                var art = Case01LivingArt.Build(layout, palette);
+                if (art != null) art.SetActive(livingArtOn);
+            }
             BuildPortalHums();
             flow = f;
             flow.PhotoPlace = layout.PhotoPlace;
@@ -427,6 +446,10 @@ namespace Shepherd.Exploration.Case01
                     break;
                 case Case01QaMode.NarrativeV04:
                     hud.Base.ViewMode.text = "空間敘事 v0.4 QA：F6 H0～H3｜F7 自語｜F9 失序門｜F10 殘響｜F8 降低閃爍｜F1～F4";
+                    break;
+                case Case01QaMode.LivingArt:
+                    hud.Base.ViewMode.text = "客廳美術標準間 QA（" + (LivingArtOn ? "新美術 v0.6" : "舊版 v0.5") + "｜H" + ArtStage + "）：F7 新／舊切換｜F6 H0→H2→H3｜F1 回客廳入口｜F8 降低閃爍" +
+                                             (layout != null && layout.LivingArt == null ? "｜<color=#E67E6E>找不到美術資產</color>" : "");
                     break;
                 case Case01QaMode.PortalV05:
                     hud.Base.ViewMode.text = "Portal v0.5 QA（外觀：" + (portalStyle == Case01PortalStyle.V05 ? "v0.5 彩色" : "v0.4 單色") + (reduceFlicker ? "｜降低閃爍" : "") +
@@ -560,6 +583,21 @@ namespace Shepherd.Exploration.Case01
                 hud.Base.ShowToast(reduceFlicker ? "QA：降低閃爍　開" : "QA：降低閃爍　關");
                 UpdateModeText();
             }
+            if (qaMode == Case01QaMode.LivingArt && input.Function == 6)
+            {
+                // 站在原地比較 H0 → H2 → H3（視角不變）。
+                SetLivingStage(ArtStage == 0 ? 2 : ArtStage == 2 ? 3 : 0);
+                return;
+            }
+            if (qaMode == Case01QaMode.LivingArt && input.Function == 7)
+            {
+                livingArtOn = !livingArtOn;
+                if (layout.LivingArt != null) layout.LivingArt.SetActive(livingArtOn);
+                Physics.SyncTransforms();
+                UpdateModeText();
+                hud.Base.ShowToast(livingArtOn ? "QA：客廳　新美術（v0.6 標準間）" : "QA：客廳　舊版（v0.5 程序方塊）");
+                return;
+            }
             if (qaMode == Case01QaMode.PortalV05 && input.Function == 6)
             {
                 PreviewGlitch((GlitchPreview + 1) % GlitchPreviewCount);
@@ -632,6 +670,7 @@ namespace Shepherd.Exploration.Case01
                 echo.Tick(dt, player.transform.position, currentRoom, echoAllowed, clock);
             }
             Animate(dt);
+            if (layout != null && layout.LivingArt != null && layout.LivingArt.Stage != HouseStage) layout.LivingArt.ApplyStage(HouseStage);
             switch (Mode)
             {
                 case Case01Mode.Exploring: TickExploring(dt, input); break;
@@ -1283,6 +1322,7 @@ namespace Shepherd.Exploration.Case01
             L.DiningSecondSet.SetActive(flow.DiningShowsTwoSets);
             L.DiningTrace.SetActive(!flow.DiningShowsTwoSets);
             L.PhotoSecondFigure.sharedMaterial = flow.CoreStabilized ? L.PhotoFadedMat : L.PhotoFigureMat;
+            if (L.PhotoSecondFigureAlt != null) L.PhotoSecondFigureAlt.sharedMaterial = flow.CoreStabilized ? L.PhotoFadedMatAlt : L.PhotoFigureMatAlt;
             L.ThirdDoorFrame.SetActive(flow.ThirdDoorVisible);
             L.Interactables[Case01Ids.ThirdDoor].gameObject.SetActive(flow.ThirdDoorVisible);
             foreach (var p in L.Portals)
@@ -1640,6 +1680,27 @@ namespace Shepherd.Exploration.Case01
             exploreCam.enabled = true;
             BuildContent(Case01Flow.ForHouseStage(ArtStage), Case01Checkpoint.S00, layout != null ? layout.ArtPose : new Case01Pose(new Vector3(3.9f, 0.05f, 6.3f), -55f));
             hud.Base.ShowToast("美術 QA：房屋 H" + ArtStage);
+        }
+
+        /// <summary>客廳美術 QA：切換房屋階段，玩家留在原地、視角不變（同角度比較）。</summary>
+        public void SetLivingStage(int h)
+        {
+            var pos = player.transform.position;
+            float yaw = player.Yaw, pitch = player.Pitch;
+            ArtStage = Mathf.Clamp(h, 0, 3);
+            KillArena();
+            if (content != null)
+            {
+                content.gameObject.SetActive(false);
+                ArenaArt.Kill(content.gameObject);
+            }
+            encounterGroup = null;
+            exploreCam.enabled = true;
+            BuildContent(Case01Flow.ForHouseStage(ArtStage), Case01Checkpoint.S00, new Case01Pose(pos, yaw));
+            player.Teleport(pos, yaw, pitch);
+            SnapCameraToPlayer();
+            UpdateModeText();
+            hud.Base.ShowToast("QA：客廳 H" + ArtStage);
         }
 
         public const int GlitchPreviewCount = 5;
