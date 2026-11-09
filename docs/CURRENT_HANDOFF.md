@@ -1,3 +1,8 @@
+# 2026-11-09｜Demo Phase 1 場景品質統一／穿模與遮擋回歸（最新任務）
+使用者已玩過 v0.6 客廳；目前客廳已有初步品質但離最高參考圖仍有差距。**最新開發決策**：先讓其餘住宅房間、事務所及街區拉齊至「現有客廳 v0.6」的初步模型品質，並優先修明顯穿模、異常 Portal 由屋外可見／穿出二樓外牆、玄關↔廚房應封閉、場景切換/互動／碰撞問題；之後再做 Phase 2 戰鬥 UI、Phase 3 音樂/探索 HUD、Phase 4 全域高階美術。正式 Claude 開發任務：`docs/story/case01_seventeenth_door/CASE01_DEMO_PHASE1_VISUAL_CONSISTENCY_AND_QA_TASK_V0_7.md`。先查最新版是否已修，不重複建造已完成的事務所/街道/客廳。**本次僅新增任務文檔與更新交接，沒有改 Unity 程式、素材或跑測試；Claude Code 尚未由此直接啟動。** 要求獨立 QA、P0 優先、每小批驗證提交 main，保護使用者原本保留的本機未提交變更。
+
+---
+
 # 2026-11-09｜Case01 客廳美術標準間 v0.6：第一版已實作（Claude；待真人驗收）
 依 `CASE01_LIVING_ROOM_ART_STANDARD_IMPLEMENTATION_V0_6.md` 與使用者提供的兩張概念圖（只作美術參考）。**只升級 v0.5 方案 A 的客廳 H0 標準間，只在新的獨立 QA 中出現；住宅一般 QA、住宅 A/B QA、Demo、事務所、街區、戰鬥、失序門、核校正都沒有套用或改動。**
 - **建模方式**：本機 Blender 5.2（背景模式、Python／bmesh 程序建模；沒有用 Blender MCP，也沒有外部模型／貼圖素材）。腳本 `tools/blender/case01_living_room/`（`build.py` 重建全部、`models.py` 19 個模型、`textures.py` 23 張繪畫感貼圖、`preview.py` Workbench 預覽）。輸出 `unity/Assets/Exploration/Case01Art/LivingRoom/Resources/Case01LivingRoom/`（FBX＋PNG＋.meta，約 3.5 MB）。重建：`blender -b --factory-startup --python tools/blender/case01_living_room/build.py`。
