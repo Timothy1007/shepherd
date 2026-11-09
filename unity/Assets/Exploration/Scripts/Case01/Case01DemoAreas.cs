@@ -252,6 +252,9 @@ namespace Shepherd.Exploration.Case01
             }
             L.Spawns[Case01DemoIds.SpawnOfficeStart] = new Case01Pose(new Vector3(6.7f, 0.05f, 1.2f), -25f);
             L.Spawns[Case01DemoIds.SpawnOfficeReturn] = new Case01Pose(new Vector3(DoorX, 0.05f, 0.9f), -10f);
+            // 品質回歸 QA 的固定視點。
+            L.Spawns["office_desk"] = new Case01Pose(new Vector3(4.5f, 0.05f, 2.6f), 0f);
+            L.Spawns["office_board"] = new Case01Pose(new Vector3(6.6f, 0.05f, 3.6f), 90f);
             return L;
         }
 
@@ -425,6 +428,10 @@ namespace Shepherd.Exploration.Case01
             L.Lights.Add(ArenaArt.PointLight(g, new Vector3(7.1f, 2.6f, -0.8f), new Color(0.75f, 0.78f, 0.95f), 4f, 0.5f, false));
             L.Spawns[Case01DemoIds.SpawnStreetStart] = new Case01Pose(new Vector3(-10.2f, 0.05f, -3.0f), 90f);
             L.Spawns[Case01DemoIds.SpawnStreetFromHouse] = new Case01Pose(new Vector3(7.1f, 0.05f, -1.0f), 180f);
+            // 品質回歸 QA 的固定視點（從對街看 17 號、17 號門前、郵遞名冊）。
+            L.Spawns["street_qa17"] = new Case01Pose(new Vector3(5.5f, 0.05f, -9.5f), 10f);
+            L.Spawns["street_door17"] = new Case01Pose(new Vector3(7.1f, 0.05f, -3.2f), 0f);
+            L.Spawns["street_listing"] = new Case01Pose(new Vector3(-3.4f, 0.05f, -3.8f), 0f);
             return L;
         }
 

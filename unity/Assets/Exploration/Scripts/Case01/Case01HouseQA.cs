@@ -328,6 +328,36 @@ namespace Shepherd.Exploration.Case01
 
         public bool IsDemo { get { return qaMode == Case01QaMode.Demo; } }
 
+        private string demoBanner;
+        /// <summary>Demo 模式左下第二行（正式 Demo 為空；Phase 1 品質回歸 QA 用來顯示快捷鍵）。</summary>
+        public string DemoBanner
+        {
+            get { return demoBanner; }
+            set
+            {
+                demoBanner = value;
+                if (hud != null && qaMode == Case01QaMode.Demo) hud.Base.ViewMode.text = value ?? "";
+            }
+        }
+
+        /// <summary>品質回歸 QA：以指定流程狀態重建屋內並站到指定視點（視角不變的同角度檢查用）。</summary>
+        public void QaView(Case01Flow f, Case01Pose pose, float pitch)
+        {
+            KillArena();
+            if (content != null)
+            {
+                content.gameObject.SetActive(false);
+                ArenaArt.Kill(content.gameObject);
+            }
+            encounterGroup = null;
+            exploreCam.enabled = true;
+            BuildContent(f, Case01Checkpoint.S00, pose);
+            player.Teleport(pose.Position, pose.Yaw, pitch);
+            SnapCameraToPlayer();
+            if (echo != null) echo.Stop();
+            hud.ClearMonologue();
+        }
+
         private CombatLabScenario CurrentScenario()
         {
             if (scenarioOverride == null) return CombatLabScenario.Default();
@@ -434,7 +464,8 @@ namespace Shepherd.Exploration.Case01
         {
             if (qaMode == Case01QaMode.Demo)
             {
-                hud.Base.ViewMode.text = "";
+                // 正式 Demo 不顯示；只有 Phase 1 品質回歸 QA 會設定這行說明。
+                hud.Base.ViewMode.text = DemoBanner ?? "";
                 return;
             }
             switch (qaMode)

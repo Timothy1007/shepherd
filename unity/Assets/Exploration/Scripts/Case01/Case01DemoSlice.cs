@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Shepherd.Battle.UI.Arena;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -53,6 +53,108 @@ namespace Shepherd.Exploration.Case01
         public int Transitions { get; private set; }
         public Case01Floorplan Floorplan { get { return floorplan; } }
 
+        // ---------------- Demo Phase 1 品質回歸 QA ----------------
+
+        /// <summary>品質回歸 QA（選單 "phase1"）：F1 事務所、F2 街區看 17 號、F3 進 17 號、F4 下一個視點、F6 屋內 H0→H3。正式 Demo 不處理這些鍵。</summary>
+        public bool QaMode { get; set; }
+        public int QaHouseView { get; private set; } = -1;
+        public int QaStage { get; private set; }
+        private int qaOutsideView;
+
+        public struct QaView
+        {
+            public string Name;
+            public Case01Room Room;
+            public Vector3 Pos;
+            public float Yaw, Pitch;
+            /// <summary>0＝房屋階段（F6 切 H0～H3）；1＝第三扇門開啟（S40）；2＝失序體形成。</summary>
+            public int Kind;
+        }
+
+        public static readonly QaView[] HouseViews =
+        {
+            new QaView { Name = "玄關", Room = Case01Room.Entrance, Pos = new Vector3(7.1f, 0.05f, 0.9f), Yaw = 0f, Pitch = 4f },
+            new QaView { Name = "客廳", Room = Case01Room.Living, Pos = new Vector3(4.75f, 0.05f, 1.35f), Yaw = -78f, Pitch = 6f },
+            new QaView { Name = "餐廳", Room = Case01Room.Dining, Pos = new Vector3(4.9f, 0.05f, 6.4f), Yaw = -105f, Pitch = 12f },
+            new QaView { Name = "廚房", Room = Case01Room.Kitchen, Pos = new Vector3(5.9f, 0.05f, 5.6f), Yaw = 32f, Pitch = 10f },
+            new QaView { Name = "廚房側樓梯", Room = Case01Room.Kitchen, Pos = new Vector3(7.6f, 0.05f, 6.8f), Yaw = 135f, Pitch = 12f },
+            new QaView { Name = "二樓平台／儲藏室門", Room = Case01Room.Landing, Pos = new Vector3(7.6f, 3.05f, 3.6f), Yaw = -120f, Pitch = 6f },
+            new QaView { Name = "書房", Room = Case01Room.Study, Pos = new Vector3(6.3f, 3.05f, 6.0f), Yaw = 40f, Pitch = 10f },
+            new QaView { Name = "艾琳臥室", Room = Case01Room.Bedroom, Pos = new Vector3(4.3f, 3.05f, 5.9f), Yaw = -35f, Pitch = 12f },
+            new QaView { Name = "第三扇門（開啟、正面）", Room = Case01Room.Landing, Pos = new Vector3(6.95f, 3.05f, 1.9f), Yaw = 180f, Pitch = 4f, Kind = 1 },
+            new QaView { Name = "第三扇門（開啟、斜角）", Room = Case01Room.Landing, Pos = new Vector3(8.05f, 3.05f, 1.2f), Yaw = 215f, Pitch = 4f, Kind = 1 },
+            new QaView { Name = "異常夾層", Room = Case01Room.Mezzanine, Pos = new Vector3(40f, 0.05f, -4.5f), Yaw = 0f, Pitch = 4f, Kind = 1 },
+            new QaView { Name = "中庭：失序體形成", Room = Case01Room.Courtyard, Kind = 2 },
+        };
+
+        private static readonly string[] OfficeViews = { Case01DemoIds.SpawnOfficeStart, "office_desk", "office_board" };
+        private static readonly string[] StreetViews = { Case01DemoIds.SpawnStreetStart, "street_qa17", "street_door17", "street_listing" };
+
+        public string QaBanner()
+        {
+            string where = Area == Case01DemoArea.House
+                ? (QaHouseView >= 0 ? "屋內 " + (QaHouseView + 1) + "/" + HouseViews.Length + " " + HouseViews[QaHouseView].Name : "屋內（玄關）") + "｜H" + QaStage
+                : Area == Case01DemoArea.Office ? "事務所" : "街區";
+            return "Demo Phase 1 品質回歸 QA［" + where + "］：F1 事務所｜F2 街區看 17 號｜F3 進 17 號｜F4 下一個視點｜F6 屋內 H0→H3";
+        }
+
+        private bool HandleQaKeys(Case01Input input)
+        {
+            if (input.Jump == 1) GoTo(Case01DemoArea.Office, Case01DemoIds.SpawnOfficeStart);
+            else if (input.Jump == 2) GoTo(Case01DemoArea.Street, "street_qa17");
+            else if (input.Jump == 3)
+            {
+                QaHouseView = -1;
+                GoTo(Case01DemoArea.House, null);
+            }
+            else if (input.Jump == 4) QaNextView();
+            else if (input.Function == 6) QaNextStage();
+            else return false;
+            return true;
+        }
+
+        /// <summary>F4：屋內依序切換房間／異常門視點；屋外在事務所或街區的幾個固定視點之間切換。</summary>
+        public void QaNextView()
+        {
+            if (Area == Case01DemoArea.House && House != null)
+            {
+                QaHouseView = (QaHouseView + 1) % HouseViews.Length;
+                ApplyHouseView();
+                return;
+            }
+            if (areaLayout == null || Player == null) return;
+            var list = Area == Case01DemoArea.Office ? OfficeViews : StreetViews;
+            qaOutsideView = (qaOutsideView + 1) % list.Length;
+            Case01Pose pose;
+            if (areaLayout.Spawns.TryGetValue(list[qaOutsideView], out pose)) Player.Teleport(pose.Position, pose.Yaw, 4f);
+            UpdateTexts();
+        }
+
+        /// <summary>F6：屋內房屋階段 H0→H1→H2→H3（停在同一個視點）。</summary>
+        public void QaNextStage()
+        {
+            QaStage = (QaStage + 1) % 4;
+            if (Area == Case01DemoArea.House && House != null)
+            {
+                if (QaHouseView < 0) QaHouseView = 0;
+                if (HouseViews[QaHouseView].Kind != 0) QaHouseView = 0;
+                ApplyHouseView();
+            }
+            else UpdateTexts();
+        }
+
+        private void ApplyHouseView()
+        {
+            var v = HouseViews[QaHouseView];
+            if (v.Kind == 2) House.PreviewManifestation();
+            else
+            {
+                var f = v.Kind == 1 ? Case01Flow.ForCheckpoint(Case01Checkpoint.S40, Case01RunState.Correction) : Case01Flow.ForHouseStage(QaStage);
+                House.QaView(f, new Case01Pose(v.Pos, v.Yaw), v.Pitch);
+            }
+            House.DemoBanner = QaBanner();
+        }
+
         private void Awake()
         {
             var launch = PlayerPrefs.GetString(LaunchKey, "");
@@ -60,7 +162,13 @@ namespace Shepherd.Exploration.Case01
             {
                 PlayerPrefs.DeleteKey(LaunchKey);
                 var parts = launch.Split(';');
-                if (parts[0] == "street") startArea = Case01DemoArea.Street;
+                if (parts[0] == "phase1")
+                {
+                    // Demo Phase 1 品質回歸 QA：從街上看 17 號開始；F1～F4、F6 快速檢查。
+                    QaMode = true;
+                    startArea = Case01DemoArea.Street;
+                }
+                else if (parts[0] == "street") startArea = Case01DemoArea.Street;
                 else if (parts[0] == "house") startArea = Case01DemoArea.House;
                 else startArea = Case01DemoArea.Office;
                 if (parts.Length > 1 && parts[1] == "V05A") floorplan = Case01Floorplan.V05A;
@@ -106,7 +214,7 @@ namespace Shepherd.Exploration.Case01
             moon = moonGo.AddComponent<Light>();
             moon.type = LightType.Directional;
             moon.shadows = LightShadows.None;
-            Enter(startArea, null);
+            Enter(startArea, QaMode && startArea == Case01DemoArea.Street ? "street_qa17" : null);
         }
 
         // ---------------- 區域切換 ----------------
@@ -203,6 +311,7 @@ namespace Shepherd.Exploration.Case01
             qa.DemoExitRequested += OnHouseExit;
             go.SetActive(true);
             House = qa;
+            if (QaMode) qa.DemoBanner = QaBanner();
         }
 
         private void OnHouseExit()
@@ -216,7 +325,8 @@ namespace Shepherd.Exploration.Case01
         {
             if (!built) return;
             // 屋內時由 Case01HouseQA 自己讀輸入（同一個來源不讀兩次）。
-            bool houseOwnsInput = Area == Case01DemoArea.House && House != null && fadeT < 0f;
+            // （品質回歸 QA 例外：要讀 F 鍵；實體鍵盤的狀態可以重複讀。）
+            bool houseOwnsInput = Area == Case01DemoArea.House && House != null && fadeT < 0f && !QaMode;
             Tick(Time.deltaTime, houseOwnsInput || InputSource == null ? Case01Input.None : InputSource.Read());
         }
 
@@ -224,6 +334,7 @@ namespace Shepherd.Exploration.Case01
         public void Tick(float dt, Case01Input input)
         {
             clock += dt;
+            if (QaMode && fadeT < 0f && HandleQaKeys(input)) return;
             if (fadeT >= 0f)
             {
                 TickFade(dt);
@@ -410,7 +521,7 @@ namespace Shepherd.Exploration.Case01
             if (Area == Case01DemoArea.House) return;
             Hud.Base.Objective.text = "<b>〈第十七號門〉" + (Area == Case01DemoArea.Office ? "牧羊人調查事務所" : Case01DemoTexts.StreetName) + "</b>\n<color=#E6BD52>目標：</color>" + ObjectiveText();
             Hud.Base.Controls.text = "WASD 移動｜滑鼠 視角｜Shift 奔跑｜E 調查／互動｜J 日誌｜Tab 略過自語｜Esc 釋放滑鼠";
-            Hud.Base.ViewMode.text = "";
+            Hud.Base.ViewMode.text = QaMode ? QaBanner() : "";
             Hud.QaText.transform.parent.gameObject.SetActive(false);
         }
 
