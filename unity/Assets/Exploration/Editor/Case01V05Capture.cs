@@ -300,13 +300,15 @@ namespace Shepherd.Exploration.Editor
                 }
                 d.Tick(Step, new Case01Input { Jump = 3 });
                 for (int i = 0; i < 60 && d.Transitioning; i++) d.Tick(Step, Case01Input.None);
-                for (int v = 0; v < 10; v++)
+                for (int v = 0; v < Case01DemoSlice.HouseViews.Length; v++)
                 {
                     d.Tick(Step, new Case01Input { Jump = 4 });
                     var qa = d.House;
                     Case01HouseCapture.Advance(qa, 0.4f);
                     var name = "house" + v.ToString("00") + "_" + Case01DemoSlice.HouseViews[v].Room;
-                    foreach (var art in new[] { false, true })
+                    // 異常夾層與中庭不屬於換皮範圍：只拍一張（目前狀態）。
+                    var arts = v >= 10 ? new[] { true } : new[] { false, true };
+                    foreach (var art in arts)
                     {
                         if (qa.Layout.HouseArt != null) qa.Layout.HouseArt.SetActive(art);
                         if (qa.Layout.LivingArt != null) qa.Layout.LivingArt.SetActive(art);

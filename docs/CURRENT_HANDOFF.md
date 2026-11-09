@@ -1,4 +1,15 @@
-# 2026-11-09｜Demo Phase 1 場景品質統一／穿模與遮擋回歸（最新任務）
+# 2026-11-10｜Demo Phase 1（v0.7）場景品質統一與視覺錯誤修復：已實作（Claude；待真人驗收）
+依 `CASE01_DEMO_PHASE1_VISUAL_CONSISTENCY_AND_QA_TASK_V0_7.md`。缺陷清單與處理紀錄：`docs/story/case01_seventeenth_door/CASE01_DEMO_PHASE1_BUGLIST_V0_7.md`。**格局預設、Flow／Portal 路由、核校正規則、戰鬥數值、卡牌、戰鬥 UI、探索 HUD 都沒有改；失序門外觀維持 v0.5（最終流體特效另案）。**
+- **P0（commit 786299d、7938f43、7c0fece）**：拿掉街區十七號二樓的門形痕跡；所有失序門加「門後虛空」單面背板（第三扇門不再透出屋外街景）；夾層／中庭／失序體放渲染層 30、街景放 29，探索相機依所在房間裁切；方案 A 玄關→廚房的門封成實牆（動線＝玄關→客廳→餐廳→廚房／樓梯）；Demo 屋內只由 `Case01HouseQA` 讀輸入（導演不再同時讀）。完整 Demo 閉環有 EditMode 與 PlayMode 真場景測試。
+- **P1 住宅（d7c98c8）**：`tools/blender/case01_house/`（第二個 Blender 模組，沿用 v0.6 建模工具與繪畫感貼圖；29 FBX＋19 PNG）＋ `Case01ArtKit`（共用材質、換皮）＋ `Case01HouseArt`：方案 A 玄關、廚房、餐廳、書房、臥室、平台拉到客廳 v0.6 等級。只在 Demo（方案 A）、客廳美術 QA 與品質回歸 QA 套用。
+- **P1 事務所／街區（09fdba0）**：`Case01AreaArt`（兩種格局都套用）：事務所家具與牆地天花；街區石板人行道、柏油、磚、雙坡石板瓦屋頂、立面模組、維多利亞式鑄鐵路燈、前院欄杆；16／18 號前院的隱形牆補上看得到的矮牆；十七號只有一樓立面細節。方案 A 屋內窗外看到同一套外景。
+- **QA**：選單 `Shepherd/Case01/Demo Phase 1 品質回歸 QA`（從街上看 17 號開始）：F1 事務所、F2 街區看 17 號、F3 進 17 號、F4 下一個視點（屋內 12 個：玄關、客廳、餐廳、廚房、廚房側樓梯、平台／儲藏室門、書房、臥室、第三扇門正面／斜角、夾層、中庭形成；屋外：事務所 3 個、街區 4 個）、F6 屋內 H0→H3、F7 新／舊美術（跨區域保留）。截圖：`Case01V05Capture` 的 `phase1`（新舊對照）、`p0`（`-captureTag before/after`）、`living`。
+- **測試**：EditMode 339/339、PlayMode 12/12（新增 `Case01Phase1P0Tests`、`Case01DemoChainTests`、`Case01Phase1QaTests`、`Case01HouseArtTests`、`Case01AreaArtTests`、`Case01DemoPlayModeTests`）。**全部是 batchmode 腳本測試與截圖，沒有真人鍵鼠試玩。**
+- **未完成／待驗收**：Demo 正式預設格局仍是 Original（方案 A 的美術只在選方案 A 時出現；是否改預設待使用者決定）；事務所書櫃與會客沙發只換材質、外形仍是方塊；街區樹木仍是球體；夾層牆面紫紋與失序門最終特效未動；燈光沒有精修；7c0fece 的 commit 訊息中文亂碼（未改寫歷史，內容以本段為準）。
+
+---
+
+# 2026-11-09｜Demo Phase 1 場景品質統一／穿模與遮擋回歸（任務）
 使用者已玩過 v0.6 客廳；目前客廳已有初步品質但離最高參考圖仍有差距。**最新開發決策**：先讓其餘住宅房間、事務所及街區拉齊至「現有客廳 v0.6」的初步模型品質，並優先修明顯穿模、異常 Portal 由屋外可見／穿出二樓外牆、玄關↔廚房應封閉、場景切換/互動／碰撞問題；之後再做 Phase 2 戰鬥 UI、Phase 3 音樂/探索 HUD、Phase 4 全域高階美術。正式 Claude 開發任務：`docs/story/case01_seventeenth_door/CASE01_DEMO_PHASE1_VISUAL_CONSISTENCY_AND_QA_TASK_V0_7.md`。先查最新版是否已修，不重複建造已完成的事務所/街道/客廳。**本次僅新增任務文檔與更新交接，沒有改 Unity 程式、素材或跑測試；Claude Code 尚未由此直接啟動。** 要求獨立 QA、P0 優先、每小批驗證提交 main，保護使用者原本保留的本機未提交變更。
 
 ---

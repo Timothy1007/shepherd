@@ -178,6 +178,10 @@ namespace Shepherd.Exploration.Case01
                 }
             }
             foreach (var t in All(g, "NeighbourWall")) k.SwapTiled(t.GetComponent<Renderer>(), "P1_Brick", 1.6f);
+            // 門牌：夜裡原本幾乎看不清（深色黃銅）；改成擦亮、帶一點門燈反光的黃銅，數字才讀得到。
+            var plateMat = p.Own(ArenaArt.Mat(new Color(0.8f, 0.64f, 0.33f), 0.55f, new Color(0.26f, 0.2f, 0.09f), 0.5f));
+            foreach (var n in new[] { "Plate16", "Plate17", "Plate18" })
+                foreach (var t in All(g, n)) k.Swap(t.GetComponent<Renderer>(), plateMat);
             foreach (var name in new[] { "StreetSign", "PostalListing", "TaxiStop" })
             {
                 var grp = g.Find(name);
