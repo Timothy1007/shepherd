@@ -377,11 +377,8 @@ namespace Shepherd.Exploration.Case01
                 Case01OfficeBuilder.Box(h17, new Vector3(x, 1.5f, -0.03f), new Vector3(1.0f, 1.1f, 0.04f), warmWin, "Window17");
                 Case01OfficeBuilder.Box(h17, new Vector3(x, 0.9f, -0.1f), new Vector3(1.2f, 0.08f, 0.14f), trim, "Sill");
             }
-            // 二樓正面的「門形痕跡」（第三扇門的位置；很淡，留給細心的玩家）。
-            var scar = Case01OfficeBuilder.Own(p, new Color(0.35f, 0.32f, 0.33f), 0.2f, new Color(0.06f, 0.04f, 0.08f));
-            Case01OfficeBuilder.Box(h17, new Vector3(6.95f, 4.1f, -0.02f), new Vector3(0.03f, 2.2f, 0.01f), scar, "Scar");
-            Case01OfficeBuilder.Box(h17, new Vector3(6.95f + 1.1f, 4.1f, -0.02f), new Vector3(0.03f, 2.2f, 0.01f), scar, "Scar");
-            Case01OfficeBuilder.Box(h17, new Vector3(6.95f + 0.55f, 5.2f, -0.02f), new Vector3(1.13f, 0.03f, 0.01f), scar, "Scar");
+            // v0.7：拿掉二樓正面的「門形痕跡」——從街上看起來像室內異常門外洩（敘事上不該在屋外先透露）。
+            // 十七號在街上的異常只由「名冊沒有這一號」與門牌偶爾閃一下表現。
             // 門牌。
             Plate(L, g, new Vector3(7.85f, 1.7f, -0.11f), "17", Case01DemoIds.Plate17, "門牌「17」", brass);
             L.Plate17Label = L.Interactables[Case01DemoIds.Plate17].GetComponentInChildren<Text>();

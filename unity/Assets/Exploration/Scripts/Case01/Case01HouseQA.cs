@@ -417,6 +417,7 @@ namespace Shepherd.Exploration.Case01
             hud.Base.SetHint(null);
             hud.Fade.color = new Color(0f, 0f, 0f, 0f);
             currentRoom = layout.RoomAt(pose.Position);
+            exploreCam.cullingMask = Case01HouseBuilder.CullingMaskFor(currentRoom);
             RefreshWorld();
             UpdateDecor(true);
             inspectAnchor = pose.Position;
@@ -515,6 +516,7 @@ namespace Shepherd.Exploration.Case01
                 Case01EnemyShell.HideBareBody(fig);
                 figureOrbiters.Add(orbiters);
             }
+            Case01HouseBuilder.SetLayer(encounterGroup, Case01HouseBuilder.AnomalyLayer);
             // v0.5：可以開戰時，碎片（DebrisOnly）就已經散在中庭地上；第一次進入中庭才開始凝聚。戰敗重試直接是完成外觀。
             if (manifestation != null)
             {
@@ -671,6 +673,8 @@ namespace Shepherd.Exploration.Case01
             }
             Animate(dt);
             if (layout != null && layout.LivingArt != null && layout.LivingArt.Stage != HouseStage) layout.LivingArt.ApplyStage(HouseStage);
+            // v0.7：屋內不畫異常空間、異常空間不畫街景（避免窗外或敞頂中庭看到不該出現的世界）。
+            if (exploreCam != null) exploreCam.cullingMask = Case01HouseBuilder.CullingMaskFor(currentRoom);
             switch (Mode)
             {
                 case Case01Mode.Exploring: TickExploring(dt, input); break;
@@ -1330,6 +1334,7 @@ namespace Shepherd.Exploration.Case01
                 bool active = flow.PortalActive(p.Door);
                 if (p.Seal != null) p.Seal.SetActive(!active);
                 p.Membrane.SetActive(active);
+                if (p.Backdrop != null) p.Backdrop.SetActive(active);
             }
             L.StudyMarkLabel.text = flow.StairRouteRestored ? "△\n<size=20>歸位</size>" : "△";
             L.FrontDoorLabel.text = flow.CoreStabilized ? "離開十七號" : "QA 返回／重來";
@@ -1612,6 +1617,7 @@ namespace Shepherd.Exploration.Case01
                 heights.Add(CombatArenaView.EnemyHeightFor(i < scenario.Enemies.Count ? scenario.Enemies[i].Value : 40));
             }
             manifestation = new Case01Manifestation(content, palette, figs, heights);
+            Case01HouseBuilder.SetLayer(manifestation.Root, Case01HouseBuilder.AnomalyLayer);
             if (complete) manifestation.CompleteSilently();
             else manifestation.PhaseStarted += OnManifestationPhase;
         }
@@ -2061,7 +2067,7 @@ namespace Shepherd.Exploration.Case01
             if (Mode == Case01Mode.Ended) return "QA 結束。F1 可從玄關重玩。";
             bool b = floorplan == Case01Floorplan.V04;
             bool a5 = floorplan == Case01Floorplan.V05A;
-            string stairs = a5 ? "樓梯在廚房東南角，往南上樓" : b ? "樓梯在玄關東北角，往南上樓" : "樓梯在玄關東側";
+            string stairs = a5 ? "經餐廳進廚房，樓梯在廚房東南角，往南上樓" : b ? "樓梯在玄關東北角，往南上樓" : "樓梯在玄關東側";
             if (!s.Has(Case01Flags.TableTwo))
                 return a5 ? "先在一樓走走。客廳在玄關左手邊，餐廳在客廳裡面。" : b ? "先在一樓走走。餐廳在客廳東側（從玄關經廚房、客廳過去）。" : "先在一樓走走。餐廳在玄關北側。";
             if (!s.HasJournal("table_rewritten") && !s.Has(Case01Flags.EllieStudyKnown))

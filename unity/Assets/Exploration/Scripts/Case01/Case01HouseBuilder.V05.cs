@@ -89,7 +89,8 @@ namespace Shepherd.Exploration.Case01
             // 內牆：x=5.4（玄關→客廳 1.4 m 開口、餐廳→廚房門）、z=5.4（客廳↔餐廳 2.4 m 半開放）、z=4.4（玄關→廚房門）、x=8.65（玄關｜樓梯）。
             WallXWide(g, hx0, 0f, 10f, 0f, 2.8f, wallMat, new Vector2(V05A.LivingDoorZ, V05A.LivingDoorW), new Vector2(V05A.DiningKitchenDoorZ, DoorWidth));
             WallZWide(g, lz1, 0f, hx0, 0f, 2.8f, wallMat, new Vector2(V05A.DiningGapX, V05A.DiningGapW));
-            WallZWide(g, hz1, hx0, hx1, 0f, 2.8f, wallMat, new Vector2(V05A.KitchenDoorX, DoorWidth));
+            // v0.7：玄關不直通廚房（使用者確認封閉）；動線＝玄關→左轉客廳→餐廳→廚房／樓梯。
+            WallZ(g, hz1, hx0, hx1, 0f, 2.8f, wallMat);
             WallX(g, hx1, 0f, hz1, 0f, 2.8f, wallMat);
 
             // ---------------- 玄關（出入、換鞋、掛外套） ----------------
@@ -101,7 +102,7 @@ namespace Shepherd.Exploration.Case01
             KeyTray(g, cab.position + new Vector3(0f, 0.92f, 0f));
             UmbrellaStand(g, new Vector3(hx1 - 0.3f, 0f, 0.45f));
             ClosetDoor(g, new Vector3(hx1 - 0.085f, 0f, 1.45f), -90f, 0.8f, 1.95f, "UnderStairCupboard");
-            Painting(g, new Vector3(6.45f, 1.6f, hz1 - 0.085f), 0f, 1.1f, 0.75f, new Color(0.38f, 0.48f, 0.42f), new Color(0.62f, 0.56f, 0.4f), "HallLandscape");
+            Painting(g, new Vector3(7.05f, 1.6f, hz1 - 0.085f), 0f, 1.2f, 0.8f, new Color(0.38f, 0.48f, 0.42f), new Color(0.62f, 0.56f, 0.4f), "HallLandscape");
             RoomLight(L, Case01Room.Entrance, g, new Vector3(7.0f, 2.35f, 2.2f), new Color(1f, 0.78f, 0.52f), 1.0f, false, 2.8f);
             L.EchoSpots[Case01Echoes.Entrance] = new Case01EchoPlayer.Spot
             {

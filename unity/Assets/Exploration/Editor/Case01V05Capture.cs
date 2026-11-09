@@ -55,6 +55,7 @@ namespace Shepherd.Exploration.Editor
                     if (sets.Contains("rooms")) Rooms(rt, prefix);
                     if (sets.Contains("demo")) Demo(rt, prefix);
                     if (sets.Contains("living")) Living(rt, prefix);
+                    if (sets.Contains("p0")) P0(rt, prefix, Case01HouseCapture.Arg("-captureTag") ?? "now");
                 }
                 finally
                 {
@@ -210,6 +211,58 @@ namespace Shepherd.Exploration.Editor
                 }
             }, null, Case01QaMode.LivingArt);
         }
+
+        /// <summary>
+        /// Demo Phase 1 P0：異常空間／門的可見性證據。屋內望向窗外（夾層在東南、中庭在北）、二樓第三扇門開啟時、
+        /// 街區看 17 號立面、玄關看向廚房門。tag＝before／after。
+        /// </summary>
+        private static void P0(RenderTexture rt, string prefix, string tag)
+        {
+            string p = prefix + "p0_" + tag + "_";
+            WithQa(qa =>
+            {
+                System.Action<string, Vector3, float, float> take = (name, pos, yaw, pitch) =>
+                {
+                    if (qa.Echo != null) qa.Echo.Stop();
+                    qa.Hud.ClearMonologue();
+                    qa.Player.Teleport(pos, yaw, pitch);
+                    Case01HouseCapture.Advance(qa, 0.3f);
+                    qa.Hud.Visible = false;
+                    Case01HouseCapture.Shot(qa, rt, p + name + ".png");
+                    qa.Hud.Visible = true;
+                };
+                take("kitchen_east_window_to_mezz", new Vector3(8.6f, 0.05f, 7.9f), 100f, 2f);
+                take("kitchen_north_window_to_courtyard", new Vector3(7.4f, 0.05f, 8.6f), 30f, 6f);
+                take("bedroom_north_window", new Vector3(2.5f, 3.05f, 8.2f), 20f, 6f);
+                take("entrance_to_kitchen_door", new Vector3(7.1f, 0.05f, 1.2f), 10f, 2f);
+            }, Case01Checkpoint.S00, null, Case01Floorplan.V05A);
+            WithQa(qa =>
+            {
+                qa.Hud.ClearMonologue();
+                qa.Player.Teleport(new Vector3(Case01HouseBuilder.StudyDoorX, Case01HouseBuilder.FloorHeight + 0.05f, 1.9f), 180f, 4f);
+                Case01HouseCapture.Advance(qa, 0.5f);
+                qa.Hud.Visible = false;
+                Case01HouseCapture.Shot(qa, rt, p + "third_door_open_front.png");
+                qa.Player.Teleport(new Vector3(StudyDoorOffset(1.1f), Case01HouseBuilder.FloorHeight + 0.05f, 1.2f), 215f, 4f);
+                Case01HouseCapture.Advance(qa, 0.3f);
+                Case01HouseCapture.Shot(qa, rt, p + "third_door_open_oblique.png");
+            }, Case01Checkpoint.S40, null, Case01Floorplan.V05A);
+            var go = new GameObject("Case01P0Street");
+            try
+            {
+                var d = go.AddComponent<Case01DemoSlice>();
+                d.Build(false, Case01DemoArea.Street, Case01Floorplan.V05A);
+                d.Hud.Visible = false;
+                DemoShot(d, rt, p + "street_17_facade.png", new Case01Pose(new Vector3(5.5f, 0.05f, -9.5f), 10f), -10f);
+                DemoShot(d, rt, p + "street_17_door.png", new Case01Pose(new Vector3(7.1f, 0.05f, -3.4f), 0f), -12f);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+            }
+        }
+
+        private static float StudyDoorOffset(float dx) { return Case01HouseBuilder.StudyDoorX + dx; }
 
         /// <summary>Demo 切片：事務所、街區（巷口、十七號門前、名冊）。</summary>
         private static void Demo(RenderTexture rt, string prefix)

@@ -50,6 +50,8 @@ namespace Shepherd.Exploration.Case01
         /// <summary>v0.5：流動、斷裂的發光邊界（只是外觀）。</summary>
         public Case01PortalEdge Edge;
         public Renderer[] FrameRenderers;
+        /// <summary>v0.7：門後的虛空背板（與膜同步開關，只是外觀）。</summary>
+        public GameObject Backdrop;
 
         /// <summary>從 prev 移動到 cur 是否由來源側穿過門洞。</summary>
         public bool Crossed(Vector3 prev, Vector3 cur)
@@ -233,6 +235,11 @@ namespace Shepherd.Exploration.Case01
             // v0.4：H1～H3 的舊化痕跡（無碰撞體、不擋熱區）。
             L.Aging = Case01Aging.Build(L, ArenaArt.Group("Aging", root, Vector3.zero), P);
 
+            // v0.7：「不存在」的空間（夾層、異常中庭）與窗外街景各放在自己的渲染層；
+            // 探索相機在屋內不畫異常空間、在異常空間不畫街景（只是渲染，不影響碰撞與射線）。
+            SetLayer(root.Find("Mezzanine"), AnomalyLayer);
+            SetLayer(root.Find("Courtyard"), AnomalyLayer);
+            if (L.Exterior != null) SetLayer(L.Exterior.Root, OutdoorLayer);
             L.Arrivals[Case01Room.Entrance] = L.Spawn;
             if (!L.Arrivals.ContainsKey(Case01Room.Dining)) L.Arrivals[Case01Room.Dining] = new Case01Pose(new Vector3(6.5f, 0.05f, 5.8f), 0f);
             L.Arrivals[Case01Room.Study] = new Case01Pose(new Vector3(StudyDoorX, FloorHeight + 0.05f, 5.8f), 0f);
@@ -909,8 +916,45 @@ namespace Shepherd.Exploration.Case01
                 b.transform.localRotation = rot;
                 b.size = new Vector3(w + 0.8f, h + 0.4f, 0.3f);
             }
+            // v0.7：門後的「虛空」背板（單面、只從來源側看得到、沒有碰撞）。故障膜的邊緣與破洞後面是深黑，
+            // 不會透出門後真正的空間（第三扇門後的街景、書房門後的書房）。與膜同步開關。
+            var back = ArenaArt.Prim(PrimitiveType.Quad, g, plane + normal * 0.22f + Vector3.up * h * 0.5f, new Vector3(w + 0.3f, h + 0.3f, 1f), VoidMat(), null,
+                "PortalVoid_" + door, false, false);
+            back.localRotation = rot;
+            p.Backdrop = back.gameObject;
             L.Portals.Add(p);
             return p;
+        }
+
+        /// <summary>v0.7 渲染層（未命名的使用者層，不需要改專案設定）：29＝屋外街景、30＝異常空間（夾層、中庭、失序體）。</summary>
+        public const int OutdoorLayer = 29;
+        public const int AnomalyLayer = 30;
+
+        public static bool IsAnomalyRoom(Case01Room r)
+        {
+            return r == Case01Room.Mezzanine || r == Case01Room.Courtyard;
+        }
+
+        /// <summary>目前房間的探索相機遮罩：屋內不畫異常空間；異常空間不畫街景。</summary>
+        public static int CullingMaskFor(Case01Room r)
+        {
+            return IsAnomalyRoom(r) ? ~(1 << OutdoorLayer) : ~(1 << AnomalyLayer);
+        }
+
+        public static void SetLayer(Transform t, int layer)
+        {
+            if (t == null) return;
+            foreach (var c in t.GetComponentsInChildren<Transform>(true)) c.gameObject.layer = layer;
+        }
+
+        private static Material voidMat;
+
+        private static Material VoidMat()
+        {
+            if (voidMat != null && P.OwnsMaterial(voidMat)) return voidMat;
+            voidMat = P.Own(ArenaArt.Mat(new Color(0.012f, 0.01f, 0.016f), 0f));
+            voidMat.name = "Case01PortalVoid";
+            return voidMat;
         }
 
         private static void GlitchFrame(Case01Portal p, GameObject frame, Material m)

@@ -155,13 +155,18 @@ namespace Shepherd.Exploration.Tests
                     WalkTo(qa, 6.8f, 2.2f);
                     Assert.AreEqual(Case01Room.Entrance, qa.CurrentRoom);
                 },
-                // 玄關北牆右側的門 → 廚房 → 東南角起步，往南上樓到第三扇門旁的平台。
+                // v0.7：玄關不直通廚房。玄關 → 客廳 → 餐廳 → 廚房 → 東南角起步，往南上樓到第三扇門旁的平台。
                 EntranceToLanding = qa =>
                 {
-                    WalkTo(qa, 7.6f, 3.0f);
-                    WalkTo(qa, 7.85f, 4.0f);
-                    WalkTo(qa, 7.85f, 5.3f);
-                    Assert.AreEqual(Case01Room.Kitchen, qa.CurrentRoom, "玄關可以直接進廚房");
+                    WalkTo(qa, 6.2f, 1.4f);
+                    WalkTo(qa, 4.7f, 1.4f);
+                    WalkTo(qa, 4.7f, 4.7f);
+                    WalkTo(qa, 3.4f, 5.05f);
+                    WalkTo(qa, 3.4f, 6.4f);
+                    WalkTo(qa, 4.6f, 7.6f);
+                    WalkTo(qa, 6.2f, 7.6f);
+                    Assert.AreEqual(Case01Room.Kitchen, qa.CurrentRoom, "經餐廳進廚房");
+                    WalkTo(qa, 8.0f, 6.0f);
                     WalkTo(qa, 9.35f, 5.4f);
                     WalkTo(qa, 9.35f, 4.75f);
                     WalkTo(qa, 9.35f, 1.3f);
@@ -178,12 +183,17 @@ namespace Shepherd.Exploration.Tests
                     WalkTo(qa, 9.4f, 0.5f);
                     WalkTo(qa, 9.35f, 5.2f);
                     Assert.Less(qa.Player.transform.position.y, 0.3f, "往北下到廚房");
-                    WalkTo(qa, 7.85f, 5.3f);
-                    WalkTo(qa, 7.85f, 3.9f);
+                    WalkTo(qa, 8.0f, 6.0f);
+                    WalkTo(qa, 6.2f, 7.6f);
+                    WalkTo(qa, 4.6f, 7.6f);
+                    WalkTo(qa, 3.4f, 6.4f);
+                    WalkTo(qa, 3.4f, 5.05f);
+                    WalkTo(qa, 4.7f, 4.7f);
+                    WalkTo(qa, 4.7f, 1.4f);
+                    WalkTo(qa, 6.2f, 1.4f);
                     WalkTo(qa, 7.3f, 2.6f);
                     Assert.AreEqual(Case01Room.Entrance, qa.CurrentRoom);
-                },
-                ToPhoto = qa =>
+                },                ToPhoto = qa =>
                 {
                     WalkTo(qa, 6.2f, 1.4f);
                     WalkTo(qa, 4.7f, 1.4f);
@@ -364,7 +374,7 @@ namespace Shepherd.Exploration.Tests
             Assert.That(L.StairAngle, Is.InRange(36f, 42f), "比 v0.4 B（45°）緩");
             Assert.IsTrue(Physics.Linecast(new Vector3(8.2f, 1f, 1.5f), new Vector3(9.4f, 1f, 1.5f)), "玄關與樓梯之間是牆（沒有畸零縫）");
             Assert.IsFalse(Physics.CheckCapsule(new Vector3(9.35f, 0.45f, 5.2f), new Vector3(9.35f, 1.45f, 5.2f), 0.34f), "廚房側的起步空間淨空");
-            Assert.IsFalse(Physics.Linecast(new Vector3(7.85f, 1f, 4.0f), new Vector3(7.85f, 1f, 4.9f)), "玄關→廚房的門");
+            Assert.IsTrue(Physics.Linecast(new Vector3(7.85f, 1f, 4.0f), new Vector3(7.85f, 1f, 4.9f)), "v0.7：玄關不直通廚房（實牆）");
             Assert.IsFalse(Physics.Linecast(new Vector3(4.9f, 1f, 7.6f), new Vector3(5.9f, 1f, 7.6f)), "餐廳→廚房的門");
             Assert.IsFalse(Physics.Linecast(new Vector3(2.7f, 1f, 4.9f), new Vector3(2.7f, 1f, 5.9f)), "客廳↔餐廳寬開口");
             StringAssert.Contains("客廳", qa.ObjectiveText());
