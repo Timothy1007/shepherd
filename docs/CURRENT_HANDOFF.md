@@ -1,3 +1,8 @@
+# 2026-11-09｜Case01 客廳美術標準間 v0.6：完成規格與可行性評估（最新）
+使用者已選定一組風格化半寫實的英倫住宅概念圖方向與 ChatGPT 一樓概念板，但**生成圖片只是美術參考，不能當有真實座標的 Unity 施工圖**。新施工規格：`docs/story/case01_seventeenth_door/CASE01_LIVING_ROOM_ART_STANDARD_IMPLEMENTATION_V0_6.md`，已讀現行 main 住宅 `Case01HouseBuilder.cs`、`Case01HouseDecor.cs`、`Case01HouseQA.cs`、`Case01ArtSet.cs`。目前 v0.5 A/B 布局、透明窗與窗外場景、H0–H3、Hotspot 已存在；建議只做 v0.5 A **客廳獨立美術 QA**，優先沙發、茶几、書架／合照、窗、燈具；不改格局、不強制加壁爐、不換 URP/HDRP、不覆蓋街區/事務所新成果；先實測客廳空間與保留線索，再做 old/new + H0/H2/H3 對照。可用 Blender 建模，但 Blender MCP 非必要。**本次實際僅新增規格文件與更新交接，未修改 Unity、美術模型、場景或執行測試，也未直接指派 Claude Code。** 使用者確認後再由 Claude 實裝並提交。概念圖在聊天附件，未加入 repo，需另提供給 Claude 或以文件文字規格起步。
+
+---
+
 # 2026-11-09｜Case01 v0.5 真人試玩：住宅可信度＋失序體/Portal 修正＋事務所街區開工（本段最新）
 **本次僅提交文件，沒有修改 Unity C#、Scene、shader、模型或執行 Unity 測試；Claude 尚未由本次工具呼叫啟動。** 新任務：`docs/story/case01_seventeenth_door/CASE01_RESIDENTIAL_ART_DIRECTION_AND_DEMO_INTEGRATION_V0_5.md`，依使用者 v0.4 真人試玩回饋，**優先於舊 v0.4 格局與 Portal 視覺設計中衝突的要求**。
 重點：①一樓原 v0.4 B 反向樓梯位於玄關、與前門牆之間留畸零空間；玩家原意是樓梯靠餐廳／廚房一側。需獨立 QA 設計 A/B 格局，先有生活邏輯、再擺家具，客廳／餐廳／廚房／玄關可不同面積；不要直接覆蓋已可玩布局。②廚房取消孤立單椅圓桌、改有水槽爐具櫥櫃的備餐區；客廳具沙發/電視/書架，母女合照從餐桌正前方移至客廳生活位置；餐廳主角是二→一餐具；玄關有鞋櫃、掛衣與牆畫。③二樓書房書架必須真有層板和內嵌書本，不是方塊外貼；艾琳房間有生活個性；儲藏室仍鎖閉但移除「QA 未開放」的劇外文案。④窗戶由實心藍色板改透明、窗外有可見背景。⑤失序體形成前黑佔位模型先閃現、進戰鬥又變回舊黑模型，需修可見性時序與探索/戰鬥外觀一致，不改戰鬥規則。⑥失序門不只灰框+動態膜，須彩色 RGB 電視故障、流動/破損邊緣與安全降低閃爍，獨立 Portal QA。⑦**立即並行開始事務所＋16/17/18 號街區可玩場景**，最小 Demo 閉環 Office→Street→House→Street→Office，跨 Scene 保留委託/修核/FP-001。
