@@ -328,6 +328,9 @@ namespace Shepherd.Exploration.Case01
 
         public bool IsDemo { get { return qaMode == Case01QaMode.Demo; } }
 
+        /// <summary>Phase 1.6：每次建好房屋（含重建、檢查點跳轉）後、建立玩家之前呼叫；只有空間結構灰盒 QA 會設定。</summary>
+        public System.Action<Case01HouseLayout> LayoutPostBuild;
+
         private string demoBanner;
         /// <summary>Demo 模式左下第二行（正式 Demo 為空；Phase 1 品質回歸 QA 用來顯示快捷鍵）。</summary>
         public string DemoBanner
@@ -426,6 +429,8 @@ namespace Shepherd.Exploration.Case01
             palette = new Case01Palette();
             ResetMood();
             layout = Case01HouseBuilder.Build(content, palette, floorplan);
+            // Phase 1.6：空間結構灰盒 QA 在這裡套用 A／B／C 方案（其他 QA 與 Demo 沒有設定，不受影響）。
+            if (LayoutPostBuild != null) LayoutPostBuild(layout);
             // v0.6：客廳美術標準間（只在客廳美術 QA 建立；其他 QA 與 Demo 不受影響）。
             // v0.7：Demo（方案 A）也套用客廳 v0.6 與其他房間的 Phase 1 美術；其他 QA 維持原樣。
             if ((qaMode == Case01QaMode.LivingArt || qaMode == Case01QaMode.Demo) && floorplan == Case01Floorplan.V05A)
