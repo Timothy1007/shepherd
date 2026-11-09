@@ -39,6 +39,8 @@ namespace Shepherd.Exploration.Case01
         private bool savedFog;
 
         public ICase01InputSource InputSource { get; set; }
+        /// <summary>測試用：屋內戰鬥情境（null＝Combat Lab 標準兩敵情境；不改規則）。</summary>
+        public Shepherd.Battle.UI.CombatLabScenario TestScenario { get; set; }
         public Case01DemoArea Area { get; private set; }
         public Case01Hud Hud { get; private set; }
         public FirstPersonController Player { get; private set; }
@@ -197,7 +199,7 @@ namespace Shepherd.Exploration.Case01
             var qa = go.AddComponent<Case01HouseQA>();
             qa.InputSource = InputSource;
             qa.ConfigureDemo(Case01RunState.EnsureHouseFlow(), floorplan);
-            qa.Build(playMode);
+            qa.Build(playMode, TestScenario);
             qa.DemoExitRequested += OnHouseExit;
             go.SetActive(true);
             House = qa;
@@ -213,7 +215,9 @@ namespace Shepherd.Exploration.Case01
         private void Update()
         {
             if (!built) return;
-            Tick(Time.deltaTime, InputSource != null ? InputSource.Read() : Case01Input.None);
+            // 屋內時由 Case01HouseQA 自己讀輸入（同一個來源不讀兩次）。
+            bool houseOwnsInput = Area == Case01DemoArea.House && House != null && fadeT < 0f;
+            Tick(Time.deltaTime, houseOwnsInput || InputSource == null ? Case01Input.None : InputSource.Read());
         }
 
         /// <summary>推進一個影格（測試可直接呼叫）。屋內時把輸入轉交給 Case01HouseQA。</summary>
