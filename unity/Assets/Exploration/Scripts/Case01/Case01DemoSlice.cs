@@ -75,7 +75,7 @@ namespace Shepherd.Exploration.Case01
         {
             new QaView { Name = "玄關", Room = Case01Room.Entrance, Pos = new Vector3(7.1f, 0.05f, 0.9f), Yaw = 0f, Pitch = 4f },
             new QaView { Name = "客廳", Room = Case01Room.Living, Pos = new Vector3(4.75f, 0.05f, 1.35f), Yaw = -78f, Pitch = 6f },
-            new QaView { Name = "餐廳", Room = Case01Room.Dining, Pos = new Vector3(4.9f, 0.05f, 6.4f), Yaw = -105f, Pitch = 12f },
+            new QaView { Name = "餐廳", Room = Case01Room.Dining, Pos = new Vector3(1.0f, 0.05f, 6.0f), Yaw = 50f, Pitch = 14f },
             new QaView { Name = "廚房", Room = Case01Room.Kitchen, Pos = new Vector3(5.9f, 0.05f, 5.6f), Yaw = 32f, Pitch = 10f },
             new QaView { Name = "廚房側樓梯", Room = Case01Room.Kitchen, Pos = new Vector3(7.6f, 0.05f, 6.8f), Yaw = 135f, Pitch = 12f },
             new QaView { Name = "二樓平台／儲藏室門", Room = Case01Room.Landing, Pos = new Vector3(7.6f, 3.05f, 3.6f), Yaw = -120f, Pitch = 6f },

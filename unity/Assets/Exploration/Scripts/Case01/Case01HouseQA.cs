@@ -382,7 +382,7 @@ namespace Shepherd.Exploration.Case01
 
         public static Case01Pose CheckpointPose(Case01HouseLayout l, Case01Checkpoint cp)
         {
-            if (cp == Case01Checkpoint.S00 && l.LivingArt != null) return LivingEntrancePose;
+            if (cp == Case01Checkpoint.S00 && l.StartInLiving) return LivingEntrancePose;
             switch (cp)
             {
                 case Case01Checkpoint.S30: return new Case01Pose(new Vector3(7.6f, Case01HouseBuilder.FloorHeight + 0.05f, 2.4f), -12f);
@@ -417,10 +417,14 @@ namespace Shepherd.Exploration.Case01
             ResetMood();
             layout = Case01HouseBuilder.Build(content, palette, floorplan);
             // v0.6：客廳美術標準間（只在客廳美術 QA 建立；其他 QA 與 Demo 不受影響）。
-            if (qaMode == Case01QaMode.LivingArt)
+            // v0.7：Demo（方案 A）也套用客廳 v0.6 與其他房間的 Phase 1 美術；其他 QA 維持原樣。
+            if ((qaMode == Case01QaMode.LivingArt || qaMode == Case01QaMode.Demo) && floorplan == Case01Floorplan.V05A)
             {
+                layout.StartInLiving = qaMode == Case01QaMode.LivingArt;
                 var art = Case01LivingArt.Build(layout, palette);
                 if (art != null) art.SetActive(livingArtOn);
+                var house = Case01HouseArt.Build(layout, palette);
+                if (house != null) house.SetActive(livingArtOn);
             }
             BuildPortalHums();
             flow = f;
@@ -626,6 +630,7 @@ namespace Shepherd.Exploration.Case01
             {
                 livingArtOn = !livingArtOn;
                 if (layout.LivingArt != null) layout.LivingArt.SetActive(livingArtOn);
+                if (layout.HouseArt != null) layout.HouseArt.SetActive(livingArtOn);
                 Physics.SyncTransforms();
                 UpdateModeText();
                 hud.Base.ShowToast(livingArtOn ? "QA：客廳　新美術（v0.6 標準間）" : "QA：客廳　舊版（v0.5 程序方塊）");

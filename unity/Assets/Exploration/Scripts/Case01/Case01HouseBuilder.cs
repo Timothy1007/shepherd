@@ -141,6 +141,10 @@ namespace Shepherd.Exploration.Case01
         public readonly List<Transform> LivingWindows = new List<Transform>();
         /// <summary>v0.6 客廳美術標準間（只有客廳美術 QA 會建立）。</summary>
         public Case01LivingArt LivingArt;
+        /// <summary>v0.7：方案 A 其他房間的美術（客廳美術 QA 與 Demo 方案 A 才建立）。</summary>
+        public Case01HouseArt HouseArt;
+        /// <summary>v0.6：客廳美術 QA 從客廳入口開始（其他模式仍從玄關）。</summary>
+        public bool StartInLiving;
         /// <summary>v0.6：新美術版合照裡的第二個人（與 <see cref="PhotoSecondFigure"/> 同步換材質）。</summary>
         public Renderer PhotoSecondFigureAlt;
         public Material PhotoFigureMatAlt, PhotoFadedMatAlt;

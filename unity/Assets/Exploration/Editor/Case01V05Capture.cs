@@ -56,6 +56,7 @@ namespace Shepherd.Exploration.Editor
                     if (sets.Contains("demo")) Demo(rt, prefix);
                     if (sets.Contains("living")) Living(rt, prefix);
                     if (sets.Contains("p0")) P0(rt, prefix, Case01HouseCapture.Arg("-captureTag") ?? "now");
+                    if (sets.Contains("phase1")) Phase1(rt, prefix);
                 }
                 finally
                 {
@@ -255,6 +256,58 @@ namespace Shepherd.Exploration.Editor
                 d.Hud.Visible = false;
                 DemoShot(d, rt, p + "street_17_facade.png", new Case01Pose(new Vector3(5.5f, 0.05f, -9.5f), 10f), -10f);
                 DemoShot(d, rt, p + "street_17_door.png", new Case01Pose(new Vector3(7.1f, 0.05f, -3.4f), 0f), -12f);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+            }
+        }
+
+        /// <summary>
+        /// Demo Phase 1 品質回歸：用 Phase 1 QA 的屋內視點，每個房間拍「舊外觀／新外觀」同角度（不顯示 HUD）；
+        /// 另拍事務所與街區的固定視點。
+        /// </summary>
+        private static void Phase1(RenderTexture rt, string prefix)
+        {
+            var go = new GameObject("Case01Phase1Capture");
+            try
+            {
+                var d = go.AddComponent<Case01DemoSlice>();
+                d.QaMode = true;
+                d.Build(false, Case01DemoArea.Street, Case01Floorplan.V05A);
+                string p = prefix + "phase1_";
+                d.Hud.Visible = false;
+                foreach (var spawn in new[] { "street_qa17", "street_door17", Case01DemoIds.SpawnStreetStart })
+                {
+                    Case01Pose pose;
+                    if (d.AreaLayout.Spawns.TryGetValue(spawn, out pose)) DemoShot(d, rt, p + "street_" + spawn + ".png", pose, spawn == "street_qa17" ? -8f : 2f);
+                }
+                d.Tick(Step, new Case01Input { Jump = 1 });
+                for (int i = 0; i < 60 && d.Transitioning; i++) d.Tick(Step, Case01Input.None);
+                d.Hud.Visible = false;
+                foreach (var spawn in new[] { Case01DemoIds.SpawnOfficeStart, "office_desk", "office_board" })
+                {
+                    Case01Pose pose;
+                    if (d.AreaLayout.Spawns.TryGetValue(spawn, out pose)) DemoShot(d, rt, p + "office_" + spawn + ".png", pose, 6f);
+                }
+                d.Tick(Step, new Case01Input { Jump = 3 });
+                for (int i = 0; i < 60 && d.Transitioning; i++) d.Tick(Step, Case01Input.None);
+                for (int v = 0; v < 10; v++)
+                {
+                    d.Tick(Step, new Case01Input { Jump = 4 });
+                    var qa = d.House;
+                    Case01HouseCapture.Advance(qa, 0.4f);
+                    var name = "house" + v.ToString("00") + "_" + Case01DemoSlice.HouseViews[v].Room;
+                    foreach (var art in new[] { false, true })
+                    {
+                        if (qa.Layout.HouseArt != null) qa.Layout.HouseArt.SetActive(art);
+                        if (qa.Layout.LivingArt != null) qa.Layout.LivingArt.SetActive(art);
+                        Case01HouseCapture.Advance(qa, 0.1f);
+                        qa.Hud.Visible = false;
+                        Case01HouseCapture.Shot(qa, rt, p + name + (art ? "_new" : "_old") + ".png");
+                        qa.Hud.Visible = true;
+                    }
+                }
             }
             finally
             {

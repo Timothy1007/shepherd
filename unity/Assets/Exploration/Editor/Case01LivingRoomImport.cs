@@ -12,10 +12,11 @@ namespace Shepherd.Exploration.Editor
     public sealed class Case01LivingRoomImport : AssetPostprocessor
     {
         public const string Folder = "Case01Art/LivingRoom/";
+        public const string Phase1Folder = "Case01Art/Phase1/";
 
         private void OnPreprocessModel()
         {
-            if (!assetPath.Contains(Folder)) return;
+            if (!assetPath.Contains(Folder) && !assetPath.Contains(Phase1Folder)) return;
             var mi = (ModelImporter)assetImporter;
             mi.globalScale = 1f;
             mi.useFileScale = true;
@@ -35,7 +36,7 @@ namespace Shepherd.Exploration.Editor
 
         private void OnPreprocessTexture()
         {
-            if (!assetPath.Contains(Folder)) return;
+            if (!assetPath.Contains(Folder) && !assetPath.Contains(Phase1Folder)) return;
             var ti = (TextureImporter)assetImporter;
             ti.maxTextureSize = 1024;
             ti.mipmapEnabled = true;
