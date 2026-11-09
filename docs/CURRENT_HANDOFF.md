@@ -1,3 +1,9 @@
+# 2026-11-10｜Phase 1.5 真人視角與沉浸式空間 QA（最新待執行）
+使用者已親自遊玩 Phase 1 v0.7，反饋：住宅各非客廳空間仍空曠，10×10m 房屋一次可看太多、缺探索感；街區與事務所仍顯簡陋、街區無生活痕跡；多數房間過亮且明暗均勻，H0 生活假象應逐漸揭露 H2/H3 荒廢冷清且 H3 不回暖；第三扇門斜角仍偶見街燈；**街道路牌文字超出板面**；**滑鼠轉頭碰到螢幕邊緣就轉不動**（優先排查 Cursor Lock、focus、輸入來源而非只調敏感度）。
+正式 Claude Code 任務：`docs/story/case01_seventeenth_door/CASE01_PHASE1_5_IMMERSIVE_EXPLORATION_QA_V0_8.md`。先修滑鼠/路牌/門透視的 P0；再做獨立、可自由走動的 55°/60°/65°/70° FOV、視線遮蔽／房間生活密度、H0/H2/H3 光線引導、街區/事務所小範圍可信度 A/B QA；**不立即擴建正式房屋、不改 Demo Original 預設、不改遊戲規則/UI**。先從真人視角/空間感驗證後再決定屋內尺度與完整美術方向。**本次僅上傳規格文檔及更新交接，未修改 Unity 程式或執行 Unity 測試，未由此啟動 Claude。**
+
+---
+
 # 2026-11-10｜Demo Phase 1（v0.7）場景品質統一與視覺錯誤修復：已實作（Claude；待真人驗收）
 依 `CASE01_DEMO_PHASE1_VISUAL_CONSISTENCY_AND_QA_TASK_V0_7.md`。缺陷清單與處理紀錄：`docs/story/case01_seventeenth_door/CASE01_DEMO_PHASE1_BUGLIST_V0_7.md`。**格局預設、Flow／Portal 路由、核校正規則、戰鬥數值、卡牌、戰鬥 UI、探索 HUD 都沒有改；失序門外觀維持 v0.5（最終流體特效另案）。**
 - **P0（commit 786299d、7938f43、7c0fece）**：拿掉街區十七號二樓的門形痕跡；所有失序門加「門後虛空」單面背板（第三扇門不再透出屋外街景）；夾層／中庭／失序體放渲染層 30、街景放 29，探索相機依所在房間裁切；方案 A 玄關→廚房的門封成實牆（動線＝玄關→客廳→餐廳→廚房／樓梯）；Demo 屋內只由 `Case01HouseQA` 讀輸入（導演不再同時讀）。完整 Demo 閉環有 EditMode 與 PlayMode 真場景測試。
