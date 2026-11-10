@@ -17,7 +17,7 @@ namespace Shepherd.Exploration.Case01
     {
         public static bool IsR(Case01Floorplan p)
         {
-            return p == Case01Floorplan.R1 || p == Case01Floorplan.R2;
+            return p == Case01Floorplan.R1 || p == Case01Floorplan.R2 || p == Case01Floorplan.R3;
         }
 
         /// <summary>Phase 1.7 格局尺寸（公尺；x＝東、z＝北、前門在 z0）。</summary>
@@ -60,12 +60,13 @@ namespace Shepherd.Exploration.Case01
 
         private static Case01HouseLayout BuildR(Transform parent, Case01Palette palette, Case01Floorplan floorplan, Case01HouseLayout L)
         {
-            bool r2 = floorplan == Case01Floorplan.R2;
+            // R3（Phase 1.9）沿用 R2 的節奏，但沒有前廊第二道門。
+            bool r2 = floorplan == Case01Floorplan.R2 || floorplan == Case01Floorplan.R3;
             thirdDoorX = R17.ThirdDoorX;
             L.Floorplan = floorplan;
             var root = ArenaArt.Group("Case01House", parent, Vector3.zero);
             L.Root = root;
-            L.Spawn = new Case01Pose(r2 ? R17.SpawnR2 : R17.Spawn, 0f);
+            L.Spawn = new Case01Pose(floorplan == Case01Floorplan.R2 ? R17.SpawnR2 : R17.Spawn, 0f);
             L.Palette = palette ?? new Case01Palette();
             P = L.Palette;
             Materials();
@@ -128,6 +129,9 @@ namespace Shepherd.Exploration.Case01
             };
             return L;
         }
+
+        /// <summary>R3 洗滌間隔牆（x）與拱口中心（z）。</summary>
+        public const float R3SculleryX = 7.0f, R3SculleryArchZ = 13.4f;
 
         /// <summary>Phase 1.8 空間異變（H2）：餐廳東側隔出一條窄廊，走廊上「通往餐廳的門」改通往廚房；餐廳只剩從客廳進出。</summary>
         public const float AnomalyCorridorX = 5.1f, AnomalyCorridorZ0 = 8.5f;
@@ -208,8 +212,11 @@ namespace Shepherd.Exploration.Case01
             if (r2)
             {
                 // R2 前廊（收）：前門與內門之間 1.4 m，內門 1.0 m 正對走廊盡頭的掛畫。
-                WallZWide(g, R17.R2VestibuleZ, hx, R17.Width, 0f, 2.8f, wallMat, new Vector2(R17.FrontDoorX, 1.0f));
-                Lining(g, true, R17.R2VestibuleZ, R17.FrontDoorX, 1.0f, 0.2f, 1f, 0f, "VestibuleDoor");
+                if (plan != Case01Floorplan.R3)
+                {
+                    WallZWide(g, R17.R2VestibuleZ, hx, R17.Width, 0f, 2.8f, wallMat, new Vector2(R17.FrontDoorX, 1.0f));
+                    Lining(g, true, R17.R2VestibuleZ, R17.FrontDoorX, 1.0f, 0.2f, 1f, 0f, "VestibuleDoor");
+                }
                 // 門框深度：客廳門（客廳側）、客廳↔餐廳（餐廳側）、餐廳→廚房（廚房側）、走廊→餐廳（餐廳側）。
                 Lining(g, false, hx, livingDoorZ, 1.0f, 0.3f, -1f, 0f, "LivingDoor");
                 Lining(g, true, lz, livingDiningX, 1.1f, 0.3f, 1f, 0f, "LivingDiningDoor");
@@ -280,7 +287,14 @@ namespace Shepherd.Exploration.Case01
             Stove(g, new Vector3(1.0f, 0f, back), 180f);
             Sink(g, new Vector3(2.4f, 0f, back), 180f);
             UpperCabinet(g, new Vector3(3.5f, 1.85f, R17.Depth - 0.17f), 180f, 0.9f);
-            KitchenRun(g, new Vector3(5.2f, 0f, back), new Vector3(7.3f, 0f, back), 180f);
+            bool r3 = plan == Case01Floorplan.R3;
+            KitchenRun(g, new Vector3(5.2f, 0f, back), new Vector3(r3 ? 6.8f : 7.3f, 0f, back), 180f);
+            if (r3)
+            {
+                // R3：後段 10 m 寬的廚房分成「廚房（工作、備餐、早餐桌）」與「洗滌間（茶角、碗盤、後門、高櫃）」，中間一個 1.2 m 拱口。
+                WallXWide(g, R3SculleryX, ez, R17.Depth, 0f, 2.8f, wallMat, new Vector2(R3SculleryArchZ, 1.2f));
+                L.LampLights.Add(ArenaArt.PointLight(g, new Vector3(8.5f, 2.3f, 15.2f), new Color(0.9f, 0.92f, 1f), 3.5f, 0.6f, false));
+            }
             Spices(g, new Vector3(1.6f, 0.9f, R17.Depth - 0.22f));
             if (r2)
             {
@@ -292,7 +306,7 @@ namespace Shepherd.Exploration.Case01
             KitchenRun(g, new Vector3(R17.Width - 0.3f, 0f, 13.4f), new Vector3(R17.Width - 0.3f, 0f, 15.1f), -90f);
             TeaCorner(L, g, new Vector3(R17.Width - 0.38f, 0.9f, 14.0f));
             DishRack(g, new Vector3(R17.Width - 0.38f, 0.9f, 14.8f));
-            KitchenTable(g, new Vector3(r2 ? 6.4f : 5.6f, 0f, 14.6f));
+            KitchenTable(g, new Vector3(r3 ? 4.0f : r2 ? 6.4f : 5.6f, 0f, 14.6f));
             BackDoor(L, g, new Vector3(8.3f, 0f, R17.Depth - 0.02f));
             RoomLight(L, Case01Room.Kitchen, g, new Vector3(5.0f, 2.35f, 15.0f), new Color(1f, 0.86f, 0.66f), 0.95f, false, 2.8f);
         }

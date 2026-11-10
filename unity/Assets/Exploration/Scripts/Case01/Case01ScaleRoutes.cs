@@ -41,7 +41,7 @@ namespace Shepherd.Exploration.Case01
                     new Leg("書房 → 臥室", 5.3f, 10.0f, 5.8f, 11.15f, 7.6f, 11.15f, 7.6f, 6.9f, 7.6f, 4.8f, 7.6f, 3.3f, 5.6f, 3.3f, 4.6f, 2.4f),
                     new Leg("臥室 → 第三扇門前", 5.6f, 3.3f, 7.0f, 3.3f, 8.0f, 1.6f, 8.6f, 0.9f),
                 };
-            if (p == Case01Floorplan.R2)
+            if (p == Case01Floorplan.R2 || p == Case01Floorplan.R3)
                 return new[]
                 {
                     new Leg("前廊 → 內玄關 → 客廳（壁爐前）", 7.1f, 2.2f, 6.9f, 3.6f, 5.6f, 3.6f, 5.0f, 1.2f, 1.6f, 1.2f),

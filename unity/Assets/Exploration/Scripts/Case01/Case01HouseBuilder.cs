@@ -81,6 +81,8 @@ namespace Shepherd.Exploration.Case01
         R1,
         /// <summary>Phase 1.7 R2：R1 外框＋空間節奏（前廊、錯位門洞、門框深度、走廊收束、二樓分段走廊）。只在 Phase 1.7 QA 使用。</summary>
         R2,
+        /// <summary>Phase 1.9 R3：R2 去掉前廊第二道門（前門直接進玄關），後段廚房分成廚房與洗滌間。只在 Phase 1.9 QA 使用。</summary>
+        R3,
     }
 
     /// <summary>建好的室內 QA 空間中，流程需要操作的物件與資料。</summary>

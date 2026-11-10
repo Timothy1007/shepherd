@@ -52,7 +52,7 @@ namespace Shepherd.Exploration.Case01
         public bool Closed { get { return State == Case01DoorState.Closed || State == Case01DoorState.Locked; } }
 
         /// <summary>建立門扇。hingeSide：門軸在沿牆方向的負（-1）或正（+1）端。</summary>
-        public static Case01SwingDoor Build(Transform parent, string id, string name, Vector3 center, Vector3 normal, float width, int hingeSide, Material leafMat, Material knobMat, float inset = 0.04f)
+        public static Case01SwingDoor Build(Transform parent, string id, string name, Vector3 center, Vector3 normal, float width, int hingeSide, Material leafMat, Material knobMat, float inset = 0.04f, float leafH = 2.15f)
         {
             var d = new Case01SwingDoor { Id = id, Name = name, Center = center, Normal = normal.normalized, Width = width };
             d.Along = Vector3.Cross(Vector3.up, d.Normal).normalized;
@@ -64,7 +64,8 @@ namespace Shepherd.Exploration.Case01
             // 門板本地座標：x＝沿牆（從門軸往門洞中心＝-hingeSide）。
             float dir = -hingeSide;
             d.dirSign = dir;
-            var leaf = ArenaArt.Prim(PrimitiveType.Cube, hinge, new Vector3(dir * leafW * 0.5f, 1.075f, 0f), new Vector3(leafW, 2.15f, 0.045f), leafMat, null, "DoorLeaf", true, true);
+            // Phase 1.9：門板高度與寬度依門洞（貼合，縫約 2 cm），不再一律縮小。
+            var leaf = ArenaArt.Prim(PrimitiveType.Cube, hinge, new Vector3(dir * leafW * 0.5f, leafH * 0.5f + 0.01f, 0f), new Vector3(leafW, leafH, 0.045f), leafMat, null, "DoorLeaf", true, true);
             d.Leaf = leaf.GetComponent<BoxCollider>();
             foreach (var s in new[] { -1f, 1f })
             {
@@ -188,7 +189,7 @@ namespace Shepherd.Exploration.Case01
             var local = Leaf.transform.localPosition;
             var center = Hinge.position + rot * local;
             var half = Vector3.Scale(Leaf.transform.localScale, Vector3.one * 0.5f) - new Vector3(0.06f, 0.06f, 0f);
-            half.z = 0.03f;
+            half.z = 0.015f;
             bool was = Leaf.enabled;
             Leaf.enabled = false;
             var hits = Physics.OverlapBox(center, half, rot, ~((1 << Case01HouseBuilder.OutdoorLayer) | (1 << Case01HouseBuilder.AnomalyLayer)), QueryTriggerInteraction.Ignore);
