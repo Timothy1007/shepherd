@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using Shepherd.Battle.UI.Arena;
 using UnityEngine;
 
@@ -26,12 +26,13 @@ namespace Shepherd.Exploration.Case01
 
         private Transform g1, g2, life;
         private Case01Palette palette;
+        private bool r3;
         private const float Ceil1 = 2.795f, Ceil2 = 5.995f;
 
         public static Case01ImmersiveArt Build(Case01HouseLayout L, Case01Palette p)
         {
-            if (L == null || L.Floorplan != Case01Floorplan.R2 || !Case01ArtKit.Available) return null;
-            var a = new Case01ImmersiveArt { Kit = new Case01ArtKit(p), palette = p };
+            if (L == null || (L.Floorplan != Case01Floorplan.R2 && L.Floorplan != Case01Floorplan.R3) || !Case01ArtKit.Available) return null;
+            var a = new Case01ImmersiveArt { Kit = new Case01ArtKit(p), palette = p, r3 = L.Floorplan == Case01Floorplan.R3 };
             a.g1 = L.Root.Find("GroundFloor");
             a.g2 = L.Root.Find("SecondFloor");
             a.life = L.Root.Find("LifeDetails");
@@ -318,7 +319,7 @@ namespace Shepherd.Exploration.Case01
             }
             Skin("WallCabinet", N(g1, "UpperCabinet"), "WallCabinet", Vector3.zero, 0f);
             Skin("Fridge", N(g1, "Fridge"), "FridgeArt", Vector3.zero, 0f, null, "FridgeNote", "Magnet");
-            Add("Kettle", "Kettle", new Vector3(6.6f, 0.905f, Case01HouseBuilder.R17.Depth - 0.28f), 30f);
+            Add("Kettle", "Kettle", new Vector3(r3 ? 6.3f : 6.6f, 0.905f, Case01HouseBuilder.R17.Depth - 0.28f), 30f);
             var kt = N(g1, "KitchenTable");
             if (kt != null)
                 foreach (Transform c in kt)

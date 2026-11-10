@@ -19,7 +19,14 @@ namespace Shepherd.Exploration.Case01
             public bool AudioOn = true;
             public bool ReducedMotion;
             public bool LowFx;
+            /// <summary>Phase 1.9：R3 動線（無內門）、貼合門板（縫 2 cm、高 2.18 m）、夾層／中庭／圖文重構。</summary>
+            public bool Phase19;
         }
+
+        public Case01Phase19Art P19 { get; private set; }
+        public bool R3 { get { return Layout != null && Layout.Floorplan == Case01Floorplan.R3; } }
+        public float DoorInset { get { return Opt.Phase19 ? 0.02f : 0.1f; } }
+        public float DoorLeafH { get { return Opt.Phase19 ? 2.18f : 2.15f; } }
 
         public Options Opt { get; private set; }
         public Case01HouseLayout Layout { get; private set; }
@@ -41,15 +48,16 @@ namespace Shepherd.Exploration.Case01
 
         public static Case01ImmersionWorld Build(Case01HouseLayout L, Case01Palette p, Options opt)
         {
-            if (L == null || L.Floorplan != Case01Floorplan.R2) return null;
+            if (L == null || (L.Floorplan != Case01Floorplan.R2 && L.Floorplan != Case01Floorplan.R3)) return null;
             var w = new Case01ImmersionWorld { Layout = L, Opt = opt ?? new Options(), palette = p };
-            w.Root = ArenaArt.Group("ImmersionR2", L.Root, Vector3.zero);
+            w.Root = ArenaArt.Group(L.Floorplan == Case01Floorplan.R3 ? "ImmersionR3" : "ImmersionR2", L.Root, Vector3.zero);
             w.Art = Case01ImmersiveArt.Build(L, p);
             w.BuildDoors();
             if (w.Opt.NewLighting) w.BuildLights();
             w.BuildAudio();
             w.BuildFx();
             w.BuildAnomaly();
+            if (w.Opt.Phase19 && w.Art != null) w.P19 = Case01Phase19Art.Build(L, p, w.Art.Kit);
             Physics.SyncTransforms();
             return w;
         }
@@ -69,19 +77,28 @@ namespace Shepherd.Exploration.Case01
             var knob = Art != null ? Art.Kit.Get("LR_Brass") : palette.Get("brass");
             System.Func<string, string, Vector3, Vector3, float, int, float, Case01SwingDoor> make = (id, name, c, n, w, hinge, inset) =>
             {
-                var d = Case01SwingDoor.Build(Root, id, name, c, n, w, hinge, leaf, knob, inset);
-                // 門板換成既有的四片嵌板門模型（碰撞仍是門板方塊）。
+                // Phase 1.9：門板貼合門洞（兩側縫 2 cm、高 2.18 m，門洞 2.2 m）——舊的 0.1 m 內縮會留下明顯空隙、模型與碰撞對不上。
+                if (Opt.Phase19) inset = DoorInset;
+                float leafH = DoorLeafH;
+                var d = Case01SwingDoor.Build(Root, id, name, c, n, w, hinge, leaf, knob, inset, leafH);
+                // 門板換成既有的四片嵌板門模型（碰撞仍是門板方塊，模型縮放到與碰撞同尺寸）。
                 if (Art != null)
                 {
                     float leafW = w - 2f * inset;
-                    Art.Kit.Skin(d.Leaf.transform, "PanelDoor", new Vector3(0f, -0.5f, 0f), 0f, new Vector3(leafW / 0.82f, 2.15f / 1.98f, 1f));
+                    Art.Kit.Skin(d.Leaf.transform, "PanelDoor", new Vector3(0f, -0.5f, 0f), 0f, new Vector3(leafW / 0.82f, leafH / 1.98f, 1f));
                 }
+                // 貼合的門板比較寬：開到 88° 就停（量測：書房門 92° 會碰到平台欄杆端柱），不靠撞到東西才停。
+                if (Opt.Phase19) d.OpenAngle = 88f;
                 Doors.Add(d);
                 return d;
             };
-            var vest = make("door_vestibule", "Vestibule", new Vector3(Case01HouseBuilder.R17.FrontDoorX, 0f, Case01HouseBuilder.R17.R2VestibuleZ), Vector3.forward, 1.0f, -1, 0.1f);
-            vest.KeyA = "vest";
-            vest.KeyB = "hall";
+            // R3：前門進來直接是玄關，不再有第二道內門。
+            if (!R3)
+            {
+                var vest = make("door_vestibule", "Vestibule", new Vector3(Case01HouseBuilder.R17.FrontDoorX, 0f, Case01HouseBuilder.R17.R2VestibuleZ), Vector3.forward, 1.0f, -1, 0.1f);
+                vest.KeyA = "vest";
+                vest.KeyB = "hall";
+            }
             var living = make("door_living", "Living", new Vector3(Case01HouseBuilder.R17.HallX, 0f, Case01HouseBuilder.R17.R2LivingDoorZ), Vector3.left, 1.0f, -1, 0.1f);
             living.KeyA = "hall";
             living.KeyB = "living";
@@ -333,7 +350,7 @@ namespace Shepherd.Exploration.Case01
             if (TopologyH2 && InCorridor(pos)) return "corridor";
             switch (Layout.RoomAt(pos))
             {
-                case Case01Room.Entrance: return pos.z < Case01HouseBuilder.R17.R2VestibuleZ ? "vest" : "hall";
+                case Case01Room.Entrance: return !R3 && pos.z < Case01HouseBuilder.R17.R2VestibuleZ ? "vest" : "hall";
                 case Case01Room.Living: return "living";
                 case Case01Room.Dining: return "dining";
                 case Case01Room.Kitchen: return "kitchen";
@@ -644,6 +661,7 @@ namespace Shepherd.Exploration.Case01
             var player = qa.Player;
             foreach (var d in Doors) d.Tick(dt, player);
             UpdateTopology(qa);
+            if (P19 != null) P19.Tick(qa);
             if (water != null && waterStream != null) waterStream.gameObject.SetActive(TapOn);
             int stage = qa.HouseStage;
             // 聲音：依房間、門的開關、H 階段。
