@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Text;
 using Shepherd.Battle.UI;
 using Shepherd.Battle.UI.Arena;
@@ -98,6 +98,7 @@ namespace Shepherd.Exploration.Case01
                     if (Input.GetKeyDown(KeyCode.F11)) key = 11;
                     else if (Input.GetKeyDown(KeyCode.F12)) key = 12;
                     else if (Input.GetKeyDown(KeyCode.G)) key = 13;
+                    else if (Input.GetKeyDown(KeyCode.L)) key = 14;
                 }
                 if (key > 0 && key != 8) owner.Press(key);
                 return r;
@@ -106,7 +107,7 @@ namespace Shepherd.Exploration.Case01
 
         // ---------------- 按鍵 ----------------
 
-        /// <summary>1～12＝F1～F12，13＝G（錨點痕跡）。</summary>
+        /// <summary>1～12＝F1～F12，13＝G（錨點痕跡），14＝L（低效果：新加的燈不投影）。</summary>
         public void Press(int key)
         {
             switch (key)
@@ -163,6 +164,11 @@ namespace Shepherd.Exploration.Case01
                 case 12:
                     Options.ReducedMotion = !Options.ReducedMotion;
                     Toast(Options.ReducedMotion ? "QA：減少鏡頭微動（關閉步態與手勢）" : "QA：鏡頭步態與手勢　開");
+                    break;
+                case 14:
+                    Options.LowFx = !Options.LowFx;
+                    RebuildHere(House.Flow);
+                    Toast(Options.LowFx ? "QA：低效果（新加的燈不投影）" : "QA：一般效果");
                     break;
                 case 13:
                     if (World != null)
@@ -346,7 +352,7 @@ namespace Shepherd.Exploration.Case01
                 sb.Append('\n');
             }
             sb.Append(Case01Cursor.Looking(House.CursorCaptured) ? "滑鼠鎖定" : "<color=#E6A050>滑鼠已釋放：點擊畫面恢復視角</color>").Append("｜這一趟 ").Append(RunClock.ToString("0")).Append(" 秒\n");
-            sb.Append("<color=#9AA4B0>E 開關門／調查｜F1 回前門｜F2 原版↔沉浸版｜F3 H0～H3｜F4 聲音｜F5 FOV｜F6 步速｜F7 眼高｜F8 降低閃爍｜F9 光影新／舊｜F10 門全開／正常｜F11 異變新／原版｜F12 鏡頭微動｜G 錨點痕跡（原型）｜Esc 釋放滑鼠</color>");
+            sb.Append("<color=#9AA4B0>E 開關門／調查｜F1 回前門｜F2 原版↔沉浸版｜F3 H0～H3｜F4 聲音｜F5 FOV｜F6 步速｜F7 眼高｜F8 降低閃爍｜F9 光影新／舊｜F10 門全開／正常｜F11 異變新／原版｜F12 鏡頭微動｜G 錨點痕跡（原型）｜L 低效果｜Esc 釋放滑鼠</color>");
             panelText.text = sb.ToString();
         }
 

@@ -257,6 +257,10 @@ namespace Shepherd.Exploration.Tests
             Assert.IsNotNull(s.World.StudyGlow, "書房門縫的光");
             var plain = NewQa(false);
             Assert.Less(s.House.Layout.RoomLightIntensity[Case01Room.Living], plain.House.Layout.RoomLightIntensity[Case01Room.Living] * 0.5f, "客廳吊燈調暗，主光改成壁爐與檯燈");
+            Assert.IsTrue(s.World.AddedLights.Any(l => l.shadows != LightShadows.None), "一般效果：壁爐與餐桌光有陰影");
+            s.Press(14);
+            Assert.IsTrue(s.World.AddedLights.All(l => l.shadows == LightShadows.None), "L：低效果，新加的燈不投影");
+            s.Press(14);
             s.Press(9);
             Assert.IsFalse(s.Options.NewLighting);
             Assert.AreEqual(0, s.World.AddedLights.Count, "F9：舊光影");
