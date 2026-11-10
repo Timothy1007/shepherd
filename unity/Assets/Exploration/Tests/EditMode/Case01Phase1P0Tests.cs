@@ -64,7 +64,7 @@ namespace Shepherd.Exploration.Tests
                 Assert.IsNull(p.Backdrop.GetComponent<Collider>(), p.Door + "：沒有碰撞（不擋穿門）");
                 Assert.Greater(Vector3.Dot(p.Backdrop.transform.forward, p.Normal), 0.99f, p.Door + "：只從來源側看得到");
                 float behind = Vector3.Dot(p.Backdrop.transform.position - p.PlanePoint, p.Normal);
-                Assert.That(behind, Is.InRange(0.1f, 0.4f), p.Door + "：貼在門後，不伸出去");
+                Assert.That(behind, Is.InRange(0.05f, 0.4f), p.Door + "：貼在門後（Phase 1.5：牆的另一面），不伸出去");
             }
             var third = qa.Layout.Portal(Case01Door.ThirdDoor);
             Assert.IsTrue(third.Membrane.activeSelf, "S40：第三扇門開著");

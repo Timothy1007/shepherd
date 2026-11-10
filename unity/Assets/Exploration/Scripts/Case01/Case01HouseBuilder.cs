@@ -922,13 +922,18 @@ namespace Shepherd.Exploration.Case01
             }
             // v0.7：門後的「虛空」背板（單面、只從來源側看得到、沒有碰撞）。故障膜的邊緣與破洞後面是深黑，
             // 不會透出門後真正的空間（第三扇門後的街景、書房門後的書房）。與膜同步開關。
-            var back = ArenaArt.Prim(PrimitiveType.Quad, g, plane + normal * 0.22f + Vector3.up * h * 0.5f, new Vector3(w + 0.3f, h + 0.3f, 1f), VoidMat(), null,
+            // Phase 1.5 P0：原本背板在門後 0.22 m、只比門寬 0.15 m，斜角（約 46° 以上）或貼近時視線會從背板旁邊漏出去看到街燈。
+            // 改貼在牆的另一面（牆厚一半＋8 mm），左右各多 0.3 m、上下各多 0.2 m：任何穿過門洞的視線都會打在背板上。
+            var back = ArenaArt.Prim(PrimitiveType.Quad, g, plane + normal * PortalVoidOffset + Vector3.up * h * 0.5f, new Vector3(w + 2f * PortalVoidMargin, h + 0.4f, 1f), VoidMat(), null,
                 "PortalVoid_" + door, false, false);
             back.localRotation = rot;
             p.Backdrop = back.gameObject;
             L.Portals.Add(p);
             return p;
         }
+
+        /// <summary>門後虛空背板離門洞平面的距離（牆的另一面外 8 mm）與左右各多出的寬度。</summary>
+        public const float PortalVoidOffset = WallThickness * 0.5f + 0.008f, PortalVoidMargin = 0.3f;
 
         /// <summary>v0.7 渲染層（未命名的使用者層，不需要改專案設定）：29＝屋外街景、30＝異常空間（夾層、中庭、失序體）。</summary>
         public const int OutdoorLayer = 29;

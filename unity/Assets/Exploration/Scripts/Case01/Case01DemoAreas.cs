@@ -80,6 +80,9 @@ namespace Shepherd.Exploration.Case01
         public readonly Dictionary<string, Case01Interactable> Interactables = new Dictionary<string, Case01Interactable>();
         public readonly List<Light> Lights = new List<Light>();
         public Text Plate17Label;
+        /// <summary>Phase 1.5：路牌（前後兩面）、郵遞名冊、計程車牌的文字（板面文字回歸測試用）。</summary>
+        public readonly List<Text> SignLabels = new List<Text>();
+        public Text ListingLabel, TaxiLabel;
         public Case01Exterior.Result Exterior;
         /// <summary>v0.7 Phase 1 美術（Blender 模型換皮；資源不存在時為 null）。</summary>
         public Case01AreaArt Art;
@@ -396,19 +399,25 @@ namespace Shepherd.Exploration.Case01
             // 路牌、郵遞名冊（貼在路燈桿旁的小告示板）、計程車招呼站。
             var sign = ArenaArt.Group("StreetSign", g, new Vector3(-1.2f, 0f, -2.3f));
             Case01OfficeBuilder.Box(sign, new Vector3(0f, 1.1f, 0f), new Vector3(0.08f, 2.2f, 0.08f), metal, "Post");
-            Case01OfficeBuilder.Box(sign, new Vector3(0f, 2.15f, 0f), new Vector3(1.5f, 0.32f, 0.04f), signMat, "Plate");
-            Case01Hud.WorldLabel(sign, new Vector3(0f, 2.15f, -0.03f), 0f, Case01DemoTexts.StreetName + "　<size=16>" + Case01DemoTexts.StreetNameEn + "</size>", 22, new Color(0.1f, 0.1f, 0.12f), 300f);
+            // Phase 1.5 P0：路牌字原本 3 m 寬的畫布塞一行中英文，實際超出 1.5 m 牌面。改成兩行、依文字實際尺寸縮到牌面內，背面也有一份（不會從背後看到反字）。
+            Case01OfficeBuilder.Box(sign, new Vector3(0f, 2.15f, 0f), new Vector3(1.5f, SignPlateH, 0.04f), signMat, "Plate");
+            string signText = Case01DemoTexts.StreetName + "\n<size=15>" + Case01DemoTexts.StreetNameEn + "</size>";
+            foreach (var side in new[] { -1f, 1f })
+                L.SignLabels.Add(Case01Hud.WorldLabel(sign, new Vector3(0f, 2.15f, side * 0.03f), side < 0f ? 0f : 180f, signText, 22, new Color(0.1f, 0.1f, 0.12f), 300f));
+            foreach (var lab in L.SignLabels) Case01Hud.FitLabel(lab, 1.5f - 2f * SignMargin, SignPlateH - 2f * SignMargin);
             Case01OfficeBuilder.Hot(L, g, Case01DemoIds.StreetSign, "路牌", new Vector3(-1.2f, 1.8f, -2.3f), new Vector3(1.6f, 1.0f, 0.4f));
             var listing = ArenaArt.Group("PostalListing", g, new Vector3(-3.4f, 0f, -2.25f));
             Case01OfficeBuilder.Box(listing, new Vector3(0f, 0.75f, 0f), new Vector3(0.08f, 1.5f, 0.08f), metal, "Post");
             Case01OfficeBuilder.Box(listing, new Vector3(0f, 1.45f, -0.05f), new Vector3(0.6f, 0.75f, 0.03f), Case01OfficeBuilder.Own(p, new Color(0.15f, 0.25f, 0.2f), 0.4f), "Board");
             Case01OfficeBuilder.Box(listing, new Vector3(0f, 1.45f, -0.07f), new Vector3(0.48f, 0.62f, 0.004f), paper, "List");
-            Case01Hud.WorldLabel(listing, new Vector3(0f, 1.5f, -0.08f), 0f, "郵遞名冊\n<size=14>15 · 16 · 18 · 19</size>", 16, new Color(0.15f, 0.15f, 0.15f), 120f);
+            L.ListingLabel = Case01Hud.WorldLabel(listing, new Vector3(0f, 1.5f, -0.08f), 0f, "郵遞名冊\n<size=14>15 · 16 · 18 · 19</size>", 16, new Color(0.15f, 0.15f, 0.15f), 120f);
+            Case01Hud.FitLabel(L.ListingLabel, 0.48f - 2f * SignMargin, 0.5f);
             Case01OfficeBuilder.Hot(L, g, Case01DemoIds.StreetListing, "郵遞名冊", new Vector3(-3.4f, 1.45f, -2.4f), new Vector3(0.8f, 0.9f, 0.4f));
             var taxi = ArenaArt.Group("TaxiStop", g, new Vector3(-10.8f, 0f, -3.65f));
             Case01OfficeBuilder.Box(taxi, new Vector3(0f, 1.2f, 0f), new Vector3(0.08f, 2.4f, 0.08f), metal, "Post");
             Case01OfficeBuilder.Box(taxi, new Vector3(0f, 2.3f, 0f), new Vector3(0.7f, 0.4f, 0.04f), Case01OfficeBuilder.Own(p, new Color(0.95f, 0.8f, 0.2f), 0.3f, new Color(0.35f, 0.28f, 0.05f)), "Sign");
-            Case01Hud.WorldLabel(taxi, new Vector3(0f, 2.3f, -0.03f), 0f, "TAXI\n<size=14>回事務所</size>", 20, new Color(0.1f, 0.1f, 0.1f), 140f);
+            L.TaxiLabel = Case01Hud.WorldLabel(taxi, new Vector3(0f, 2.3f, -0.03f), 0f, "TAXI\n<size=14>回事務所</size>", 20, new Color(0.1f, 0.1f, 0.1f), 140f);
+            Case01Hud.FitLabel(L.TaxiLabel, 0.7f - 2f * SignMargin, 0.4f - 2f * SignMargin);
             Case01OfficeBuilder.Hot(L, g, Case01DemoIds.StreetBack, "計程車招呼站（回事務所）", new Vector3(-10.8f, 1.6f, -3.65f), new Vector3(0.9f, 1.6f, 0.9f));
 
             // 可走的地面與邊界（外景本身沒有碰撞體）。
@@ -440,11 +449,15 @@ namespace Shepherd.Exploration.Case01
             return L;
         }
 
+        /// <summary>Phase 1.5：牌面高度與文字到邊緣的留白（公尺）。</summary>
+        public const float SignPlateH = 0.44f, SignMargin = 0.04f, PlateMargin = 0.02f;
+
         private static void Plate(Case01DemoAreaLayout L, Transform g, Vector3 pos, string number, string id, string prompt, Material brass)
         {
             var it = Case01OfficeBuilder.Hot(L, g, id, prompt, pos + new Vector3(0f, 0f, -0.1f), new Vector3(0.45f, 0.4f, 0.3f));
             Case01OfficeBuilder.Box(g, pos, new Vector3(0.24f, 0.17f, 0.02f), brass, "Plate" + number);
-            Case01Hud.WorldLabel(it.transform, new Vector3(0f, 0f, 0.085f), 0f, number, 34, new Color(0.08f, 0.07f, 0.05f), 80f);
+            var label = Case01Hud.WorldLabel(it.transform, new Vector3(0f, 0f, 0.085f), 0f, number, 34, new Color(0.08f, 0.07f, 0.05f), 80f);
+            Case01Hud.FitLabel(label, 0.24f - 2f * PlateMargin, 0.17f - 2f * PlateMargin);
         }
     }
 }

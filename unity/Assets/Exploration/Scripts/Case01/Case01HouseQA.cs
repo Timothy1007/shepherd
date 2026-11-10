@@ -603,6 +603,8 @@ namespace Shepherd.Exploration.Case01
         {
             if (!built) return;
             Tick(Time.deltaTime, InputSource != null ? InputSource.Read() : Case01Input.None);
+            // Phase 1.5 P0：每個影格把實際游標鎖定對齊想要的狀態（避免游標自由時滑鼠碰到螢幕邊緣就轉不動）。
+            if (playMode) Case01Cursor.Maintain(cursorCaptured);
         }
 
         public void Tick(float dt, ExploreInput input) { Tick(dt, Case01Input.From(input)); }
@@ -766,7 +768,7 @@ namespace Shepherd.Exploration.Case01
                 if (b.Interact || b.ReleaseCursor) hud.HidePanel();
                 hud.Base.SetHint(null);
                 // 選項開啟時只能轉視角，不移動。
-                player.Step(dt, new ExploreInput { Look = b.Look }, cursorCaptured);
+                player.Step(dt, new ExploreInput { Look = b.Look }, Case01Cursor.Looking(cursorCaptured));
                 SnapCameraToPlayer();
                 return;
             }
@@ -785,7 +787,7 @@ namespace Shepherd.Exploration.Case01
             }
 
             var prev = player.transform.position;
-            player.Step(dt, b, cursorCaptured);
+            player.Step(dt, b, Case01Cursor.Looking(cursorCaptured));
             SnapCameraToPlayer();
             var cur = player.transform.position;
 
@@ -869,7 +871,7 @@ namespace Shepherd.Exploration.Case01
             else if (check == EncounterCheck.Near)
                 hint = "<color=#C79BFF>中庭裡有 " + encounterGroup.childCount + " 個失序體</color>　靠近即會進入戰鬥";
             hud.Base.SetHint(hint);
-            hud.Base.CursorHintVisible = !cursorCaptured;
+            hud.Base.CursorHintVisible = !Case01Cursor.Looking(cursorCaptured);
         }
 
         private void UpdateRoom()
@@ -1708,7 +1710,7 @@ namespace Shepherd.Exploration.Case01
         private void TickManifesting(float dt, Case01Input input)
         {
             var b = input.Base;
-            player.Step(dt, new ExploreInput { Look = b.Look }, cursorCaptured);
+            player.Step(dt, new ExploreInput { Look = b.Look }, Case01Cursor.Looking(cursorCaptured));
             SnapCameraToPlayer();
             if (b.Interact) manifestation.Skip();
             else manifestation.Tick(dt);

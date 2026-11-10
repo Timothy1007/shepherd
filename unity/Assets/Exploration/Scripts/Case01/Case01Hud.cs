@@ -478,5 +478,21 @@ namespace Shepherd.Exploration.Case01
             t.fontStyle = FontStyle.Bold;
             return t;
         }
+
+        /// <summary>
+        /// Phase 1.5 P0：讓世界標籤的「實際文字範圍」落在牌面裡（maxW × maxH 公尺，標籤父物件縮放為 1）。
+        /// 依 Text 的偏好尺寸設定畫布大小，再把縮放調到裝得下（不會比原本 0.01 更大）。回傳實際的世界尺寸。
+        /// </summary>
+        public static Vector2 FitLabel(Text t, float maxW, float maxH)
+        {
+            var rt = (RectTransform)t.canvas.transform;
+            t.horizontalOverflow = HorizontalWrapMode.Overflow;
+            t.verticalOverflow = VerticalWrapMode.Overflow;
+            float pw = Mathf.Max(1f, t.preferredWidth) + 4f, ph = Mathf.Max(1f, t.preferredHeight) + 2f;
+            rt.sizeDelta = new Vector2(pw, ph);
+            float s = Mathf.Min(0.01f, Mathf.Min(maxW / pw, maxH / ph));
+            rt.localScale = Vector3.one * s;
+            return new Vector2(pw * s, ph * s);
+        }
     }
 }

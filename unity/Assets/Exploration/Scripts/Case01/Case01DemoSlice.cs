@@ -350,6 +350,8 @@ namespace Shepherd.Exploration.Case01
             // （品質回歸 QA 例外：要讀 F 鍵；實體鍵盤的狀態可以重複讀。）
             bool houseOwnsInput = Area == Case01DemoArea.House && House != null && fadeT < 0f && !QaMode;
             Tick(Time.deltaTime, houseOwnsInput || InputSource == null ? Case01Input.None : InputSource.Read());
+            // Phase 1.5 P0：屋內由 Case01HouseQA 管游標；其他區域每個影格對齊（離開屋子時屋內 OnDestroy 晚一影格放開游標，這裡會重新鎖回）。
+            if (playMode && !(Area == Case01DemoArea.House && House != null)) Case01Cursor.Maintain(cursorCaptured);
         }
 
         /// <summary>推進一個影格（測試可直接呼叫）。屋內時把輸入轉交給 Case01HouseQA。</summary>
@@ -386,7 +388,7 @@ namespace Shepherd.Exploration.Case01
                 Hud.JournalVisible = !Hud.JournalVisible;
                 if (Hud.JournalVisible) Hud.RefreshJournal(JournalEntries());
             }
-            Player.Step(dt, b, cursorCaptured);
+            Player.Step(dt, b, Case01Cursor.Looking(cursorCaptured));
             SnapCamera();
             CurrentTarget = FindTarget();
             if (Hud.PanelVisible && b.Interact && (CurrentTarget == null || CurrentTarget.Id == panelSource))
