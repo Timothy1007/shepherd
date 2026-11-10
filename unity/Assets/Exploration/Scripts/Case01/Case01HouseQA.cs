@@ -331,6 +331,9 @@ namespace Shepherd.Exploration.Case01
         /// <summary>Phase 1.6：每次建好房屋（含重建、檢查點跳轉）後、建立玩家之前呼叫；只有空間結構灰盒 QA 會設定。</summary>
         public System.Action<Case01HouseLayout> LayoutPostBuild;
 
+        /// <summary>Phase 1.8：按 E 時先交給 QA 沉浸層（門、輕互動）；回傳 true＝已處理，不再交給劇情流程。只有 Phase 1.8 QA 會設定。</summary>
+        public System.Func<Case01Interactable, bool> CustomInteract;
+
         private string demoBanner;
         /// <summary>Demo 模式左下第二行（正式 Demo 為空；Phase 1 品質回歸 QA 用來顯示快捷鍵）。</summary>
         public string DemoBanner
@@ -873,6 +876,10 @@ namespace Shepherd.Exploration.Case01
                     var d = layout.Decor;
                     d.SetTeaTin(!d.TeaTinOpen);
                     hud.ShowNote(d.TeaTinOpen ? Case01Texts.TeaTinOpen : Case01Texts.TeaTinClose);
+                }
+                else if (CurrentTarget != null && CustomInteract != null && CustomInteract(CurrentTarget))
+                {
+                    // Phase 1.8：QA 沉浸層處理（門、輕互動）。
                 }
                 else if (CurrentTarget != null && layout.QaObservations.ContainsKey(CurrentTarget.Id))
                 {

@@ -129,6 +129,29 @@ namespace Shepherd.Exploration.Case01
             return L;
         }
 
+        /// <summary>Phase 1.8 空間異變（H2）：餐廳東側隔出一條窄廊，走廊上「通往餐廳的門」改通往廚房；餐廳只剩從客廳進出。</summary>
+        public const float AnomalyCorridorX = 5.1f, AnomalyCorridorZ0 = 8.5f;
+
+        /// <summary>建立 H2 窄廊的牆（真的牆，不是傳送）；由 Phase 1.8 QA 在玩家看不到時開關。</summary>
+        public static Transform BuildR2AnomalyCorridor(Case01HouseLayout L)
+        {
+            P = L.Palette;
+            Materials();
+            MaterialsV05();
+            trimWalls = true;
+            var g = ArenaArt.Group("AnomalyCorridorH2", L.Root.Find("GroundFloor"), Vector3.zero);
+            try
+            {
+                WallX(g, AnomalyCorridorX, AnomalyCorridorZ0, R17.ExtensionZ, 0f, 2.8f, wallMat);
+                WallZ(g, AnomalyCorridorZ0, AnomalyCorridorX, R17.HallX, 0f, 2.8f, wallMat);
+            }
+            finally
+            {
+                trimWalls = false;
+            }
+            return g;
+        }
+
         private static void RoomsR(Case01HouseLayout L)
         {
             const float lo = -1f, mid = 2.75f, hi = 6.5f;
