@@ -18,6 +18,11 @@ namespace Shepherd.Exploration.Case01
         public static readonly float[] EyeHeights = { 1.58f, 1.65f };
         public static readonly Vector2[] Speeds = { new Vector2(2.2f, 3.8f), new Vector2(2.6f, 4.4f), new Vector2(1.8f, 3.2f), new Vector2(FirstPersonController.WalkSpeed, FirstPersonController.RunSpeed) };
 
+        /// <summary>Phase 1.9 整體關卡與異域美術重構 QA（R3＋貼合門＋夾層／中庭／圖文重構；F2 對照 Phase 1.8 R2）。場景裡序列化，Awake 前就決定。</summary>
+        [SerializeField] private bool phase19;
+        public bool Phase19 { get { return phase19; } }
+        public int TourIndex { get; private set; } = -1;
+
         public Case01HouseQA House { get; private set; }
         public Case01ImmersionWorld World { get; private set; }
         public readonly Case01ImmersionWorld.Options Options = new Case01ImmersionWorld.Options();
@@ -45,12 +50,14 @@ namespace Shepherd.Exploration.Case01
             if (Application.isPlaying) Setup(true);
         }
 
-        public void Setup(bool play, CombatLabScenario scenario = null, int? seed = null, bool immersive = true, Case01QaMode mode = Case01QaMode.CoreV03)
+        public void Setup(bool play, CombatLabScenario scenario = null, int? seed = null, bool immersive = true, Case01QaMode mode = Case01QaMode.CoreV03, bool? p19 = null)
         {
             if (built) return;
             built = true;
             playMode = play;
             Immersive = immersive;
+            if (p19.HasValue) phase19 = p19.Value;
+            Options.Phase19 = phase19 && Immersive;
             transform.position = Vector3.zero;
             transform.rotation = Quaternion.identity;
             var go = new GameObject("Case01HouseQA");
@@ -61,10 +68,11 @@ namespace Shepherd.Exploration.Case01
             House.LayoutPostBuild = l =>
             {
                 if (World != null) World.Dispose();
-                World = Immersive ? Case01ImmersionWorld.Build(l, l.Palette, Options) : null;
+                // Phase 1.9 模式：Immersive＝1.9（R3），關掉＝1.8 沉浸版 R2（對照用，同樣有真門與光影）。
+                World = Immersive || phase19 ? Case01ImmersionWorld.Build(l, l.Palette, Options) : null;
             };
             House.CustomInteract = it => World != null && World.Interact(it, House);
-            House.Build(play, scenario, seed, Case01Checkpoint.S00, mode, Case01Floorplan.R2);
+            House.Build(play, scenario, seed, Case01Checkpoint.S00, mode, CurrentPlan);
             go.SetActive(true);
             BuildUi();
             AfterRebuild();
@@ -99,6 +107,10 @@ namespace Shepherd.Exploration.Case01
                     else if (Input.GetKeyDown(KeyCode.F12)) key = 12;
                     else if (Input.GetKeyDown(KeyCode.G)) key = 13;
                     else if (Input.GetKeyDown(KeyCode.L)) key = 14;
+                    else if (owner.phase19 && Input.GetKeyDown(KeyCode.M)) key = 15;
+                    else if (owner.phase19 && Input.GetKeyDown(KeyCode.K)) key = 16;
+                    else if (owner.phase19 && Input.GetKeyDown(KeyCode.T)) key = 17;
+                    else if (owner.phase19 && Input.GetKeyDown(KeyCode.Y)) key = 18;
                 }
                 if (key > 0 && key != 8) owner.Press(key);
                 return r;
@@ -119,8 +131,49 @@ namespace Shepherd.Exploration.Case01
                     break;
                 case 2:
                     Immersive = !Immersive;
+                    if (phase19)
+                    {
+                        Options.Phase19 = Immersive;
+                        var pl = House.Player;
+                        var here = pl.transform.position;
+                        float yaw = pl.Yaw, pitch = pl.Pitch;
+                        House.RebuildWithPlan(CurrentPlan, House.Flow, new Case01Pose(here, yaw));
+                        House.Player.Teleport(here, yaw, pitch);
+                        AfterRebuild();
+                        if (!Free(here)) Nudge(here);
+                        Toast(Immersive ? "QA：Phase 1.9（R3 動線、貼合門板、夾層／中庭／圖文重構）" : "QA：Phase 1.8 R2 沉浸版（對照，同位置同視角）");
+                        break;
+                    }
                     RebuildHere(House.Flow);
                     Toast(Immersive ? "QA：沉浸版（真門、光影、聲音、生活痕跡、空間異變）" : "QA：原 R2 測試屋（Phase 1.7，同位置同視角）");
+                    break;
+                case 15:
+                    // 夾層：核校正前（S40），站在入口往核看；F3 不影響（夾層是獨立空間）。
+                    House.QaView(Case01Flow.ForCheckpoint(Case01Checkpoint.S40, House.Correction), House.Layout.Arrivals[Case01Room.Mezzanine], 0f);
+                    AfterRebuild();
+                    Toast("QA：夾層「被折疊的住宅記憶」（S40，核校正前）——Y 切換核校正後");
+                    break;
+                case 18:
+                    if (House.CurrentRoom == Case01Room.Mezzanine)
+                    {
+                        bool stable = !House.Flow.CoreStabilized;
+                        // 核校正後＝房屋 H3 的流程（夾層故障停止、門轉正）；校正前＝S50 戰後。
+                        var f = stable ? Case01Flow.ForHouseStage(3) : Case01Flow.ForCheckpoint(Case01Checkpoint.S50, House.Correction);
+                        var pl = House.Player;
+                        House.QaView(f, new Case01Pose(pl.transform.position, pl.Yaw), pl.Pitch);
+                        AfterRebuild();
+                        Toast(stable ? "QA：夾層　核校正後（門在牆面內轉正、黃銅線發光）" : "QA：夾層　核校正前（S50 戰後）");
+                    }
+                    else Toast("QA：Y 只在夾層裡有效（先按 M）");
+                    break;
+                case 16:
+                    // 中庭：戰後（S50）可以自由走，不會開戰。
+                    House.QaView(Case01Flow.ForCheckpoint(Case01Checkpoint.S50, House.Correction), House.Layout.Arrivals[Case01Room.Courtyard], 0f);
+                    AfterRebuild();
+                    Toast("QA：異域中庭「被拆解又重組的都市內庭」（S50 戰後，可自由走動、不開戰）");
+                    break;
+                case 17:
+                    Tour(+1);
                     break;
                 case 3:
                     Stage = (Stage + 1) % 4;
@@ -180,6 +233,66 @@ namespace Shepherd.Exploration.Case01
             }
             ApplyPlayer();
             RefreshUi();
+        }
+
+        public Case01Floorplan CurrentPlan { get { return phase19 && Immersive ? Case01Floorplan.R3 : Case01Floorplan.R2; } }
+
+        /// <summary>圖文巡覽（T）：依序站到每一件正式圖文前 0.9 m（平放的站在桌邊往下看），顯示名稱、載體與字高。</summary>
+        public void Tour(int step)
+        {
+            var art = World != null ? World.P19 : null;
+            if (art == null || art.Graphics.Count == 0)
+            {
+                Toast("QA：圖文巡覽只在 Phase 1.9 版（F2）");
+                return;
+            }
+            TourIndex = ((TourIndex + step) % art.Graphics.Count + art.Graphics.Count) % art.Graphics.Count;
+            var g = art.Graphics[TourIndex];
+            var look = g.T.position;
+            float eyeH = EyeHeight;
+            Physics.SyncTransforms();
+            // 候選站位：掛牆的往正面退（0.9 m 起）；平放的四個方向都試（0.55 m 起），取第一個身體放得下、同一個房間、看得到圖文的位置。
+            var dirs = new List<Vector3>();
+            var n = -g.T.forward;
+            if (g.Flat)
+            {
+                foreach (var v in new[] { -g.T.up, g.T.right, -g.T.right, g.T.up })
+                {
+                    var h = new Vector3(v.x, 0f, v.z);
+                    if (h.sqrMagnitude > 1e-4f) dirs.Add(h.normalized);
+                }
+            }
+            else dirs.Add(new Vector3(n.x, 0f, n.z).normalized);
+            var room = House.Layout.RoomAt(look);
+            Vector3 feet = look + dirs[0] * (g.Flat ? 0.55f : 0.9f);
+            bool found = false;
+            for (float dist = g.Flat ? 0.55f : 0.9f; dist <= 2.2f && !found; dist += 0.15f)
+            {
+                foreach (var dir in dirs)
+                {
+                    var e = look + dir * dist;
+                    var f = new Vector3(e.x, look.y, e.z);
+                    RaycastHit hit;
+                    // 往下找地板（從圖文高度上方 0.3 m 往下）。
+                    if (!Physics.Raycast(new Vector3(f.x, look.y + 0.3f, f.z), Vector3.down, out hit, 4f, Case01SpatialMap.SightMask, QueryTriggerInteraction.Ignore)) continue;
+                    f.y = hit.point.y + 0.05f;
+                    if (!Free(f) || (room != Case01Room.None && House.Layout.RoomAt(f) != room)) continue;
+                    var eyeTry = f + Vector3.up * eyeH;
+                    var toLook = look - eyeTry;
+                    if (Physics.Raycast(eyeTry, toLook.normalized, toLook.magnitude - 0.08f, Case01SpatialMap.SightMask, QueryTriggerInteraction.Ignore)) continue;
+                    feet = f;
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) feet.y = Mathf.Max(House.Layout.RoomAt(look) == Case01Room.None ? 0f : look.y - 1.2f, look.y - 1.2f);
+            var eyeAt = feet + Vector3.up * eyeH;
+            var d = look - eyeAt;
+            float yaw = Mathf.Atan2(d.x, d.z) * Mathf.Rad2Deg;
+            float pitch = -Mathf.Atan2(d.y, new Vector2(d.x, d.z).magnitude) * Mathf.Rad2Deg;
+            Place(feet, yaw, pitch);
+            string glyph = g.Glyph > 0f ? "｜字高 " + (g.Glyph * 100f).ToString("0.0") + " cm" : "";
+            Toast("圖文 " + (TourIndex + 1) + "/" + art.Graphics.Count + "：" + g.Name + "｜" + g.Carrier + glyph + "｜距離 " + Vector3.Distance(House.Player.EyePosition, look).ToString("0.0") + " m");
         }
 
         public string SpeedText()
@@ -292,7 +405,7 @@ namespace Shepherd.Exploration.Case01
             var cam = House.ExploreCamera;
             if (House.Mode == Case01Mode.Exploring && cam.enabled) cam.fieldOfView = FieldOfView;
             if (World != null) World.Tick(dt, House);
-            House.Hud.Base.ViewMode.text = "Phase 1.8 沉浸式住宅 QA｜按鍵見右側面板";
+            House.Hud.Base.ViewMode.text = phase19 ? "Phase 1.9 整體關卡與異域美術重構 QA｜按鍵見右側面板" : "Phase 1.8 沉浸式住宅 QA｜按鍵見右側面板";
             if (House.Mode == Case01Mode.Exploring)
             {
                 RunClock += dt;
@@ -340,8 +453,12 @@ namespace Shepherd.Exploration.Case01
             var p = House.Player;
             var room = House.Layout.RoomAt(p.transform.position);
             var sb = new StringBuilder();
-            sb.Append("<b>Phase 1.8 沉浸式住宅與失序空間 QA</b>\n<color=#E6BD52>").Append(Immersive ? "沉浸版（R2）" : "原 R2 測試屋（Phase 1.7）").Append("</color>｜H").Append(House.HouseStage)
-                .Append("｜").Append(Case01Texts.RoomName(room)).Append('\n');
+            if (phase19)
+                sb.Append("<b>Phase 1.9 整體關卡與異域美術重構 QA</b>\n<color=#E6BD52>").Append(Immersive ? "Phase 1.9（R3）" : "Phase 1.8 沉浸版 R2（對照）").Append("</color>｜H").Append(House.HouseStage)
+                    .Append("｜").Append(Case01Texts.RoomName(room)).Append('\n');
+            else
+                sb.Append("<b>Phase 1.8 沉浸式住宅與失序空間 QA</b>\n<color=#E6BD52>").Append(Immersive ? "沉浸版（R2）" : "原 R2 測試屋（Phase 1.7）").Append("</color>｜H").Append(House.HouseStage)
+                    .Append("｜").Append(Case01Texts.RoomName(room)).Append('\n');
             sb.Append("垂直 FOV ").Append(FieldOfView.ToString("0")).Append("°｜眼高 ").Append(EyeHeight.ToString("0.00")).Append(" m｜").Append(SpeedText()).Append('\n');
             sb.Append("聲音 ").Append(Options.AudioOn ? "開" : "關").Append("｜光影 ").Append(Options.NewLighting ? "新" : "舊").Append("｜門 ").Append(DoorsAllOpen ? "全開" : "正常")
                 .Append("｜異變 ").Append(Options.Anomaly ? "新版" : "原版").Append("｜微動 ").Append(Options.ReducedMotion ? "關" : "開").Append('\n');
@@ -352,6 +469,14 @@ namespace Shepherd.Exploration.Case01
                 sb.Append('\n');
             }
             sb.Append(Case01Cursor.Looking(House.CursorCaptured) ? "滑鼠鎖定" : "<color=#E6A050>滑鼠已釋放：點擊畫面恢復視角</color>").Append("｜這一趟 ").Append(RunClock.ToString("0")).Append(" 秒\n");
+            if (phase19)
+            {
+                if (World != null && World.P19 != null && TourIndex >= 0 && TourIndex < World.P19.Graphics.Count)
+                    sb.Append("圖文 ").Append(TourIndex + 1).Append('/').Append(World.P19.Graphics.Count).Append("：").Append(World.P19.Graphics[TourIndex].Name).Append('\n');
+                sb.Append("<color=#9AA4B0>E 開關門／調查｜F1 回前門｜F2 1.9↔1.8｜F3 H0～H3｜M 夾層｜Y 核校正前／後（夾層內）｜K 中庭｜T 圖文巡覽｜F4 聲音｜F5 FOV｜F6 步速｜F7 眼高｜F8 降低閃爍｜F9 光影｜F10 門全開／正常｜F11 異變｜F12 鏡頭微動｜L 低效果｜Esc 釋放滑鼠</color>");
+                panelText.text = sb.ToString();
+                return;
+            }
             sb.Append("<color=#9AA4B0>E 開關門／調查｜F1 回前門｜F2 原版↔沉浸版｜F3 H0～H3｜F4 聲音｜F5 FOV｜F6 步速｜F7 眼高｜F8 降低閃爍｜F9 光影新／舊｜F10 門全開／正常｜F11 異變新／原版｜F12 鏡頭微動｜G 錨點痕跡（原型）｜L 低效果｜Esc 釋放滑鼠</color>");
             panelText.text = sb.ToString();
         }
