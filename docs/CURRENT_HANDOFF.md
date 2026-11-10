@@ -1,3 +1,10 @@
+# 2026-11-10｜Phase 1.7 住宅尺度＋第一人稱探索正式重設計（使用者真人試玩後授權）
+使用者已玩 Phase 1.6 A/B/C，反饋仍「不像真的第一人稱走進房子、空間太小、沒幾步就走完、尚無足夠探索」。**更新決策：正式放寬 10×10m 住宅外框與只做錯位門洞的限制，允許重新設計住宅空間、連接/走廊、玩家室內移動、鏡頭與探索流程**，以「讓玩家感覺真，而非 1:1 還原真實」為優先。**正式重設計規範**：`docs/story/case01_seventeenth_door/CASE01_PHASE1_7_PLAYER_SCALE_AND_FULL_LAYOUT_REDESIGN_V1_0.md`。
+已讀 main：Phase 1.6 A/B/C 仍同 10×10m，C2 擴尺度未做；玩家 WalkSpeed 3.5m/s、RunSpeed 6.5m/s；約 5m 直線正常步行 1.43 秒，可能造成走幾步就到頭的感受。Phase 1.5 P0 游標轉向／路牌／第三扇門仍待完成（依最新 Phase 1.6 交接），**應先修或確認已修，再進入新的真人尺度 QA**。新要求做真正擴尺度的 R1（長形排屋）與 R2（空間節奏＋探索）及可切換步速/FOV/眼高、前 5–8 分鐘可探索切片，保留 Phase 1.6 舊 QA 作基準；同時保護所有戰鬥/謎題/H 階段與正式 Demo。使用者已授權**開始重構**，不用再詢問是否容許擴建；但未經真人選定前，不直接覆蓋正式 Demo 預設，需確保可回退。
+**本輪 GitHub 操作僅新增 Phase 1.7 規範與更新交接，尚未重寫 Unity 程式或執行 Unity 測試；交由 Claude Code 依規範實作並提交 main。**
+
+---
+
 # 2026-11-10｜Phase 1.6 空間結構灰盒 QA：已實作（Claude；待使用者盲測選定 A／B／C）
 依 `CASE01_PHASE1_6_LEVEL_LAYOUT_AND_SPATIAL_RHYTHM_QA_V0_9.md`。結果、現況診斷、連接處差異表、尺寸、問卷、建議與 C2 成本：`docs/story/case01_seventeenth_door/CASE01_PHASE1_6_SPATIAL_QA_RESULTS.md`；平面圖與視線量測表：`phase1_6/`。
 - **前置**：Phase 1.5（滑鼠相對轉向／游標、路牌破框、第三扇門漏街燈）**尚未實作**；Phase 1.6 依使用者指示先做，只新增獨立 QA 檔案，沒有碰玩家操作、游標、路牌、Portal。
