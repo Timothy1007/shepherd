@@ -1,3 +1,10 @@
+# 2026-11-10｜Phase 1.9 整體關卡＋住宅/夾層/中庭藝術重設計（已新增正式開發規範）
+使用者確認新方向：**不以還原普通英式民宅為終點，而是「符合現實建築原理的黑暗都市奇幻／遊戲化建築」**，要可探索、每房有設計感、正常住宅與失序空間共享一致藝術語彙。對 Phase 1.8 試玩回饋：門穿模/不對齊、前門入玄關不必再有第二扇內門；住宅仍略小且樣品屋感重；夾層和異域中庭有大量簡陋方塊／旋轉框與其他佔位。要求住宅一二樓、夾層和中庭整體重規劃，統一 stylized semi-realistic 3D 美術材質、視線/光影/聲音/第一人稱近看品質；**照片、文字、紙條、門牌、路牌、△○□等記號必須有正式載體、合理尺寸、世界觀一致的圖文視覺**。不只出圖或規格，要可走動的 Unity QA 與完成後再真人驗收。
+**最新執行規範**：`docs/story/case01_seventeenth_door/CASE01_PHASE1_9_WORLDSPACE_ART_DIRECTION_AND_FULL_LEVEL_REDESIGN_V1_0.md`（已提交 GitHub main）。Phase1.9 是 **Case01 的設計迭代**，絕非 repo 舊 v2 分支；仍以 main 開發。先盤點並修門與多餘內門，獨立 Phase1.9 QA 完成三區設計、舊版回退、H階段/Portal/核與既有戰鬥回歸；**使用者確認前不直接覆蓋正式 Demo Original**。
+**本次已提交文件與交接更新，尚未開始 Phase1.9 Unity 實作或執行其測試**；具體開發由 Claude Code 依上列完整規格實作。
+
+---
+
 # 2026-11-10｜Phase 1.8 沉浸式住宅與失序空間 QA：已實作（Claude；待使用者真人驗收）
 結果：`docs/story/case01_seventeenth_door/CASE01_PHASE1_8_IMMERSION_QA_RESULTS.md`；對照圖 `phase1_8/`。
 - **入口**：`Shepherd/Case01/Phase 1.8 沉浸式住宅與失序空間 QA`（R2，從前門內開始；預設垂直 FOV 55°、眼高 1.58 m、步速 2.2 m/s 候選）。E 開關門／調查；F1 前門、F2 原 R2↔沉浸版、F3 H0～H3、F4 聲音、F5 FOV、F6 步速、F7 眼高、F8 降低閃爍、F9 光影新／舊、F10 門正常／全開、F11 異變新／原版、F12 鏡頭微動、G 錨點痕跡原型、L 低效果。
