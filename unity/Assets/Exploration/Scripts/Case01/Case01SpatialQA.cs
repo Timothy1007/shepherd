@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Shepherd.Battle.UI;
 using Shepherd.Battle.UI.Arena;
 using UnityEngine;
@@ -527,7 +527,7 @@ namespace Shepherd.Exploration.Case01
             Img(playerDot, new Color(1f, 0.3f, 0.25f, 1f));
         }
 
-        private static RectTransform Rect(Transform parent, string name, Vector2 anchor, Vector2 pivot, Vector2 pos, Vector2 size)
+        internal static RectTransform Rect(Transform parent, string name, Vector2 anchor, Vector2 pivot, Vector2 pos, Vector2 size)
         {
             var go = new GameObject(name, typeof(RectTransform));
             var rt = (RectTransform)go.transform;
@@ -539,7 +539,7 @@ namespace Shepherd.Exploration.Case01
             return rt;
         }
 
-        private static Image Img(RectTransform rt, Color c)
+        internal static Image Img(RectTransform rt, Color c)
         {
             var i = rt.gameObject.AddComponent<Image>();
             i.color = c;
@@ -547,7 +547,7 @@ namespace Shepherd.Exploration.Case01
             return i;
         }
 
-        private static Text Txt(RectTransform rt, int size, TextAnchor anchor, Color c)
+        internal static Text Txt(RectTransform rt, int size, TextAnchor anchor, Color c)
         {
             var go = new GameObject("Text", typeof(RectTransform));
             var t = go.AddComponent<Text>();
@@ -564,7 +564,7 @@ namespace Shepherd.Exploration.Case01
             return t;
         }
 
-        private static void Inset(RectTransform rt, float x, float y)
+        internal static void Inset(RectTransform rt, float x, float y)
         {
             rt.anchorMin = Vector2.zero;
             rt.anchorMax = Vector2.one;
@@ -572,7 +572,7 @@ namespace Shepherd.Exploration.Case01
             rt.offsetMax = new Vector2(-x, -y);
         }
 
-        private static RectTransform Line(RectTransform parent, Color c)
+        internal static RectTransform Line(RectTransform parent, Color c)
         {
             var rt = Rect(parent, "Line", Vector2.zero, new Vector2(0.5f, 0f), Vector2.zero, new Vector2(2f, 10f));
             Img(rt, c);

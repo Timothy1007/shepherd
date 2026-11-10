@@ -371,6 +371,26 @@ namespace Shepherd.Exploration.Case01
             hud.ClearMonologue();
         }
 
+        /// <summary>Phase 1.7 QA：換格局重建（同一個流程物件＝劇情進度不變）；pose 為 null 時站到該格局的玄關。</summary>
+        public void RebuildWithPlan(Case01Floorplan plan, Case01Flow f, Case01Pose? pose)
+        {
+            floorplan = plan;
+            floorplanQa = plan != Case01Floorplan.Original;
+            residentialQa = Case01HouseBuilder.IsV05(plan);
+            KillArena();
+            if (content != null)
+            {
+                content.gameObject.SetActive(false);
+                ArenaArt.Kill(content.gameObject);
+            }
+            encounterGroup = null;
+            exploreCam.enabled = true;
+            BuildContent(f, Case01Checkpoint.S00, pose);
+            SnapCameraToPlayer();
+            if (echo != null) echo.Stop();
+            hud.ClearMonologue();
+        }
+
         private CombatLabScenario CurrentScenario()
         {
             if (scenarioOverride == null) return CombatLabScenario.Default();
@@ -398,7 +418,7 @@ namespace Shepherd.Exploration.Case01
             if (cp == Case01Checkpoint.S00 && l.StartInLiving) return LivingEntrancePose;
             switch (cp)
             {
-                case Case01Checkpoint.S30: return new Case01Pose(new Vector3(7.6f, Case01HouseBuilder.FloorHeight + 0.05f, 2.4f), -12f);
+                case Case01Checkpoint.S30: return l.CheckpointS30 ?? new Case01Pose(new Vector3(7.6f, Case01HouseBuilder.FloorHeight + 0.05f, 2.4f), -12f);
                 case Case01Checkpoint.S40:
                 case Case01Checkpoint.S50: return new Case01Pose(Case01HouseBuilder.MezzCenter + new Vector3(0f, 0.05f, -2.2f), 0f);
                 default: return l.Spawn;
@@ -854,6 +874,11 @@ namespace Shepherd.Exploration.Case01
                     d.SetTeaTin(!d.TeaTinOpen);
                     hud.ShowNote(d.TeaTinOpen ? Case01Texts.TeaTinOpen : Case01Texts.TeaTinClose);
                 }
+                else if (CurrentTarget != null && layout.QaObservations.ContainsKey(CurrentTarget.Id))
+                {
+                    // Phase 1.7：QA 的環境觀察點（只顯示短觀察，不進流程、不記日誌）。
+                    hud.ShowNote(layout.QaObservations[CurrentTarget.Id]);
+                }
                 else if (CurrentTarget != null)
                 {
                     inspectAnchor = cur;
@@ -1066,7 +1091,7 @@ namespace Shepherd.Exploration.Case01
                 if (r.CommitEffect)
                 {
                     pendingCommit = r.Redirect.Value;
-                    BeginTransition(CommitPose(r.Redirect.Value));
+                    BeginTransition(CommitPoseFor(r.Redirect.Value));
                 }
                 else BeginTransition(layout.Arrivals[r.Redirect.Value]);
             }
@@ -1578,12 +1603,21 @@ namespace Shepherd.Exploration.Case01
             return new Case01Pose(new Vector3(7.1f, 0.05f, 1.9f), 180f);
         }
 
+        /// <summary>Phase 1.7：格局有提供書房寫回位置時用格局的（新格局的書房門不在原版位置）。</summary>
+        private Case01Pose CommitPoseFor(Case01Room room)
+        {
+            if (room == Case01Room.Study && layout != null && layout.StudyCommitPose.HasValue) return layout.StudyCommitPose.Value;
+            return CommitPose(room);
+        }
+
         /// <summary>門框歸位：幾片發光的門框從錯位處扣回門洞，伴隨暖光脈動（約 1.6 秒，不閃爍）。</summary>
         private void SpawnDoorSnap(Case01Room room)
         {
             ClearDoorSnap();
             Vector3 c = room == Case01Room.Study ? new Vector3(Case01HouseBuilder.StudyDoorX, Case01HouseBuilder.FloorHeight, 5.1f) : new Vector3(7.1f, 0f, 0.12f);
+            if (room == Case01Room.Study && layout.StudySnapCenter.HasValue) c = layout.StudySnapCenter.Value;
             var g = ArenaArt.Group("DoorSnap", content, c);
+            if (room == Case01Room.Study && layout.StudySnapCenter.HasValue) g.localRotation = Quaternion.Euler(0f, layout.StudySnapYaw, 0f);
             var glow = palette.Get("lamp_shade");
             float w = Case01HouseBuilder.DoorWidth, h = Case01HouseBuilder.DoorHeight;
             Vector3[] pos = { new Vector3(-w * 0.5f - 0.05f, h * 0.5f, 0f), new Vector3(w * 0.5f + 0.05f, h * 0.5f, 0f), new Vector3(0f, h + 0.05f, 0f) };
@@ -2120,9 +2154,10 @@ namespace Shepherd.Exploration.Case01
             if (Mode == Case01Mode.Ended) return "QA 結束。F1 可從玄關重玩。";
             bool b = floorplan == Case01Floorplan.V04;
             bool a5 = floorplan == Case01Floorplan.V05A;
-            string stairs = a5 ? "經餐廳進廚房，樓梯在廚房東南角，往南上樓" : b ? "樓梯在玄關東北角，往南上樓" : "樓梯在玄關東側";
+            bool r17 = Case01HouseBuilder.IsR(floorplan);
+            string stairs = r17 ? "沿玄關走廊走到底，樓梯在盡頭，轉身往前上樓" : a5 ? "經餐廳進廚房，樓梯在廚房東南角，往南上樓" : b ? "樓梯在玄關東北角，往南上樓" : "樓梯在玄關東側";
             if (!s.Has(Case01Flags.TableTwo))
-                return a5 ? "先在一樓走走。客廳在玄關左手邊，餐廳在客廳裡面。" : b ? "先在一樓走走。餐廳在客廳東側（從玄關經廚房、客廳過去）。" : "先在一樓走走。餐廳在玄關北側。";
+                return r17 ? "先在一樓走走。客廳在玄關左手邊，餐廳在走廊後段（也可以從客廳穿過去），廚房在最後面。" : a5 ? "先在一樓走走。客廳在玄關左手邊，餐廳在客廳裡面。" : b ? "先在一樓走走。餐廳在客廳東側（從玄關經廚房、客廳過去）。" : "先在一樓走走。餐廳在玄關北側。";
             if (!s.HasJournal("table_rewritten") && !s.Has(Case01Flags.EllieStudyKnown))
                 return "離開餐廳，到別的房間走一圈再回來看看。（二樓：" + stairs + "）";
             if (!s.Has(Case01Flags.EllieStudyKnown) || !s.Has(Case01Flags.OldCorrectionRecord)) return "上二樓，調查書房裡的資料。（" + stairs + "）";

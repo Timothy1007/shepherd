@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Shepherd.Battle.UI.Arena;
 using UnityEngine;
 
@@ -27,8 +27,10 @@ namespace Shepherd.Exploration.Case01
             public Transform House16, House18;
         }
 
-        public static Result Build(Transform parent, Case01Palette p, bool withHouse17Facade = false)
+        /// <param name="houseDepth">Phase 1.7：十七號（與左右鄰居）的縱深；預設 10 m＝原版。較深的格局把後院圍籬與樹往後移，鄰居同深（連棟住宅同深度）。</param>
+        public static Result Build(Transform parent, Case01Palette p, bool withHouse17Facade = false, float houseDepth = 10f)
         {
+            float extra = Mathf.Max(0f, houseDepth - 10f);
             var r = new Result();
             var g = ArenaArt.Group("Exterior", parent, Vector3.zero);
             r.Root = g;
@@ -77,22 +79,22 @@ namespace Shepherd.Exploration.Case01
             }
 
             // 左右鄰居（側邊留出通道，所以側窗看得到圍籬與鄰居的側牆）。
-            r.House16 = Terrace(g, new Vector3(-6.3f, 0f, 5f), 0f, 6.4f, 10f, brickB, render, roof, trimM, dark, lit, dark, r, false);
-            r.House18 = Terrace(g, new Vector3(16.3f, 0f, 5f), 0f, 6.4f, 10f, brickA, render, roof, trimM, dark, dark, litCool, r, true);
+            r.House16 = Terrace(g, new Vector3(-6.3f, 0f, houseDepth * 0.5f), 0f, 6.4f, houseDepth, brickB, render, roof, trimM, dark, lit, dark, r, false);
+            r.House18 = Terrace(g, new Vector3(16.3f, 0f, houseDepth * 0.5f), 0f, 6.4f, houseDepth, brickA, render, roof, trimM, dark, dark, litCool, r, true);
             if (withHouse17Facade) Terrace(g, new Vector3(5f, 0f, 5f), 0f, 10f, 10f, brickA, render, roof, trimM, dark, dark, dark, r, false);
 
             // 側邊與後院的圍籬、後排房屋、幾棵樹。
             foreach (var x in new[] { -1.6f, 11.6f })
-                Box(g, new Vector3(x, 0.9f, 7.5f), new Vector3(0.06f, 1.8f, 19f), fence, "SideFence");
-            Box(g, new Vector3(5f, 0.9f, 17f), new Vector3(30f, 1.8f, 0.06f), fence, "BackFence");
+                Box(g, new Vector3(x, 0.9f, 7.5f + extra * 0.5f), new Vector3(0.06f, 1.8f, 19f + extra), fence, "SideFence");
+            Box(g, new Vector3(5f, 0.9f, 17f + extra), new Vector3(30f, 1.8f, 0.06f), fence, "BackFence");
             // 後排只到 x≈14（不伸進 x25 以東的異常中庭）。
             for (int i = 0; i < 5; i++)
             {
                 float x0 = -18f + i * 6.4f;
-                Terrace(g, new Vector3(x0 + 3.2f, 0f, 28f), 180f, 6.2f, 8f, i % 2 == 0 ? brickB : brickA, render, roof, trimM, dark,
+                Terrace(g, new Vector3(x0 + 3.2f, 0f, 28f + extra), 180f, 6.2f, 8f, i % 2 == 0 ? brickB : brickA, render, roof, trimM, dark,
                     rng.NextDouble() < 0.35 ? lit : dark, dark, r, false);
             }
-            foreach (var t in new[] { new Vector3(1.5f, 0f, 14f), new Vector3(8.5f, 0f, 15f), new Vector3(-12f, 0f, -12.2f), new Vector3(22f, 0f, -12.2f) })
+            foreach (var t in new[] { new Vector3(1.5f, 0f, 14f + extra), new Vector3(8.5f, 0f, 15f + extra), new Vector3(-12f, 0f, -12.2f), new Vector3(22f, 0f, -12.2f) })
             {
                 Box(g, t + new Vector3(0f, 1.2f, 0f), new Vector3(0.22f, 2.4f, 0.22f), fence, "TreeTrunk");
                 Sphere(g, t + new Vector3(0f, 3.2f, 0f), new Vector3(2.6f, 2.4f, 2.6f), leaf, "TreeCrown");

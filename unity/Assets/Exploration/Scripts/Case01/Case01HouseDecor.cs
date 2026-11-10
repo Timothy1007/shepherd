@@ -148,10 +148,11 @@ namespace Shepherd.Exploration.Case01
         private static Material wood, darkWood, pale, fabric, fabric2, paper, paperOld, card, metal, ceramic, leaf, pot, cardboard, glow, lampShade, frameMat;
         private static Material[] bookMats;
 
-        public static Case01Decor Build(Case01HouseLayout L, Transform root)
+        /// <param name="bedroomRoot">Phase 1.7：二樓房間的錨點（把原版座標的整組臥室／書房／平台搬到新格局；null＝原版位置）。</param>
+        public static Case01Decor Build(Case01HouseLayout L, Transform root, Transform bedroomRoot = null, Transform studyRoot = null, Transform landingRoot = null)
         {
-            // v0.5 方案 A／B：一樓的生活物件與 H0～H3 物件已由 Case01HouseBuilder 建好並放在 L.Decor。
-            bool v05 = Case01HouseBuilder.IsV05(L.Floorplan) && L.Decor != null;
+            // v0.5 方案 A／B（與 Phase 1.7 R1／R2）：一樓的生活物件與 H0～H3 物件已由 Case01HouseBuilder 建好並放在 L.Decor。
+            bool v05 = (Case01HouseBuilder.IsV05(L.Floorplan) || Case01HouseBuilder.IsR(L.Floorplan)) && L.Decor != null;
             var d = v05 ? L.Decor : new Case01Decor();
             P = L.Palette ?? new Case01Palette();
             Materials();
@@ -165,9 +166,9 @@ namespace Shepherd.Exploration.Case01
                 Living(L, d, root, R);
                 Dining(L, d, root);
             }
-            Bedroom(L, root, R);
-            Study(L, d, root, R);
-            Landing(L, d, root);
+            Bedroom(L, bedroomRoot ?? root, R);
+            Study(L, d, studyRoot ?? root, R);
+            Landing(L, d, landingRoot ?? root);
             MezzanineScatter(root, R);
             Evidence(L, d, root);
 

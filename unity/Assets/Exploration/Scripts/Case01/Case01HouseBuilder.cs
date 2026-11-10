@@ -77,6 +77,10 @@ namespace Shepherd.Exploration.Case01
         V05A,
         /// <summary>v0.5 方案 B：保留 v0.4 分區＋原版樓梯方向，樓梯旁畸零處做成真正的收納。</summary>
         V05B,
+        /// <summary>Phase 1.7 R1：長形連棟（面寬 10 m 不變、縱深 16 m：前廳／中段餐廳／後段廚房＋側廊與樓梯）。只在 Phase 1.7 QA 使用。</summary>
+        R1,
+        /// <summary>Phase 1.7 R2：R1 外框＋空間節奏（前廊、錯位門洞、門框深度、走廊收束、二樓分段走廊）。只在 Phase 1.7 QA 使用。</summary>
+        R2,
     }
 
     /// <summary>建好的室內 QA 空間中，流程需要操作的物件與資料。</summary>
@@ -157,6 +161,22 @@ namespace Shepherd.Exploration.Case01
         public Light CourtyardLight;
         public GameObject TearFrame;
 
+        // Phase 1.7：原本寫死在 QA 裡的座標改由格局提供（null／預設值＝原版位置，舊格局行為不變）。
+        /// <summary>核校正寫回書房時的到達位置（null＝原版）。</summary>
+        public Case01Pose? StudyCommitPose;
+        /// <summary>書房門框歸位演出的位置與朝向（null＝原版）。</summary>
+        public Vector3? StudySnapCenter;
+        public float StudySnapYaw;
+        /// <summary>QA 檢查點 S30（樓梯錯接後的平台）的站位（null＝原版）。</summary>
+        public Case01Pose? CheckpointS30;
+        /// <summary>樓梯起步與第三扇門的位置（QA 視線量測的焦點）。</summary>
+        public Vector3 StairFootPoint = new Vector3(9.4f, 0.7f, 4.3f);
+        public Vector3 ThirdDoorPoint = new Vector3(6.95f, 4.2f, 0.15f);
+        /// <summary>房屋本體範圍（平面圖、量測、外景用；x 寬、z 深）。</summary>
+        public Rect Footprint = new Rect(0f, 0f, 10f, 10f);
+        /// <summary>Phase 1.7：只在 QA 的環境觀察點（id → 短觀察文字）；不是正式案件線索，不進日誌，可整組移除。</summary>
+        public readonly Dictionary<string, string> QaObservations = new Dictionary<string, string>();
+
         public Case01Portal Portal(Case01Door door)
         {
             foreach (var p in Portals) if (p.Door == door) return p;
@@ -212,6 +232,8 @@ namespace Shepherd.Exploration.Case01
         {
             var L = new Case01HouseLayout();
             plan = floorplan;
+            thirdDoorX = StudyDoorX;
+            if (IsR(floorplan)) return BuildR(parent, palette, floorplan, L);
             L.Floorplan = floorplan;
             var root = ArenaArt.Group("Case01House", parent, Vector3.zero);
             L.Root = root;
@@ -850,8 +872,11 @@ namespace Shepherd.Exploration.Case01
         /// <summary>二樓外牆的第三扇門：平時是封住的牆，不加門框。</summary>
         private static bool IsThirdDoor(float x, float y, float z)
         {
-            return Mathf.Abs(z) < 0.01f && y > 1f && Mathf.Abs(x - StudyDoorX) < 0.01f;
+            return Mathf.Abs(z) < 0.01f && y > 1f && Mathf.Abs(x - thirdDoorX) < 0.01f;
         }
+
+        /// <summary>第三扇門在南外牆上的 x（原版＝書房門 x；Phase 1.7 格局各自設定）。</summary>
+        private static float thirdDoorX = StudyDoorX;
 
         /// <summary>房間主燈：吊燈（電線、燈罩、燈泡）＋燈泡正下方的點光源。燈罩與燈泡不投影，避免擋住自己的光。</summary>
         private static Light RoomLight(Case01HouseLayout L, Case01Room room, Transform g, Vector3 pos, Color color, float intensity, bool shadows, float ceiling)

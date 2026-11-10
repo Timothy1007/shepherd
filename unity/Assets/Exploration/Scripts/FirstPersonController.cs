@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace Shepherd.Exploration
 {
@@ -20,6 +20,19 @@ namespace Shepherd.Exploration
 
         private CharacterController cc;
         private float verticalSpeed;
+        private Vector3 horizontalVelocity;
+
+        // Phase 1.7：第一人稱體感 QA 可即時調整的值（預設＝上面的正式常數，正式 Demo 不改）。
+        /// <summary>步行速度（m/s）。</summary>
+        public float WalkSpeedValue = WalkSpeed;
+        /// <summary>奔跑速度（m/s）。</summary>
+        public float RunSpeedValue = RunSpeed;
+        /// <summary>眼高（m）；碰撞身高與半徑不變（不縮小玩家）。</summary>
+        public float EyeHeightValue = EyeHeight;
+        /// <summary>滑鼠靈敏度倍率。</summary>
+        public float LookScale = 1f;
+        /// <summary>加減速（m/s²）；0＝關閉（立即到速，正式行為）。</summary>
+        public float Acceleration;
 
         public float Yaw { get; private set; }
         public float Pitch { get; private set; }
@@ -36,7 +49,7 @@ namespace Shepherd.Exploration
             }
         }
 
-        public Vector3 EyePosition { get { return transform.position + Vector3.up * EyeHeight; } }
+        public Vector3 EyePosition { get { return transform.position + Vector3.up * EyeHeightValue; } }
 
         public Quaternion ViewRotation { get { return Quaternion.Euler(Pitch, Yaw, 0f); } }
 
@@ -69,6 +82,7 @@ namespace Shepherd.Exploration
             Yaw = yaw;
             Pitch = pitch;
             verticalSpeed = 0f;
+            horizontalVelocity = Vector3.zero;
             transform.rotation = Quaternion.Euler(0f, Yaw, 0f);
         }
 
@@ -78,15 +92,17 @@ namespace Shepherd.Exploration
             if (dt <= 0f) return;
             if (applyLook)
             {
-                Yaw = Mathf.Repeat(Yaw + input.Look.x * LookSensitivity, 360f);
-                Pitch = Mathf.Clamp(Pitch - input.Look.y * LookSensitivity, -PitchLimit, PitchLimit);
+                Yaw = Mathf.Repeat(Yaw + input.Look.x * LookSensitivity * LookScale, 360f);
+                Pitch = Mathf.Clamp(Pitch - input.Look.y * LookSensitivity * LookScale, -PitchLimit, PitchLimit);
             }
             transform.rotation = Quaternion.Euler(0f, Yaw, 0f);
 
             var move = Vector2.ClampMagnitude(input.Move, 1f);
             var dir = transform.right * move.x + transform.forward * move.y;
-            float speed = input.Run ? RunSpeed : WalkSpeed;
+            float speed = input.Run ? RunSpeedValue : WalkSpeedValue;
             var horizontal = dir * speed;
+            if (Acceleration > 0f) horizontal = Vector3.MoveTowards(horizontalVelocity, horizontal, Acceleration * dt);
+            horizontalVelocity = horizontal;
 
             if (Body.isGrounded && verticalSpeed < 0f) verticalSpeed = -2f;
             verticalSpeed -= Gravity * dt;

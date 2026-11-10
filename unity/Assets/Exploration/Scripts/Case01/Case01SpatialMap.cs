@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
 
@@ -11,7 +11,20 @@ namespace Shepherd.Exploration.Case01
     /// </summary>
     public static class Case01SpatialMap
     {
-        public const float X0 = -0.5f, Z0 = -0.6f, Size = 11.2f;
+        /// <summary>平面圖範圍（依房屋的 Footprint；10×10 的原版＝-0.5、-0.6、11.2，與 Phase 1.6 相同）。</summary>
+        public static float X0 = -0.5f, Z0 = -0.6f, Size = 11.2f;
+        private static Rect area = new Rect(0f, 0f, 10f, 10f);
+
+        /// <summary>Phase 1.7：依格局的房屋範圍設定平面圖與量測範圍（Plan／Visible 會自動呼叫）。</summary>
+        public static void UseRegion(Case01HouseLayout L)
+        {
+            area = L.Footprint;
+            X0 = area.xMin - 0.5f;
+            Z0 = area.yMin - 0.6f;
+            Size = Mathf.Max(area.width, area.height) + 1.2f;
+        }
+
+        public static Rect Area { get { return area; } }
         /// <summary>可見地面格的間距（公尺）與取樣高度（地板上方，約桌面高）。</summary>
         public const float Cell = 0.25f, SampleHeight = 1.0f;
         public const float MaxSight = 14f;
@@ -56,12 +69,14 @@ namespace Shepherd.Exploration.Case01
         /// <summary>只算房屋本體（不含窗外街景與兩個異常空間）的碰撞體與熱區。</summary>
         private static bool InHouse(Vector3 c)
         {
-            return c.x > X0 && c.x < X0 + Size && c.z > Z0 && c.z < Z0 + Size && c.y > -0.5f && c.y < 6.3f;
+            // 只算房屋外框（加一點牆厚的餘量），不把鄰居的窗或窗外街景算進來。
+            return c.x > area.xMin - 0.3f && c.x < area.xMax + 0.3f && c.z > area.yMin - 0.4f && c.z < area.yMax + 0.3f && c.y > -0.5f && c.y < 6.3f;
         }
 
         /// <summary>某一層（0＝一樓、1＝二樓）的俯視平面：房間底色、碰撞體（牆／家具／樓梯／門框深度）、窗、調查點。北方朝上。</summary>
         public static Texture2D Plan(Case01HouseLayout L, int floor, int ppm)
         {
+            UseRegion(L);
             int n = Pixels(ppm);
             var px = new Color32[n * n];
             for (int i = 0; i < px.Length; i++) px[i] = Background;
@@ -192,12 +207,13 @@ namespace Shepherd.Exploration.Case01
         /// <summary>目前畫面裡看得到的地面格（世界 xz）。cells＝輸出；回傳同一層每個房間的「看得到／總格數」。</summary>
         public static Dictionary<Case01Room, Vector2Int> Visible(Case01HouseLayout L, Vector3 eye, Quaternion view, float vFov, float aspect, List<Vector2> cells)
         {
+            UseRegion(L);
             var stats = new Dictionary<Case01Room, Vector2Int>();
             if (cells != null) cells.Clear();
             int floor = FloorOf(eye.y - 1.0f);
             float y = FloorY(floor) + SampleHeight;
-            for (float x = Cell * 0.5f; x < 10f; x += Cell)
-            for (float z = Cell * 0.5f; z < 10f; z += Cell)
+            for (float x = area.xMin + Cell * 0.5f; x < area.xMax; x += Cell)
+            for (float z = area.yMin + Cell * 0.5f; z < area.yMax; z += Cell)
             {
                 var p = new Vector3(x, y, z);
                 var room = L.RoomAt(new Vector3(x, FloorY(floor), z));
@@ -242,10 +258,10 @@ namespace Shepherd.Exploration.Case01
             add(Case01Ids.ShoppingList, "購物清單");
             add(Case01Ids.Tea, "茶杯");
             add(Case01Ids.SundayNote, "冰箱紙條");
-            list.Add(new Focus { Id = "stairs", Label = "樓梯起步", Point = new Vector3(9.4f, 0.7f, 4.3f) });
+            list.Add(new Focus { Id = "stairs", Label = "樓梯起步", Point = L.StairFootPoint });
             add(Case01Ids.StudyMark, "書房門記號");
             add(Case01Ids.StorageDoor, "儲藏室門");
-            list.Add(new Focus { Id = "third_door_wall", Label = "第三扇門位置", Point = new Vector3(Case01HouseBuilder.StudyDoorX, Case01HouseBuilder.FloorHeight + 1.2f, 0.15f) });
+            list.Add(new Focus { Id = "third_door_wall", Label = "第三扇門位置", Point = L.ThirdDoorPoint });
             add(Case01Ids.Map, "舊地圖");
             add(Case01Ids.OldRecord, "校正記錄");
             add(Case01Ids.JobLetter, "床上的信");
