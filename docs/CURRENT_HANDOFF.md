@@ -1,3 +1,12 @@
+# 2026-11-12｜全屋重製 v2：九區新平面＋新客廳可玩 QA（Claude；待使用者真人美術驗收）
+文件：`docs/story/case01_seventeenth_door/CASE01_HOUSE_REBUILD_V2_PLAN_AND_QA.md`；平面圖、Blender 參考圖、Unity 對照截圖在 `house_rebuild_v2/`。
+- **入口**：`Shepherd/Case01/全屋重製 QA`（場景 `Assets/Exploration/Scenes/Case01HouseRebuildQA.unity`）。與舊 R3／Phase 1.8／1.9／沉浸式住宅 QA 完全分開，不呼叫舊建築 builder、不放舊家具。
+- **新客廳**：Blender 程序重建（厚牆、壁爐凸牆＋凹室、上下拉窗、四片嵌板門、踢腳線／掛畫線／天花線板／天花圓花、逐片地板、鑄鐵壁爐＋磁磚、鍍金鏡、書一本一本、天鵝絨沙發、翼背椅、車削腳茶几、暖氣片、窗簾、地毯）＋ 26 組 PBR 材質（albedo／法線／金屬光滑度）；即時燈＋柔和陰影、反射探針、QA 專用畫面後製。
+- **操作**：1／2／3 步速、F5 FOV、F7 眼高、F 手電筒、L 環境燈、K 吊燈、G 曝光、E 拿起合照、R 回入口、F12 除錯。
+- **限制**：合照仍是暫用（風格化人偶的遠景背影）；程序建模不到手工美術水準；未用烘焙光照（CPU 烘焙有 UV 重疊黑斑、燈需即時開關）；其他八區待客廳通過驗收再擴建。
+- **測試**：新增 `Case01RebuildTests` 4、`Case01RebuildPlayModeTests` 1；EditMode 416/416、PlayMode 19/19。**不代表美術驗收**。
+
+---
 # 2026-11-12｜第十七號門高完成度沉浸式住宅探索 QA：已實作（Claude；待使用者真人試玩）
 文件：`docs/story/case01_seventeenth_door/CASE01_IMMERSIVE_HOUSE_QA.md`；截圖 `immersive_house/`。
 - **入口**：`Shepherd/Case01/沉浸式住宅探索 QA`（獨立場景 `Assets/Exploration/Scenes/Case01ImmersiveHouseQA.unity`）。範圍：前門 → 玄關 → 客廳 → 樓梯 → 二樓走廊（R3 正常狀態，連續可走）。
