@@ -1,3 +1,14 @@
+# 2026-11-12｜第十七號門高完成度沉浸式住宅探索 QA：已實作（Claude；待使用者真人試玩）
+文件：`docs/story/case01_seventeenth_door/CASE01_IMMERSIVE_HOUSE_QA.md`；截圖 `immersive_house/`。
+- **入口**：`Shepherd/Case01/沉浸式住宅探索 QA`（獨立場景 `Assets/Exploration/Scenes/Case01ImmersiveHouseQA.unity`）。範圍：前門 → 玄關 → 客廳 → 樓梯 → 二樓走廊（R3 正常狀態，連續可走）。
+- **移動**：慢走 1.2／正常 1.5（預設）／較快 1.8 m/s（1／2／3 或 F6），加減速 6 m/s²、Shift 快步 ×1.45；輕微步態（上下 8 mm），停下靜止，B 可關。FOV 55°／眼高 1.58 m 仍是候選（F5／F7）。
+- **照明**：吊燈大幅調暗，改由壁爐、檯燈、電話桌小燈、門玻璃冷光、三盞壁燈提供主光；手電筒 F（跟視線、光斑、柔和陰影、近距收光、三段強度 X）；環境亮度 L。
+- **合照近看**：E 拿起 2048×1536 的瑪格麗特與艾琳十七號門前合照（Blender Cycles 算圖＋做舊），可以放大 3.5×、拖曳、翻面看鉛筆字、P 切換異常候選，E 放回。共用檢視架構 `Case01Inspector`。
+- **陳設**：Blender 程序新模型（鞋、靴、大衣、傘、鑰匙碗、信、杯、遙控器、抱枕、報紙、壁燈、手電筒、欄杆柱、起步柱、扶手、壓毯棍）＋樓梯長毯；全部自製，沒有第三方素材。
+- **測試**：新增 `Case01ImmersiveHouseTests` 7、`Case01ImmersiveHousePlayModeTests` 1。**batchmode，不代表沉浸感通過**。
+- **未達成品**：合照人物是風格化人偶；牆地天花與樓梯本體沿用舊件；沒有烘焙光與後製；小物件近看細節有限；沒有實機錄影（沒有 Recorder／ffmpeg）。正式 Demo、其他 QA、戰鬥未動。
+
+---
 # 2026-11-11｜Issue #7 現實校正 × 沉浸式操作 QA：已實作（Claude；待使用者真人試玩）
 文件：`docs/story/case01_seventeenth_door/CASE01_REALITY_CORRECTION_QA.md`；對照圖 `reality_correction/`。
 - **入口**：`Shepherd/Case01/現實校正沉浸式玩法 QA`（獨立場景 `Assets/Exploration/Scenes/Case01RealityCorrectionQA.unity`）。沿用 Phase 1.9 R3 住宅；玩法在一樓廚房＋後廚（局部失序區域）。P 直接到廚房門口。
