@@ -221,10 +221,72 @@ namespace Shepherd.Exploration.Case01
             return c.Done(name);
         }
 
+        /// <summary>現實校正 QA 的線索：女孩踩在那張廚房椅上，伸手拿高櫃最上層的罐子（舊相紙色調）。</summary>
+        private static Texture2D PhotoChair(string name)
+        {
+            var c = new Canvas2D(256, 192, new Color(0.74f, 0.66f, 0.52f));
+            c.Rect(0f, 0f, 1f, 0.2f, new Color(0.5f, 0.42f, 0.32f));
+            // 高櫃：外框、層板、罐子。
+            var wood = new Color(0.36f, 0.24f, 0.16f);
+            c.Rect(0.56f, 0.18f, 0.86f, 0.94f, wood);
+            c.Rect(0.58f, 0.2f, 0.84f, 0.92f, new Color(0.46f, 0.34f, 0.24f));
+            for (int i = 0; i < 4; i++) c.Rect(0.58f, 0.36f + i * 0.15f, 0.84f, 0.38f + i * 0.15f, wood);
+            for (int i = 0; i < 4; i++)
+                for (int j = 0; j < 3; j++)
+                    c.Rect(0.61f + j * 0.08f, 0.38f + i * 0.15f, 0.66f + j * 0.08f, 0.46f + i * 0.15f, new Color(0.8f, 0.78f, 0.7f));
+            // 椅子（側面）：椅面、四腳、椅背。
+            var chair = new Color(0.3f, 0.2f, 0.13f);
+            c.Rect(0.36f, 0.4f, 0.54f, 0.43f, chair);
+            c.Rect(0.37f, 0.2f, 0.385f, 0.4f, chair);
+            c.Rect(0.515f, 0.2f, 0.53f, 0.4f, chair);
+            c.Rect(0.36f, 0.43f, 0.375f, 0.66f, chair);
+            // 站在椅子上的女孩，手伸向最上層。
+            var girl = new Color(0.22f, 0.17f, 0.16f);
+            c.Rect(0.42f, 0.43f, 0.44f, 0.55f, girl);
+            c.Rect(0.46f, 0.43f, 0.48f, 0.55f, girl);
+            for (float y = 0.55f; y < 0.75f; y += 0.004f) c.Rect(0.415f, y, 0.485f, y + 0.005f, girl);
+            c.Disc(0.45f, 0.8f, 0.032f, girl);
+            c.Line(0.48f, 0.73f, 0.6f, 0.88f, 1.8f, girl);
+            // 舊相紙：去飽和、暖色、暗角、白邊。
+            for (int i = 0; i < c.Px.Length; i++)
+            {
+                var p = c.Px[i];
+                float g = p.r * 0.3f + p.g * 0.59f + p.b * 0.11f;
+                c.Px[i] = Color.Lerp(p, new Color(g * 1.08f, g * 0.98f, g * 0.82f), 0.5f);
+            }
+            c.Vignette(0.4f);
+            c.Noise(0.05f, 21);
+            var border = new Color(0.96f, 0.94f, 0.88f);
+            c.Rect(0f, 0f, 1f, 0.06f, border);
+            c.Rect(0f, 0.94f, 1f, 1f, border);
+            c.Rect(0f, 0f, 0.045f, 1f, border);
+            c.Rect(0.955f, 0f, 1f, 1f, border);
+            return c.Done(name);
+        }
+
         private static Texture2D Make(string name)
         {
             switch (name)
             {
+                case "photo_chair": return PhotoChair(name);
+                case "scuff_marks":
+                {
+                    // 地板上一張椅子常放的位置：四個磨亮的椅腳凹痕＋椅子被拖來拖去的弧形刮痕（透明底，貼在地上）。
+                    var c = new Canvas2D(128, 128, new Color(1f, 1f, 1f, 0f));
+                    var worn = new Color(0.82f, 0.74f, 0.6f, 0.55f);
+                    foreach (var p in new[] { new Vector2(0.22f, 0.25f), new Vector2(0.78f, 0.25f), new Vector2(0.22f, 0.78f), new Vector2(0.78f, 0.78f) })
+                    {
+                        c.Disc(p.x, p.y, 0.06f, new Color(0.35f, 0.27f, 0.2f, 0.55f));
+                        c.Disc(p.x, p.y, 0.035f, worn);
+                    }
+                    for (int k = 0; k < 4; k++)
+                        for (float a = -0.5f; a < 0.5f; a += 0.02f)
+                        {
+                            float r = 0.36f + k * 0.04f;
+                            c.Line(0.5f + Mathf.Sin(a) * r, 0.1f + Mathf.Cos(a) * r * 0.25f, 0.5f + Mathf.Sin(a + 0.02f) * r, 0.1f + Mathf.Cos(a + 0.02f) * r * 0.25f, 0.6f, new Color(0.8f, 0.72f, 0.58f, 0.3f));
+                        }
+                    return c.Done(name);
+                }
                 case "photo_family": return Photo(name, false, false);
                 case "photo_family_faded": return Photo(name, true, false);
                 case "photo_beach": return Photo(name, false, true);
