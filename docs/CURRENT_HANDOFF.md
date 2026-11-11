@@ -1,3 +1,12 @@
+# 2026-11-11｜Issue #7 現實校正 × 沉浸式操作 QA：已實作（Claude；待使用者真人試玩）
+文件：`docs/story/case01_seventeenth_door/CASE01_REALITY_CORRECTION_QA.md`；對照圖 `reality_correction/`。
+- **入口**：`Shepherd/Case01/現實校正沉浸式玩法 QA`（獨立場景 `Assets/Exploration/Scenes/Case01RealityCorrectionQA.unity`）。沿用 Phase 1.9 R3 住宅；玩法在一樓廚房＋後廚（局部失序區域）。P 直接到廚房門口。
+- **玩法**：倒下的高櫃擋住後廚拱口（真碰撞）→ 左鍵瞄準校正，暫時直立 5 秒（3～8 可調）→ 後廚照片＋地上椅腳凹痕＝維持條件 → 右鍵牽引藍坐墊椅子（繞玩家、被牆擋、落點框紅／綠／金、Q 取消、滾輪遠近）→ 放上凹痕再校正＝局部穩定。倒下／立起前檢查路徑，絕不壓人；椅子在路徑上會被推開；R 重置；正常區域沒有校正鍵與準星。
+- **測試**：新增 `Case01CorrectionTests` 8、`Case01CorrectionPlayModeTests` 1，全套 EditMode 405/405、PlayMode 17/17。**batchmode，不代表沉浸感通過**。
+- **未解**：櫃子／椅子借既有模型；合成音效；沒有灰塵／物理；牽引高度固定；手感參數需真人調。正式 Demo、其他 QA、戰鬥未動。
+
+---
+
 # 2026-11-10｜Phase 1.9 整體關卡與異域美術重構 QA：已實作（Claude；待使用者真人第一人稱驗收）
 結果：`docs/story/case01_seventeenth_door/CASE01_PHASE1_9_LEVEL_ART_QA_RESULTS.md`；圖 `phase1_9/`。commits 09c8872／0b4e31f／fd3ded8／82b2384＋文件。
 - **入口**：`Shepherd/Case01/Phase 1.9 整體關卡與異域美術重構 QA`（獨立場景 `Assets/Exploration/Scenes/Case01Phase19QA.unity`，進 Play；R3，從前門內開始）。E 開關門／調查；F1 前門、**F2 1.9↔1.8 R2**、F3 H0～H3、**M 夾層（S40）**、**Y 夾層核校正前／後**、**K 中庭（S50，自由走、不開戰）**、**T 圖文巡覽（近距離逐件）**、F4～F12／L 同 1.8。量測與截圖：`Phase 1.9 截圖與量測`。
