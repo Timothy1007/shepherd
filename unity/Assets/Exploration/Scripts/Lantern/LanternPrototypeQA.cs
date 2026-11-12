@@ -23,6 +23,10 @@ namespace Shepherd.Exploration.Lantern
         public LanternGraybox World { get; private set; }
         public LanternRig Rig { get; private set; }
         public LanternActions Actions { get; private set; }
+        public LanternCombat Combat { get; private set; }
+        public LanternAudio Audio { get; private set; }
+        /// <summary>按住聚光（Space）：把提燈舉高，光變成往前的細長光束；聚光時走路變慢。</summary>
+        public bool FocusHeld;
         public FirstPersonController Player { get; private set; }
         public Camera Cam { get; private set; }
         public Case01RebuildPost Post { get; private set; }
@@ -34,7 +38,10 @@ namespace Shepherd.Exploration.Lantern
 
         private float time;
         private Text debugText, hintText, modeText, promptText;
-        private Image crosshair, chargeBar, chargeBack;
+        private Image crosshair, chargeBar, chargeBack, healthBar, healthBack, hurtOverlay;
+        private Text downText;
+        private float stepDistance;
+        private Vector3 lastFeet;
         private GameObject canvasGo;
         private bool cursorFree;
         private readonly LegacyExploreInput input = new LegacyExploreInput();
@@ -43,6 +50,7 @@ namespace Shepherd.Exploration.Lantern
         private bool savedFog;
         private SimulationMode savedSim;
         private bool simChanged;
+        private float savedReflection = 1f;
 
         private void Start()
         {
@@ -66,6 +74,8 @@ namespace Shepherd.Exploration.Lantern
             RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
             RenderSettings.ambientLight = new Color(0.035f, 0.038f, 0.045f);
             RenderSettings.fog = false;
+            savedReflection = RenderSettings.reflectionIntensity;
+            RenderSettings.reflectionIntensity = 0.25f;
             LanternReveal.Clear();
 
             World = LanternGraybox.Build(transform);
@@ -90,7 +100,12 @@ namespace Shepherd.Exploration.Lantern
             Post.Exposure = 1.0f;
 
             Rig = LanternRig.Build(Cam, Player);
+            Audio = LanternAudio.Build(camGo.transform);
             Actions = new LanternActions(Cam, Rig, World);
+            Actions.Audio = Audio;
+            Combat = new LanternCombat(World, Player, Rig, Audio, Actions.Particles);
+            Actions.Targets = () => Combat.Living;
+            lastFeet = Player.transform.position;
             if (play) BuildUi();
             Ready = true;
             Rig.Snap();
@@ -101,7 +116,7 @@ namespace Shepherd.Exploration.Lantern
 
         // ---------------- 操作 ----------------
 
-        public void ToggleLantern() => Rig.Toggle();
+        public void ToggleLantern() { Rig.Toggle(); Audio?.Play(LanternAudio.Toggle, 0.7f); }
         public void CycleRadius() => Rig.CycleRadius();
         public void ToggleHeadBob() => Rig.HeadBob = !Rig.HeadBob;
         public void ToggleDebug() { DebugVisible = !DebugVisible; if (debugText != null) debugText.enabled = DebugVisible; }
@@ -139,10 +154,19 @@ namespace Shepherd.Exploration.Lantern
         {
             if (!Ready) return;
             time += dt;
+            if (Combat.PlayerDown) { inp.Move = Vector2.zero; inp.Look = Vector2.zero; act = default(LanternActionInput); }
+            Rig.Focus = FocusHeld;
+            Player.WalkSpeedValue = WalkSpeed * Mathf.Lerp(1f, 0.6f, Rig.FocusBlend);
+            Player.RunSpeedValue = BriskSpeed * Mathf.Lerp(1f, 0.6f, Rig.FocusBlend);
             Player.Step(dt, inp, true);
+            var feet = Player.transform.position;
+            stepDistance += Vector3.Distance(new Vector3(feet.x, 0f, feet.z), new Vector3(lastFeet.x, 0f, lastFeet.z));
+            lastFeet = feet;
+            if (stepDistance > 0.75f) { stepDistance = 0f; Audio?.Play(LanternAudio.Step, 0.35f); }
             Rig.Tick(dt, time);
             World.Tick(time);
             Actions.Step(dt, act);
+            Combat.Step(dt);
             if (dt > 0f && simChanged) Physics.Simulate(dt);
             LanternReveal.Tick(dt);
             UpdateUi();
@@ -157,7 +181,9 @@ namespace Shepherd.Exploration.Lantern
               .Append("｜提燈 ").Append(Rig.On ? "開" : "關")
               .Append("｜光圈 ").Append(Rig.CurrentRadius.ToString("0.0")).Append(" m")
               .Append("｜模式 ").Append(ModeNames[(int)Actions.Mode])
-              .Append("｜現實泡泡 ").Append(LanternReveal.ActiveBubbles);
+              .Append("｜現實泡泡 ").Append(LanternReveal.ActiveBubbles)
+              .Append("｜生命 ").Append(Combat.Health.ToString("0"))
+              .Append("｜失序體 ").Append(Combat.Enemies.Count > 0 && Combat.Enemies[0] != null ? Combat.Enemies[0].Current + " " + Combat.Enemies[0].Hp.ToString("0.0") : "-");
             return sb.ToString();
         }
 
@@ -170,6 +196,8 @@ namespace Shepherd.Exploration.Lantern
             if (Input.GetKeyDown(KeyCode.F2)) GoTo("LivingEntry");
             if (Input.GetKeyDown(KeyCode.F3)) GoTo("KitchenEntry");
             if (Input.GetKeyDown(KeyCode.F4)) GoTo("BrightEntry");
+            if (Input.GetKeyDown(KeyCode.F6)) GoTo("ArenaStart");
+            FocusHeld = Input.GetKey(KeyCode.Space);
             if (Input.GetKeyDown(KeyCode.B)) ToggleHeadBob();
             if (Input.GetKeyDown(KeyCode.F5)) CycleFov();
             if (Input.GetKeyDown(KeyCode.R)) ResetScene();
@@ -227,12 +255,35 @@ namespace Shepherd.Exploration.Lantern
             chargeBar.color = new Color(1f, 0.85f, 0.55f, 0.9f);
 
             hintText = MakeText("Hint", font, 18, new Vector2(24, 20), TextAnchor.LowerLeft, new Vector2(0, 0));
-            hintText.text = "F 提燈　Q 光圈　1/2/3 或滾輪 換模式　左鍵 使用　右鍵 蓄力丟出　F1–F4 走廊／客廳／廚房／亮房間　B 晃動　F5 視野　R 重置　F12 數值　Esc 滑鼠";
+            hintText.text = "F 提燈　按住Space 聚光　Q 光圈　1/2/3 或滾輪 換模式　左鍵 使用　右鍵 蓄力丟出　F1–F4 走廊／客廳／廚房／亮房間　F6 戰鬥場　B 晃動　F5 視野　R 重置　F12 數值　Esc 滑鼠";
             hintText.color = new Color(1f, 1f, 1f, 0.5f);
             modeText = MakeText("Mode", font, 26, new Vector2(-30, 24), TextAnchor.LowerRight, new Vector2(1, 0));
             promptText = MakeText("Prompt", font, 22, new Vector2(0, -70), TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f));
             promptText.color = new Color(1f, 0.96f, 0.88f, 0.85f);
             debugText = MakeText("Debug", font, 18, new Vector2(24, -20), TextAnchor.UpperLeft, new Vector2(0, 1));
+            hurtOverlay = new GameObject("HurtOverlay").AddComponent<Image>();
+            hurtOverlay.transform.SetParent(canvasGo.transform, false);
+            hurtOverlay.rectTransform.anchorMin = Vector2.zero;
+            hurtOverlay.rectTransform.anchorMax = Vector2.one;
+            hurtOverlay.rectTransform.sizeDelta = Vector2.zero;
+            hurtOverlay.raycastTarget = false;
+            hurtOverlay.color = new Color(0.6f, 0f, 0f, 0f);
+            hurtOverlay.transform.SetAsFirstSibling();
+            healthBack = new GameObject("HealthBack").AddComponent<Image>();
+            healthBack.transform.SetParent(canvasGo.transform, false);
+            healthBack.rectTransform.anchorMin = healthBack.rectTransform.anchorMax = healthBack.rectTransform.pivot = new Vector2(0, 0);
+            healthBack.rectTransform.anchoredPosition = new Vector2(24, 56);
+            healthBack.rectTransform.sizeDelta = new Vector2(260, 10);
+            healthBack.color = new Color(0f, 0f, 0f, 0.45f);
+            healthBar = new GameObject("HealthBar").AddComponent<Image>();
+            healthBar.transform.SetParent(healthBack.transform, false);
+            healthBar.rectTransform.anchorMin = new Vector2(0, 0);
+            healthBar.rectTransform.anchorMax = new Vector2(0, 1);
+            healthBar.rectTransform.pivot = new Vector2(0, 0.5f);
+            healthBar.color = new Color(0.95f, 0.85f, 0.65f, 0.85f);
+            downText = MakeText("Down", font, 40, new Vector2(0, 40), TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f));
+            downText.text = "你倒下了…";
+            downText.enabled = false;
             debugText.enabled = false;
         }
 
@@ -272,6 +323,11 @@ namespace Shepherd.Exploration.Lantern
             crosshair.color = Actions.Aimed != null ? new Color(1f, 0.85f, 0.5f, 0.95f) : new Color(1f, 0.95f, 0.85f, 0.55f);
             crosshair.rectTransform.sizeDelta = Actions.Aimed != null ? new Vector2(10, 10) : new Vector2(6, 6);
             if (DebugVisible) debugText.text = DebugString();
+            healthBar.rectTransform.sizeDelta = new Vector2(260f * Combat.Health / LanternCombat.MaxHealth, 0f);
+            healthBar.color = Combat.Health < 35f ? new Color(1f, 0.35f, 0.3f, 0.9f) : new Color(0.95f, 0.85f, 0.65f, 0.85f);
+            float vign = Mathf.Max(Combat.HurtFlash * 0.55f, (1f - Combat.Health / LanternCombat.MaxHealth) * 0.25f);
+            hurtOverlay.color = new Color(0.55f, 0f, 0f, Combat.PlayerDown ? 0.75f : vign);
+            downText.enabled = Combat.PlayerDown;
         }
 
         /// <summary>還原暫時改動的全域設定（物理模擬模式、環境光）。可重複呼叫。編輯器模式下不會自動呼叫 OnDestroy，測試與截圖要自己呼叫。</summary>
@@ -287,6 +343,7 @@ namespace Shepherd.Exploration.Lantern
                 RenderSettings.ambientLight = savedAmbient;
                 RenderSettings.ambientMode = savedMode;
                 RenderSettings.fog = savedFog;
+                RenderSettings.reflectionIntensity = savedReflection;
             }
         }
 
@@ -294,6 +351,7 @@ namespace Shepherd.Exploration.Lantern
         {
             Shutdown();
             if (Actions != null) Actions.Destroy();
+            if (Combat != null) Combat.Destroy();
             if (Rig != null) Rig.Destroy();
             if (World != null) World.Destroy();
             LanternReveal.Clear();

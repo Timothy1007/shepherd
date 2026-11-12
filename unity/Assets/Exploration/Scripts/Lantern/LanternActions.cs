@@ -64,6 +64,11 @@ namespace Shepherd.Exploration.Lantern
         private float holdDistance = 2f;
         private float time;
         private int mask;
+        /// <summary>射擊與丟擲的瞄準輔助目標（練習靶＋活著的失序體）。</summary>
+        public System.Func<IEnumerable<Component>> Targets;
+        public LanternAudio Audio;
+        public int EnemyHits { get; private set; }
+        public ParticleSystem Particles => burst;
 
         public LanternActions(Camera cam, LanternRig rig, LanternGraybox world)
         {
@@ -200,7 +205,7 @@ namespace Shepherd.Exploration.Lantern
             switch (Mode)
             {
                 case StabilizerMode.Shot:
-                    Aimed = world.Target != null ? FindAimed(new[] { world.Target }, 10f, 25f) : null;
+                    Aimed = FindAimed(AimTargets(), 10f, 25f);
                     if (inp.Primary) Charge = Mathf.Min(1f, Charge + dt / ChargeSeconds);
                     if (pUp) { Fire(Charge); Charge = 0f; }
                     Prompt = inp.Primary ? "蓄力中… 放開射出穩定能量" : "按住左鍵蓄力，放開射出穩定能量";
@@ -218,10 +223,16 @@ namespace Shepherd.Exploration.Lantern
 
             StepShots(dt);
             StepThrown(dt);
-            foreach (var s in world.Spots) if (s != null && s.Check()) { Placed++; Burst(s.transform.position + Vector3.up * 0.4f, 40); }
+            foreach (var s in world.Spots) if (s != null && s.Check()) { Placed++; Burst(s.transform.position + Vector3.up * 0.4f, 40); Audio?.Play(LanternAudio.Placed, 0.9f); }
             foreach (var b in world.Blockers) if (b != null) b.Refresh();
             if (world.Target != null) world.Target.Step(dt, time);
             rig.SetDevice((int)Mode, Mode == StabilizerMode.Tether ? ThrowCharge : Charge, active);
+            if (Audio != null)
+            {
+                LanternAudio.Loop(Audio.Charge, Mode == StabilizerMode.Shot && inp.Primary || ThrowCharge > 0.01f, 0.8f + Mathf.Max(Charge, ThrowCharge) * 1.1f, 0.35f, dt);
+                LanternAudio.Loop(Audio.Tether, Held != null, 1f + Mathf.Sin(time * 3f) * 0.03f, 0.3f, dt);
+                LanternAudio.Loop(Audio.Restore, Restoring != null, 0.9f + (Restoring != null ? Restoring.Progress * 0.5f : 0f), 0.35f, dt);
+            }
         }
 
         // ---------------- 射擊 ----------------
@@ -233,7 +244,7 @@ namespace Shepherd.Exploration.Lantern
             RaycastHit hit;
             if (Physics.Raycast(AimRay, out hit, 30f, mask, QueryTriggerInteraction.Ignore)) aimPoint = hit.point;
             Transform homing = null;
-            var t = world.Target != null ? FindAimed(new[] { world.Target }, 10f, 25f) : null;
+            var t = FindAimed(AimTargets(), 10f, 25f);
             if (t != null) { aimPoint = Center(t); homing = t.transform; }
             var go = ArenaArt.Prim(PrimitiveType.Sphere, world.Root, origin, Vector3.one * (0.07f + 0.08f * charge), shotMat, null, "StabilizerShot", false, false);
             var l = go.gameObject.AddComponent<Light>();
@@ -246,6 +257,7 @@ namespace Shepherd.Exploration.Lantern
             shots.Add(new Shot { T = go, Vel = (aimPoint - origin).normalized * speed, Charge = charge, Life = 2.5f, Homing = homing });
             ShotsFired++;
             rig.Recoil();
+            Audio?.Play(LanternAudio.Shot, 0.8f);
         }
 
         private void StepShots(float dt)
@@ -279,8 +291,11 @@ namespace Shepherd.Exploration.Lantern
             LastImpact = p;
             LanternReveal.AddBubble(p, 0.7f + 0.7f * charge, 3f + 2f * charge);
             Burst(p, Mathf.RoundToInt(20 + 40 * charge));
+            Audio?.Play(LanternAudio.Impact, 0.7f);
             var target = c != null ? c.GetComponentInParent<LanternTarget>() : null;
             if (target != null) { target.Hit(charge); TargetHits++; }
+            var enemy = c != null ? c.GetComponentInParent<LanternEnemy>() : null;
+            if (enemy != null && enemy.Alive) { enemy.Hit(charge, false); EnemyHits++; }
         }
 
         private void Burst(Vector3 p, int count)
@@ -327,8 +342,15 @@ namespace Shepherd.Exploration.Lantern
             return true;
         }
 
+        private IEnumerable<Component> AimTargets()
+        {
+            if (world.Target != null) yield return world.Target;
+            if (Targets != null) foreach (var c in Targets()) if (c != null) yield return c;
+        }
+
         public void Grab(LanternTetherable t)
         {
+            Audio?.Play(LanternAudio.Grab, 0.6f);
             Held = t;
             t.Held = true;
             t.Body.useGravity = false;
@@ -338,6 +360,7 @@ namespace Shepherd.Exploration.Lantern
         public void DropHeld(bool keepVelocity)
         {
             if (Held == null) return;
+            if (!keepVelocity) Audio?.Play(LanternAudio.Drop, 0.6f);
             Held.Held = false;
             Held.Body.useGravity = true;
             if (!keepVelocity) Held.Body.velocity *= 0.3f;
@@ -351,9 +374,10 @@ namespace Shepherd.Exploration.Lantern
             if (Held == null) return;
             var t = Held;
             var dir = cam.transform.forward;
-            var target = world.Target != null ? FindAimed(new[] { world.Target }, 12f, 20f) : null;
+            var target = FindAimed(AimTargets(), 12f, 20f);
             if (target != null) dir = (Center(target) - Center(t)).normalized;
             DropHeld(true);
+            Audio?.Play(LanternAudio.Throw, 0.8f);
             t.Body.velocity = dir * (6f + 9f * charge) + Vector3.up * 0.8f;
             t.ThrownTimer = 1.6f;
             rig.Recoil();
@@ -361,22 +385,26 @@ namespace Shepherd.Exploration.Lantern
 
         private void StepThrown(float dt)
         {
-            var target = world.Target;
             foreach (var t in world.Tetherables)
             {
                 if (t == null || t.ThrownTimer <= 0f) continue;
                 t.ThrownTimer -= dt;
-                if (target == null) continue;
-                var col = target.GetComponent<Collider>();
-                if (col == null) continue;
+                if (t.Body.velocity.magnitude <= 2f) continue;
                 var p = Center(t);
-                if (Vector3.Distance(col.ClosestPoint(p), p) < 0.45f && t.Body.velocity.magnitude > 2f)
+                foreach (var c in AimTargets())
                 {
-                    target.Hit(0.7f);
-                    TargetHits++;
+                    var col = c.GetComponent<Collider>();
+                    if (col == null || Vector3.Distance(col.ClosestPoint(p), p) > 0.45f) continue;
+                    var lt = c as LanternTarget;
+                    var le = c as LanternEnemy;
+                    if (lt != null) { lt.Hit(0.7f); TargetHits++; }
+                    else if (le != null && le.Alive) { le.Hit(0.7f, true); EnemyHits++; }
+                    else continue;
                     t.ThrownTimer = 0f;
                     LanternReveal.AddBubble(p, 1f, 3f);
                     Burst(p, 40);
+                    Audio?.Play(LanternAudio.Impact, 0.8f);
+                    break;
                 }
             }
         }
@@ -407,6 +435,7 @@ namespace Shepherd.Exploration.Lantern
                 if (r.Step(dt, casting && r == target))
                 {
                     Restored++;
+                    Audio?.Play(LanternAudio.RestoreDone, 0.9f);
                     Burst(Center(r), 80);
                     Restoring = null;
                     Prompt = r.Label + "復原了";

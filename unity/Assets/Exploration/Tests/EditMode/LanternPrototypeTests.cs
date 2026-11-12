@@ -68,7 +68,7 @@ namespace Shepherd.Exploration.Tests
             Assert.Less(LanternRig.Radii[1], 2.2f, "光圈像真的燈：不會佔滿半個畫面");
             var ahead = rig.RevealCenter;
             Assert.IsTrue(LanternReveal.IsReal(ahead), "提燈前方顯示真實");
-            Assert.IsFalse(LanternReveal.IsReal(ahead + qa.Cam.transform.forward * 2.5f), "幾步之外仍是異域");
+            Assert.IsFalse(LanternReveal.IsReal(ahead + qa.Cam.transform.forward * 3.5f), "幾步之外仍是異域");
             Assert.AreEqual(rig.RevealCenter, (Vector3)Shader.GetGlobalVector(LanternReveal.SphereId), "shader 拿到同一個光圈");
 
             qa.ToggleLantern();
@@ -257,6 +257,164 @@ namespace Shepherd.Exploration.Tests
             var pos = target.transform.position;
             qa.Step(Dt, ExploreInput.None);
             Assert.Less(Vector3.Distance(pos, target.transform.position), 0.02f, "暈眩時停止移動");
+        }
+
+        [Test]
+        public void LanternLight_IsAForwardEgg_AndFocusMakesALongNarrowBeam()
+        {
+            var qa = NewQa();
+            qa.Step(Dt, ExploreInput.None);
+            var c = qa.Rig.RevealCenter;
+            var f = qa.Cam.transform.forward;
+            var right = qa.Cam.transform.right;
+            Assert.IsTrue(LanternReveal.IsReal(c + f * 2.2f), "前方 2.2 m 是真實（往前照得比較遠）");
+            Assert.IsFalse(LanternReveal.IsReal(c + right * 1.3f), "側面 1.3 m 已經是異域");
+            Assert.IsFalse(LanternReveal.IsReal(c - f * 1.0f), "身後 1 m 已經是異域");
+            Assert.IsTrue(LanternReveal.IsReal(c + right * 0.6f), "身邊一小圈是真實");
+            Assert.IsFalse(LanternReveal.IsReal(c + f * 5f), "平常照不到 5 m");
+            float walk = qa.Player.WalkSpeedValue;
+            qa.FocusHeld = true;
+            for (int i = 0; i < 20; i++) qa.Step(Dt, ExploreInput.None);
+            c = qa.Rig.RevealCenter;
+            f = qa.Cam.transform.forward;
+            right = qa.Cam.transform.right;
+            Assert.Greater(qa.Rig.FocusBlend, 0.99f);
+            Assert.IsTrue(LanternReveal.IsReal(c + f * 5f), "聚光：照到 5 m 外");
+            Assert.IsFalse(LanternReveal.IsReal(c + right * 0.7f), "聚光：光束很窄，身邊變暗");
+            Assert.IsTrue(LanternReveal.IsReal(c + f * 4.5f + right * 0.6f), "聚光：越遠越寬（錐形），4.5 m 外偏 0.6 m 仍照得到");
+            Assert.Less(qa.Player.WalkSpeedValue, walk * 0.7f, "聚光時走路變慢");
+            Assert.Less(qa.Rig.Beam.spotAngle, 40f, "往前的光束變窄");
+        }
+
+        private static LanternEnemy PlaceEnemy(LanternPrototypeQA qa, float distance)
+        {
+            qa.GoTo("ArenaStart");
+            var e = qa.Combat.Enemies[0];
+            var p = qa.Player.transform.position;
+            e.transform.position = new Vector3(p.x + distance, 0f, p.z);
+            Physics.SyncTransforms();
+            Aim(qa, e.transform.position + Vector3.up * 1.2f);
+            return e;
+        }
+
+        [Test]
+        public void Disorder_ChasesThenWarns_ThenLungesForDamage()
+        {
+            var qa = NewQa();
+            var e = PlaceEnemy(qa, 4.2f);
+            Assert.AreEqual(LanternEnemy.State.Chase, e.Current);
+            float d0 = Vector3.Distance(e.transform.position, qa.Player.transform.position);
+            for (int i = 0; i < 10; i++) qa.Step(Dt, ExploreInput.None);
+            Assert.Less(Vector3.Distance(e.transform.position, qa.Player.transform.position), d0 - 0.4f, "追過來");
+            int frames = 0;
+            while (e.Current != LanternEnemy.State.WindUp && frames++ < 120) qa.Step(Dt, ExploreInput.None);
+            Assert.AreEqual(LanternEnemy.State.WindUp, e.Current, "靠近時先出現攻擊前兆");
+            int warn = 0;
+            while (e.Current == LanternEnemy.State.WindUp && warn++ < 60) qa.Step(Dt, ExploreInput.None);
+            Assert.GreaterOrEqual(warn * Dt, 0.6f, "前兆至少 0.6 秒，來得及躲");
+            Assert.AreEqual(100f, qa.Combat.Health, 1e-3f, "前兆期間還沒受傷");
+            for (int i = 0; i < 12; i++) qa.Step(Dt, ExploreInput.None);
+            Assert.AreEqual(100f - LanternEnemy.LungeDamage, qa.Combat.Health, 1e-3f, "站著不動會被撲中");
+            Assert.Greater(qa.Combat.HurtFlash, 0f, "受傷畫面回饋");
+        }
+
+        [Test]
+        public void Disorder_LungeCanBeDodged_AndOrbsCanBeSidestepped()
+        {
+            var qa = NewQa();
+            var e = PlaceEnemy(qa, 2.0f);
+            int frames = 0;
+            while (e.Current != LanternEnemy.State.WindUp && frames++ < 60) qa.Step(Dt, ExploreInput.None);
+            var p = qa.Player.transform.position;
+            qa.Player.Teleport(p + Vector3.left * 3.5f, qa.Player.Yaw, 0f);
+            for (int i = 0; i < 45; i++) qa.Step(Dt, ExploreInput.None);
+            Assert.AreEqual(100f, qa.Combat.Health, 1e-3f, "前兆時退開＝躲過撲擊");
+
+            qa.Combat.Respawn();
+            e = PlaceEnemy(qa, 8f);
+            frames = 0;
+            while (qa.Combat.Orbs.Count == 0 && frames++ < 240) qa.Step(Dt, ExploreInput.None);
+            Assert.AreEqual(1, qa.Combat.Orbs.Count, "中距離丟出光球");
+            p = qa.Player.transform.position;
+            qa.Player.Teleport(p + Vector3.forward * 1.6f, qa.Player.Yaw, 0f);
+            for (int i = 0; i < 60; i++) qa.Step(Dt, ExploreInput.None);
+            Assert.AreEqual(100f, qa.Combat.Health, 1e-3f, "橫移躲開光球");
+
+            qa.Combat.Respawn();
+            e = PlaceEnemy(qa, 8f);
+            frames = 0;
+            while (qa.Combat.Orbs.Count == 0 && frames++ < 240) qa.Step(Dt, ExploreInput.None);
+            for (int i = 0; i < 60; i++) qa.Step(Dt, ExploreInput.None);
+            Assert.AreEqual(100f - LanternEnemy.OrbDamage, qa.Combat.Health, 1e-3f, "站著不動會被光球打中");
+        }
+
+        [Test]
+        public void Disorder_StunnedByAShot_TakesDoubleDamage_ThenDissolvesIntoAStableArea_AndRespawns()
+        {
+            var qa = NewQa();
+            var e = PlaceEnemy(qa, 5f);
+            Act(qa, 1, new LanternActionInput { SelectMode = 1 });
+            Act(qa, 33, new LanternActionInput { Primary = true });
+            Act(qa, 1, LanternActionInput.None);
+            for (int i = 0; i < 20 && qa.Actions.EnemyHits == 0; i++) qa.Step(Dt, ExploreInput.None);
+            Assert.AreEqual(1, qa.Actions.EnemyHits, "蓄力射擊打中失序體");
+            Assert.IsTrue(e.Stunned, "暈眩");
+            Assert.AreEqual(LanternEnemy.MaxHp - 3f, e.Hp, 0.05f, "滿蓄力 3 點");
+            Aim(qa, e.transform.position + Vector3.up * 1.2f);
+            Act(qa, 33, new LanternActionInput { Primary = true });
+            Act(qa, 1, LanternActionInput.None);
+            for (int i = 0; i < 20 && qa.Actions.EnemyHits < 2; i++) qa.Step(Dt, ExploreInput.None);
+            Assert.AreEqual(2, qa.Actions.EnemyHits);
+            Assert.IsFalse(e.Alive, "趁暈眩再打：傷害加倍，消散");
+            for (int i = 0; i < 45; i++) qa.Step(Dt, ExploreInput.None);
+            Assert.AreEqual(LanternEnemy.State.Dead, e.Current);
+            Assert.AreEqual(1, qa.Combat.Kills);
+            Assert.IsTrue(LanternReveal.IsReal(e.transform.position + Vector3.up * 0.8f), "消散處永久恢復現實");
+            for (int i = 0; i < 170; i++) qa.Step(Dt, ExploreInput.None);
+            Assert.IsTrue(qa.Combat.Enemies.Exists(x => x != null && x.Alive), "幾秒後在遠處出現下一隻");
+        }
+
+        [Test]
+        public void Player_GoesDown_AndRespawnsAtTheArenaEntrance_WithFullHealth()
+        {
+            var qa = NewQa();
+            qa.GoTo("ArenaStart");
+            qa.Combat.Damage(60f);
+            Assert.AreEqual(40f, qa.Combat.Health, 1e-3f);
+            for (int i = 0; i < 30; i++) qa.Step(Dt, ExploreInput.None);
+            Assert.AreEqual(40f, qa.Combat.Health, 1e-3f, "剛受傷不會馬上回血");
+            for (int i = 0; i < 150; i++) qa.Step(Dt, ExploreInput.None);
+            Assert.Greater(qa.Combat.Health, 40f, "一段時間沒受傷會慢慢回血");
+            qa.Combat.Damage(200f);
+            Assert.IsTrue(qa.Combat.PlayerDown, "生命歸零：倒下");
+            var before = qa.Player.transform.position;
+            qa.Step(Dt, new ExploreInput { Move = new Vector2(0f, 1f) });
+            Assert.Less(Vector3.Distance(before, qa.Player.transform.position), 0.01f, "倒下時不能移動");
+            for (int i = 0; i < 70; i++) qa.Step(Dt, ExploreInput.None);
+            Assert.IsFalse(qa.Combat.PlayerDown, "重新站起來");
+            Assert.AreEqual(LanternCombat.MaxHealth, qa.Combat.Health, 1e-3f);
+            Assert.Less(Vector3.Distance(qa.Player.transform.position, qa.World.Marks["ArenaStart"].position), 0.3f, "回到戰鬥場入口");
+            Assert.AreEqual(1, qa.Combat.Deaths);
+        }
+
+        [Test]
+        public void Disorder_IsAShadowInTheDark_ClearInTheLantern_AndActionsMakeSounds()
+        {
+            var qa = NewQa();
+            var e = qa.Combat.Enemies[0];
+            var shell = e.Parts[0].sharedMaterial;
+            Assert.AreEqual(LanternReveal.Mode.Dual, LanternReveal.GetMode(shell));
+            var real = shell.GetColor("_BaseColor");
+            var anom = shell.GetColor("_AnomalyColor");
+            Assert.Greater(real.grayscale, anom.grayscale * 8f, "光裡看得清楚、暗處幾乎是黑影");
+            Assert.Less(shell.GetFloat("_AnomalySmoothness"), 0.2f, "暗處不反光（不會變成發亮的輪廓）");
+            Assert.Greater(shell.GetFloat("_Wobble"), 0.05f, "暗處的輪廓扭動、模糊");
+            foreach (var clip in new[] { LanternAudio.Shot, LanternAudio.Impact, LanternAudio.Grab, LanternAudio.RestoreDone, LanternAudio.EnemyWarn, LanternAudio.Hurt, LanternAudio.AmbientDrone })
+                Assert.IsTrue(clip != null && clip.length > 0.05f, "音效 " + (clip != null ? clip.name : "null"));
+            int before = qa.Audio.OneShotsPlayed;
+            qa.Actions.Fire(0.5f);
+            Assert.Greater(qa.Audio.OneShotsPlayed, before, "射擊有聲音");
+            Assert.IsNotNull(e.Drone, "失序體有自己的低鳴（3D 音源）");
         }
 
         [Test]

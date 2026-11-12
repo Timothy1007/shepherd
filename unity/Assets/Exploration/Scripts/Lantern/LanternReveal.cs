@@ -32,8 +32,36 @@ namespace Shepherd.Exploration.Lantern
         /// <summary>前 4 格給暫時的撞擊泡泡，後 4 格給永久的穩定區。</summary>
         public const int TempSlots = 4;
 
+        public static readonly int ForwardId = Shader.PropertyToID("_ShepRevealForward");
+        public static readonly int ShapeId = Shader.PropertyToID("_ShepRevealShape");
         public static Vector3 Center { get; private set; }
         public static float Radius { get; private set; }
+        public static Vector3 Forward { get; private set; } = Vector3.forward;
+        /// <summary>(前方倍率, 側面倍率, 後方倍率)；(1,1,1)＝圓球。</summary>
+        public static Vector3 Shape { get; private set; } = Vector3.one;
+        /// <summary>側面寬度每公尺增加的倍率（錐形）。</summary>
+        public static float Spread { get; private set; }
+
+        /// <summary>設定提燈光的形狀（往前偏的蛋形；聚光時變成細長光束）。</summary>
+        public static void SetShape(Vector3 forward, Vector3 shape, float spread = 0f)
+        {
+            Forward = forward.sqrMagnitude > 1e-4f ? forward.normalized : Vector3.forward;
+            Shape = shape;
+            Spread = spread;
+            Shader.SetGlobalVector(ForwardId, Forward);
+            Shader.SetGlobalVector(ShapeId, new Vector4(shape.x, shape.y, shape.z, spread));
+        }
+
+        /// <summary>與 shader 相同的「蛋形距離」（以半徑為單位前的公尺數）。</summary>
+        public static float ShapedDistance(Vector3 p)
+        {
+            var v = p - Center;
+            float along = Vector3.Dot(v, Forward);
+            var perp = v - Forward * along;
+            float a = along / Mathf.Max(along > 0f ? Shape.x : Shape.z, 0.05f);
+            float s = Mathf.Max(Shape.y + Mathf.Max(along, 0f) * Spread, 0.05f);
+            return Mathf.Sqrt(a * a + perp.sqrMagnitude / (s * s));
+        }
 
         private static readonly Vector4[] extra = new Vector4[ExtraCount];
         private static readonly float[] life = new float[ExtraCount];
@@ -51,6 +79,7 @@ namespace Shepherd.Exploration.Lantern
         public static void Clear()
         {
             SetSphere(Vector3.zero, 0f);
+            SetShape(Vector3.forward, Vector3.one);
             for (int i = 0; i < ExtraCount; i++) { extra[i] = Vector4.zero; life[i] = 0f; }
             PushExtra();
         }
@@ -116,7 +145,7 @@ namespace Shepherd.Exploration.Lantern
         /// <summary>與 shader 相同的判斷（不含邊緣雜訊；遮罩過半＝真實）：這個點目前是否顯示真實。</summary>
         public static bool IsReal(Vector3 p)
         {
-            if (Radius > 0f && Vector3.Distance(p, Center) < Radius * 0.725f) return true;
+            if (Radius > 0f && ShapedDistance(p) < Radius * 0.725f) return true;
             for (int i = 0; i < ExtraCount; i++)
                 if (extra[i].w > 0f && Vector3.Distance(p, extra[i]) < extra[i].w * 0.8f) return true;
             return false;

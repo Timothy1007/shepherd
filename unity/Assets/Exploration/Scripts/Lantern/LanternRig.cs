@@ -16,8 +16,17 @@ namespace Shepherd.Exploration.Lantern
     public sealed class LanternRig
     {
         public const int ViewLayer = 31;
-        /// <summary>提燈光圈外圈半徑（m）：0.45r 內完全真實，往外漸淡。</summary>
-        public static readonly float[] Radii = { 1.4f, 1.9f, 2.6f };
+        /// <summary>提燈光的基準半徑（m）。實際形狀是往前偏的蛋形：前方 ×2.1、側面 ×0.85、後方 ×0.7；聚光時前方 ×5.2、側面 ×0.3（越遠越寬）。</summary>
+        public static readonly float[] Radii = { 1.3f, 1.6f, 2.0f };
+        public static readonly Vector3 NormalShape = new Vector3(2.1f, 0.85f, 0.7f);
+        public static readonly Vector3 FocusShape = new Vector3(5.2f, 0.3f, 0.3f);
+        /// <summary>側面每公尺變寬的倍率：平常 0.05、聚光 0.13（5 m 外約 1.1 m 寬的錐形）。</summary>
+        public const float NormalSpread = 0.05f, FocusSpread = 0.13f;
+        /// <summary>聚光（舉高提燈）：0～1 平滑過渡。</summary>
+        public float FocusBlend { get; private set; }
+        public bool Focus;
+        public Light Beam { get; private set; }
+        private Transform lanternArm;
 
         public Camera Camera { get; private set; }
         public Camera ViewCamera { get; private set; }
@@ -35,7 +44,7 @@ namespace Shepherd.Exploration.Lantern
         public int RadiusIndex { get; private set; } = 1;
         public float CurrentRadius { get; private set; }
         public bool HeadBob = true;
-        public float RevealForward = 0.25f;
+        public float RevealForward = 0.2f;
         public Transform Muzzle { get; private set; }
         public Transform Device { get; private set; }
         private Material deviceGlow;
@@ -92,6 +101,7 @@ namespace Shepherd.Exploration.Lantern
 
             // 左前臂提燈：從畫面左下外側伸進來。
             var arm = new GameObject("LeftArm").transform;
+            lanternArm = arm;
             arm.SetParent(ViewRoot, false);
             arm.localPosition = new Vector3(-0.25f, -0.1f, 0.6f);
             arm.localScale = Vector3.one * 0.85f;
@@ -126,6 +136,16 @@ namespace Shepherd.Exploration.Lantern
             Light.range = 4f;
             Light.shadows = LightShadows.Soft;
             Light.shadowNearPlane = 0.25f;
+
+            // 往前照的光（平常較弱，聚光時變強、變窄、變遠）。
+            var bg = new GameObject("LanternBeam");
+            bg.transform.SetParent(Camera.transform, false);
+            bg.transform.localPosition = new Vector3(-0.2f, -0.2f, 0.3f);
+            Beam = bg.AddComponent<Light>();
+            Beam.type = LightType.Spot;
+            Beam.color = new Color(1f, 0.86f, 0.66f);
+            Beam.shadows = LightShadows.Soft;
+            Beam.shadowNearPlane = 0.2f;
 
             BuildDevice(sleeve, skin, brass, iron);
 
@@ -199,6 +219,10 @@ namespace Shepherd.Exploration.Lantern
 
         public void Recoil() => recoil = 1f;
 
+        private float shake;
+        /// <summary>受傷時鏡頭震動（公尺）。</summary>
+        public void Shake(float amount) => shake = Mathf.Max(shake, amount);
+
         private void BuildBody()
         {
             var coat = Lit("LR_Coat", new Color(0.13f, 0.12f, 0.14f), 0.15f);
@@ -227,7 +251,9 @@ namespace Shepherd.Exploration.Lantern
             bobAmount = Mathf.MoveTowards(bobAmount, HeadBob ? moving : 0f, dt * 3f);
             bobPhase += dt * Mathf.Lerp(4f, 9f, Mathf.Clamp01(speed / 3f));
             var bob = new Vector3(Mathf.Cos(bobPhase * 0.5f) * 0.012f, Mathf.Abs(Mathf.Sin(bobPhase * 0.5f)) * 0.022f - 0.011f, 0f) * bobAmount;
-            Camera.transform.position = player.EyePosition + player.ViewRotation * bob;
+            shake = Mathf.MoveTowards(shake, 0f, dt * 0.35f);
+            var jolt = shake > 0f ? new Vector3(Mathf.Sin(time * 61f), Mathf.Sin(time * 47f + 1.3f), 0f) * shake : Vector3.zero;
+            Camera.transform.position = player.EyePosition + player.ViewRotation * (bob + jolt);
             Camera.transform.rotation = player.ViewRotation;
             if (ViewCamera != null) ViewCamera.fieldOfView = 58f;
 
@@ -245,18 +271,29 @@ namespace Shepherd.Exploration.Lantern
             recoil = Mathf.MoveTowards(recoil, 0f, dt * 6f);
             if (Device != null) Device.localRotation = Quaternion.Euler(-recoil * 14f, 0f, 0f);
 
+            // 聚光：把燈舉高、往前；光變成細長光束。
+            FocusBlend = Mathf.MoveTowards(FocusBlend, Focus && On ? 1f : 0f, dt * 4f);
+            float fb = Mathf.SmoothStep(0f, 1f, FocusBlend);
+            if (lanternArm != null) lanternArm.localPosition = Vector3.Lerp(new Vector3(-0.25f, -0.1f, 0.6f), new Vector3(-0.21f, -0.04f, 0.64f), fb);
+
             // 光：開關時光圈平滑展開／收合；燈光輕微呼吸（不是火焰的劇烈跳動）。
             CurrentRadius = Mathf.MoveTowards(CurrentRadius, TargetRadius, dt * 9f);
             float breathe = 1f + Mathf.Sin(time * 2.3f) * 0.03f + (Mathf.PerlinNoise(time * 1.7f, 0.3f) - 0.5f) * 0.04f;
             float k = CurrentRadius / Radii[RadiusIndex];
             Light.enabled = CurrentRadius > 0.01f;
-            Light.intensity = 0.9f * breathe * Mathf.Clamp01(k);
-            Light.range = Mathf.Max(0.5f, CurrentRadius * 2.2f);
+            Light.intensity = 0.9f * breathe * Mathf.Clamp01(k) * Mathf.Lerp(1f, 0.35f, fb);
+            Light.range = Mathf.Max(0.5f, CurrentRadius * 2f);
+            Beam.enabled = Light.enabled;
+            Beam.intensity = Mathf.Lerp(0.7f, 2.6f, fb) * breathe * Mathf.Clamp01(k);
+            Beam.range = CurrentRadius * Mathf.Lerp(NormalShape.x, FocusShape.x, fb) * 1.25f;
+            Beam.spotAngle = Mathf.Lerp(95f, 30f, fb);
+            Beam.innerSpotAngle = Beam.spotAngle * 0.45f;
             flame.SetColor("_EmissionColor", new Color(6f, 4.2f, 2.2f) * Mathf.Lerp(0.05f, 1f, Mathf.Clamp01(k)) * breathe);
             glassMat.SetColor("_EmissionColor", new Color(1.4f, 0.95f, 0.5f) * Mathf.Lerp(0.05f, 1f, Mathf.Clamp01(k)));
 
             RevealCenter = Light.transform.position + Camera.transform.forward * RevealForward;
             LanternReveal.SetSphere(RevealCenter, CurrentRadius);
+            LanternReveal.SetShape(Camera.transform.forward, Vector3.Lerp(NormalShape, FocusShape, fb), Mathf.Lerp(NormalSpread, FocusSpread, fb));
         }
 
         /// <summary>立即套用目前開關與光圈（測試、截圖用）。</summary>

@@ -29,6 +29,9 @@ namespace Shepherd.Exploration.Lantern
         public readonly List<LanternAnomalyBlocker> Blockers = new List<LanternAnomalyBlocker>();
         public readonly List<LanternPlacementSpot> Spots = new List<LanternPlacementSpot>();
         public LanternTarget Target { get; private set; }
+        public readonly List<Vector3> EnemySpawns = new List<Vector3>();
+        public Bounds ArenaBounds { get; private set; }
+        private Material enemyShell;
         public Bounds Area { get; private set; }
 
         private float[] flickerSeed;
@@ -46,10 +49,12 @@ namespace Shepherd.Exploration.Lantern
             g.Bright();
             g.Kitchen();
             g.Storage();
+            g.Arena();
             g.Lights();
             g.Area = new Bounds(new Vector3(5.5f, 1.35f, 4.2f), new Vector3(11f, 2.7f, 8.4f));
             g.flickerSeed = new float[g.AnomalyLights.Count];
             for (int i = 0; i < g.flickerSeed.Length; i++) g.flickerSeed[i] = i * 13.7f;
+            g.baseIntensity = new float[g.AnomalyLights.Count];
             return g;
         }
 
@@ -420,6 +425,95 @@ namespace Shepherd.Exploration.Lantern
             Mark("KitchenWall", new Vector3(5.6f, 0.05f, 1.5f), new Vector3(7f, 1.1f, 1.5f));
         }
 
+        /// <summary>
+        /// 戰鬥測試場（灰盒）：24×24 m、挑高 4 m 的異域大廳，和住宅分開（x 20–44、z 0–24）。
+        /// 6 根柱子與 3 段矮牆可以繞、可以躲；地上有木箱和椅子可以牽引、丟出；角落有失序體出生點。
+        /// </summary>
+        private void Arena()
+        {
+            const float x0 = 20f, x1 = 44f, z0 = 0f, z1 = 24f, h = 4f;
+            var arenaFloor = Mat("LG_ArenaFloor", Mode.Dual, new Color(0.52f, 0.4f, 0.3f), new Color(0.2f, 0.22f, 0.24f), LanternReveal.Grid, LanternReveal.Grid, 0.3f, 0.7f, 0.008f, true);
+            var arenaWall = Mat("LG_ArenaWall", Mode.Dual, new Color(0.78f, 0.74f, 0.66f), new Color(0.26f, 0.3f, 0.32f), LanternReveal.Grid, LanternReveal.Grid, 0.15f, 0.45f, 0.02f, true);
+            Box("ArenaFloor", new Vector3((x0 + x1) / 2f, -0.05f, (z0 + z1) / 2f), new Vector3(x1 - x0 + 0.4f, 0.1f, z1 - z0 + 0.4f), arenaFloor);
+            Box("ArenaCeiling", new Vector3((x0 + x1) / 2f, h + 0.05f, (z0 + z1) / 2f), new Vector3(x1 - x0 + 0.4f, 0.1f, z1 - z0 + 0.4f), ceiling);
+            Box("ArenaWall", new Vector3((x0 + x1) / 2f, h / 2f, z0), new Vector3(x1 - x0, h, 0.2f), arenaWall);
+            Box("ArenaWall", new Vector3((x0 + x1) / 2f, h / 2f, z1), new Vector3(x1 - x0, h, 0.2f), arenaWall);
+            Box("ArenaWall", new Vector3(x0, h / 2f, (z0 + z1) / 2f), new Vector3(0.2f, h, z1 - z0), arenaWall);
+            Box("ArenaWall", new Vector3(x1, h / 2f, (z0 + z1) / 2f), new Vector3(0.2f, h, z1 - z0), arenaWall);
+            foreach (var p in new[] { new Vector2(26f, 6f), new Vector2(32f, 6f), new Vector2(38f, 6f), new Vector2(26f, 18f), new Vector2(32f, 18f), new Vector2(38f, 18f) })
+                Box("Pillar", new Vector3(p.x, h / 2f, p.y), new Vector3(1f, h, 1f), arenaWall);
+            Box("LowWall", new Vector3(29f, 0.55f, 12f), new Vector3(3f, 1.1f, 0.3f), partition);
+            Box("LowWall", new Vector3(35f, 0.55f, 12f), new Vector3(0.3f, 1.1f, 3f), partition);
+            Box("LowWall", new Vector3(32f, 0.55f, 21.5f), new Vector3(4f, 1.1f, 0.3f), partition);
+            var cushion = Mat("LG_ArenaCushion", Mode.Dual, new Color(0.2f, 0.32f, 0.62f), new Color(0.22f, 0.26f, 0.3f), null, null, 0.1f, 0.3f, 0.01f);
+            var rng = new System.Random(1712);
+            for (int i = 0; i < 9; i++)
+            {
+                var pos = new Vector3(23f + (float)rng.NextDouble() * 18f, 0f, 2.5f + (float)rng.NextDouble() * 19f);
+                if (Mathf.Abs(pos.x - 32f) < 1.6f && Mathf.Abs(pos.z - 12f) < 1.6f) pos.x += 3f;
+                var crate = Tether("ArenaCrate", "木箱", pos, new Vector3(0.45f, 0.45f, 0.45f), 2.5f);
+                Box("CrateBody", crate.transform.position + Vector3.up * 0.225f, new Vector3(0.45f, 0.45f, 0.45f), partition, false, null, crate.transform);
+            }
+            for (int i = 0; i < 3; i++)
+            {
+                var chair = Tether("ArenaChair", "椅子", new Vector3(24f + i * 7f, 0f, 9f + (i % 2) * 6f), new Vector3(0.46f, 0.92f, 0.44f), 4f);
+                ChairParts(chair.transform, wood, cushion);
+            }
+            var lampMat = Mat("LG_ArenaLamp", Mode.Dual, new Color(0.3f, 0.3f, 0.28f), new Color(0.6f, 0.75f, 0.9f), null, null, 0.8f, 0.8f, 0f);
+            lampMat.SetColor("_AnomalyEmission", new Color(1.4f, 1.9f, 2.6f));
+            foreach (var p in new[] { new Vector3(26f, 3.7f, 12f), new Vector3(38f, 3.7f, 12f), new Vector3(32f, 3.7f, 3f), new Vector3(32f, 3.7f, 21f) })
+            {
+                Ball("ArenaBulb", p + Vector3.up * 0.12f, new Vector3(0.14f, 0.16f, 0.14f), lampMat);
+                AddLight("ArenaAnomalyLight", LightType.Point, p, new Color(0.6f, 0.75f, 1f), 1.1f, 9f, true, LightShadows.Soft);
+            }
+            AddLight("ArenaAnomalyGlow", LightType.Point, new Vector3(41f, 1.5f, 12f), new Color(0.7f, 0.35f, 1f), 1.2f, 7f, true, LightShadows.None);
+            EnemySpawns.Add(new Vector3(40.5f, 0f, 12f));
+            EnemySpawns.Add(new Vector3(40.5f, 0f, 3f));
+            EnemySpawns.Add(new Vector3(40.5f, 0f, 21f));
+            EnemySpawns.Add(new Vector3(32f, 0f, 2.5f));
+            ArenaBounds = new Bounds(new Vector3(32f, 2f, 12f), new Vector3(24f, 4f, 24f));
+            Mark("ArenaStart", new Vector3(22f, 0.05f, 12f), new Vector3(32f, 1.4f, 12f));
+            Mark("ArenaView", new Vector3(28.5f, 0.05f, 12.8f), new Vector3(36f, 1.2f, 12f));
+            enemyShell = Mat("LG_DisorderShell", Mode.Dual, new Color(0.62f, 0.58f, 0.6f), new Color(0.02f, 0.018f, 0.025f), null, null, 0.35f, 0.05f, 0.09f);
+            enemyShell.SetColor("_AnomalyEmission", Color.black); // 暗處只是一團黑影（Linear 下一點點自發光就會變成整片紫色）
+            enemyShell.SetFloat("_Metallic", 0f);
+            enemyShell.SetColor("_EmissionColor", new Color(0.12f, 0.08f, 0.05f));
+        }
+
+        /// <summary>建立一隻失序體（灰盒造型：扭曲疊起的身體＋發光核心；暗處是模糊黑影，進入提燈光裡才看清楚）。</summary>
+        public LanternEnemy BuildEnemy(Vector3 at)
+        {
+            var root = new GameObject("Disorder").transform;
+            root.SetParent(Root, false);
+            root.position = at;
+            root.rotation = Quaternion.LookRotation(Vector3.left);
+            var body = new GameObject("Body").transform;
+            body.SetParent(root, false);
+            var core = Mat("LG_DisorderCore", Mode.Dual, new Color(0.95f, 0.85f, 0.65f), new Color(0.12f, 0.04f, 0.16f), null, null, 0.6f, 0.3f, 0.05f);
+            var parts = new List<Renderer>();
+            for (int i = 0; i < 6; i++)
+            {
+                var t = Box("DisorderPart", at + new Vector3(Mathf.Sin(i * 1.7f) * 0.08f, 0.25f + i * 0.32f, Mathf.Cos(i * 2.3f) * 0.05f),
+                    new Vector3(0.5f - i * 0.03f, 0.34f, 0.36f - i * 0.02f), enemyShell, false, new Vector3(i * 11f, i * 43f, i * -9f), body);
+                parts.Add(t.GetComponent<Renderer>());
+            }
+            parts.Add(Box("ArmL", at + new Vector3(-0.42f, 1.2f, 0.1f), new Vector3(0.12f, 0.9f, 0.12f), enemyShell, false, new Vector3(20f, 0f, -18f), body).GetComponent<Renderer>());
+            parts.Add(Box("ArmR", at + new Vector3(0.42f, 1.2f, 0.1f), new Vector3(0.12f, 1.0f, 0.12f), enemyShell, false, new Vector3(25f, 0f, 22f), body).GetComponent<Renderer>());
+            parts.Add(Ball("DisorderCore", at + new Vector3(0f, 1.35f, 0.2f), new Vector3(0.2f, 0.2f, 0.12f), core, body).GetComponent<Renderer>());
+            foreach (Transform ch in body) ch.position = ch.position; // 已是世界座標
+            var col = root.gameObject.AddComponent<CapsuleCollider>();
+            col.center = new Vector3(0f, 1.05f, 0f);
+            col.height = 2.1f;
+            col.radius = 0.38f;
+            var e = root.gameObject.AddComponent<LanternEnemy>();
+            e.Parts = parts.ToArray();
+            e.CoreMat = core;
+            e.Body = body;
+            e.Drone = LanternAudio.Spatial(root.gameObject, LanternAudio.EnemyDrone, true, 0.55f);
+            e.Voice = LanternAudio.Spatial(root.gameObject, null, false, 1f);
+            return e;
+        }
+
         private LanternTetherable Tether(string name, string label, Vector3 pos, Vector3 size, float mass)
         {
             var go = new GameObject(name);
@@ -489,7 +583,7 @@ namespace Shepherd.Exploration.Lantern
             AddLight("BrightAnomalyFill", LightType.Point, new Vector3(8.6f, 2.3f, 4.9f), new Color(0.8f, 0.95f, 1f), 2.2f, 7f, true, LightShadows.None);
         }
 
-        private readonly float[] baseIntensity = new float[8];
+        private float[] baseIntensity = new float[0];
 
         /// <summary>異域燈閃爍、鐘的指針轉動。</summary>
         public void Tick(float time)

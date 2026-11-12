@@ -69,6 +69,7 @@ namespace Shepherd.Exploration.Editor
                 Pair(qa, rt, dir, "BrightCalendar", "07_bright_calendar", log);
                 Pair(qa, rt, dir, "KitchenEntry", "07b_kitchen", log);
                 ActionShots(qa, rt, dir, log);
+                CombatShots(qa, rt, dir, log);
                 // 光圈大小（同機位）。
                 qa.GoTo("LivingTable");
                 qa.Rig.SetOn(true);
@@ -175,6 +176,61 @@ namespace Shepherd.Exploration.Editor
             Act(qa, 2, LanternActionInput.None);
             Shot(qa, rt, Path.Combine(dir, "16_target_hit.png"));
             log.AppendLine("targetHits=" + qa.Actions.TargetHits + " stunned=" + w.Target.Stunned);
+        }
+
+        private static void CombatShots(LanternPrototypeQA qa, RenderTexture rt, string dir, StringBuilder log)
+        {
+            // 聚光對照（走廊，同機位）。
+            qa.GoTo("Spawn");
+            qa.Rig.SetOn(true);
+            qa.FocusHeld = false;
+            Frames(qa, 20);
+            Shot(qa, rt, Path.Combine(dir, "17a_light_normal.png"));
+            qa.FocusHeld = true;
+            Frames(qa, 25);
+            Shot(qa, rt, Path.Combine(dir, "17b_light_focus.png"));
+            qa.FocusHeld = false;
+            Frames(qa, 25);
+            // 戰鬥場：失序體在暗處是黑影，進到光裡才看清楚。
+            qa.GoTo("ArenaStart");
+            var e = qa.Combat.Enemies[0];
+            var p = qa.Player.transform.position;
+            e.transform.position = new Vector3(p.x + 2.9f, 0f, p.z + 0.4f);
+            e.transform.rotation = Quaternion.LookRotation(Vector3.left);
+            Physics.SyncTransforms();
+            Aim(qa, e.transform.position + Vector3.up * 1.2f);
+            qa.Rig.SetOn(false);
+            Frames(qa, 2);
+            e.transform.position = new Vector3(p.x + 2.9f, 0f, p.z + 0.4f);
+            Shot(qa, rt, Path.Combine(dir, "18a_enemy_dark.png"));
+            qa.Rig.SetOn(true);
+            Frames(qa, 2);
+            e.transform.position = new Vector3(p.x + 2.9f, 0f, p.z + 0.4f);
+            Shot(qa, rt, Path.Combine(dir, "18b_enemy_in_light.png"));
+            // 攻擊前兆（身體膨脹、核心發亮）。
+            for (int i = 0; i < 120 && e.Current != LanternEnemy.State.WindUp; i++) qa.Step(1f / 30f, ExploreInput.None);
+            Act(qa, 12, LanternActionInput.None);
+            Aim(qa, e.transform.position + Vector3.up * 1.2f);
+            Frames(qa, 1);
+            Shot(qa, rt, Path.Combine(dir, "19_enemy_windup.png"));
+            log.AppendLine("windup state=" + e.Current + " health=" + qa.Combat.Health);
+            // 被蓄力射擊打中：暈眩＋干擾粒子＋撞擊處的現實泡泡。
+            qa.Combat.Respawn();
+            e = qa.Combat.Enemies[0];
+            p = qa.Player.transform.position;
+            e.transform.position = new Vector3(p.x + 4.5f, 0f, p.z);
+            Physics.SyncTransforms();
+            Aim(qa, e.transform.position + Vector3.up * 1.2f);
+            Act(qa, 1, new LanternActionInput { SelectMode = 1 });
+            Act(qa, 33, new LanternActionInput { Primary = true });
+            Act(qa, 8, LanternActionInput.None);
+            Aim(qa, e.transform.position + Vector3.up * 1.2f);
+            Frames(qa, 1);
+            Shot(qa, rt, Path.Combine(dir, "20_enemy_stunned.png"));
+            log.AppendLine("enemy after shot state=" + e.Current + " hp=" + e.Hp + " hits=" + qa.Actions.EnemyHits);
+            qa.GoTo("ArenaView");
+            Frames(qa, 2);
+            Shot(qa, rt, Path.Combine(dir, "21_arena_overview.png"));
         }
 
         private static void Pair(LanternPrototypeQA qa, RenderTexture rt, string dir, string mark, string tag, StringBuilder log)

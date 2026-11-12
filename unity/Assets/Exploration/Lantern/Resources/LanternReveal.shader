@@ -38,6 +38,9 @@ Shader "Shepherd/Prototype/LanternReveal"
         float4 _ShepRevealSphere;
         // 額外的現實泡泡（穩定能量的撞擊點、已復原的穩定區）：xyz＝中心、w＝半徑；w≤0＝未使用。
         float4 _ShepRevealExtra[8];
+        // 提燈光的形狀：往前偏的蛋形。_ShepRevealForward.xyz＝朝向；_ShepRevealShape＝(前方倍率, 側面倍率, 後方倍率)。
+        float4 _ShepRevealForward;
+        float4 _ShepRevealShape;
         TEXTURE2D(_BaseMap); SAMPLER(sampler_BaseMap);
         TEXTURE2D(_AnomalyMap); SAMPLER(sampler_AnomalyMap);
 
@@ -69,7 +72,16 @@ Shader "Shepherd/Prototype/LanternReveal"
             float r = _ShepRevealSphere.w;
             if (r > 0.0)
             {
-                float d = distance(wp, _ShepRevealSphere.xyz) + (n - 0.5) * w * 0.9;
+                float3 v = wp - _ShepRevealSphere.xyz;
+                float3 fw = _ShepRevealForward.xyz;
+                float3 sh = _ShepRevealShape.xyz;
+                if (dot(fw, fw) < 0.5) { fw = float3(0, 0, 1); sh = float3(1, 1, 1); }
+                float along = dot(v, fw);
+                float3 perp = v - fw * along;
+                float a = along / (along > 0.0 ? max(sh.x, 0.05) : max(sh.z, 0.05));
+                // 側面寬度隨距離變寬（_ShepRevealShape.w＝每公尺增加的倍率）：越遠越寬的錐形，像真的光。
+                float side = max(sh.y + max(along, 0.0) * _ShepRevealShape.w, 0.05);
+                float d = sqrt(a * a + dot(perp, perp) / (side * side)) + (n - 0.5) * w * 0.9;
                 m = 1.0 - smoothstep(r * 0.45, r, d);
                 edge = max(edge, 1.0 - saturate(abs(d - r * 0.725) / (w * 0.5)));
             }
