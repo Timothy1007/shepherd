@@ -1,5 +1,13 @@
 > **2026-11-12 戰鬥方向更新（優先於下方歷史描述）**：探索與戰鬥統一**第一人稱即時施法／攻擊**，不再以固定第三人稱卡牌戰術鏡頭為正式方向。舊卡牌／AP／回合／三連／學派規則及程式**僅保留為非約束性參考與歷史 QA**，不可預設沿用；尚未決定哪些概念轉化或淘汰。新玩法先從玩家在 3D 空間中干預敵人與環境的行為設計，建立獨立 QA，不得破壞現有場景。詳見 [第一人稱即時戰鬥方向](FIRST_PERSON_REALTIME_COMBAT_DIRECTION_V0_1.md) 與 [Issue #11](https://github.com/Timothy1007/shepherd/issues/11)。**此為方向與規劃，尚非已實作。**
 
+# 2026-11-12｜URP 正式切換＋提燈手感 QA 第一段（Claude；待使用者真人試玩）
+文件：`docs/prototype/LANTERN_PROTOTYPE_V0_1_QA.md`（含截圖）、`docs/rendering/URP_MIGRATION_TEST.md`、設計方向 `docs/FIRST_PERSON_REALTIME_COMBAT_DIRECTION_V0_1.md` 第 0 節。
+- **專案已改用 URP 14.0.10＋Linear 色彩空間**（`Assets/Settings/Rendering/ShepherdURP*.asset`：Forward+、HDR、柔和陰影、SSAO）。程式建立的材質一律經 `ShepherdShading`（Standard／URP Lit 雙管線相容）。Case01 Triplanar shader 補 URP SubShader。重新套用設定：選單 `Shepherd/Rendering/套用 URP 設定`。
+- **提燈手感 QA**：`Shepherd/Prototype/提燈手感 QA`（場景 `Assets/Exploration/Scenes/LanternPrototypeQA.unity`）。灰盒三空間（暗走廊→暗客廳＋書櫃隔牆後角落→亮房間）。提燈光圈內顯示真實、光圈外顯示異域（`LanternReveal` shader：雙狀態／只存在真實／只存在異域，交界光邊，異域輕微扭動）。第一人稱右手提燈（疊加鏡頭不穿牆、會擺動）、低頭看得到身體、走路晃動。操作：F 提燈、Q 光圈 2.2/3/4 m、1/2/3 傳送、B 晃動、F5 FOV、R 重置、F12 數值。
+- **尚未做**：蓄力攻擊／牽引／復原（第二段）、手機按鈕（第三段）、正式美術。舊卡牌戰鬥未動。
+- **測試**：新增 `LanternPrototypeTests` 5、`LanternPrototypePlayModeTests` 1；URP 下 EditMode 421/421、PlayMode 20/20。**不代表手感或美術驗收**。
+
+---
 # 2026-11-12｜全屋重製 v2：九區新平面＋新客廳可玩 QA（Claude；待使用者真人美術驗收）
 文件：`docs/story/case01_seventeenth_door/CASE01_HOUSE_REBUILD_V2_PLAN_AND_QA.md`；平面圖、Blender 參考圖、Unity 對照截圖在 `house_rebuild_v2/`。
 - **入口**：`Shepherd/Case01/全屋重製 QA`（場景 `Assets/Exploration/Scenes/Case01HouseRebuildQA.unity`）。與舊 R3／Phase 1.8／1.9／沉浸式住宅 QA 完全分開，不呼叫舊建築 builder、不放舊家具。
