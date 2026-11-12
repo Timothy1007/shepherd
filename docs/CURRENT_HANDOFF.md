@@ -1,5 +1,14 @@
 > **2026-11-12 戰鬥方向更新（優先於下方歷史描述）**：探索與戰鬥統一**第一人稱即時施法／攻擊**，不再以固定第三人稱卡牌戰術鏡頭為正式方向。舊卡牌／AP／回合／三連／學派規則及程式**僅保留為非約束性參考與歷史 QA**，不可預設沿用；尚未決定哪些概念轉化或淘汰。新玩法先從玩家在 3D 空間中干預敵人與環境的行為設計，建立獨立 QA，不得破壞現有場景。詳見 [第一人稱即時戰鬥方向](FIRST_PERSON_REALTIME_COMBAT_DIRECTION_V0_1.md) 與 [Issue #11](https://github.com/Timothy1007/shepherd/issues/11)。**此為方向與規劃，尚非已實作。**
 
+# 2026-11-12｜提燈手感 QA 第二段：光圈修正＋左手提燈／右手穩定器＋射擊、牽引、復原（Claude；待使用者真人試玩）
+文件：`docs/prototype/LANTERN_PROTOTYPE_V0_2_QA.md`（含截圖 `lantern_v0_2/`）。入口不變：`Shepherd/Prototype/提燈手感 QA`。
+- **光圈**依使用者回饋改成以燈為中心、外圈 1.9 m、越遠越淡；光邊改成細柔光。射擊撞擊點與已復原處各是額外的現實泡泡（shader 全域 `_ShepRevealExtra[8]`：前 4 格暫時、後 4 格永久）。
+- **雙手**：左手提燈、右手穩定器（1/2/3 或滾輪切換射擊／牽引／復原；左鍵使用、右鍵蓄力丟出）。F1–F4 傳送走廊／客廳／廚房／亮房間。
+- **場景**擴建廚房（藍坐墊椅子→椅腳凹痕、木箱、倒下的凳子）、異域牆後的儲藏室（舊照片）、亮房間練習靶；客廳角落高櫃改為可復原。物理在 QA 期間用 `Physics.simulationMode = Script`，離開時還原。
+- **測試**：`LanternPrototypeTests` 9 項（新增復原、牽引＋放對、射擊開牆、打中練習靶）；URP 下 EditMode 425/425、PlayMode 20/20。**不代表手感驗收**。
+- **已修正的坑**：編輯器模式（測試／截圖）不會自動呼叫 OnDestroy，QA 暫時改成手動的物理模擬模式曾被存進 `DynamicsManager.asset`，讓其他 PlayMode 測試的物理門不動。現在只在編輯器模式切換，並由測試 TearDown 與截圖明確呼叫 `Shutdown()` 還原（TearDown 會檢查）。
+
+---
 # 2026-11-12｜URP 正式切換＋提燈手感 QA 第一段（Claude；待使用者真人試玩）
 文件：`docs/prototype/LANTERN_PROTOTYPE_V0_1_QA.md`（含截圖）、`docs/rendering/URP_MIGRATION_TEST.md`、設計方向 `docs/FIRST_PERSON_REALTIME_COMBAT_DIRECTION_V0_1.md` 第 0 節。
 - **專案已改用 URP 14.0.10＋Linear 色彩空間**（`Assets/Settings/Rendering/ShepherdURP*.asset`：Forward+、HDR、柔和陰影、SSAO）。程式建立的材質一律經 `ShepherdShading`（Standard／URP Lit 雙管線相容）。Case01 Triplanar shader 補 URP SubShader。重新套用設定：選單 `Shepherd/Rendering/套用 URP 設定`。
