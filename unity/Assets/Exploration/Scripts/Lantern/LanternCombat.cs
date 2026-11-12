@@ -34,6 +34,8 @@ namespace Shepherd.Exploration.Lantern
         public Transform Body;
         public AudioSource Drone, Voice;
         public ParticleSystem Glitch;
+        /// <summary>移動速度倍率（被聚光照到、在擬態錨定裡會變慢）。</summary>
+        public float SpeedScale = 1f;
 
         private Vector3 lungeDir, lungeStart;
         private bool lungeHit;
@@ -110,7 +112,7 @@ namespace Shepherd.Exploration.Lantern
                     if (!playerAlive) break;
                     if (dist < LungeRange) { Current = State.WindUp; StateTimer = WindUpSeconds; Say(LanternAudio.EnemyWarn); break; }
                     if (dist > 4.5f && dist < 12f && orbCooldown <= 0f) { Current = State.OrbWindUp; StateTimer = OrbWindUpSeconds; Say(LanternAudio.EnemyOrb); break; }
-                    Move(to, Speed, dt);
+                    Move(to, Speed * SpeedScale, dt);
                     break;
                 case State.WindUp:
                     pulse = 1f - Mathf.Clamp01(StateTimer / WindUpSeconds);
@@ -215,6 +217,29 @@ namespace Shepherd.Exploration.Lantern
         public float HurtFlash { get; private set; }
         public readonly List<LanternEnemy> Enemies = new List<LanternEnemy>();
         public readonly List<Orb> Orbs = new List<Orb>();
+        /// <summary>戰鬥場測試用：失序體死後自動在遠處重生。住宅與最終戰關閉。</summary>
+        public bool AutoRespawn = true;
+        /// <summary>倒下後回到哪個標記。</summary>
+        public string RespawnMark = "ArenaStart";
+        public System.Func<Vector3, bool> InShield;
+        public System.Action<Vector3, float> Erode;
+        public System.Action<float> OnEnergy;
+        public System.Action<string> OnMemory;
+        public int MemoriesFound { get; private set; }
+        public int EnergyPickups { get; private set; }
+        public readonly List<Transform> Drops = new List<Transform>();
+        public ParticleSystem Glitch => glitch;
+        private Material energyMat, memoryMat;
+        private int memoryIndex;
+
+        /// <summary>（暫定）失序體消散時掉出的記憶碎片。正式內容待劇本。</summary>
+        public static readonly string[] Memories =
+        {
+            "（記憶碎片）「媽，我週日可能晚一點到。」",
+            "（記憶碎片）檔案館的燈還亮著，她在比對兩份互相矛盾的地址。",
+            "（記憶碎片）「這條街的門牌……為什麼會跳過一號？」",
+            "（記憶碎片）餐桌上，兩杯茶都沒有喝完。",
+        };
 
         private readonly LanternGraybox world;
         private readonly FirstPersonController player;
@@ -237,6 +262,10 @@ namespace Shepherd.Exploration.Lantern
             this.glitch = glitch;
             orbMat = ArenaArt.Mat(new Color(0.5f, 0.2f, 0.8f), 0.3f, new Color(2.2f, 0.8f, 3.4f));
             orbMat.name = "DisorderOrb";
+            energyMat = ArenaArt.Mat(new Color(1f, 0.85f, 0.55f), 0.3f, new Color(3f, 2.2f, 1.1f));
+            energyMat.name = "EnergyDrop";
+            memoryMat = ArenaArt.Mat(new Color(0.7f, 0.85f, 1f), 0.3f, new Color(1.2f, 1.8f, 2.6f));
+            memoryMat.name = "MemoryDrop";
             if (world.EnemySpawns.Count > 0) Spawn(world.EnemySpawns[0]);
         }
 
@@ -247,6 +276,54 @@ namespace Shepherd.Exploration.Lantern
             e.Init();
             Enemies.Add(e);
             return e;
+        }
+
+        public void ClearEnemies()
+        {
+            foreach (var e in Enemies) if (e != null) ArenaArt.Kill(e.gameObject);
+            Enemies.Clear();
+            foreach (var o in Orbs) if (o.T != null) ArenaArt.Kill(o.T.gameObject);
+            Orbs.Clear();
+            respawnTimer = -1f;
+        }
+
+        private void Drop(Vector3 at)
+        {
+            var e = ArenaArt.Prim(PrimitiveType.Sphere, world.Root, at + Vector3.up * 0.6f, Vector3.one * 0.18f, energyMat, null, "EnergyDrop", false, false);
+            Drops.Add(e);
+            if (memoryIndex < Memories.Length && (Kills % 2 == 1 || memoryIndex == 0))
+            {
+                var m = ArenaArt.Prim(PrimitiveType.Sphere, world.Root, at + Vector3.up * 0.9f + Vector3.right * 0.4f, Vector3.one * 0.14f, memoryMat, null, "MemoryDrop", false, false);
+                Drops.Add(m);
+            }
+        }
+
+        private void StepDrops(Vector3 feet)
+        {
+            for (int i = Drops.Count - 1; i >= 0; i--)
+            {
+                var d = Drops[i];
+                if (d == null) { Drops.RemoveAt(i); continue; }
+                d.position += Vector3.up * Mathf.Sin(time * 3f + i) * 0.002f;
+                var flat = new Vector2(d.position.x - feet.x, d.position.z - feet.z);
+                if (flat.magnitude < 1.3f && Mathf.Abs(d.position.y - feet.y - 0.8f) < 1.2f)
+                {
+                    if (d.name == "MemoryDrop")
+                    {
+                        MemoriesFound++;
+                        OnMemory?.Invoke(Memories[Mathf.Min(memoryIndex++, Memories.Length - 1)]);
+                        audio?.Play(LanternAudio.Placed, 0.8f);
+                    }
+                    else
+                    {
+                        EnergyPickups++;
+                        OnEnergy?.Invoke(35f);
+                        audio?.Play(LanternAudio.Grab, 0.6f);
+                    }
+                    ArenaArt.Kill(d.gameObject);
+                    Drops.RemoveAt(i);
+                }
+            }
         }
 
         public IEnumerable<Component> Living
@@ -291,15 +368,29 @@ namespace Shepherd.Exploration.Lantern
             {
                 var e = Enemies[i];
                 if (e == null) { Enemies.RemoveAt(i); continue; }
-                if (e.gameObject.activeSelf) Damage(e.Step(dt, time, feet, !PlayerDown, Orbs, world.Root, orbMat));
-                if (!e.Alive && counted.Add(e)) Kills++;
-                if (e.Current == LanternEnemy.State.Dead && respawnTimer < 0f) respawnTimer = EnemyRespawnSeconds;
+                // 被聚光照到或在擬態錨定裡：變慢；貼著穩定場會侵蝕它。
+                bool exposed = rig.FocusBlend > 0.6f && LanternReveal.IsReal(e.transform.position + Vector3.up * 1.1f);
+                bool shielded = InShield != null && InShield(e.transform.position);
+                e.SpeedScale = shielded ? 0.3f : exposed ? 0.5f : 1f;
+                if (shielded) Erode?.Invoke(e.transform.position, dt * 1.5f);
+                float hit = e.gameObject.activeSelf ? e.Step(dt, time, feet, !PlayerDown, Orbs, world.Root, orbMat) : 0f;
+                if (hit > 0f && InShield != null && InShield(feet)) { Erode?.Invoke(feet, 2.5f); hit *= 0.3f; }
+                Damage(hit);
+                if (!e.Alive && counted.Add(e)) { Kills++; Drop(e.transform.position); }
+            }
+            // 戰鬥場測試：場上沒有活著的失序體時，5 秒後在離玩家最遠的出生點補一隻。
+            if (AutoRespawn && respawnTimer < 0f)
+            {
+                bool any = false;
+                foreach (var _ in Living) { any = true; break; }
+                if (!any) respawnTimer = EnemyRespawnSeconds;
             }
             if (respawnTimer >= 0f)
             {
                 respawnTimer -= dt;
-                if (respawnTimer < 0f) Spawn(FarthestSpawn(feet));
+                if (respawnTimer < 0f && AutoRespawn) Spawn(FarthestSpawn(feet));
             }
+            StepDrops(feet);
 
             var body = feet + Vector3.up * 1.0f;
             for (int i = Orbs.Count - 1; i >= 0; i--)
@@ -316,6 +407,11 @@ namespace Shepherd.Exploration.Lantern
                 else if (!gone && Physics.Raycast(o.T.position, step.normalized, step.magnitude, ~(1 << LanternRig.ViewLayer), QueryTriggerInteraction.Ignore))
                 {
                     gone = true;
+                }
+                else if (!gone && InShield != null && InShield(o.T.position))
+                {
+                    gone = true;
+                    Erode?.Invoke(o.T.position, 1f);
                 }
                 if (gone)
                 {
@@ -356,7 +452,7 @@ namespace Shepherd.Exploration.Lantern
             foreach (var o in Orbs) if (o.T != null) ArenaArt.Kill(o.T.gameObject);
             Orbs.Clear();
             Transform start;
-            if (world.Marks.TryGetValue("ArenaStart", out start))
+            if (world.Marks.TryGetValue(RespawnMark, out start) || world.Marks.TryGetValue("ArenaStart", out start))
             {
                 var f = start.forward;
                 player.Teleport(start.position, Mathf.Atan2(f.x, f.z) * Mathf.Rad2Deg, 0f);
@@ -364,14 +460,19 @@ namespace Shepherd.Exploration.Lantern
             foreach (var e in Enemies) if (e != null) ArenaArt.Kill(e.gameObject);
             Enemies.Clear();
             respawnTimer = -1f;
-            Spawn(FarthestSpawn(player.transform.position));
+            // 戰鬥場測試：重新放一隻；住宅裡倒下則清掉追兵（給玩家喘息）。
+            if (AutoRespawn && RespawnMark == "ArenaStart") Spawn(FarthestSpawn(player.transform.position));
         }
 
         public void Destroy()
         {
             foreach (var o in Orbs) if (o.T != null) ArenaArt.Kill(o.T.gameObject);
             Orbs.Clear();
+            foreach (var d in Drops) if (d != null) ArenaArt.Kill(d.gameObject);
+            Drops.Clear();
             ArenaArt.Kill(orbMat);
+            ArenaArt.Kill(energyMat);
+            ArenaArt.Kill(memoryMat);
         }
     }
 }

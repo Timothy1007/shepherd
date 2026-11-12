@@ -10,7 +10,7 @@ namespace Shepherd.Exploration.Lantern
     /// ① 暗走廊（2.0 m 寬轉角）→ ② 暗客廳（5×5 m，書櫃隔牆擋住後方角落）→ ③ 亮房間（大窗、強烈的異域日光）。
     /// 每個空間都有「真實／異域」不同的東西，用來驗證：光圈內外兩個樣子、暗處與亮處都成立、異域光看得見但不一定是真的。
     /// </summary>
-    public sealed class LanternGraybox
+    public sealed partial class LanternGraybox
     {
         public const float H = 2.7f;
         public const float T = 0.12f;
@@ -35,6 +35,12 @@ namespace Shepherd.Exploration.Lantern
         public Bounds Area { get; private set; }
 
         private float[] flickerSeed;
+        /// <summary>目前建立物件的父物件（建住宅時指向住宅根物件，其餘時候是 Root）。</summary>
+        private Transform into;
+        private Transform Into => into != null ? into : Root;
+        private readonly Dictionary<Light, float> baseLight = new Dictionary<Light, float>();
+        /// <summary>住宅燈光倍率（異域反撲時熄燈）。</summary>
+        public float HouseLightScale = 1f;
         private Material wall, wallBright, floor, ceiling, wood, fabric, metal, white, partition;
 
         public static LanternGraybox Build(Transform parent)
@@ -52,9 +58,7 @@ namespace Shepherd.Exploration.Lantern
             g.Arena();
             g.Lights();
             g.Area = new Bounds(new Vector3(5.5f, 1.35f, 4.2f), new Vector3(11f, 2.7f, 8.4f));
-            g.flickerSeed = new float[g.AnomalyLights.Count];
-            for (int i = 0; i < g.flickerSeed.Length; i++) g.flickerSeed[i] = i * 13.7f;
-            g.baseIntensity = new float[g.AnomalyLights.Count];
+            g.BuildHouse(HouseDefaultScale);
             return g;
         }
 
@@ -94,7 +98,7 @@ namespace Shepherd.Exploration.Lantern
 
         private Transform Box(string name, Vector3 center, Vector3 size, Material m, bool collider = true, Vector3? euler = null, Transform parent = null)
         {
-            var t = ArenaArt.Prim(PrimitiveType.Cube, parent ?? Root, center, size, m, euler, name, collider, true);
+            var t = ArenaArt.Prim(PrimitiveType.Cube, parent ?? Into, center, size, m, euler, name, collider, true);
             Place(t, center, euler);
             Register(t.GetComponent<Renderer>(), m);
             return t;
@@ -102,7 +106,7 @@ namespace Shepherd.Exploration.Lantern
 
         private Transform Cyl(string name, Vector3 center, Vector3 size, Material m, Vector3? euler = null, Transform parent = null)
         {
-            var t = ArenaArt.Prim(PrimitiveType.Cylinder, parent ?? Root, center, size, m, euler, name, false, true);
+            var t = ArenaArt.Prim(PrimitiveType.Cylinder, parent ?? Into, center, size, m, euler, name, false, true);
             Place(t, center, euler);
             Register(t.GetComponent<Renderer>(), m);
             return t;
@@ -110,14 +114,14 @@ namespace Shepherd.Exploration.Lantern
 
         private Transform Ball(string name, Vector3 center, Vector3 size, Material m, Transform parent = null)
         {
-            var t = ArenaArt.Prim(PrimitiveType.Sphere, parent ?? Root, center, size, m, null, name, false, true);
+            var t = ArenaArt.Prim(PrimitiveType.Sphere, parent ?? Into, center, size, m, null, name, false, true);
             Register(t.GetComponent<Renderer>(), m);
             return t;
         }
 
         private Transform Quad(string name, Vector3 center, Vector3 size, Vector3 euler, Material m)
         {
-            var t = ArenaArt.Prim(PrimitiveType.Quad, Root, center, size, m, euler, name, false, false);
+            var t = ArenaArt.Prim(PrimitiveType.Quad, Into, center, size, m, euler, name, false, false);
             Register(t.GetComponent<Renderer>(), m);
             return t;
         }
@@ -168,7 +172,7 @@ namespace Shepherd.Exploration.Lantern
         private Transform Mark(string name, Vector3 pos, Vector3 lookAt)
         {
             var t = new GameObject(name).transform;
-            t.SetParent(Root, false);
+            t.SetParent(Into, false);
             t.position = pos;
             // 標記放在腳底，朝向以眼睛高度（1.62 m）計算。
             var d = lookAt - (pos + Vector3.up * 1.62f);
@@ -226,7 +230,7 @@ namespace Shepherd.Exploration.Lantern
             var rackReal = Mat("LG_Rack", Mode.RealOnly, new Color(0.35f, 0.22f, 0.12f), Color.black, null, null, 0.4f, 0.4f, 0f);
             Cyl("CoatRack", new Vector3(1.7f, 0.9f, 1.0f), new Vector3(0.05f, 0.9f, 0.05f), rackReal);
             Cyl("CoatRackBase", new Vector3(1.7f, 0.02f, 1.0f), new Vector3(0.4f, 0.02f, 0.4f), rackReal);
-            ArenaArt.Prim(PrimitiveType.Capsule, Root, new Vector3(1.7f, 1.25f, 0.92f), new Vector3(0.36f, 0.42f, 0.18f), coatReal, null, "Coat", false, true);
+            ArenaArt.Prim(PrimitiveType.Capsule, Into, new Vector3(1.7f, 1.25f, 0.92f), new Vector3(0.36f, 0.42f, 0.18f), coatReal, null, "Coat", false, true);
             RealOnly.Add(Root.Find("Coat").GetComponent<Renderer>());
             // 走廊盡頭的門牌：真實 17、異域 16。
             var plate = Mat("LG_DoorNumber", Mode.Dual, Color.white, Color.white,
@@ -268,12 +272,12 @@ namespace Shepherd.Exploration.Lantern
             var handReal = Mat("LG_HandReal", Mode.RealOnly, new Color(0.05f, 0.05f, 0.05f), Color.black, null, null, 0.3f, 0.3f, 0f);
             var handAnom = Mat("LG_HandAnomaly", Mode.AnomalyOnly, Color.black, new Color(0.5f, 0.05f, 0.05f), null, null, 0.3f, 0.3f, 0f);
             var fixedHands = new GameObject("ClockRealHands").transform;
-            fixedHands.SetParent(Root, false);
+            fixedHands.SetParent(Into, false);
             fixedHands.position = new Vector3(6.0f, 2.0f, 8.3f);
             Box("HourHand", fixedHands.position + Quaternion.Euler(0, 0, -125f) * new Vector3(0, 0.05f, 0), new Vector3(0.018f, 0.1f, 0.01f), handReal, false, new Vector3(0, 0, -125f), fixedHands);
             Box("MinuteHand", fixedHands.position + Quaternion.Euler(0, 0, -60f) * new Vector3(0, 0.08f, 0), new Vector3(0.012f, 0.16f, 0.01f), handReal, false, new Vector3(0, 0, -60f), fixedHands);
             ClockAnomalyHands = new GameObject("ClockAnomalyHands").transform;
-            ClockAnomalyHands.SetParent(Root, false);
+            ClockAnomalyHands.SetParent(Into, false);
             ClockAnomalyHands.position = new Vector3(6.0f, 2.0f, 8.29f);
             Box("SpinHand", ClockAnomalyHands.position + new Vector3(0, 0.08f, 0), new Vector3(0.014f, 0.17f, 0.01f), handAnom, false, null, ClockAnomalyHands);
             // 沙發（靠走廊這側）。
@@ -299,7 +303,7 @@ namespace Shepherd.Exploration.Lantern
         private void Chair(string name, Vector3 pos, float yaw, Material m, bool upsideDown)
         {
             var root = new GameObject(name).transform;
-            root.SetParent(Root, false);
+            root.SetParent(Into, false);
             root.position = pos;
             root.rotation = Quaternion.Euler(upsideDown ? 180f : 0f, yaw, 0f);
             Box("Seat", root.TransformPoint(new Vector3(0, 0.45f, 0)), new Vector3(0.44f, 0.04f, 0.42f), m, false, root.eulerAngles, root);
@@ -339,7 +343,7 @@ namespace Shepherd.Exploration.Lantern
             core.SetColor("_AnomalyEmission", new Color(1.6f, 0.4f, 2.4f));
             core.SetColor("_EmissionColor", new Color(0.6f, 0.5f, 0.3f));
             var root = new GameObject("PracticeTarget").transform;
-            root.SetParent(Root, false);
+            root.SetParent(Into, false);
             root.position = new Vector3(9.2f, 0.25f, 5f);
             var parts = new List<Renderer>();
             for (int i = 0; i < 5; i++)
@@ -369,7 +373,7 @@ namespace Shepherd.Exploration.Lantern
             Cyl("Jar", new Vector3(6.55f, 2.08f, 3.0f), new Vector3(0.12f, 0.08f, 0.12f), white);
             var dentMat = Mat("LG_Dent", Mode.Dual, new Color(0.18f, 0.12f, 0.08f), new Color(0.1f, 0.11f, 0.12f), null, null, 0.1f, 0.2f, 0f);
             var spotGo = new GameObject("ChairDents");
-            spotGo.transform.SetParent(Root, false);
+            spotGo.transform.SetParent(Into, false);
             spotGo.transform.position = new Vector3(6.05f, 0f, 2.55f);
             foreach (var p in new[] { new Vector2(-0.19f, -0.18f), new Vector2(0.19f, -0.18f), new Vector2(-0.19f, 0.18f), new Vector2(0.19f, 0.18f) })
                 Box("Dent", spotGo.transform.position + new Vector3(p.x, 0.003f, p.y), new Vector3(0.06f, 0.006f, 0.06f), dentMat, false);
@@ -394,7 +398,7 @@ namespace Shepherd.Exploration.Lantern
             }
             // 倒下的凳子（可以復原）：座面與三隻腳都掛在 Stool 底下，以 Stool 的座標建立。
             var stool = new GameObject("Stool").transform;
-            stool.SetParent(Root, false);
+            stool.SetParent(Into, false);
             stool.position = Vector3.zero;
             var sc = stool.gameObject.AddComponent<BoxCollider>();
             sc.center = new Vector3(0f, 0.3f, 0f);
@@ -484,7 +488,7 @@ namespace Shepherd.Exploration.Lantern
         public LanternEnemy BuildEnemy(Vector3 at)
         {
             var root = new GameObject("Disorder").transform;
-            root.SetParent(Root, false);
+            root.SetParent(Into, false);
             root.position = at;
             root.rotation = Quaternion.LookRotation(Vector3.left);
             var body = new GameObject("Body").transform;
@@ -514,10 +518,46 @@ namespace Shepherd.Exploration.Lantern
             return e;
         }
 
+        /// <summary>最後的反撲：大型失序體（灰盒）。</summary>
+        public LanternBoss BuildBoss(Vector3 at, ParticleSystem glitch)
+        {
+            var root = new GameObject("DisorderBoss").transform;
+            root.SetParent(Root, false);
+            root.position = at;
+            root.rotation = Quaternion.LookRotation(Vector3.left);
+            var body = new GameObject("Body").transform;
+            body.SetParent(root, false);
+            var core = Mat("LG_BossCore", Mode.Dual, new Color(0.95f, 0.85f, 0.65f), new Color(0.15f, 0.05f, 0.2f), null, null, 0.6f, 0.3f, 0.05f);
+            for (int i = 0; i < 7; i++)
+                Box("BossPart", at + new Vector3(Mathf.Sin(i * 1.3f) * 0.1f, 0.25f + i * 0.3f, Mathf.Cos(i * 2.1f) * 0.06f), new Vector3(0.55f - i * 0.03f, 0.32f, 0.4f - i * 0.02f), enemyShell, false, new Vector3(i * 13f, i * 41f, i * -11f), body);
+            Box("BossArmL", at + new Vector3(-0.5f, 1.2f, 0.1f), new Vector3(0.14f, 1.2f, 0.14f), enemyShell, false, new Vector3(25f, 0f, -25f), body);
+            Box("BossArmR", at + new Vector3(0.5f, 1.2f, 0.1f), new Vector3(0.14f, 1.3f, 0.14f), enemyShell, false, new Vector3(30f, 0f, 28f), body);
+            Ball("BossCore", at + new Vector3(0f, 1.4f, 0.22f), new Vector3(0.24f, 0.24f, 0.14f), core, body);
+            body.localScale = Vector3.one * 1.8f;
+            foreach (Transform ch in body) { }
+            var col = root.gameObject.AddComponent<CapsuleCollider>();
+            col.center = new Vector3(0f, 2.0f, 0f);
+            col.height = 4.0f;
+            col.radius = 0.75f;
+            var ringMat = new Material(LanternReveal.Additive) { name = "SlamRing", hideFlags = HideFlags.DontSave };
+            ringMat.SetColor("_BaseColor", new Color(1f, 0.4f, 0.3f, 0.35f));
+            Materials.Add(ringMat);
+            var ring = ArenaArt.Prim(PrimitiveType.Cylinder, Root, at, new Vector3(1f, 0.02f, 1f), ringMat, null, "SlamRing", false, false);
+            ring.gameObject.SetActive(false);
+            var b = root.gameObject.AddComponent<LanternBoss>();
+            b.Body = body;
+            b.CoreMat = core;
+            b.SlamRing = ring;
+            b.Glitch = glitch;
+            LanternAudio.Spatial(root.gameObject, LanternAudio.EnemyDrone, true, 0.8f).pitch = 0.6f;
+            b.Voice = LanternAudio.Spatial(root.gameObject, null, false, 1f);
+            return b;
+        }
+
         private LanternTetherable Tether(string name, string label, Vector3 pos, Vector3 size, float mass)
         {
             var go = new GameObject(name);
-            go.transform.SetParent(Root, false);
+            go.transform.SetParent(Into, false);
             go.transform.position = pos;
             var col = go.AddComponent<BoxCollider>();
             col.center = new Vector3(0f, size.y * 0.5f, 0f);
@@ -554,7 +594,7 @@ namespace Shepherd.Exploration.Lantern
         private Light AddLight(string name, LightType type, Vector3 pos, Color c, float intensity, float range, bool anomaly, LightShadows shadows, float angle = 0f, Vector3? dir = null)
         {
             var go = new GameObject(name);
-            go.transform.SetParent(Root, false);
+            go.transform.SetParent(Into, false);
             go.transform.position = pos;
             if (dir.HasValue) go.transform.rotation = Quaternion.LookRotation(dir.Value);
             var l = go.AddComponent<Light>();
@@ -583,20 +623,22 @@ namespace Shepherd.Exploration.Lantern
             AddLight("BrightAnomalyFill", LightType.Point, new Vector3(8.6f, 2.3f, 4.9f), new Color(0.8f, 0.95f, 1f), 2.2f, 7f, true, LightShadows.None);
         }
 
-        private float[] baseIntensity = new float[0];
-
         /// <summary>異域燈閃爍、鐘的指針轉動。</summary>
         public void Tick(float time)
         {
-            for (int i = 0; i < AnomalyLights.Count; i++)
+            for (int i = AnomalyLights.Count - 1; i >= 0; i--)
             {
                 var l = AnomalyLights[i];
-                if (l == null) continue;
-                if (baseIntensity[i] <= 0f) baseIntensity[i] = l.intensity;
-                if (l.type == LightType.Spot) continue;
-                float n = Mathf.PerlinNoise(time * 3.1f, flickerSeed[i]);
-                float drop = Mathf.PerlinNoise(time * 0.7f, flickerSeed[i] + 5f) > 0.78f ? 0.25f : 1f;
-                l.intensity = baseIntensity[i] * Mathf.Lerp(0.7f, 1.1f, n) * drop;
+                if (l == null) { AnomalyLights.RemoveAt(i); continue; }
+                float b;
+                if (!baseLight.TryGetValue(l, out b)) { b = l.intensity; baseLight[l] = b; }
+                bool house = HouseRoot != null && l.transform.IsChildOf(HouseRoot);
+                float scale = house ? HouseLightScale : 1f;
+                if (l.type == LightType.Spot) { l.intensity = b * scale; continue; }
+                float seed = i * 13.7f;
+                float n = Mathf.PerlinNoise(time * 3.1f, seed);
+                float drop = Mathf.PerlinNoise(time * 0.7f, seed + 5f) > 0.78f ? 0.25f : 1f;
+                l.intensity = b * Mathf.Lerp(0.7f, 1.1f, n) * drop * scale;
             }
             if (ClockAnomalyHands != null) ClockAnomalyHands.rotation = Quaternion.Euler(0f, 0f, -time * 137f);
         }

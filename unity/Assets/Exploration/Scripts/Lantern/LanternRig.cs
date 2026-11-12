@@ -255,7 +255,7 @@ namespace Shepherd.Exploration.Lantern
             var jolt = shake > 0f ? new Vector3(Mathf.Sin(time * 61f), Mathf.Sin(time * 47f + 1.3f), 0f) * shake : Vector3.zero;
             Camera.transform.position = player.EyePosition + player.ViewRotation * (bob + jolt);
             Camera.transform.rotation = player.ViewRotation;
-            if (ViewCamera != null) ViewCamera.fieldOfView = 58f;
+            if (ViewCamera != null) ViewCamera.fieldOfView = Camera.fieldOfView;
 
             // 提燈擺動：轉頭時往反方向甩、走路時前後晃；阻尼彈簧。
             float dYaw = Mathf.DeltaAngle(lastYaw, player.Yaw), dPitch = player.Pitch - lastPitch;
