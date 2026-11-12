@@ -1,5 +1,13 @@
 > **2026-11-12 戰鬥方向更新（優先於下方歷史描述）**：探索與戰鬥統一**第一人稱即時施法／攻擊**，不再以固定第三人稱卡牌戰術鏡頭為正式方向。舊卡牌／AP／回合／三連／學派規則及程式**僅保留為非約束性參考與歷史 QA**，不可預設沿用；尚未決定哪些概念轉化或淘汰。新玩法先從玩家在 3D 空間中干預敵人與環境的行為設計，建立獨立 QA，不得破壞現有場景。詳見 [第一人稱即時戰鬥方向](FIRST_PERSON_REALTIME_COMBAT_DIRECTION_V0_1.md) 與 [Issue #11](https://github.com/Timothy1007/shepherd/issues/11)。**此為方向與規劃，尚非已實作。**
 
+# 2026-11-13｜提燈 QA v0.5：CC0 材質與家具＋找路＋電箱＋生活互動＋近看系統（Claude；待使用者真人試玩）
+文件：`docs/prototype/LANTERN_PROTOTYPE_V0_5_QA.md`（截圖 `lantern_v0_5/`）。
+- 經使用者同意下載 Poly Haven CC0：15 組 2K 材質、14 件 1K 家具（116 MB，`Assets/Exploration/Lantern/Resources/PH/`，`SOURCES.md`）。`LanternAssetImport`（AssetPostprocessor）：`*_nor` 法線、`*_rough` 線性、模型不產生材質。`LanternReveal.MakePH` 與 shader 新增法線／粗糙度／`_AnomalyFromBase`（異域外觀由真實貼圖去飽和而來）。
+- `LanternHouse` 重寫：每間房不同材質、`Model()` 放 CC0 家具（等比縮放到真實高度×家具倍率，雙狀態材質）、餐廳／後廚重排留通道、門牌、外圍地面與看不見的邊界、電箱（`FuseBox`→`HousePowered`）、`LanternToggle`（冰箱門、抽屜、窗簾、電視）、`LanternInspectable`（文件翻頁、照片翻面、物件旋轉）。
+- `LanternFlow`：修好後先預警 1.6 秒（燈閃）才反撲；最後一個預警 1.2 秒後崩壞；`SkipToBoss()`＝F10。
+- 測試只跑提燈篩選：EditMode 25/25、PlayMode 1/1。
+
+---
 # 2026-11-13｜提燈 QA v0.4：體感放大的兩層樓住宅＋修復線索與異域反撲＋最終戰（Claude；待使用者真人試玩）
 文件：`docs/prototype/LANTERN_PROTOTYPE_V0_4_QA.md`（截圖 `lantern_v0_4/`），設計決策見 `docs/FIRST_PERSON_REALTIME_COMBAT_DIRECTION_V0_1.md` 第 0.6 節。入口不變；QA 現在從住宅玄關開始（F1）。
 - `LanternHouse.cs`（`LanternGraybox` partial）：九區格局放大 ×1.4（`HouseScales` 1.25／1.4／1.6，F9 重建），樓梯斜板碰撞，二樓沿樓梯井走廊。五個線索（`LanternClue`：Focus／Restore／Place／Read）、`LanternReadable` 筆記。
