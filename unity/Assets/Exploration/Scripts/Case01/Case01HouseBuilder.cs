@@ -772,14 +772,7 @@ namespace Shepherd.Exploration.Case01
             if (glassMat != null && P.OwnsMaterial(glassMat)) return glassMat;
             var m = ArenaArt.Mat(new Color(0.62f, 0.7f, 0.78f, 0.14f), 0.94f);
             m.name = "Case01WindowGlass";
-            m.SetFloat("_Mode", 3f);
-            m.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.One);
-            m.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
-            m.SetInt("_ZWrite", 0);
-            m.DisableKeyword("_ALPHATEST_ON");
-            m.DisableKeyword("_ALPHABLEND_ON");
-            m.EnableKeyword("_ALPHAPREMULTIPLY_ON");
-            m.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+            ShepherdShading.MakeGlass(m);
             glassMat = P.Own(m);
             return glassMat;
         }

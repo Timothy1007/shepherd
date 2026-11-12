@@ -26,46 +26,23 @@ namespace Shepherd.Battle.UI.Arena
 
         // ---------------- 材質 ----------------
 
-        private static Shader standard;
-
-        private static Shader Standard
-        {
-            get
-            {
-                if (standard == null) standard = Shader.Find("Standard");
-                return standard;
-            }
-        }
-
         public static Material Mat(Color color, float smoothness = 0.15f, Color? emission = null, float metallic = 0f)
         {
-            var m = new Material(Standard);
+            var m = ShepherdShading.NewLit();
             m.color = color;
-            m.SetFloat("_Glossiness", smoothness);
+            ShepherdShading.SetSmoothness(m, smoothness);
             m.SetFloat("_Metallic", metallic);
             if (emission.HasValue) SetEmission(m, emission.Value);
             return m;
         }
 
-        public static void SetEmission(Material m, Color emission)
-        {
-            m.EnableKeyword("_EMISSION");
-            m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
-            m.SetColor("_EmissionColor", emission);
-        }
+        public static void SetEmission(Material m, Color emission) => ShepherdShading.SetEmission(m, emission);
 
-        /// <summary>半透明（Standard 的 Fade 模式），用於護盾、選取環等。</summary>
+        /// <summary>半透明（Fade 模式），用於護盾、選取環等。</summary>
         public static Material FadeMat(Color color, Color? emission = null)
         {
             var m = Mat(color, 0.8f, emission);
-            m.SetFloat("_Mode", 2f);
-            m.SetInt("_SrcBlend", (int)BlendMode.SrcAlpha);
-            m.SetInt("_DstBlend", (int)BlendMode.OneMinusSrcAlpha);
-            m.SetInt("_ZWrite", 0);
-            m.DisableKeyword("_ALPHATEST_ON");
-            m.EnableKeyword("_ALPHABLEND_ON");
-            m.DisableKeyword("_ALPHAPREMULTIPLY_ON");
-            m.renderQueue = (int)RenderQueue.Transparent;
+            ShepherdShading.MakeFade(m);
             return m;
         }
 

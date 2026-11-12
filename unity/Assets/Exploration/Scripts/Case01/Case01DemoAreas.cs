@@ -292,12 +292,7 @@ namespace Shepherd.Exploration.Case01
         internal static Material Glass(Case01Palette p)
         {
             var m = ArenaArt.Mat(new Color(0.62f, 0.7f, 0.78f, 0.14f), 0.94f);
-            m.SetFloat("_Mode", 3f);
-            m.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.One);
-            m.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
-            m.SetInt("_ZWrite", 0);
-            m.EnableKeyword("_ALPHAPREMULTIPLY_ON");
-            m.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+            ShepherdShading.MakeGlass(m);
             return p.Own(m);
         }
 

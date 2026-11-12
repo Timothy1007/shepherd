@@ -1,4 +1,4 @@
-// Case01 室內材質：內建渲染管線（Built-in）的 Standard 光照 Surface Shader，世界座標 triplanar 投影。
+﻿// Case01 室內材質：內建渲染管線（Built-in）的 Standard 光照 Surface Shader，世界座標 triplanar 投影。
 // 房屋以 Runtime Primitive 組成，方塊 UV 會隨縮放拉伸；改用世界座標取樣，木紋／牆面在任何尺寸下都維持正確比例。
 // 主貼圖 RGB＝顏色、A＝光滑度；法線貼圖以 whiteout 混合後轉回切線空間。
 Shader "Shepherd/Case01/Triplanar"
@@ -16,6 +16,194 @@ Shader "Shepherd/Case01/Triplanar"
         _EmissionMap ("Emission (RGB)", 2D) = "white" {}
         [HDR] _EmissionColor ("Emission Color", Color) = (0,0,0,1)
     }
+    // URP 版本（專案改用 Universal Render Pipeline 時使用；內建管線會略過這個 SubShader）。
+    SubShader
+    {
+        Tags { "RenderType" = "Opaque" "RenderPipeline" = "UniversalPipeline" "Queue" = "Geometry" }
+        LOD 300
+
+        HLSLINCLUDE
+        #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+        CBUFFER_START(UnityPerMaterial)
+            float4 _Color;
+            float4 _MainTex_ST;
+            float4 _EmissionColor;
+            float _BumpScale, _Scale, _Glossiness, _Metallic, _Sharpness;
+        CBUFFER_END
+        TEXTURE2D(_MainTex); SAMPLER(sampler_MainTex);
+        TEXTURE2D(_BumpMap); SAMPLER(sampler_BumpMap);
+        TEXTURE2D(_EmissionMap); SAMPLER(sampler_EmissionMap);
+
+        float3 TriWeights(float3 wn)
+        {
+            float3 w = pow(abs(wn), _Sharpness);
+            return w / max(w.x + w.y + w.z, 1e-4);
+        }
+
+        float3 TriNormal(float3 wp, float3 wn, float3 w)
+        {
+            float2 uvX = wp.zy * _Scale, uvY = wp.xz * _Scale, uvZ = wp.xy * _Scale;
+            float3 nX = UnpackNormalScale(SAMPLE_TEXTURE2D(_BumpMap, sampler_BumpMap, uvX), _BumpScale);
+            float3 nY = UnpackNormalScale(SAMPLE_TEXTURE2D(_BumpMap, sampler_BumpMap, uvY), _BumpScale);
+            float3 nZ = UnpackNormalScale(SAMPLE_TEXTURE2D(_BumpMap, sampler_BumpMap, uvZ), _BumpScale);
+            float3 tX = float3(nX.xy + wn.zy, abs(nX.z) * wn.x);
+            float3 tY = float3(nY.xy + wn.xz, abs(nY.z) * wn.y);
+            float3 tZ = float3(nZ.xy + wn.xy, abs(nZ.z) * wn.z);
+            return normalize(tX.zyx * w.x + tY.xzy * w.y + tZ.xyz * w.z);
+        }
+        ENDHLSL
+
+        Pass
+        {
+            Name "ForwardLit"
+            Tags { "LightMode" = "UniversalForward" }
+            HLSLPROGRAM
+            #pragma vertex vert
+            #pragma fragment frag
+            #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE _MAIN_LIGHT_SHADOWS_SCREEN
+            #pragma multi_compile _ _ADDITIONAL_LIGHTS_VERTEX _ADDITIONAL_LIGHTS
+            #pragma multi_compile_fragment _ _ADDITIONAL_LIGHT_SHADOWS
+            #pragma multi_compile_fragment _ _SHADOWS_SOFT
+            #pragma multi_compile_fragment _ _SCREEN_SPACE_OCCLUSION
+            #pragma multi_compile_fragment _ _REFLECTION_PROBE_BLENDING
+            #pragma multi_compile_fragment _ _REFLECTION_PROBE_BOX_PROJECTION
+            #pragma multi_compile_fragment _ _LIGHT_COOKIES
+            #pragma multi_compile _ _FORWARD_PLUS
+            #pragma multi_compile _ LIGHTMAP_ON
+            #pragma multi_compile_fog
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
+
+            struct A { float4 pos : POSITION; float3 normal : NORMAL; float2 uv1 : TEXCOORD1; };
+            struct V
+            {
+                float4 pos : SV_POSITION;
+                float3 wp : TEXCOORD0;
+                float3 wn : TEXCOORD1;
+                DECLARE_LIGHTMAP_OR_SH(lightmapUV, vertexSH, 2);
+                float fog : TEXCOORD3;
+            };
+
+            V vert(A a)
+            {
+                V o;
+                o.wp = TransformObjectToWorld(a.pos.xyz);
+                o.wn = TransformObjectToWorldNormal(a.normal);
+                o.pos = TransformWorldToHClip(o.wp);
+                OUTPUT_LIGHTMAP_UV(a.uv1, unity_LightmapST, o.lightmapUV);
+                OUTPUT_SH(o.wn, o.vertexSH);
+                o.fog = ComputeFogFactor(o.pos.z);
+                return o;
+            }
+
+            half4 frag(V i) : SV_Target
+            {
+                float3 wn = normalize(i.wn);
+                float3 w = TriWeights(wn);
+                float2 uvX = i.wp.zy * _Scale, uvY = i.wp.xz * _Scale, uvZ = i.wp.xy * _Scale;
+                float4 c = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, uvX) * w.x + SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, uvY) * w.y + SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, uvZ) * w.z;
+                float3 e = SAMPLE_TEXTURE2D(_EmissionMap, sampler_EmissionMap, uvX).rgb * w.x + SAMPLE_TEXTURE2D(_EmissionMap, sampler_EmissionMap, uvY).rgb * w.y + SAMPLE_TEXTURE2D(_EmissionMap, sampler_EmissionMap, uvZ).rgb * w.z;
+
+                InputData d = (InputData)0;
+                d.positionWS = i.wp;
+                d.positionCS = i.pos;
+                d.normalWS = TriNormal(i.wp, wn, w);
+                d.viewDirectionWS = GetWorldSpaceNormalizeViewDir(i.wp);
+                d.shadowCoord = TransformWorldToShadowCoord(i.wp);
+                d.fogCoord = i.fog;
+                d.bakedGI = SAMPLE_GI(i.lightmapUV, i.vertexSH, d.normalWS);
+                d.normalizedScreenSpaceUV = GetNormalizedScreenSpaceUV(i.pos);
+                d.shadowMask = SAMPLE_SHADOWMASK(i.lightmapUV);
+
+                SurfaceData s = (SurfaceData)0;
+                s.albedo = c.rgb * _Color.rgb;
+                s.metallic = _Metallic;
+                s.smoothness = c.a * _Glossiness;
+                s.occlusion = 1;
+                s.emission = e * _EmissionColor.rgb;
+                s.alpha = 1;
+                s.normalTS = float3(0, 0, 1);
+                half4 col = UniversalFragmentPBR(d, s);
+                col.rgb = MixFog(col.rgb, i.fog);
+                return col;
+            }
+            ENDHLSL
+        }
+
+        Pass
+        {
+            Name "ShadowCaster"
+            Tags { "LightMode" = "ShadowCaster" }
+            ZWrite On ZTest LEqual ColorMask 0
+            HLSLPROGRAM
+            #pragma vertex vert
+            #pragma fragment frag
+            #pragma multi_compile_vertex _ _CASTING_PUNCTUAL_LIGHT_SHADOW
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
+            float3 _LightDirection;
+            float3 _LightPosition;
+            struct A { float4 pos : POSITION; float3 normal : NORMAL; };
+            float4 vert(A a) : SV_POSITION
+            {
+                float3 wp = TransformObjectToWorld(a.pos.xyz);
+                float3 wn = TransformObjectToWorldNormal(a.normal);
+            #if _CASTING_PUNCTUAL_LIGHT_SHADOW
+                float3 ld = normalize(_LightPosition - wp);
+            #else
+                float3 ld = _LightDirection;
+            #endif
+                float4 p = TransformWorldToHClip(ApplyShadowBias(wp, wn, ld));
+            #if UNITY_REVERSED_Z
+                p.z = min(p.z, UNITY_NEAR_CLIP_VALUE);
+            #else
+                p.z = max(p.z, UNITY_NEAR_CLIP_VALUE);
+            #endif
+                return p;
+            }
+            half4 frag() : SV_Target { return 0; }
+            ENDHLSL
+        }
+
+        Pass
+        {
+            Name "DepthOnly"
+            Tags { "LightMode" = "DepthOnly" }
+            ZWrite On ColorMask R
+            HLSLPROGRAM
+            #pragma vertex vert
+            #pragma fragment frag
+            struct A { float4 pos : POSITION; };
+            float4 vert(A a) : SV_POSITION { return TransformObjectToHClip(a.pos.xyz); }
+            half frag() : SV_Target { return 0; }
+            ENDHLSL
+        }
+
+        Pass
+        {
+            Name "DepthNormals"
+            Tags { "LightMode" = "DepthNormals" }
+            ZWrite On
+            HLSLPROGRAM
+            #pragma vertex vert
+            #pragma fragment frag
+            struct A { float4 pos : POSITION; float3 normal : NORMAL; };
+            struct V { float4 pos : SV_POSITION; float3 wp : TEXCOORD0; float3 wn : TEXCOORD1; };
+            V vert(A a)
+            {
+                V o;
+                o.wp = TransformObjectToWorld(a.pos.xyz);
+                o.wn = TransformObjectToWorldNormal(a.normal);
+                o.pos = TransformWorldToHClip(o.wp);
+                return o;
+            }
+            half4 frag(V i) : SV_Target
+            {
+                float3 wn = normalize(i.wn);
+                return half4(NormalizeNormalPerPixel(TriNormal(i.wp, wn, TriWeights(wn))), 0);
+            }
+            ENDHLSL
+        }
+    }
+
     SubShader
     {
         Tags { "RenderType" = "Opaque" }

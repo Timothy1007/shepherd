@@ -407,7 +407,7 @@ namespace Shepherd.Exploration.Tests
                 Assert.GreaterOrEqual(m.renderQueue, 3000, "透明排序");
                 Assert.Less(m.color.a, 0.3f, "不是不透明藍板");
                 Assert.AreEqual(0, m.GetInt("_ZWrite"), "不寫深度");
-                Assert.Greater(m.GetFloat("_Glossiness"), 0.8f, "保留輕微反光");
+                Assert.Greater(Shepherd.Battle.UI.Arena.ShepherdShading.GetSmoothness(m), 0.8f, "保留輕微反光");
                 Assert.IsNull(g.GetComponent<Collider>());
                 // 從室內往外看：窗洞後面沒有牆。
                 var w = g.transform;

@@ -102,10 +102,7 @@ namespace Shepherd.Exploration.Case01
             glass.name = "LR_Glass";
             mats["LR_Glass"] = glass;
             var leaf = Tex("LR_Leaf", 0.2f);
-            leaf.SetFloat("_Mode", 1f);
-            leaf.SetFloat("_Cutoff", 0.5f);
-            leaf.EnableKeyword("_ALPHATEST_ON");
-            leaf.renderQueue = (int)UnityEngine.Rendering.RenderQueue.AlphaTest;
+            ShepherdShading.MakeCutout(leaf, 0.5f);
             leaf.SetInt("_Cull", 0);
             var pages = Tex("LR_Books", 0.25f);
             pages.name = "LR_Pages";
@@ -208,10 +205,7 @@ namespace Shepherd.Exploration.Case01
             var m = palette.Own(ArenaArt.Mat(c, 0.1f));
             m.name = "LR_Figure";
             m.mainTexture = Resources.Load<Texture2D>(Folder + "LR_Figure");
-            m.SetFloat("_Mode", 1f);
-            m.SetFloat("_Cutoff", 0.5f);
-            m.EnableKeyword("_ALPHATEST_ON");
-            m.renderQueue = (int)UnityEngine.Rendering.RenderQueue.AlphaTest;
+            ShepherdShading.MakeCutout(m, 0.5f);
             return m;
         }
 

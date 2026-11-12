@@ -78,7 +78,7 @@ namespace Shepherd.Exploration.Case01
             Cam.cullingMask = ~(1 << Case01Inspector.Layer);
             camGo.AddComponent<AudioListener>();
             Post = camGo.AddComponent<Case01RebuildPost>();
-            Flashlight = new Case01Flashlight(Cam, null, palette, palette.Own(new Material(Shader.Find("Standard"))));
+            Flashlight = new Case01Flashlight(Cam, null, palette, palette.Own(Shepherd.Battle.UI.Arena.ShepherdShading.NewLit()));
             Inspector = new Case01Inspector(palette, transform);
             if (Room.PhotoPrint != null)
             {

@@ -438,7 +438,7 @@ namespace Shepherd.Exploration.Case01
             // Phase 1.9 每影格會在「正常／淡掉」兩個材質之間切換；直接換這個材質的貼圖，兩者都看得到高解析照片。
             PhotoMaterial = r.sharedMaterial;
             PhotoMaterial.mainTexture = PhotoNormal;
-            PhotoMaterial.SetFloat("_Glossiness", 0.55f);
+            ShepherdShading.SetSmoothness(PhotoMaterial, 0.55f);
             Photo = new Case01InspectItem
             {
                 Id = Case01Ids.Photo,

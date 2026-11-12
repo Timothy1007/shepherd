@@ -191,13 +191,14 @@ namespace Shepherd.Battle.UI.Arena
             for (int i = 0; i < renderers.Length; i++)
                 originals[i] = renderers[i] != null && renderers[i].sharedMaterial != null ? renderers[i].sharedMaterial.color : Color.white;
             var block = new MaterialPropertyBlock();
+            string colorProperty = ShepherdShading.Urp ? "_BaseColor" : "_Color";
             Add(duration, k =>
             {
                 for (int i = 0; i < renderers.Length; i++)
                 {
                     if (renderers[i] == null) continue;
                     renderers[i].GetPropertyBlock(block);
-                    block.SetColor("_Color", Color.Lerp(flash, originals[i], k));
+                    block.SetColor(colorProperty, Color.Lerp(flash, originals[i], k));
                     renderers[i].SetPropertyBlock(block);
                 }
             }, () =>

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Shepherd.Battle.UI.Arena;
 using UnityEngine;
 
 namespace Shepherd.Exploration.Case01
@@ -130,78 +131,55 @@ namespace Shepherd.Exploration.Case01
 
         public static Material Create(string n)
         {
-            var m = new Material(Shader.Find("Standard")) { name = n };
+            var m = ShepherdShading.NewLit(n);
             switch (n)
             {
                 case "RB_Glass":
                     m.color = new Color(0.55f, 0.6f, 0.62f, 0.16f);
-                    SetFade(m);
-                    m.SetFloat("_Glossiness", 0.96f);
+                    ShepherdShading.MakeFade(m);
+                    ShepherdShading.SetSmoothness(m, 0.96f);
                     return m;
                 case "RB_Mirror":
                     // 舊鏡面：有反射探針時映出房間；沒有時也是暗灰的舊玻璃，不會變成一塊黑板。
                     m.color = new Color(0.42f, 0.43f, 0.42f);
                     m.SetFloat("_Metallic", 0.75f);
-                    m.SetFloat("_Glossiness", 0.9f);
+                    ShepherdShading.SetSmoothness(m, 0.9f);
                     return m;
                 case "RB_Screen":
                     m.color = new Color(0.01f, 0.012f, 0.015f);
-                    m.SetFloat("_Glossiness", 0.88f);
+                    ShepherdShading.SetSmoothness(m, 0.88f);
                     return m;
                 case "RB_Plastic":
                     m.color = new Color(0.035f, 0.035f, 0.04f);
-                    m.SetFloat("_Glossiness", 0.55f);
+                    ShepherdShading.SetSmoothness(m, 0.55f);
                     return m;
                 case "RB_Paper":
                     m.color = new Color(0.84f, 0.82f, 0.75f);
                     m.mainTexture = Resources.Load<Texture2D>(Folder + "RB_Ceiling_A");
-                    m.SetFloat("_Glossiness", 0.15f);
+                    ShepherdShading.SetSmoothness(m, 0.15f);
                     return m;
                 case "RB_Coal":
                     m.color = new Color(0.06f, 0.04f, 0.03f);
-                    m.EnableKeyword("_EMISSION");
-                    m.SetColor("_EmissionColor", new Color(0.9f, 0.3f, 0.06f));
-                    m.SetFloat("_Glossiness", 0.2f);
+                    ShepherdShading.SetEmission(m, new Color(0.9f, 0.3f, 0.06f));
+                    ShepherdShading.SetSmoothness(m, 0.2f);
                     return m;
                 case "RB_Photo":
                     m.mainTexture = Resources.Load<Texture2D>(Folder + "RB_Photo_A");
-                    m.SetFloat("_Glossiness", 0.45f);
+                    ShepherdShading.SetSmoothness(m, 0.45f);
                     return m;
             }
             var a = Resources.Load<Texture2D>(Folder + n + "_A");
             var nm = Resources.Load<Texture2D>(Folder + n + "_N");
             var ms = Resources.Load<Texture2D>(Folder + n + "_MS");
             m.mainTexture = a;
-            if (nm != null)
-            {
-                m.EnableKeyword("_NORMALMAP");
-                m.SetTexture("_BumpMap", nm);
-                m.SetFloat("_BumpScale", 1f);
-            }
-            if (ms != null)
-            {
-                m.EnableKeyword("_METALLICGLOSSMAP");
-                m.SetTexture("_MetallicGlossMap", ms);
-                m.SetFloat("_GlossMapScale", 1f);
-            }
+            if (nm != null) ShepherdShading.SetNormalMap(m, nm, 1f);
+            if (ms != null) ShepherdShading.SetMetallicGlossMap(m, ms);
             if (n == "RB_Shade")
             {
                 // 燈罩：亮著時透出暖光（自發光很弱，主要靠燈本身）。
-                m.EnableKeyword("_EMISSION");
-                m.SetColor("_EmissionColor", new Color(0.35f, 0.24f, 0.12f));
-                m.SetTexture("_EmissionMap", a);
+                ShepherdShading.SetEmission(m, new Color(0.35f, 0.24f, 0.12f), a);
             }
             return m;
-        }
-
-        private static void SetFade(Material m)
-        {
-            m.SetFloat("_Mode", 2f);
-            m.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
-            m.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
-            m.SetInt("_ZWrite", 0);
-            m.EnableKeyword("_ALPHABLEND_ON");
-            m.renderQueue = 3000;
         }
 
         // ---------------- 燈 ----------------

@@ -131,7 +131,7 @@ namespace Shepherd.Exploration.Case01
             var color = i == 0 ? new Color(0.86f, 0.9f, 1f, 0f) : new Color(0.95f, 0.92f, 0.86f, 0f);
             f.Mat = palette.Own(ArenaArt.FadeMat(color, new Color(0.16f, 0.17f, 0.2f)));
             // 殘像：沒有高光與反射，看起來是一層淡淡的光影而不是實心人偶。
-            f.Mat.SetFloat("_Glossiness", 0f);
+            ShepherdShading.SetSmoothness(f.Mat, 0f);
             f.Mat.SetFloat("_Metallic", 0f);
             f.Mat.SetFloat("_SpecularHighlights", 0f);
             f.Mat.EnableKeyword("_SPECULARHIGHLIGHTS_OFF");

@@ -168,6 +168,8 @@ namespace Shepherd.Exploration.Editor
 
         private static void Shot(Camera main, Camera overlay, RenderTexture rt, string path)
         {
+            var post = main.GetComponent<Case01RebuildPost>();
+            if (post != null) post.Apply();
             var pa = main.targetTexture;
             main.targetTexture = rt;
             main.Render();

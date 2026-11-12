@@ -63,7 +63,7 @@ namespace Shepherd.Exploration.Tests
                 var m = room.Get(n);
                 Assert.IsNotNull(m.mainTexture, n + " albedo");
                 Assert.IsTrue(m.IsKeywordEnabled("_NORMALMAP") && m.GetTexture("_BumpMap") != null, n + " 法線貼圖");
-                Assert.IsTrue(m.IsKeywordEnabled("_METALLICGLOSSMAP") && m.GetTexture("_MetallicGlossMap") != null, n + " 金屬光滑度貼圖");
+                Assert.IsTrue(Shepherd.Battle.UI.Arena.ShepherdShading.HasMetallicGlossMap(m), n + " 金屬光滑度貼圖");
             }
             Assert.IsNull(Object.FindObjectOfType<Case01HouseQA>(), "不建立舊住宅（R3／Phase 1.9）");
             Assert.IsFalse(room.Root.GetComponentsInChildren<Transform>(true).Any(t => t.name == "GroundFloor" || t.name.StartsWith("Case01Phase")), "不含舊建築物件");
