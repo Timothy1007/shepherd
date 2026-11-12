@@ -1,5 +1,14 @@
 > **2026-11-12 戰鬥方向更新（優先於下方歷史描述）**：探索與戰鬥統一**第一人稱即時施法／攻擊**，不再以固定第三人稱卡牌戰術鏡頭為正式方向。舊卡牌／AP／回合／三連／學派規則及程式**僅保留為非約束性參考與歷史 QA**，不可預設沿用；尚未決定哪些概念轉化或淘汰。新玩法先從玩家在 3D 空間中干預敵人與環境的行為設計，建立獨立 QA，不得破壞現有場景。詳見 [第一人稱即時戰鬥方向](FIRST_PERSON_REALTIME_COMBAT_DIRECTION_V0_1.md) 與 [Issue #11](https://github.com/Timothy1007/shepherd/issues/11)。**此為方向與規劃，尚非已實作。**
 
+# 2026-11-13｜提燈 QA v0.4：體感放大的兩層樓住宅＋修復線索與異域反撲＋最終戰（Claude；待使用者真人試玩）
+文件：`docs/prototype/LANTERN_PROTOTYPE_V0_4_QA.md`（截圖 `lantern_v0_4/`），設計決策見 `docs/FIRST_PERSON_REALTIME_COMBAT_DIRECTION_V0_1.md` 第 0.6 節。入口不變；QA 現在從住宅玄關開始（F1）。
+- `LanternHouse.cs`（`LanternGraybox` partial）：九區格局放大 ×1.4（`HouseScales` 1.25／1.4／1.6，F9 重建），樓梯斜板碰撞，二樓沿樓梯井走廊。五個線索（`LanternClue`：Focus／Restore／Place／Read）、`LanternReadable` 筆記。
+- `LanternActions` 重寫：情境操作（左鍵射擊／丟出、E 抓取／復原／閱讀、Q 擬態錨定），子彈沿準心線（修正舊 `FindAimed<Component>` 會把牆的 Transform 當目標的 bug），穩定器能量。
+- `LanternFlow`：修復計數（以已完成且未處理的線索計）→ 反撲（熄燈＋同樓層遠處生成，住宅最多 2 隻）→ 最後一個完成時崩壞 → 最終戰（`LanternBoss`、`LanternPhrase` 話語可射碎浮現溫暖句子；對白暫定）→ 結束。
+- `LanternCombat`：掉落能量／記憶碎片、聚光讓失序體變慢、擬態錨定減速與擋光球、`AutoRespawn`／`RespawnMark`（住宅與最終戰不自動補怪）。
+- 測試只跑提燈篩選：EditMode 21/21、PlayMode 1/1；舊套件未重跑。
+
+---
 # 2026-11-12｜提燈手感 QA 第三批：蛋形光＋聚光、程式合成音效、失序體與戰鬥測試場（Claude；待使用者真人試玩）
 文件：`docs/prototype/LANTERN_PROTOTYPE_V0_3_QA.md`（含截圖 `lantern_v0_3/`）。入口不變；F6＝戰鬥場（x 20–44、z 0–24）。
 - 光：shader 全域 `_ShepRevealForward`／`_ShepRevealShape`（前、側、後倍率＋每公尺變寬），平常往前偏的蛋形，按住 Space 聚光成錐形光束（走路 ×0.6）。
