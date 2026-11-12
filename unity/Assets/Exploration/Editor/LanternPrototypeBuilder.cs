@@ -67,6 +67,8 @@ namespace Shepherd.Exploration.Editor
                 Pair(qa, rt, dir, "LivingAlcove", "05_living_alcove", log);
                 Pair(qa, rt, dir, "BrightEntry", "06_bright_entry", log);
                 Pair(qa, rt, dir, "BrightCalendar", "07_bright_calendar", log);
+                Pair(qa, rt, dir, "KitchenEntry", "07b_kitchen", log);
+                ActionShots(qa, rt, dir, log);
                 // 光圈大小（同機位）。
                 qa.GoTo("LivingTable");
                 qa.Rig.SetOn(true);
@@ -90,10 +92,89 @@ namespace Shepherd.Exploration.Editor
             }
             finally
             {
+                if (qa != null) qa.Shutdown();
                 if (rt != null) Object.DestroyImmediate(rt);
                 File.WriteAllText(Path.Combine(dir, "capture.txt"), log.ToString());
                 EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
             }
+        }
+
+        /// <summary>讓玩家看向某一點（保持目前位置）。</summary>
+        public static void Aim(LanternPrototypeQA qa, Vector3 point)
+        {
+            var d = point - qa.Player.EyePosition;
+            float yaw = Mathf.Atan2(d.x, d.z) * Mathf.Rad2Deg;
+            float pitch = -Mathf.Atan2(d.y, new Vector2(d.x, d.z).magnitude) * Mathf.Rad2Deg;
+            qa.Player.Teleport(qa.Player.transform.position, yaw, pitch);
+        }
+
+        private static void Act(LanternPrototypeQA qa, int frames, LanternActionInput a)
+        {
+            for (int i = 0; i < frames; i++) qa.Step(1f / 30f, ExploreInput.None, a);
+        }
+
+        private static void ActionShots(LanternPrototypeQA qa, RenderTexture rt, string dir, StringBuilder log)
+        {
+            var w = qa.World;
+            qa.Rig.SetOn(true);
+            // 牽引：抓起藍坐墊椅子，浮在面前。
+            qa.GoTo("KitchenEntry");
+            var chair = w.Tetherables.Find(t => t.name == "BlueChair");
+            Aim(qa, chair.GetComponent<Collider>().bounds.center);
+            Act(qa, 1, new LanternActionInput { SelectMode = 2 });
+            Act(qa, 1, LanternActionInput.None);
+            Act(qa, 1, new LanternActionInput { Primary = true });
+            Act(qa, 30, new LanternActionInput { Primary = true });
+            Aim(qa, new Vector3(5.2f, 1.1f, 2.4f));
+            Act(qa, 25, new LanternActionInput { Primary = true });
+            Shot(qa, rt, Path.Combine(dir, "11_tether_hold.png"));
+            log.AppendLine("tether held=" + (qa.Actions.Held != null) + " chairY=" + chair.transform.position.y.ToString("F2"));
+            // 放回凹痕上。
+            Act(qa, 1, LanternActionInput.None);
+            Act(qa, 1, new LanternActionInput { Primary = true });
+            Act(qa, 1, LanternActionInput.None);
+            chair.Body.position = new Vector3(6.05f, 0.02f, 2.55f);
+            chair.Body.rotation = Quaternion.identity;
+            chair.transform.SetPositionAndRotation(chair.Body.position, chair.Body.rotation);
+            chair.Body.velocity = Vector3.zero;
+            Act(qa, 30, LanternActionInput.None);
+            qa.GoTo("KitchenDents");
+            Frames(qa, 3);
+            Shot(qa, rt, Path.Combine(dir, "12_chair_placed.png"));
+            log.AppendLine("placed=" + w.Spots[0].Solved);
+            // 復原：倒下的高櫃（中途與完成）。
+            qa.GoTo("LivingAlcove");
+            var cab = w.Restorables.Find(r => r.name == "Cabinet");
+            Aim(qa, cab.GetComponent<Collider>().bounds.center);
+            Act(qa, 1, new LanternActionInput { SelectMode = 3 });
+            Act(qa, 24, new LanternActionInput { Primary = true });
+            Shot(qa, rt, Path.Combine(dir, "13_restore_mid.png"));
+            Act(qa, 40, new LanternActionInput { Primary = true });
+            Act(qa, 2, LanternActionInput.None);
+            Aim(qa, new Vector3(6.3f, 1.0f, 3.9f));
+            Frames(qa, 2);
+            Shot(qa, rt, Path.Combine(dir, "14_restore_done.png"));
+            log.AppendLine("restored=" + cab.Done);
+            // 射擊：提燈關掉，對異域牆蓄力射擊，撞擊點短暫打開現實，看到後面的儲藏室。
+            qa.GoTo("KitchenWall");
+            qa.Rig.SetOn(false);
+            Act(qa, 1, new LanternActionInput { SelectMode = 1 });
+            Frames(qa, 6);
+            Shot(qa, rt, Path.Combine(dir, "15a_wall_before.png"));
+            Act(qa, 33, new LanternActionInput { Primary = true });
+            Act(qa, 12, LanternActionInput.None);
+            Shot(qa, rt, Path.Combine(dir, "15b_wall_shot.png"));
+            log.AppendLine("impacts=" + qa.Actions.Impacts + " open=" + w.Blockers[0].Open);
+            qa.Rig.SetOn(true);
+            // 練習靶：蓄力射擊，打中後暈眩、出現干擾粒子。
+            qa.GoTo("BrightTarget");
+            Aim(qa, w.Target.transform.position + Vector3.up * 0.9f);
+            Act(qa, 20, new LanternActionInput { Primary = true });
+            Act(qa, 6, LanternActionInput.None);
+            Aim(qa, w.Target.transform.position + Vector3.up * 0.9f);
+            Act(qa, 2, LanternActionInput.None);
+            Shot(qa, rt, Path.Combine(dir, "16_target_hit.png"));
+            log.AppendLine("targetHits=" + qa.Actions.TargetHits + " stunned=" + w.Target.Stunned);
         }
 
         private static void Pair(LanternPrototypeQA qa, RenderTexture rt, string dir, string mark, string tag, StringBuilder log)

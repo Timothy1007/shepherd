@@ -7,9 +7,10 @@ using UnityEngine.UI;
 namespace Shepherd.Exploration.Lantern
 {
     /// <summary>
-    /// 提燈手感 QA（第一段原型，灰盒）：第一人稱的手、提燈、身體；提燈光圈內顯示真實、光圈外顯示異域。
+    /// 提燈手感 QA（灰盒原型）：左手提燈（光圈內顯示真實）、右手穩定器（射擊／牽引／復原）、低頭看得到身體。
     /// 不接舊卡牌戰鬥、不修改正式 Demo 或其他 QA。
-    /// 操作：WASD 移動、滑鼠視角、Shift 快走、F 提燈開關、Q 光圈大小、1/2/3 傳送到三個空間、B 晃動、F5 FOV、R 重置、F12 數值、Esc 釋放滑鼠。
+    /// 操作：WASD 移動、滑鼠視角、Shift 快走、F 提燈、Q 光圈大小、1/2/3 或滾輪切換穩定器模式、左鍵使用、右鍵蓄力丟出（牽引時）、
+    /// F1–F4 傳送、B 晃動、F5 FOV、R 重置、F12 數值、Esc 釋放滑鼠。
     /// </summary>
     [DefaultExecutionOrder(40)]
     public sealed class LanternPrototypeQA : MonoBehaviour
@@ -17,9 +18,11 @@ namespace Shepherd.Exploration.Lantern
         public static readonly float[] Fovs = { 55f, 62f, 70f };
         public const float WalkSpeed = 1.7f;
         public const float BriskSpeed = 2.6f;
+        private static readonly string[] ModeNames = { "射擊", "牽引", "復原" };
 
         public LanternGraybox World { get; private set; }
         public LanternRig Rig { get; private set; }
+        public LanternActions Actions { get; private set; }
         public FirstPersonController Player { get; private set; }
         public Camera Cam { get; private set; }
         public Case01RebuildPost Post { get; private set; }
@@ -27,15 +30,19 @@ namespace Shepherd.Exploration.Lantern
         public bool DebugVisible { get; private set; }
         public bool Ready { get; private set; }
         public ExploreInput? ScriptedInput;
+        public LanternActionInput? ScriptedAction;
 
         private float time;
-        private Text debugText, hintText;
+        private Text debugText, hintText, modeText, promptText;
+        private Image crosshair, chargeBar, chargeBack;
         private GameObject canvasGo;
         private bool cursorFree;
         private readonly LegacyExploreInput input = new LegacyExploreInput();
         private Color savedAmbient;
         private UnityEngine.Rendering.AmbientMode savedMode;
         private bool savedFog;
+        private SimulationMode savedSim;
+        private bool simChanged;
 
         private void Start()
         {
@@ -48,9 +55,18 @@ namespace Shepherd.Exploration.Lantern
             savedAmbient = RenderSettings.ambientLight;
             savedMode = RenderSettings.ambientMode;
             savedFog = RenderSettings.fog;
+            // 編輯器模式（測試、截圖）沒有物理迴圈：暫時改成手動模擬，結束時務必呼叫 Shutdown 還原（這是專案設定，會被存檔）。
+            // 實際遊玩時維持 Unity 正常的物理更新，不動全域設定。
+            if (!Application.isPlaying)
+            {
+                savedSim = Physics.simulationMode;
+                Physics.simulationMode = SimulationMode.Script;
+                simChanged = true;
+            }
             RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
             RenderSettings.ambientLight = new Color(0.035f, 0.038f, 0.045f);
             RenderSettings.fog = false;
+            LanternReveal.Clear();
 
             World = LanternGraybox.Build(transform);
             var spawn = World.Marks["Spawn"];
@@ -74,10 +90,12 @@ namespace Shepherd.Exploration.Lantern
             Post.Exposure = 1.0f;
 
             Rig = LanternRig.Build(Cam, Player);
+            Actions = new LanternActions(Cam, Rig, World);
             if (play) BuildUi();
             Ready = true;
             Rig.Snap();
             Post.Apply();
+            Physics.SyncTransforms();
             if (play) SetCursor(false);
         }
 
@@ -101,6 +119,7 @@ namespace Shepherd.Exploration.Lantern
         {
             Transform t;
             if (!World.Marks.TryGetValue(mark, out t)) return;
+            Actions.DropHeld(false);
             var f = t.forward;
             float yaw = Mathf.Atan2(f.x, f.z) * Mathf.Rad2Deg;
             float pitch = -Mathf.Asin(Mathf.Clamp(f.y, -1f, 1f)) * Mathf.Rad2Deg;
@@ -116,14 +135,17 @@ namespace Shepherd.Exploration.Lantern
         }
 
         /// <summary>推進一個影格（Update 或測試呼叫）。</summary>
-        public void Step(float dt, ExploreInput inp)
+        public void Step(float dt, ExploreInput inp, LanternActionInput act = default(LanternActionInput))
         {
             if (!Ready) return;
             time += dt;
             Player.Step(dt, inp, true);
             Rig.Tick(dt, time);
             World.Tick(time);
-            if (DebugVisible && debugText != null) debugText.text = DebugString();
+            Actions.Step(dt, act);
+            if (dt > 0f && simChanged) Physics.Simulate(dt);
+            LanternReveal.Tick(dt);
+            UpdateUi();
         }
 
         public string DebugString()
@@ -131,10 +153,11 @@ namespace Shepherd.Exploration.Lantern
             var sb = new StringBuilder();
             sb.Append("位置 ").Append(Player.transform.position.ToString("F2"))
               .Append("｜FOV ").Append(Cam.fieldOfView.ToString("0"))
-              .Append("｜眼高 ").Append(Player.EyeHeightValue.ToString("0.00"))
               .Append("｜步速 ").Append(Player.LastHorizontalSpeed.ToString("0.0"))
               .Append("｜提燈 ").Append(Rig.On ? "開" : "關")
-              .Append("｜光圈 ").Append(Rig.CurrentRadius.ToString("0.0")).Append(" m");
+              .Append("｜光圈 ").Append(Rig.CurrentRadius.ToString("0.0")).Append(" m")
+              .Append("｜模式 ").Append(ModeNames[(int)Actions.Mode])
+              .Append("｜現實泡泡 ").Append(LanternReveal.ActiveBubbles);
             return sb.ToString();
         }
 
@@ -143,18 +166,27 @@ namespace Shepherd.Exploration.Lantern
             if (!Ready || !Application.isPlaying) return;
             if (Input.GetKeyDown(KeyCode.F)) ToggleLantern();
             if (Input.GetKeyDown(KeyCode.Q)) CycleRadius();
-            if (Input.GetKeyDown(KeyCode.Alpha1)) GoTo("Spawn");
-            if (Input.GetKeyDown(KeyCode.Alpha2)) GoTo("LivingEntry");
-            if (Input.GetKeyDown(KeyCode.Alpha3)) GoTo("BrightEntry");
+            if (Input.GetKeyDown(KeyCode.F1)) GoTo("Spawn");
+            if (Input.GetKeyDown(KeyCode.F2)) GoTo("LivingEntry");
+            if (Input.GetKeyDown(KeyCode.F3)) GoTo("KitchenEntry");
+            if (Input.GetKeyDown(KeyCode.F4)) GoTo("BrightEntry");
             if (Input.GetKeyDown(KeyCode.B)) ToggleHeadBob();
             if (Input.GetKeyDown(KeyCode.F5)) CycleFov();
             if (Input.GetKeyDown(KeyCode.R)) ResetScene();
             if (Input.GetKeyDown(KeyCode.F12)) ToggleDebug();
             var inp = ScriptedInput ?? input.Read();
             if (inp.ReleaseCursor) SetCursor(true);
-            if (cursorFree && Input.GetMouseButtonDown(0)) SetCursor(false);
+            bool clickToLock = cursorFree && Input.GetMouseButtonDown(0);
+            if (clickToLock) SetCursor(false);
             if (cursorFree && !ScriptedInput.HasValue) inp.Look = Vector2.zero;
-            Step(Time.deltaTime, inp);
+            var act = ScriptedAction ?? new LanternActionInput
+            {
+                Primary = !cursorFree && !clickToLock && Input.GetMouseButton(0),
+                Secondary = !cursorFree && Input.GetMouseButton(1),
+                SelectMode = Input.GetKeyDown(KeyCode.Alpha1) ? 1 : Input.GetKeyDown(KeyCode.Alpha2) ? 2 : Input.GetKeyDown(KeyCode.Alpha3) ? 3 : 0,
+                Scroll = Input.mouseScrollDelta.y,
+            };
+            Step(Time.deltaTime, inp, act);
         }
 
         private void SetCursor(bool free)
@@ -163,6 +195,8 @@ namespace Shepherd.Exploration.Lantern
             Cursor.lockState = free ? CursorLockMode.None : CursorLockMode.Locked;
             Cursor.visible = free;
         }
+
+        // ---------------- 畫面提示 ----------------
 
         private void BuildUi()
         {
@@ -175,19 +209,34 @@ namespace Shepherd.Exploration.Lantern
             scaler.referenceResolution = new Vector2(1920, 1080);
             var font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
 
-            var dot = new GameObject("Crosshair").AddComponent<Image>();
-            dot.transform.SetParent(canvasGo.transform, false);
-            dot.rectTransform.sizeDelta = new Vector2(5, 5);
-            dot.color = new Color(1f, 0.95f, 0.85f, 0.7f);
+            crosshair = new GameObject("Crosshair").AddComponent<Image>();
+            crosshair.transform.SetParent(canvasGo.transform, false);
+            crosshair.rectTransform.sizeDelta = new Vector2(6, 6);
+            crosshair.color = new Color(1f, 0.95f, 0.85f, 0.7f);
 
-            hintText = MakeText("Hint", font, 20, new Vector2(24, 20), TextAnchor.LowerLeft);
-            hintText.text = "F 提燈開關　Q 光圈大小　1/2/3 走廊／客廳／亮房間　B 晃動　F5 視野　R 重置　F12 數值　Esc 釋放滑鼠";
-            hintText.color = new Color(1f, 1f, 1f, 0.55f);
-            debugText = MakeText("Debug", font, 20, new Vector2(24, -20), TextAnchor.UpperLeft);
+            chargeBack = new GameObject("ChargeBack").AddComponent<Image>();
+            chargeBack.transform.SetParent(canvasGo.transform, false);
+            chargeBack.rectTransform.sizeDelta = new Vector2(80, 4);
+            chargeBack.rectTransform.anchoredPosition = new Vector2(0, -26);
+            chargeBack.color = new Color(0f, 0f, 0f, 0.4f);
+            chargeBar = new GameObject("ChargeBar").AddComponent<Image>();
+            chargeBar.transform.SetParent(chargeBack.transform, false);
+            chargeBar.rectTransform.anchorMin = new Vector2(0, 0);
+            chargeBar.rectTransform.anchorMax = new Vector2(0, 1);
+            chargeBar.rectTransform.pivot = new Vector2(0, 0.5f);
+            chargeBar.color = new Color(1f, 0.85f, 0.55f, 0.9f);
+
+            hintText = MakeText("Hint", font, 18, new Vector2(24, 20), TextAnchor.LowerLeft, new Vector2(0, 0));
+            hintText.text = "F 提燈　Q 光圈　1/2/3 或滾輪 換模式　左鍵 使用　右鍵 蓄力丟出　F1–F4 走廊／客廳／廚房／亮房間　B 晃動　F5 視野　R 重置　F12 數值　Esc 滑鼠";
+            hintText.color = new Color(1f, 1f, 1f, 0.5f);
+            modeText = MakeText("Mode", font, 26, new Vector2(-30, 24), TextAnchor.LowerRight, new Vector2(1, 0));
+            promptText = MakeText("Prompt", font, 22, new Vector2(0, -70), TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f));
+            promptText.color = new Color(1f, 0.96f, 0.88f, 0.85f);
+            debugText = MakeText("Debug", font, 18, new Vector2(24, -20), TextAnchor.UpperLeft, new Vector2(0, 1));
             debugText.enabled = false;
         }
 
-        private Text MakeText(string name, Font font, int size, Vector2 offset, TextAnchor anchor)
+        private Text MakeText(string name, Font font, int size, Vector2 offset, TextAnchor anchor, Vector2 pivot)
         {
             var t = new GameObject(name).AddComponent<Text>();
             t.transform.SetParent(canvasGo.transform, false);
@@ -195,25 +244,59 @@ namespace Shepherd.Exploration.Lantern
             t.fontSize = size;
             t.alignment = anchor;
             var rt = t.rectTransform;
-            bool bottom = anchor == TextAnchor.LowerLeft;
-            rt.anchorMin = rt.anchorMax = rt.pivot = bottom ? new Vector2(0, 0) : new Vector2(0, 1);
+            rt.anchorMin = rt.anchorMax = rt.pivot = pivot;
             rt.anchoredPosition = offset;
-            rt.sizeDelta = new Vector2(1600, 60);
+            rt.sizeDelta = new Vector2(1500, 60);
             var sh = t.gameObject.AddComponent<Shadow>();
             sh.effectColor = new Color(0, 0, 0, 0.8f);
             return t;
         }
 
-        private void OnDestroy()
+        public string PromptText => Actions != null ? Actions.Prompt : "";
+
+        private void UpdateUi()
         {
-            if (Rig != null) Rig.Destroy();
-            if (World != null) World.Destroy();
+            if (canvasGo == null) return;
+            int m = (int)Actions.Mode;
+            var sb = new StringBuilder();
+            for (int i = 0; i < 3; i++)
+            {
+                if (i > 0) sb.Append("　");
+                sb.Append(i == m ? "【" : " ").Append(i + 1).Append(' ').Append(ModeNames[i]).Append(i == m ? "】" : " ");
+            }
+            modeText.text = sb.ToString();
+            promptText.text = Actions.Prompt;
+            float charge = Actions.Mode == StabilizerMode.Tether ? Actions.ThrowCharge : Actions.Charge;
+            chargeBack.enabled = charge > 0.01f;
+            chargeBar.rectTransform.sizeDelta = new Vector2(80f * charge, 0f);
+            crosshair.color = Actions.Aimed != null ? new Color(1f, 0.85f, 0.5f, 0.95f) : new Color(1f, 0.95f, 0.85f, 0.55f);
+            crosshair.rectTransform.sizeDelta = Actions.Aimed != null ? new Vector2(10, 10) : new Vector2(6, 6);
+            if (DebugVisible) debugText.text = DebugString();
+        }
+
+        /// <summary>還原暫時改動的全域設定（物理模擬模式、環境光）。可重複呼叫。編輯器模式下不會自動呼叫 OnDestroy，測試與截圖要自己呼叫。</summary>
+        public void Shutdown()
+        {
+            if (simChanged)
+            {
+                Physics.simulationMode = savedSim;
+                simChanged = false;
+            }
             if (Ready)
             {
                 RenderSettings.ambientLight = savedAmbient;
                 RenderSettings.ambientMode = savedMode;
                 RenderSettings.fog = savedFog;
             }
+        }
+
+        private void OnDestroy()
+        {
+            Shutdown();
+            if (Actions != null) Actions.Destroy();
+            if (Rig != null) Rig.Destroy();
+            if (World != null) World.Destroy();
+            LanternReveal.Clear();
             if (Application.isPlaying) { Cursor.lockState = CursorLockMode.None; Cursor.visible = true; }
         }
     }

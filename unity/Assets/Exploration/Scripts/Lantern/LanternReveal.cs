@@ -27,10 +27,20 @@ namespace Shepherd.Exploration.Lantern
             }
         }
 
+        public static readonly int ExtraId = Shader.PropertyToID("_ShepRevealExtra");
+        public const int ExtraCount = 8;
+        /// <summary>前 4 格給暫時的撞擊泡泡，後 4 格給永久的穩定區。</summary>
+        public const int TempSlots = 4;
+
         public static Vector3 Center { get; private set; }
         public static float Radius { get; private set; }
 
-        /// <summary>設定光圈；radius ≤ 0 代表提燈關閉（整個世界都是異域）。</summary>
+        private static readonly Vector4[] extra = new Vector4[ExtraCount];
+        private static readonly float[] life = new float[ExtraCount];
+        private static readonly float[] maxLife = new float[ExtraCount];
+        private static readonly float[] fullRadius = new float[ExtraCount];
+
+        /// <summary>設定提燈光圈（外圈半徑）；radius ≤ 0 代表提燈關閉。</summary>
         public static void SetSphere(Vector3 center, float radius)
         {
             Center = center;
@@ -38,10 +48,104 @@ namespace Shepherd.Exploration.Lantern
             Shader.SetGlobalVector(SphereId, new Vector4(center.x, center.y, center.z, radius));
         }
 
-        public static void Clear() => SetSphere(Vector3.zero, 0f);
+        public static void Clear()
+        {
+            SetSphere(Vector3.zero, 0f);
+            for (int i = 0; i < ExtraCount; i++) { extra[i] = Vector4.zero; life[i] = 0f; }
+            PushExtra();
+        }
 
-        /// <summary>與 shader 相同的判斷（不含邊緣雜訊）：這個點目前是否顯示真實。</summary>
-        public static bool IsReal(Vector3 p) => Radius > 0f && Vector3.Distance(p, Center) < Radius;
+        private static void PushExtra() => Shader.SetGlobalVectorArray(ExtraId, extra);
+
+        /// <summary>暫時的現實泡泡（穩定能量撞擊點）：展開、維持、最後收合。回傳格子編號。</summary>
+        public static int AddBubble(Vector3 pos, float radius, float seconds)
+        {
+            int best = 0;
+            for (int i = 0; i < TempSlots; i++)
+                if (extra[i].w <= 0f) { best = i; break; }
+                else if (life[i] < life[best]) best = i;
+            extra[best] = new Vector4(pos.x, pos.y, pos.z, 0.01f);
+            fullRadius[best] = radius;
+            life[best] = maxLife[best] = seconds;
+            PushExtra();
+            return best;
+        }
+
+        /// <summary>永久的穩定區（已復原的地方）。</summary>
+        public static int AddAnchor(Vector3 pos, float radius)
+        {
+            for (int i = TempSlots; i < ExtraCount; i++)
+                if (extra[i].w <= 0f)
+                {
+                    extra[i] = new Vector4(pos.x, pos.y, pos.z, radius);
+                    fullRadius[i] = radius;
+                    life[i] = -1f;
+                    PushExtra();
+                    return i;
+                }
+            return -1;
+        }
+
+        public static Vector4 Extra(int i) => extra[i];
+
+        public static int ActiveBubbles
+        {
+            get
+            {
+                int n = 0;
+                for (int i = 0; i < TempSlots; i++) if (extra[i].w > 0f) n++;
+                return n;
+            }
+        }
+
+        /// <summary>每個影格：暫時泡泡展開（0.25 s）、維持、收合（最後 0.6 s）。</summary>
+        public static void Tick(float dt)
+        {
+            for (int i = 0; i < TempSlots; i++)
+            {
+                if (extra[i].w <= 0f) continue;
+                life[i] -= dt;
+                if (life[i] <= 0f) { extra[i].w = 0f; continue; }
+                float age = maxLife[i] - life[i];
+                float k = Mathf.Min(Mathf.Clamp01(age / 0.25f), Mathf.Clamp01(life[i] / 0.6f));
+                extra[i].w = Mathf.Max(0.01f, fullRadius[i] * Mathf.SmoothStep(0f, 1f, k));
+            }
+            PushExtra();
+        }
+
+        /// <summary>與 shader 相同的判斷（不含邊緣雜訊；遮罩過半＝真實）：這個點目前是否顯示真實。</summary>
+        public static bool IsReal(Vector3 p)
+        {
+            if (Radius > 0f && Vector3.Distance(p, Center) < Radius * 0.725f) return true;
+            for (int i = 0; i < ExtraCount; i++)
+                if (extra[i].w > 0f && Vector3.Distance(p, extra[i]) < extra[i].w * 0.8f) return true;
+            return false;
+        }
+
+        // ---------------- 特效材質 ----------------
+
+        private static Material additive;
+
+        /// <summary>URP 粒子加亮材質（干擾粒子、光線）。</summary>
+        public static Material Additive
+        {
+            get
+            {
+                if (additive != null) return additive;
+                var sh = Shader.Find("Universal Render Pipeline/Particles/Unlit");
+                additive = new Material(sh != null ? sh : Shader.Find("Sprites/Default")) { name = "LanternAdditive", hideFlags = HideFlags.DontSave };
+                additive.SetFloat("_Surface", 1f);
+                additive.SetFloat("_Blend", 2f);
+                additive.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
+                additive.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.One);
+                additive.SetFloat("_ZWrite", 0f);
+                additive.SetOverrideTag("RenderType", "Transparent");
+                additive.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+                additive.renderQueue = 3100;
+                additive.SetTexture("_BaseMap", Shepherd.Battle.UI.Arena.ArenaArt.SoftDot);
+                return additive;
+            }
+        }
 
         // ---------------- 材質 ----------------
 
@@ -176,6 +280,35 @@ namespace Shepherd.Exploration.Lantern
             t.SetPixels32(px);
             t.Apply(true);
             return t;
+        }
+
+        /// <summary>舊照片（灰盒）：女孩踩在椅子上、伸手拿高櫃上的罐子；地上看得到椅子四隻腳的位置。</summary>
+        public static Texture2D ChairPhoto
+        {
+            get
+            {
+                bool c;
+                var t = New("LanternChairPhoto", 192, 256, out c);
+                if (c) return t;
+                const int w = 192, h = 256;
+                var px = new Color32[w * h];
+                Fill(px, w, h, new Color32(206, 190, 160, 255));
+                Rect(px, w, h, 0, 0, w, 40, new Color32(150, 128, 100, 255));
+                Rect(px, w, h, 120, 40, 176, 230, new Color32(110, 80, 55, 255));
+                Rect(px, w, h, 132, 232, 150, 246, new Color32(170, 160, 150, 255));
+                Rect(px, w, h, 50, 40, 54, 92, new Color32(60, 70, 120, 255));
+                Rect(px, w, h, 96, 40, 100, 92, new Color32(60, 70, 120, 255));
+                Rect(px, w, h, 46, 90, 104, 100, new Color32(60, 70, 140, 255));
+                Figure(px, w, h, 76, 100, 112, new Color32(90, 60, 45, 255));
+                Rect(px, w, h, 84, 186, 128, 194, new Color32(90, 60, 45, 255));
+                Rect(px, w, h, 0, 0, w, 8, new Color32(245, 240, 228, 255));
+                Rect(px, w, h, 0, h - 8, w, h, new Color32(245, 240, 228, 255));
+                Rect(px, w, h, 0, 0, 8, h, new Color32(245, 240, 228, 255));
+                Rect(px, w, h, w - 8, 0, w, h, new Color32(245, 240, 228, 255));
+                t.SetPixels32(px);
+                t.Apply(true);
+                return t;
+            }
         }
 
         /// <summary>牆上的畫（灰盒）：真實＝山丘與房子；異域＝一隻凝視的眼睛。</summary>

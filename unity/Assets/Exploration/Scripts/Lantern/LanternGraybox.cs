@@ -24,6 +24,11 @@ namespace Shepherd.Exploration.Lantern
         public readonly List<Renderer> AnomalyOnly = new List<Renderer>();
         public readonly List<Renderer> Dual = new List<Renderer>();
         public Transform ClockAnomalyHands { get; private set; }
+        public readonly List<LanternTetherable> Tetherables = new List<LanternTetherable>();
+        public readonly List<LanternRestorable> Restorables = new List<LanternRestorable>();
+        public readonly List<LanternAnomalyBlocker> Blockers = new List<LanternAnomalyBlocker>();
+        public readonly List<LanternPlacementSpot> Spots = new List<LanternPlacementSpot>();
+        public LanternTarget Target { get; private set; }
         public Bounds Area { get; private set; }
 
         private float[] flickerSeed;
@@ -39,8 +44,10 @@ namespace Shepherd.Exploration.Lantern
             g.Hallway();
             g.Living();
             g.Bright();
+            g.Kitchen();
+            g.Storage();
             g.Lights();
-            g.Area = new Bounds(new Vector3(5.2f, 1.35f, 4.2f), new Vector3(10.4f, 2.7f, 8.4f));
+            g.Area = new Bounds(new Vector3(5.5f, 1.35f, 4.2f), new Vector3(11f, 2.7f, 8.4f));
             g.flickerSeed = new float[g.AnomalyLights.Count];
             for (int i = 0; i < g.flickerSeed.Length; i++) g.flickerSeed[i] = i * 13.7f;
             return g;
@@ -167,15 +174,18 @@ namespace Shepherd.Exploration.Lantern
 
         private void Shell()
         {
-            Box("Floor", new Vector3(5.2f, -0.05f, 4.2f), new Vector3(10.6f, 0.1f, 8.6f), floor);
+            Box("Floor", new Vector3(5.6f, -0.05f, 4.2f), new Vector3(11.4f, 0.1f, 8.6f), floor);
             // 走廊 x 0–2.0、z 0–7.0；客廳 x 2.0–7.0、z 3.4–8.4；亮房間 x 7.0–11.0、z 2.4–7.4。
             WallZ(0f, 0f, 7f, wall);
-            WallX(0f, 0f, 2f, wall);
+            WallX(0f, 0f, 9.2f, wall);
             WallX(7f, 0f, 2f, wall);
-            WallZ(2f, 0f, 8.4f, wall, new Vector2(5.6f, 6.6f));
+            WallZ(2f, 0f, 8.4f, wall, new Vector2(1.0f, 2.0f), new Vector2(5.6f, 6.6f));
             WallX(8.4f, 2f, 7f, wall);
             WallX(3.4f, 2f, 7f, wall);
             WallZ(7f, 2.4f, 8.4f, wall, new Vector2(4.0f, 5.0f));
+            // 廚房東牆：真實裡有門洞通往儲藏室（z 1.0–2.0），異域裡被一面牆封住。
+            WallZ(7f, 0f, 2.4f, wall, new Vector2(1.0f, 2.0f));
+            WallZ(9.2f, 0f, 2.4f, wall);
             WallX(2.4f, 7f, 11f, wallBright);
             WallX(7.4f, 7f, 11f, wallBright);
             // 亮房間東牆：大窗 z 3.9–6.1、y 0.8–2.3。
@@ -191,6 +201,8 @@ namespace Shepherd.Exploration.Lantern
             Box("Ceiling", new Vector3(1f, H + 0.05f, 3.5f), new Vector3(2.1f, 0.1f, 7.1f), ceiling);
             Box("Ceiling", new Vector3(4.5f, H + 0.05f, 5.9f), new Vector3(5.1f, 0.1f, 5.1f), ceiling);
             Box("Ceiling", new Vector3(9f, H + 0.05f, 4.9f), new Vector3(4.1f, 0.1f, 5.1f), ceiling);
+            Box("Ceiling", new Vector3(4.5f, H + 0.05f, 1.7f), new Vector3(5.1f, 0.1f, 3.5f), ceiling);
+            Box("Ceiling", new Vector3(8.1f, H + 0.05f, 1.2f), new Vector3(2.3f, 0.1f, 2.5f), ceiling);
         }
 
         private void Hallway()
@@ -263,10 +275,12 @@ namespace Shepherd.Exploration.Lantern
             Box("SofaBase", new Vector3(3.0f, 0.22f, 4.4f), new Vector3(1.8f, 0.44f, 0.8f), fabric);
             Box("SofaBack", new Vector3(3.0f, 0.62f, 4.0f), new Vector3(1.8f, 0.6f, 0.2f), fabric, false);
             // 隔牆後的角落：真實的高櫃好好站著；異域裡它倒在地上。
-            var cabReal = Mat("LG_CabinetReal", Mode.RealOnly, new Color(0.38f, 0.24f, 0.14f), Color.black, null, null, 0.35f, 0.35f, 0f);
-            var cabAnom = Mat("LG_CabinetAnomaly", Mode.AnomalyOnly, Color.black, new Color(0.2f, 0.23f, 0.24f), null, null, 0.5f, 0.6f, 0.02f);
-            Box("CabinetReal", new Vector3(6.5f, 0.95f, 3.8f), new Vector3(0.8f, 1.9f, 0.45f), cabReal, false);
-            Box("CabinetFallen", new Vector3(5.9f, 0.23f, 4.2f), new Vector3(1.9f, 0.45f, 0.8f), cabAnom, false, new Vector3(0f, 20f, 0f));
+            // 隔牆後的角落：倒在地上的高櫃（可以復原）。
+            var cab = Box("Cabinet", new Vector3(6.5f, 0.95f, 3.8f), new Vector3(0.8f, 1.9f, 0.45f), wood, true);
+            var cr = cab.gameObject.AddComponent<LanternRestorable>();
+            cr.Label = "倒下的高櫃";
+            cr.Init(new Vector3(5.85f, 0.24f, 4.15f), Quaternion.Euler(0f, 20f, 90f), new Vector3(6.5f, 0.95f, 3.8f), Quaternion.identity);
+            Restorables.Add(cr);
             var lampShade = Mat("LG_LampShade", Mode.Dual, new Color(0.3f, 0.28f, 0.25f), new Color(0.35f, 0.3f, 0.45f), null, null, 0.1f, 0.2f, 0.01f);
             lampShade.SetColor("_AnomalyEmission", new Color(0.9f, 0.6f, 1.6f));
             Cyl("FloorLampPole", new Vector3(6.6f, 0.75f, 7.9f), new Vector3(0.04f, 0.75f, 0.04f), metal);
@@ -306,8 +320,141 @@ namespace Shepherd.Exploration.Lantern
             for (int i = 0; i < 5; i++)
                 Cyl("Twig", new Vector3(7.6f + Mathf.Sin(i * 1.3f) * 0.12f, 0.7f, 6.8f + Mathf.Cos(i * 1.3f) * 0.12f), new Vector3(0.02f, 0.3f, 0.02f), dead, new Vector3(Mathf.Sin(i) * 25f, i * 70f, Mathf.Cos(i) * 25f));
 
+            BuildTarget();
             Mark("BrightEntry", new Vector3(6.4f, 0.05f, 4.5f), new Vector3(9.5f, 1.2f, 5.2f));
+            Mark("BrightTarget", new Vector3(7.5f, 0.05f, 5.0f), new Vector3(9.2f, 1.3f, 5.0f));
             Mark("BrightCalendar", new Vector3(8.4f, 0.05f, 5.4f), new Vector3(8.6f, 1.5f, 7.3f));
+        }
+
+        private void BuildTarget()
+        {
+            var shell = Mat("LG_TargetShell", Mode.Dual, new Color(0.35f, 0.3f, 0.28f), new Color(0.08f, 0.06f, 0.1f), null, null, 0.3f, 0.8f, 0.06f);
+            shell.SetColor("_AnomalyEmission", new Color(0.25f, 0.05f, 0.4f));
+            var core = Mat("LG_TargetCore", Mode.Dual, new Color(0.9f, 0.8f, 0.6f), new Color(0.3f, 0.1f, 0.4f), null, null, 0.6f, 0.9f, 0.04f);
+            core.SetColor("_AnomalyEmission", new Color(1.6f, 0.4f, 2.4f));
+            core.SetColor("_EmissionColor", new Color(0.6f, 0.5f, 0.3f));
+            var root = new GameObject("PracticeTarget").transform;
+            root.SetParent(Root, false);
+            root.position = new Vector3(9.2f, 0.25f, 5f);
+            var parts = new List<Renderer>();
+            for (int i = 0; i < 5; i++)
+            {
+                var t = Box("TargetPart", root.position + new Vector3(Mathf.Sin(i * 2.1f) * 0.06f, 0.2f + i * 0.3f, 0f), new Vector3(0.42f - i * 0.04f, 0.3f, 0.3f - i * 0.02f), shell, false, new Vector3(i * 9f, i * 37f, i * -7f), root);
+                parts.Add(t.GetComponent<Renderer>());
+            }
+            parts.Add(Ball("TargetCore", root.position + new Vector3(0f, 0.95f, -0.17f), new Vector3(0.16f, 0.16f, 0.1f), core, root).GetComponent<Renderer>());
+            var col = root.gameObject.AddComponent<CapsuleCollider>();
+            col.center = new Vector3(0f, 0.8f, 0f);
+            col.height = 1.7f;
+            col.radius = 0.32f;
+            Target = root.gameObject.AddComponent<LanternTarget>();
+            Target.A = new Vector3(9.2f, 0.25f, 3.7f);
+            Target.B = new Vector3(9.2f, 0.25f, 6.4f);
+            Target.Parts = parts.ToArray();
+        }
+
+        private void Kitchen()
+        {
+            Box("Counter", new Vector3(4.7f, 0.45f, 0.32f), new Vector3(2.6f, 0.9f, 0.6f), wood);
+            Box("CounterTop", new Vector3(4.7f, 0.92f, 0.32f), new Vector3(2.64f, 0.04f, 0.64f), white, false);
+            Box("Stove", new Vector3(2.95f, 0.45f, 0.32f), new Vector3(0.7f, 0.9f, 0.6f), metal);
+            Box("Fridge", new Vector3(6.55f, 0.9f, 0.42f), new Vector3(0.7f, 1.8f, 0.7f), white);
+            // Issue #7 的高櫃與地上的椅腳凹痕：把藍坐墊椅子放回凹痕上＝放對了。
+            Box("TallCabinet", new Vector3(6.62f, 1.0f, 3.0f), new Vector3(0.6f, 2.0f, 0.45f), wood);
+            Cyl("Jar", new Vector3(6.55f, 2.08f, 3.0f), new Vector3(0.12f, 0.08f, 0.12f), white);
+            var dentMat = Mat("LG_Dent", Mode.Dual, new Color(0.18f, 0.12f, 0.08f), new Color(0.1f, 0.11f, 0.12f), null, null, 0.1f, 0.2f, 0f);
+            var spotGo = new GameObject("ChairDents");
+            spotGo.transform.SetParent(Root, false);
+            spotGo.transform.position = new Vector3(6.05f, 0f, 2.55f);
+            foreach (var p in new[] { new Vector2(-0.19f, -0.18f), new Vector2(0.19f, -0.18f), new Vector2(-0.19f, 0.18f), new Vector2(0.19f, 0.18f) })
+                Box("Dent", spotGo.transform.position + new Vector3(p.x, 0.003f, p.y), new Vector3(0.06f, 0.006f, 0.06f), dentMat, false);
+            var glow = spotGo.AddComponent<Light>();
+            glow.type = LightType.Point;
+            glow.color = new Color(1f, 0.85f, 0.6f);
+            glow.range = 1.8f;
+            glow.intensity = 0.8f;
+            glow.enabled = false;
+
+            var cushion = Mat("LG_BlueCushion", Mode.Dual, new Color(0.2f, 0.32f, 0.62f), new Color(0.22f, 0.26f, 0.3f), null, null, 0.1f, 0.3f, 0.01f);
+            var chair = Tether("BlueChair", "藍坐墊椅子", new Vector3(3.6f, 0f, 2.3f), new Vector3(0.46f, 0.92f, 0.44f), 4f);
+            ChairParts(chair.transform, wood, cushion);
+            var spot = spotGo.AddComponent<LanternPlacementSpot>();
+            spot.Expected = chair;
+            spot.Glow = glow;
+            Spots.Add(spot);
+            for (int i = 0; i < 3; i++)
+            {
+                var crate = Tether("Crate", "木箱", new Vector3(4.2f + i * 0.55f, 0f, 2.9f), new Vector3(0.4f, 0.4f, 0.4f), 2.5f);
+                Box("CrateBody", crate.transform.position + Vector3.up * 0.2f, new Vector3(0.4f, 0.4f, 0.4f), partition, false, null, crate.transform);
+            }
+            // 倒下的凳子（可以復原）：座面與三隻腳都掛在 Stool 底下，以 Stool 的座標建立。
+            var stool = new GameObject("Stool").transform;
+            stool.SetParent(Root, false);
+            stool.position = Vector3.zero;
+            var sc = stool.gameObject.AddComponent<BoxCollider>();
+            sc.center = new Vector3(0f, 0.3f, 0f);
+            sc.size = new Vector3(0.36f, 0.6f, 0.36f);
+            Cyl("StoolSeat", new Vector3(0f, 0.58f, 0f), new Vector3(0.36f, 0.025f, 0.36f), wood, null, stool);
+            for (int i = 0; i < 3; i++)
+            {
+                float a = i * Mathf.PI * 2f / 3f;
+                Cyl("StoolLeg", new Vector3(Mathf.Cos(a) * 0.12f, 0.28f, Mathf.Sin(a) * 0.12f), new Vector3(0.03f, 0.28f, 0.03f), wood, null, stool);
+            }
+            var sr = stool.gameObject.AddComponent<LanternRestorable>();
+            sr.Label = "倒下的凳子";
+            sr.AnchorRadius = 1.1f;
+            sr.Init(new Vector3(3.4f, 0.18f, 1.25f), Quaternion.Euler(90f, 35f, 0f), new Vector3(3.4f, 0f, 0.95f), Quaternion.identity);
+            Restorables.Add(sr);
+
+            // 只存在於異域的牆：封住通往儲藏室的真實門洞。
+            var fakeWall = Mat("LG_FakeWall", Mode.AnomalyOnly, Color.white, new Color(0.3f, 0.36f, 0.34f), LanternReveal.Grid, LanternReveal.Grid, 0.2f, 0.5f, 0.02f);
+            fakeWall.SetFloat("_WorldUV", 1f);
+            var fw = Box("AnomalyWall", new Vector3(7f, 1.05f, 1.5f), new Vector3(T + 0.02f, 2.1f, 1.0f), fakeWall, true);
+            var blocker = fw.gameObject.AddComponent<LanternAnomalyBlocker>();
+            blocker.Solid = fw.GetComponent<Collider>();
+            blocker.Probe = new Vector3(7f, 1.0f, 1.5f);
+            Blockers.Add(blocker);
+
+            Mark("KitchenEntry", new Vector3(2.4f, 0.05f, 1.5f), new Vector3(6f, 1.0f, 1.9f));
+            Mark("KitchenDents", new Vector3(4.4f, 0.05f, 1.6f), new Vector3(6.05f, 0.3f, 2.55f));
+            Mark("KitchenWall", new Vector3(5.6f, 0.05f, 1.5f), new Vector3(7f, 1.1f, 1.5f));
+        }
+
+        private LanternTetherable Tether(string name, string label, Vector3 pos, Vector3 size, float mass)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(Root, false);
+            go.transform.position = pos;
+            var col = go.AddComponent<BoxCollider>();
+            col.center = new Vector3(0f, size.y * 0.5f, 0f);
+            col.size = size;
+            go.AddComponent<Rigidbody>();
+            var t = go.AddComponent<LanternTetherable>();
+            t.Init(mass);
+            t.Label = label;
+            Tetherables.Add(t);
+            return t;
+        }
+
+        private void ChairParts(Transform root, Material m, Material cushion)
+        {
+            var p0 = root.position;
+            Box("Seat", p0 + new Vector3(0, 0.45f, 0), new Vector3(0.44f, 0.04f, 0.42f), m, false, null, root);
+            Box("Cushion", p0 + new Vector3(0, 0.49f, 0), new Vector3(0.4f, 0.05f, 0.38f), cushion, false, null, root);
+            Box("Back", p0 + new Vector3(0, 0.72f, -0.19f), new Vector3(0.44f, 0.5f, 0.04f), m, false, null, root);
+            foreach (var p in new[] { new Vector2(-0.19f, -0.18f), new Vector2(0.19f, -0.18f), new Vector2(-0.19f, 0.18f), new Vector2(0.19f, 0.18f) })
+                Box("Leg", p0 + new Vector3(p.x, 0.22f, p.y), new Vector3(0.04f, 0.44f, 0.04f), m, false, null, root);
+        }
+
+        private void Storage()
+        {
+            Box("StorageShelf", new Vector3(8.95f, 0.9f, 1.2f), new Vector3(0.35f, 1.8f, 1.6f), wood);
+            Box("Box", new Vector3(8.2f, 0.2f, 0.4f), new Vector3(0.5f, 0.4f, 0.4f), partition);
+            Box("Box", new Vector3(8.6f, 0.15f, 2.0f), new Vector3(0.4f, 0.3f, 0.4f), partition);
+            Box("PhotoTable", new Vector3(8.2f, 0.4f, 1.5f), new Vector3(0.5f, 0.8f, 0.5f), wood);
+            var photo = Mat("LG_ChairPhoto", Mode.Dual, Color.white, new Color(0.35f, 0.38f, 0.38f), LanternReveal.ChairPhoto, LanternReveal.ChairPhoto, 0.4f, 0.4f, 0.003f);
+            Quad("ChairPhoto", new Vector3(8.2f, 0.98f, 1.5f), new Vector3(0.24f, 0.32f, 1f), new Vector3(15f, 90f, 0f), photo);
+            Mark("StorageView", new Vector3(7.5f, 0.05f, 1.5f), new Vector3(8.2f, 0.95f, 1.5f));
         }
 
         private Light AddLight(string name, LightType type, Vector3 pos, Color c, float intensity, float range, bool anomaly, LightShadows shadows, float angle = 0f, Vector3? dir = null)
@@ -335,6 +482,7 @@ namespace Shepherd.Exploration.Lantern
             bulb.SetColor("_AnomalyEmission", new Color(1.6f, 2.2f, 3f));
             Ball("HallBulb", new Vector3(1f, 2.5f, 3.4f), new Vector3(0.1f, 0.12f, 0.1f), bulb);
             AddLight("HallAnomalyLight", LightType.Point, new Vector3(1f, 2.38f, 3.4f), new Color(0.62f, 0.78f, 1f), 1.1f, 6f, true, LightShadows.Soft);
+            AddLight("KitchenAnomalyLight", LightType.Point, new Vector3(4.5f, 2.45f, 1.7f), new Color(0.7f, 0.95f, 0.8f), 1.0f, 6f, true, LightShadows.Soft);
             AddLight("LivingAnomalyLamp", LightType.Point, new Vector3(6.6f, 1.45f, 7.9f), new Color(0.72f, 0.55f, 1f), 1.4f, 7f, true, LightShadows.Soft);
             // 亮房間：強烈、偏青白、過曝的「異域日光」。
             AddLight("BrightAnomalySun", LightType.Spot, new Vector3(12.6f, 2.6f, 5f), new Color(0.82f, 0.97f, 1f), 9f, 16f, true, LightShadows.Soft, 110f, new Vector3(-1f, -0.45f, 0f));

@@ -16,7 +16,8 @@ namespace Shepherd.Exploration.Lantern
     public sealed class LanternRig
     {
         public const int ViewLayer = 31;
-        public static readonly float[] Radii = { 2.2f, 3.0f, 4.0f };
+        /// <summary>提燈光圈外圈半徑（m）：0.45r 內完全真實，往外漸淡。</summary>
+        public static readonly float[] Radii = { 1.4f, 1.9f, 2.6f };
 
         public Camera Camera { get; private set; }
         public Camera ViewCamera { get; private set; }
@@ -34,7 +35,11 @@ namespace Shepherd.Exploration.Lantern
         public int RadiusIndex { get; private set; } = 1;
         public float CurrentRadius { get; private set; }
         public bool HeadBob = true;
-        public float RevealForward = 1.1f;
+        public float RevealForward = 0.25f;
+        public Transform Muzzle { get; private set; }
+        public Transform Device { get; private set; }
+        private Material deviceGlow;
+        private float recoil;
         public Vector3 RevealCenter { get; private set; }
 
         private FirstPersonController player;
@@ -85,13 +90,13 @@ namespace Shepherd.Exploration.Lantern
             ViewRoot.SetParent(Camera.transform, false);
             ViewRoot.gameObject.layer = ViewLayer;
 
-            // 右前臂：從畫面右下外側伸進來。
-            var arm = new GameObject("RightArm").transform;
+            // 左前臂提燈：從畫面左下外側伸進來。
+            var arm = new GameObject("LeftArm").transform;
             arm.SetParent(ViewRoot, false);
-            arm.localPosition = new Vector3(0.24f, -0.1f, 0.62f);
+            arm.localPosition = new Vector3(-0.25f, -0.1f, 0.6f);
             arm.localScale = Vector3.one * 0.85f;
             arm.localRotation = Quaternion.identity;
-            Part(PrimitiveType.Capsule, arm, new Vector3(0.07f, -0.09f, -0.2f), new Vector3(0.085f, 0.21f, 0.085f), sleeve, new Vector3(62f, -18f, 0f), "Forearm", ViewRenderers, ViewLayer);
+            Part(PrimitiveType.Capsule, arm, new Vector3(-0.07f, -0.09f, -0.2f), new Vector3(0.085f, 0.21f, 0.085f), sleeve, new Vector3(62f, 18f, 0f), "Forearm", ViewRenderers, ViewLayer);
             Hand = Part(PrimitiveType.Sphere, arm, new Vector3(0f, -0.01f, 0.02f), new Vector3(0.075f, 0.065f, 0.09f), skin, null, "Hand", ViewRenderers, ViewLayer);
 
             // 提燈：掛在手下方，以手為支點擺動。
@@ -117,10 +122,12 @@ namespace Shepherd.Exploration.Lantern
             Light = lg.AddComponent<Light>();
             Light.type = LightType.Point;
             Light.color = new Color(1f, 0.86f, 0.66f);
-            Light.intensity = 1.15f;
-            Light.range = 6.5f;
+            Light.intensity = 0.9f;
+            Light.range = 4f;
             Light.shadows = LightShadows.Soft;
             Light.shadowNearPlane = 0.25f;
+
+            BuildDevice(sleeve, skin, brass, iron);
 
             // 手與提燈的補光（只照疊加層），讓手的輪廓在暗處也讀得出來。
             var fill = new GameObject("ViewModelFill").AddComponent<Light>();
@@ -155,6 +162,42 @@ namespace Shepherd.Exploration.Lantern
             }
 #endif
         }
+
+        /// <summary>右手：事務所科學家做的「穩定器」（灰盒造型）。射擊／牽引／復原共用一把，線圈顏色代表目前模式。</summary>
+        private void BuildDevice(Material sleeve, Material skin, Material brass, Material iron)
+        {
+            deviceGlow = Lit("LR_DeviceGlow", new Color(1f, 0.95f, 0.85f), 0.4f, new Color(1.2f, 1f, 0.7f));
+            var wood = Lit("LR_DeviceGrip", new Color(0.3f, 0.18f, 0.1f), 0.35f);
+            var arm = new GameObject("RightArm").transform;
+            arm.SetParent(ViewRoot, false);
+            arm.localPosition = new Vector3(0.2f, -0.15f, 0.46f);
+            arm.localScale = Vector3.one * 0.85f;
+            Part(PrimitiveType.Capsule, arm, new Vector3(0.06f, -0.08f, -0.2f), new Vector3(0.085f, 0.21f, 0.085f), sleeve, new Vector3(68f, -14f, 0f), "ForearmR", ViewRenderers, ViewLayer);
+            Part(PrimitiveType.Sphere, arm, new Vector3(0f, -0.02f, 0f), new Vector3(0.075f, 0.07f, 0.09f), skin, null, "HandR", ViewRenderers, ViewLayer);
+            Device = new GameObject("Stabilizer").transform;
+            Device.SetParent(arm, false);
+            Device.localPosition = new Vector3(0f, 0.02f, 0.02f);
+            Part(PrimitiveType.Cube, Device, new Vector3(0f, -0.04f, -0.01f), new Vector3(0.035f, 0.09f, 0.045f), wood, new Vector3(-12f, 0f, 0f), "Grip", ViewRenderers, ViewLayer);
+            Part(PrimitiveType.Cube, Device, new Vector3(0f, 0.025f, 0.05f), new Vector3(0.05f, 0.05f, 0.17f), brass, null, "Body", ViewRenderers, ViewLayer);
+            Part(PrimitiveType.Cylinder, Device, new Vector3(0f, 0.03f, 0.16f), new Vector3(0.026f, 0.05f, 0.026f), iron, new Vector3(90f, 0f, 0f), "Barrel", ViewRenderers, ViewLayer);
+            for (int i = 0; i < 3; i++)
+                Part(PrimitiveType.Cylinder, Device, new Vector3(0f, 0.03f, 0.1f + i * 0.035f), new Vector3(0.042f, 0.006f, 0.042f), deviceGlow, new Vector3(90f, 0f, 0f), "Coil", ViewRenderers, ViewLayer);
+            Part(PrimitiveType.Sphere, Device, new Vector3(0f, 0.062f, 0.02f), new Vector3(0.03f, 0.03f, 0.03f), deviceGlow, null, "Core", ViewRenderers, ViewLayer);
+            Muzzle = new GameObject("Muzzle").transform;
+            Muzzle.SetParent(Device, false);
+            Muzzle.localPosition = new Vector3(0f, 0.03f, 0.22f);
+        }
+
+        /// <summary>穩定器的模式顏色與蓄力亮度（0～1）；active＝正在牽引／復原。</summary>
+        public void SetDevice(int mode, float charge, bool active)
+        {
+            if (deviceGlow == null) return;
+            var c = mode == 0 ? new Color(1.3f, 1.05f, 0.7f) : mode == 1 ? new Color(0.6f, 0.95f, 1.4f) : new Color(0.7f, 1.4f, 0.8f);
+            float k = 0.6f + charge * 2.4f + (active ? 1.2f : 0f);
+            deviceGlow.SetColor("_EmissionColor", c * k);
+        }
+
+        public void Recoil() => recoil = 1f;
 
         private void BuildBody()
         {
@@ -199,14 +242,16 @@ namespace Shepherd.Exploration.Lantern
             swing = Vector2.ClampMagnitude(swing, 28f);
             LanternPivot.localRotation = Quaternion.Euler(swing.x, 0f, swing.y);
             ViewRoot.localPosition = new Vector3(0f, -bob.y * 0.6f, 0f);
+            recoil = Mathf.MoveTowards(recoil, 0f, dt * 6f);
+            if (Device != null) Device.localRotation = Quaternion.Euler(-recoil * 14f, 0f, 0f);
 
             // 光：開關時光圈平滑展開／收合；燈光輕微呼吸（不是火焰的劇烈跳動）。
             CurrentRadius = Mathf.MoveTowards(CurrentRadius, TargetRadius, dt * 9f);
             float breathe = 1f + Mathf.Sin(time * 2.3f) * 0.03f + (Mathf.PerlinNoise(time * 1.7f, 0.3f) - 0.5f) * 0.04f;
             float k = CurrentRadius / Radii[RadiusIndex];
             Light.enabled = CurrentRadius > 0.01f;
-            Light.intensity = 1.15f * breathe * Mathf.Clamp01(k);
-            Light.range = 3.5f + CurrentRadius * 1.1f;
+            Light.intensity = 0.9f * breathe * Mathf.Clamp01(k);
+            Light.range = Mathf.Max(0.5f, CurrentRadius * 2.2f);
             flame.SetColor("_EmissionColor", new Color(6f, 4.2f, 2.2f) * Mathf.Lerp(0.05f, 1f, Mathf.Clamp01(k)) * breathe);
             glassMat.SetColor("_EmissionColor", new Color(1.4f, 0.95f, 0.5f) * Mathf.Lerp(0.05f, 1f, Mathf.Clamp01(k)));
 

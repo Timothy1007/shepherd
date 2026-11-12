@@ -36,6 +36,8 @@ Shader "Shepherd/Prototype/LanternReveal"
             float _Mode, _Smoothness, _AnomalySmoothness, _Metallic, _Wobble, _EdgeWidth, _Cull, _WorldUV;
         CBUFFER_END
         float4 _ShepRevealSphere;
+        // 額外的現實泡泡（穩定能量的撞擊點、已復原的穩定區）：xyz＝中心、w＝半徑；w≤0＝未使用。
+        float4 _ShepRevealExtra[8];
         TEXTURE2D(_BaseMap); SAMPLER(sampler_BaseMap);
         TEXTURE2D(_AnomalyMap); SAMPLER(sampler_AnomalyMap);
 
@@ -54,15 +56,41 @@ Shader "Shepherd/Prototype/LanternReveal"
                         lerp(lerp(Hash3(i + float3(0,0,1)), Hash3(i + float3(1,0,1)), f.x), lerp(Hash3(i + float3(0,1,1)), Hash3(i + float3(1,1,1)), f.x), f.y), f.z);
         }
 
-        // 1＝真實（光圈內），0＝異域。交界帶雜訊、會緩慢流動。
+        // 1＝真實，0＝異域。提燈的光像真的燈一樣：靠近燈完全是真實，越遠越淡（從 0.45r 漸淡到 r）。
+        // 交界帶雜訊、會緩慢流動；穩定能量的撞擊點與已復原的區域另外各是一顆小泡泡。
+        // edge：只在「真實／異域」交界的一條細線上發光（寬約 _EdgeWidth 的一半），不會鋪滿整個漸變區。
+        float RevealMaskEdge(float3 wp, out float edge)
+        {
+            // 低頻雜訊：交界緩慢起伏，不會碎成電流般的細紋。
+            float n = Noise3(wp * 2.2 + _Time.y * 0.3) * 0.75 + Noise3(wp * 4.5 - _Time.y * 0.45) * 0.25;
+            float w = max(_EdgeWidth, 0.02);
+            float m = 0.0;
+            edge = 0.0;
+            float r = _ShepRevealSphere.w;
+            if (r > 0.0)
+            {
+                float d = distance(wp, _ShepRevealSphere.xyz) + (n - 0.5) * w * 0.9;
+                m = 1.0 - smoothstep(r * 0.45, r, d);
+                edge = max(edge, 1.0 - saturate(abs(d - r * 0.725) / (w * 0.5)));
+            }
+            [unroll] for (int k = 0; k < 8; k++)
+            {
+                float4 s = _ShepRevealExtra[k];
+                if (s.w > 0.0)
+                {
+                    float de = distance(wp, s.xyz) + (n - 0.5) * w * 0.8;
+                    m = max(m, 1.0 - smoothstep(s.w * 0.6, s.w, de));
+                    edge = max(edge, 1.0 - saturate(abs(de - s.w * 0.8) / (w * 0.4)));
+                }
+            }
+            edge = edge * edge * edge;
+            return m;
+        }
+
         float RevealMask(float3 wp)
         {
-            float r = _ShepRevealSphere.w;
-            if (r <= 0.0) return 0.0;
-            float d = distance(wp, _ShepRevealSphere.xyz);
-            float n = Noise3(wp * 3.1 + _Time.y * 0.35) * 0.6 + Noise3(wp * 9.0 - _Time.y * 0.6) * 0.4;
-            float w = max(_EdgeWidth, 0.02);
-            return 1.0 - smoothstep(r - w, r, d + (n - 0.5) * w * 1.6);
+            float e;
+            return RevealMaskEdge(wp, e);
         }
 
         float3 Wobble(float3 wp, float mask)
@@ -125,7 +153,8 @@ Shader "Shepherd/Prototype/LanternReveal"
 
             half4 frag(V i) : SV_Target
             {
-                float m = RevealMask(i.wp);
+                float edge;
+                float m = RevealMaskEdge(i.wp, edge);
                 ClipByMode(m);
                 float2 uv = i.uv;
                 if (_WorldUV > 0.5)
@@ -153,7 +182,7 @@ Shader "Shepherd/Prototype/LanternReveal"
                 s.metallic = _Metallic;
                 s.smoothness = lerp(_AnomalySmoothness, _Smoothness, k);
                 s.occlusion = 1;
-                float edge = pow(saturate(1.0 - abs(m - 0.5) * 2.0), 3.0) * 0.8 * step(0.0001, _ShepRevealSphere.w);
+                edge *= 0.32;
                 s.emission = lerp(_AnomalyEmission.rgb, _EmissionColor.rgb, k) + _EdgeColor.rgb * edge;
                 s.alpha = 1;
                 s.normalTS = float3(0, 0, 1);
