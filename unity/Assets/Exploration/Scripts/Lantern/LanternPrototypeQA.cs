@@ -35,6 +35,16 @@ namespace Shepherd.Exploration.Lantern
         public LanternActionInput? ScriptedAction;
         public LanternReadable Reading { get; private set; }
         public float ReadingTimer { get; private set; }
+        /// <summary>正在近看的東西（null＝沒有）。</summary>
+        public LanternInspectable Inspecting { get; private set; }
+        public int InspectPage { get; private set; }
+        public bool InspectFlipped { get; private set; }
+        private Transform inspectClone;
+        private Vector2 inspectRot;
+        private float inspectMoveCooldown;
+        private Text inspectTitle, inspectBody, inspectHint, cluesText;
+        private Image inspectPanel;
+        private RawImage inspectImage;
 
         private float time;
         private Text debugText, hintText, promptText, progressText, readTitle, readBody, toastText, endText, shieldText;
@@ -105,7 +115,7 @@ namespace Shepherd.Exploration.Lantern
             Combat = new LanternCombat(World, Player, Rig, Audio, Actions.Particles);
             Flow = new LanternFlow(World, Player, Rig, Combat, Audio, Cam);
             Actions.Targets = AllTargets;
-            Actions.OnRead = r => { Reading = r; ReadingTimer = 12f; };
+            Actions.OnInspect = BeginInspect;
             Combat.InShield = Actions.InShield;
             Combat.Erode = Actions.Erode;
             Combat.OnEnergy = v => Actions.AddEnergy(v);
@@ -170,6 +180,83 @@ namespace Shepherd.Exploration.Lantern
             Rig.Snap();
         }
 
+        // ---------------- 近看 ----------------
+
+        /// <summary>拿起來看：文件翻頁、照片翻面、物件旋轉。關閉時才算看完。</summary>
+        public void BeginInspect(LanternInspectable i)
+        {
+            if (i == null) return;
+            EndInspect();
+            Inspecting = i;
+            InspectPage = 0;
+            InspectFlipped = false;
+            inspectRot = new Vector2(20f, -30f);
+            if (i.Type == LanternInspectable.Kind.Object)
+            {
+                var src = i.gameObject;
+                var clone = Instantiate(src, Cam.transform, true);
+                foreach (var col in clone.GetComponentsInChildren<Collider>(true)) ArenaArt.Kill(col);
+                foreach (var mb in clone.GetComponentsInChildren<MonoBehaviour>(true)) Object.DestroyImmediate(mb);
+                foreach (var t in clone.GetComponentsInChildren<Transform>(true)) t.gameObject.layer = LanternRig.ViewLayer;
+                var rs = clone.GetComponentsInChildren<Renderer>(true);
+                if (rs.Length > 0)
+                {
+                    var b = rs[0].bounds;
+                    foreach (var r in rs) b.Encapsulate(r.bounds);
+                    float s = 0.28f / Mathf.Max(0.01f, Mathf.Max(b.size.x, Mathf.Max(b.size.y, b.size.z)));
+                    clone.transform.localScale *= s;
+                    var pivot = new GameObject("InspectPivot").transform;
+                    pivot.SetParent(Cam.transform, false);
+                    pivot.localPosition = new Vector3(0f, 0f, 0.55f);
+                    pivot.gameObject.layer = LanternRig.ViewLayer;
+                    clone.transform.SetParent(pivot, true);
+                    var b2 = rs[0].bounds;
+                    foreach (var r in rs) b2.Encapsulate(r.bounds);
+                    clone.transform.position += pivot.position - b2.center;
+                    inspectClone = pivot;
+                }
+                else ArenaArt.Kill(clone);
+            }
+        }
+
+        public void EndInspect()
+        {
+            if (Inspecting == null) return;
+            Inspecting.Seen = true;
+            if (Inspecting.Completes != null) Inspecting.Completes.Read = true;
+            Inspecting = null;
+            if (inspectClone != null) ArenaArt.Kill(inspectClone.gameObject);
+            inspectClone = null;
+            Audio?.Play(LanternAudio.Drop, 0.4f);
+        }
+
+        public void NextPage(int dir)
+        {
+            if (Inspecting == null) return;
+            if (Inspecting.Type == LanternInspectable.Kind.Pages)
+                InspectPage = Mathf.Clamp(InspectPage + dir, 0, Mathf.Max(0, Inspecting.Pages.Length - 1));
+            else InspectFlipped = !InspectFlipped;
+            Audio?.Play(LanternAudio.Toggle, 0.35f);
+        }
+
+        private bool inspectInteractWas, inspectPrimaryWas;
+
+        private void StepInspect(float dt, ExploreInput inp, LanternActionInput act)
+        {
+            bool eDown = act.Interact && !inspectInteractWas, pDown = act.Primary && !inspectPrimaryWas;
+            inspectInteractWas = act.Interact;
+            inspectPrimaryWas = act.Primary;
+            if (eDown || inp.ReleaseCursor) { EndInspect(); return; }
+            if (pDown) NextPage(1);
+            inspectMoveCooldown -= dt;
+            if (inspectMoveCooldown <= 0f && Mathf.Abs(inp.Move.x) > 0.5f) { NextPage(inp.Move.x > 0f ? 1 : -1); inspectMoveCooldown = 0.35f; }
+            if (inspectClone != null)
+            {
+                inspectRot += new Vector2(-inp.Look.y, inp.Look.x) * 4f;
+                inspectClone.localRotation = Quaternion.Euler(inspectRot.x, inspectRot.y, 0f);
+            }
+        }
+
         /// <summary>整個重新開始（住宅重建、流程歸零、回到玄關）。</summary>
         public void ResetScene()
         {
@@ -183,13 +270,17 @@ namespace Shepherd.Exploration.Lantern
             if (!Ready) return;
             time += dt;
             bool locked = Combat.PlayerDown || Flow.Current == LanternFlow.Phase.Collapsing;
-            if (locked) { inp.Move = Vector2.zero; inp.Look = Vector2.zero; act = default(LanternActionInput); }
-            if (Reading != null)
+            if (locked) { inp.Move = Vector2.zero; inp.Look = Vector2.zero; act = default(LanternActionInput); if (Inspecting != null) EndInspect(); }
+            if (Inspecting != null)
             {
-                ReadingTimer -= dt;
-                if (ReadingTimer <= 0f || act.Interact && ReadingTimer < 11.5f || inp.Move.sqrMagnitude > 0.1f && ReadingTimer < 11f) Reading = null;
-                act.Interact = false;
+                // 近看中：不能走、不能射擊；滑鼠轉物件，左鍵／A D 翻頁或翻面，E 放下。
+                StepInspect(dt, inp, act);
+                inp.Move = Vector2.zero;
+                inp.Look = Vector2.zero;
+                act = new LanternActionInput { Interact = true };
             }
+            else { inspectInteractWas = act.Interact; inspectPrimaryWas = act.Primary; }
+            Actions.Suspended = Inspecting != null;
             Rig.Focus = FocusHeld;
             Player.WalkSpeedValue = WalkSpeed * Mathf.Lerp(1f, 0.6f, Rig.FocusBlend);
             Player.RunSpeedValue = BriskSpeed * Mathf.Lerp(1f, 0.6f, Rig.FocusBlend);
@@ -234,6 +325,7 @@ namespace Shepherd.Exploration.Lantern
             if (Input.GetKeyDown(KeyCode.F6)) GoTo("ArenaStart");
             if (Input.GetKeyDown(KeyCode.F7)) CycleRadius();
             if (Input.GetKeyDown(KeyCode.F9)) CycleHouseScale();
+            if (Input.GetKeyDown(KeyCode.F10)) Flow.SkipToBoss();
             if (Input.GetKeyDown(KeyCode.B)) ToggleHeadBob();
             if (Input.GetKeyDown(KeyCode.F5)) CycleFov();
             if (Input.GetKeyDown(KeyCode.R)) ResetScene();
@@ -307,7 +399,7 @@ namespace Shepherd.Exploration.Lantern
             energyBar = Bar(energyBack, new Color(0.6f, 0.85f, 1f, 0.85f));
             shieldText = MakeText("Shield", font, 18, new Vector2(234, 46), TextAnchor.LowerLeft, new Vector2(0, 0));
             hintText = MakeText("Hint", font, 17, new Vector2(24, 14), TextAnchor.LowerLeft, new Vector2(0, 0));
-            hintText.text = "左鍵 射擊（按住蓄力）　E 互動（抓起／按住復原／閱讀）　Q 擬態錨定　按住Space 聚光　F 提燈　F1 玄關 F2 客廳 F3 二樓 F4 測試房 F6 戰鬥場　F9 房子大小　F5 視野　R 重來　F12 數值";
+            hintText.text = "左鍵 射擊（按住蓄力）　E 互動（抓起／按住復原／打開／拿起來看）　Q 擬態錨定　按住Space 聚光　F 提燈　F1 玄關 F2 客廳 F3 二樓 F4 測試房 F6 戰鬥場　F9 房子大小　F10 直接打最終戰　R 重來　F12 數值";
             hintText.color = new Color(1f, 1f, 1f, 0.5f);
             progressText = MakeText("Progress", font, 22, new Vector2(-30, -24), TextAnchor.UpperRight, new Vector2(1, 1));
             promptText = MakeText("Prompt", font, 22, new Vector2(0, -70), TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f));
@@ -322,6 +414,24 @@ namespace Shepherd.Exploration.Lantern
             readBody.rectTransform.sizeDelta = new Vector2(820, 300);
             readBody.color = new Color(0.95f, 0.9f, 0.82f);
             readPanel.gameObject.SetActive(false);
+            cluesText = MakeText("Clues", font, 17, new Vector2(-30, -56), TextAnchor.UpperRight, new Vector2(1, 1));
+            cluesText.rectTransform.sizeDelta = new Vector2(900, 240);
+            cluesText.color = new Color(0.9f, 0.88f, 0.8f, 0.8f);
+            inspectPanel = Img("InspectPanel", new Vector2(0.5f, 0.5f), new Vector2(0, 20), new Vector2(760, 560), new Color(0.93f, 0.89f, 0.8f, 0.97f));
+            inspectTitle = MakeText("InspectTitle", font, 26, new Vector2(0, 245), TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), inspectPanel.transform);
+            inspectTitle.color = new Color(0.25f, 0.18f, 0.12f);
+            inspectBody = MakeText("InspectBody", font, 25, new Vector2(0, -20), TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), inspectPanel.transform);
+            inspectBody.rectTransform.sizeDelta = new Vector2(660, 420);
+            inspectBody.color = new Color(0.2f, 0.15f, 0.1f);
+            Destroy(inspectBody.GetComponent<Shadow>());
+            Destroy(inspectTitle.GetComponent<Shadow>());
+            inspectImage = new GameObject("InspectImage").AddComponent<RawImage>();
+            inspectImage.transform.SetParent(inspectPanel.transform, false);
+            inspectImage.rectTransform.sizeDelta = new Vector2(600, 450);
+            inspectImage.rectTransform.anchoredPosition = new Vector2(0, -10);
+            inspectHint = MakeText("InspectHint", font, 18, new Vector2(0, -300), TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), inspectPanel.transform);
+            inspectHint.color = new Color(1f, 0.97f, 0.9f, 0.9f);
+            inspectPanel.gameObject.SetActive(false);
             fadeOverlay = Img("Fade", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(4000, 3000), new Color(0f, 0f, 0f, 0f));
             downText = MakeText("Down", font, 40, new Vector2(0, 40), TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f));
             downText.text = "你倒下了…";
@@ -372,7 +482,41 @@ namespace Shepherd.Exploration.Lantern
             toastText.text = Flow.ToastTimer > 0f ? Flow.Toast : "";
             fadeOverlay.color = new Color(0f, 0f, 0f, Flow.CollapseFade);
             endText.enabled = Flow.Current == LanternFlow.Phase.Ended;
-            readPanel.gameObject.SetActive(Reading != null);
+            readPanel.gameObject.SetActive(false);
+            var sbClues = new StringBuilder();
+            if (Flow.Current == LanternFlow.Phase.Explore)
+            {
+                if (!World.HousePowered && World.FuseBox != null) sbClues.Append("・房子沒電——玄關樓梯下好像有電箱\n");
+                foreach (var cl in World.Clues)
+                {
+                    if (cl == null) continue;
+                    sbClues.Append(cl.Done ? "✓ " : "□ ").Append(cl.Label);
+                    if (!cl.Done) sbClues.Append("：").Append(cl.Hint);
+                    sbClues.Append('\n');
+                }
+            }
+            cluesText.text = Inspecting != null ? "" : sbClues.ToString();
+            var ins = Inspecting;
+            inspectPanel.gameObject.SetActive(ins != null && ins.Type != LanternInspectable.Kind.Object);
+            if (ins != null)
+            {
+                inspectTitle.text = ins.Title;
+                if (ins.Type == LanternInspectable.Kind.Pages)
+                {
+                    inspectImage.enabled = false;
+                    inspectBody.text = ins.Pages.Length > 0 ? ins.Pages[InspectPage] : "";
+                    inspectHint.text = "第 " + (InspectPage + 1) + " / " + Mathf.Max(1, ins.Pages.Length) + " 頁　左鍵或 D 下一頁　A 上一頁　E 放下";
+                }
+                else if (ins.Type == LanternInspectable.Kind.Image)
+                {
+                    bool back = InspectFlipped && ins.Back == null;
+                    inspectImage.enabled = !back;
+                    inspectImage.texture = InspectFlipped && ins.Back != null ? ins.Back : ins.Front;
+                    inspectBody.text = back ? ins.BackText : "";
+                    inspectHint.text = "左鍵 翻面　E 放下";
+                }
+                promptText.text = ins.Type == LanternInspectable.Kind.Object ? ins.Title + "　滑鼠旋轉　E 放下" + (string.IsNullOrEmpty(ins.BackText) ? "" : "\n" + ins.BackText) : "";
+            }
             if (Reading != null) { readTitle.text = Reading.Title; readBody.text = Reading.Text + "\n\n（E 或走動關閉）"; }
             if (DebugVisible) debugText.text = DebugString();
         }
@@ -397,6 +541,7 @@ namespace Shepherd.Exploration.Lantern
         private void OnDestroy()
         {
             Shutdown();
+            if (inspectClone != null) ArenaArt.Kill(inspectClone.gameObject);
             if (Flow != null) Flow.Destroy();
             if (Actions != null) Actions.Destroy();
             if (Combat != null) Combat.Destroy();

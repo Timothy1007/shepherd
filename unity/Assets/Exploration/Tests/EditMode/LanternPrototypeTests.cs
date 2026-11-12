@@ -405,7 +405,7 @@ namespace Shepherd.Exploration.Tests
             var qa = NewQa();
             var w = qa.World;
             Assert.AreEqual(LanternGraybox.HouseDefaultScale, w.HouseScale, 1e-3f);
-            var living = w.Marks["HouseLiving"].position + Vector3.up * 1.4f;
+            var living = w.Marks["HouseLiving"].position + Vector3.up * 2.4f;
             float depth = RoomWidth(qa, new Vector3(living.x - 1.5f, living.y, living.z), Vector3.forward);
             Assert.Greater(depth, 4.2f * 1.25f, "客廳比實際的 4.2 m 深（體感放大）：" + depth.ToString("F2"));
             var hall = w.Marks["HouseEntry"].position + Vector3.up * 1.4f;
@@ -415,10 +415,16 @@ namespace Shepherd.Exploration.Tests
             RaycastHit up;
             Assert.IsTrue(Physics.Raycast(hall, Vector3.up, out up, 10f));
             Assert.Greater(up.distance + 1.4f, 3.2f, "天花板比實際高");
-            var sofa = w.HouseRoot.GetComponentsInChildren<Renderer>(true).First(r => r.name == "Sofa");
-            Assert.Less(sofa.bounds.size.y, 1.0f, "沙發維持接近真實的高度（家具不跟著大幅放大）");
+            var sofaRoot = w.HouseRoot.Find("Sofa");
+            Assert.IsNotNull(sofaRoot, "客廳有沙發");
+            var sofaRends = sofaRoot.GetComponentsInChildren<Renderer>(true);
+            Assert.Greater(sofaRends.Length, 0);
+            var sb = sofaRends[0].bounds;
+            foreach (var r in sofaRends) sb.Encapsulate(r.bounds);
+            Assert.Less(sb.size.y, 1.05f, "沙發維持接近真實的高度（家具不跟著大幅放大）：" + sb.size.y.ToString("F2"));
+            Assert.AreEqual(LanternReveal.Mode.Dual, LanternReveal.GetMode(sofaRends[0].sharedMaterial), "家具模型也有真實／異域兩個樣子");
             qa.SetHouseScale(1.6f);
-            living = w.Marks["HouseLiving"].position + Vector3.up * 1.4f;
+            living = w.Marks["HouseLiving"].position + Vector3.up * 2.4f;
             float bigger = RoomWidth(qa, new Vector3(living.x - 1.5f, living.y, living.z), Vector3.forward);
             Assert.Greater(bigger, depth + 0.5f, "F9：切換房子大小（×1.6）");
             Assert.AreEqual(5, w.Clues.Count, "重建後線索仍是 5 個");
@@ -453,7 +459,7 @@ namespace Shepherd.Exploration.Tests
         }
 
         [Test]
-        public void ReadingEleanorsNotebook_ShowsHerNotes()
+        public void EleanorsNotebook_OpensUpClose_TurnsPages_CompletesWhenPutDown()
         {
             var qa = NewQa();
             var nb = qa.World.Clues.First(c => c.Id == "notebook");
@@ -461,12 +467,107 @@ namespace Shepherd.Exploration.Tests
             qa.Player.Teleport(new Vector3(p.x + 0.9f, qa.World.Floor2Y + 0.05f, p.z - 0.2f), 0f, 0f);
             Aim(qa, p);
             Act(qa, 1, LanternActionInput.None);
-            StringAssert.Contains("E 閱讀", qa.PromptText);
+            StringAssert.Contains("拿起來看", qa.PromptText);
             Act(qa, 1, new LanternActionInput { Interact = true });
-            Assert.IsNotNull(qa.Reading, "顯示筆記內容");
-            StringAssert.Contains("暫定", qa.Reading.Text, "內容標明是暫定文字");
+            Assert.IsNotNull(qa.Inspecting, "拿到眼前近看");
+            Assert.AreEqual(LanternInspectable.Kind.Pages, qa.Inspecting.Type);
+            StringAssert.Contains("暫定", qa.Inspecting.Pages[0], "內容標明是暫定文字");
+            var pos = qa.Player.transform.position;
+            for (int i = 0; i < 10; i++) qa.Step(Dt, new ExploreInput { Move = new Vector2(0f, 1f) }, LanternActionInput.None);
+            Assert.Less(Vector3.Distance(pos, qa.Player.transform.position), 0.01f, "近看時不能走");
+            Act(qa, 1, new LanternActionInput { Primary = true });
+            Act(qa, 1, LanternActionInput.None);
+            Assert.AreEqual(1, qa.InspectPage, "左鍵翻下一頁");
+            Assert.AreEqual(0, qa.Actions.ShotsFired, "近看時左鍵不會射擊");
+            Act(qa, 3, LanternActionInput.None);
+            Assert.IsFalse(nb.Done, "還拿在手上：還沒算看完");
+            Act(qa, 1, new LanternActionInput { Interact = true });
+            Act(qa, 1, LanternActionInput.None);
+            Assert.IsNull(qa.Inspecting, "E 放下");
+            Assert.IsTrue(nb.Done, "放下時才算看完");
+            Assert.AreEqual(0, qa.Flow.Backlashes, "放下的瞬間還沒反撲（先預警）");
+            Assert.Greater(qa.Flow.WarningTimer, 0f, "燈開始閃（預警）");
+            for (int i = 0; i < 60; i++) qa.Step(Dt, ExploreInput.None);
+            Assert.AreEqual(1, qa.Flow.Backlashes, "預警之後才反撲");
+        }
+
+        [Test]
+        public void FuseBox_RestoresPower_AndEverydayThingsCanBeOpened()
+        {
+            var qa = NewQa();
+            var w = qa.World;
+            Assert.IsFalse(w.HousePowered, "一開始沒電");
+            qa.GoTo("HouseEntry");
+            Aim(qa, w.FuseBox.GetComponent<Collider>().bounds.center);
+            Act(qa, 1, LanternActionInput.None);
+            StringAssert.Contains("推回", qa.PromptText);
+            Act(qa, 50, new LanternActionInput { Interact = true });
             Act(qa, 2, LanternActionInput.None);
-            Assert.IsTrue(nb.Done);
+            Assert.IsTrue(w.HousePowered, "按住 E 推回電箱拉桿：整棟燈亮起");
+            Assert.AreEqual(0, qa.Flow.Repaired, "電箱不算線索");
+            var fridge = w.Toggles.First(t => t.Label == "冰箱門");
+            qa.GoTo("HouseKitchen");
+            Aim(qa, fridge.GetComponent<Collider>().bounds.center);
+            Act(qa, 1, LanternActionInput.None);
+            Assert.AreSame(fridge, qa.Actions.Aimed);
+            Act(qa, 1, new LanternActionInput { Interact = true });
+            Act(qa, 20, LanternActionInput.None);
+            Assert.IsTrue(fridge.IsOpen, "E 打開冰箱門");
+            Assert.IsTrue(fridge.Lights[0].enabled, "冰箱裡的燈亮了");
+            Assert.AreEqual(0, qa.Flow.Backlashes, "生活互動不會召喚失序體");
+        }
+
+        [Test]
+        public void HoldingTheBlueChair_MakesItsSpotGlow_AndThingsFallingOutComeBack()
+        {
+            var qa = NewQa();
+            var w = qa.World;
+            var blue = w.Tetherables.First(t => t.name == "HouseBlueChair");
+            var spot = w.Spots.First(s => s.Expected == blue);
+            qa.GoTo("HouseScullery");
+            Aim(qa, blue.GetComponent<Collider>().bounds.center);
+            Act(qa, 1, LanternActionInput.None);
+            Act(qa, 1, new LanternActionInput { Interact = true });
+            Act(qa, 2, LanternActionInput.None);
+            Assert.AreSame(blue, qa.Actions.Held);
+            Assert.IsTrue(spot.Highlight && spot.Glow.enabled, "抓著藍坐墊椅子時，廚房的凹痕會發光");
+            StringAssert.Contains("廚房高櫃前", qa.PromptText, "提示該放哪");
+            Act(qa, 1, new LanternActionInput { Interact = true });
+            Act(qa, 2, LanternActionInput.None);
+            Assert.IsFalse(spot.Glow.enabled, "放下後不再發光");
+            blue.Body.position = new Vector3(0f, -6f, 0f);
+            blue.transform.position = blue.Body.position;
+            qa.Step(Dt, ExploreInput.None);
+            Assert.Less(Vector3.Distance(blue.transform.position, blue.HomePosition), 0.2f, "掉出世界的東西回到原位");
+        }
+
+        [Test]
+        public void InspectingThePhoto_Flips_AndTheClock_Rotates()
+        {
+            var qa = NewQa();
+            var photo = qa.World.Inspectables.First(i => i.Title == "床頭的合照");
+            qa.BeginInspect(photo);
+            Assert.AreEqual(LanternInspectable.Kind.Image, qa.Inspecting.Type);
+            Act(qa, 1, new LanternActionInput { Primary = true });
+            Act(qa, 1, LanternActionInput.None);
+            Assert.IsTrue(qa.InspectFlipped, "左鍵翻面");
+            qa.EndInspect();
+            var clock = qa.World.Inspectables.First(i => i.Title == "壁爐上的鐘");
+            qa.BeginInspect(clock);
+            Assert.AreEqual(LanternInspectable.Kind.Object, qa.Inspecting.Type);
+            qa.Step(Dt, new ExploreInput { Look = new Vector2(3f, 0f) }, LanternActionInput.None);
+            qa.EndInspect();
+            Assert.IsTrue(clock.Seen);
+        }
+
+        [Test]
+        public void F10_SkipsStraightToTheFinalBattle()
+        {
+            var qa = NewQa();
+            qa.Flow.SkipToBoss();
+            for (int i = 0; i < 100; i++) qa.Step(Dt, ExploreInput.None);
+            Assert.AreEqual(LanternFlow.Phase.Boss, qa.Flow.Current);
+            Assert.IsTrue(qa.Flow.Boss != null && qa.Flow.Boss.Alive);
         }
 
         [Test]
@@ -482,13 +583,14 @@ namespace Shepherd.Exploration.Tests
             Act(qa, 2, LanternActionInput.None);
             Assert.IsTrue(chair.Done, "按住 E 把艾琳的椅子復原");
             Assert.AreEqual(1, qa.Flow.Repaired);
-            Assert.AreEqual(1, qa.Flow.Backlashes, "修好一處＝異域反撲");
+            for (int i = 0; i < 60; i++) qa.Step(Dt, ExploreInput.None);
+            Assert.AreEqual(1, qa.Flow.Backlashes, "修好一處（預警後）＝異域反撲");
             Assert.IsTrue(qa.Combat.Enemies.Any(e => e != null && e.Alive && w.HouseBounds.Contains(e.transform.position + Vector3.up)), "失序體在住宅裡出現");
             Act(qa, 30, LanternActionInput.None);
             Assert.Less(w.HouseLightScale, 0.6f, "住宅熄燈");
             foreach (var c in w.Clues) if (!c.Done) c.ForceComplete();
-            qa.Step(Dt, ExploreInput.None);
-            Assert.AreEqual(LanternFlow.Phase.Collapsing, qa.Flow.Current, "最後一個完成＝場景崩壞");
+            for (int i = 0; i < 45; i++) qa.Step(Dt, ExploreInput.None);
+            Assert.AreEqual(LanternFlow.Phase.Collapsing, qa.Flow.Current, "最後一個完成（預警後）＝場景崩壞");
             for (int i = 0; i < 100; i++) qa.Step(Dt, ExploreInput.None);
             Assert.AreEqual(LanternFlow.Phase.Boss, qa.Flow.Current);
             Assert.IsTrue(w.ArenaBounds.Contains(qa.Player.transform.position + Vector3.up), "被拉進異域深處");

@@ -75,8 +75,13 @@ namespace Shepherd.Exploration.Lantern
         public System.Func<IEnumerable<Component>> Targets;
         public LanternAudio Audio;
         public ParticleSystem Particles => burst;
-        /// <summary>閱讀時呼叫（QA 顯示內容）。</summary>
+        /// <summary>閱讀時呼叫（舊介面，保留）。</summary>
         public System.Action<LanternReadable> OnRead;
+        /// <summary>E 拿起可以近看的東西時呼叫（QA 進入近看畫面）。</summary>
+        public System.Action<LanternInspectable> OnInspect;
+        public int Toggled { get; private set; }
+        /// <summary>近看中：不處理射擊與互動。</summary>
+        public bool Suspended;
 
         private readonly Camera cam;
         private readonly LanternRig rig;
@@ -176,7 +181,7 @@ namespace Shepherd.Exploration.Lantern
 
         /// <summary>準星直接對到的東西：只接受指定的元件種類（不會把牆的 Transform 當成目標）。</summary>
         private static readonly System.Type[] TargetTypes = { typeof(LanternTarget), typeof(LanternEnemy), typeof(LanternBoss), typeof(LanternPhrase) };
-        private static readonly System.Type[] InteractTypes = { typeof(LanternTetherable), typeof(LanternRestorable), typeof(LanternReadable) };
+        private static readonly System.Type[] InteractTypes = { typeof(LanternTetherable), typeof(LanternRestorable), typeof(LanternToggle), typeof(LanternInspectable) };
 
         private static Component Pick(Collider col, System.Type[] types)
         {
@@ -250,7 +255,8 @@ namespace Shepherd.Exploration.Lantern
         {
             foreach (var t in world.Tetherables) if (t != null) yield return t;
             foreach (var r in world.Restorables) if (r != null && !r.Done) yield return r;
-            foreach (var c in world.Clues) if (c != null && c.Readable != null && !c.Readable.Read) yield return c.Readable;
+            foreach (var t in world.Toggles) if (t != null) yield return t;
+            foreach (var i in world.Inspectables) if (i != null) yield return i;
         }
 
         // ---------------- 每個影格 ----------------
@@ -270,7 +276,8 @@ namespace Shepherd.Exploration.Lantern
 
             bool active = false;
             Aimed = null;
-            if (Held != null)
+            if (Suspended) { Prompt = ""; Charge = 0f; beam.enabled = false; holdLight.intensity = 0f; Restoring = null; }
+            else if (Held != null)
             {
                 active = StepHeld(dt, inp, pUp, eDown);
             }
@@ -301,6 +308,19 @@ namespace Shepherd.Exploration.Lantern
             StepThrown(dt);
             foreach (var s in world.Spots) if (s != null && s.Check()) { Placed++; Burst(s.transform.position + Vector3.up * 0.4f, 40); Audio?.Play(LanternAudio.Placed, 0.9f); }
             foreach (var b in world.Blockers) if (b != null) b.Refresh();
+            // 抓著對的東西時，該放的位置會發光；生活互動的動畫；掉出世界的東西回到原位。
+            foreach (var s in world.Spots) if (s != null) { s.Highlight = Held != null && s.Expected == Held; s.UpdateHighlight(time); }
+            foreach (var tg in world.Toggles) if (tg != null) tg.Step(dt, time);
+            foreach (var t in world.Tetherables)
+                if (t != null && t.transform.position.y < -3f)
+                {
+                    if (Held == t) DropHeld(false);
+                    t.Body.velocity = Vector3.zero;
+                    t.Body.angularVelocity = Vector3.zero;
+                    t.Body.position = t.HomePosition + Vector3.up * 0.05f;
+                    t.Body.rotation = t.HomeRotation;
+                    t.transform.SetPositionAndRotation(t.Body.position, t.Body.rotation);
+                }
             if (world.Target != null) world.Target.Step(dt, time);
             rig.SetDevice(Held != null ? 1 : Restoring != null ? 2 : 0, Held != null ? ThrowCharge : Charge, active);
             if (Audio != null)
@@ -354,18 +374,24 @@ namespace Shepherd.Exploration.Lantern
             holdLight.intensity = 0f;
 
             var tether = aimed as LanternTetherable;
-            var readable = aimed as LanternReadable;
             var rest = aimed as LanternRestorable;
+            var toggle = aimed as LanternToggle;
+            var insp = aimed as LanternInspectable;
             if (tether != null)
             {
                 Prompt = "E 抓起" + tether.Label;
                 if (eDown) Grab(tether);
             }
-            else if (rest != null) Prompt = "按住 E 復原" + rest.Label;
-            else if (readable != null)
+            else if (rest != null) Prompt = "按住 E " + (rest == world.FuseBox ? "推回" : "復原") + rest.Label;
+            else if (toggle != null)
             {
-                Prompt = "E 閱讀" + readable.Title;
-                if (eDown) { readable.Read = true; LastRead = readable; OnRead?.Invoke(readable); Audio?.Play(LanternAudio.Grab, 0.5f); }
+                Prompt = toggle.Prompt;
+                if (eDown) { toggle.Toggle(); Toggled++; Audio?.Play(LanternAudio.Toggle, 0.6f); }
+            }
+            else if (insp != null)
+            {
+                Prompt = "E 拿起來看：" + insp.Title;
+                if (eDown) { insp.Opened++; OnInspect?.Invoke(insp); Audio?.Play(LanternAudio.Grab, 0.5f); }
             }
             return false;
         }
@@ -472,6 +498,7 @@ namespace Shepherd.Exploration.Lantern
             holdLight.color = new Color(0.6f, 0.9f, 1f);
             holdLight.intensity = 0.6f;
             Prompt = ThrowCharge > 0f ? "蓄力中… 放開左鍵丟出" : "左鍵 丟出（按住蓄力）｜E 放下";
+            foreach (var s in world.Spots) if (s != null && !s.Solved && s.Expected == Held && !string.IsNullOrEmpty(s.Hint)) Prompt += "｜好像該放回" + s.Hint + "（會發光）";
             return true;
         }
 

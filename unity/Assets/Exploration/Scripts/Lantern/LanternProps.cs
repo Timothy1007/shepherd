@@ -12,8 +12,14 @@ namespace Shepherd.Exploration.Lantern
         /// <summary>被丟出後一小段時間內撞到練習靶會讓它暈眩。</summary>
         public float ThrownTimer { get; set; }
 
+        /// <summary>原本的位置（掉出世界時回到這裡）。</summary>
+        public Vector3 HomePosition;
+        public Quaternion HomeRotation;
+
         public void Init(float mass)
         {
+            HomePosition = transform.position;
+            HomeRotation = transform.rotation;
             Body = GetComponent<Rigidbody>();
             Body.mass = mass;
             Body.drag = 0.2f;
@@ -132,6 +138,16 @@ namespace Shepherd.Exploration.Lantern
         public float Tolerance = 0.3f;
         public bool Solved { get; private set; }
         public Light Glow;
+        /// <summary>玩家正抓著對的物件時，這裡會微微發光（提示該放哪）。</summary>
+        public bool Highlight;
+        public string Hint = "";
+
+        public void UpdateHighlight(float time)
+        {
+            if (Glow == null || Solved) return;
+            Glow.enabled = Highlight;
+            if (Highlight) Glow.intensity = 0.5f + 0.35f * Mathf.Sin(time * 4f);
+        }
 
         public bool Check()
         {
@@ -142,11 +158,67 @@ namespace Shepherd.Exploration.Lantern
             if (flat.magnitude < Tolerance && upright && Expected.Body.velocity.magnitude < 0.3f)
             {
                 Solved = true;
-                if (Glow != null) Glow.enabled = true;
+                if (Glow != null) { Glow.enabled = true; Glow.intensity = 0.9f; }
                 LanternReveal.AddAnchor(transform.position + Vector3.up * 0.6f, 1.3f);
                 return true;
             }
             return false;
         }
+    }
+
+    /// <summary>不會召喚失序體的生活互動：開關抽屜、冰箱門、窗簾、電視、檯燈。E 切換。</summary>
+    public sealed class LanternToggle : MonoBehaviour
+    {
+        public enum Kind { Slide, Rotate, Light }
+        public Kind Type;
+        public string Label = "東西";
+        public string OpenVerb = "打開", CloseVerb = "關上";
+        public Transform Moving;
+        public Vector3 ClosedLocal, OpenLocal;
+        public Quaternion ClosedRot = Quaternion.identity, OpenRot = Quaternion.identity;
+        public Light[] Lights;
+        public Renderer Screen;
+        public bool IsOpen { get; private set; }
+        public int Toggles { get; private set; }
+        private float k;
+
+        public void Toggle()
+        {
+            IsOpen = !IsOpen;
+            Toggles++;
+            if (Lights != null) foreach (var l in Lights) if (l != null) l.enabled = IsOpen;
+        }
+
+        public void Step(float dt, float time)
+        {
+            k = Mathf.MoveTowards(k, IsOpen ? 1f : 0f, dt * 3.5f);
+            float e = Mathf.SmoothStep(0f, 1f, k);
+            if (Moving != null)
+            {
+                if (Type == Kind.Slide) Moving.localPosition = Vector3.Lerp(ClosedLocal, OpenLocal, e);
+                else if (Type == Kind.Rotate) Moving.localRotation = Quaternion.Slerp(ClosedRot, OpenRot, e);
+            }
+            if (Screen != null && IsOpen && Lights != null)
+                foreach (var l in Lights) if (l != null) l.intensity = 0.5f + Mathf.PerlinNoise(time * 9f, 0.3f) * 0.6f;
+        }
+
+        public string Prompt => "E " + (IsOpen ? CloseVerb : OpenVerb) + Label;
+    }
+
+    /// <summary>
+    /// 可以拿到眼前細看的東西（共用近看系統）：文件可翻頁、照片可翻面、物件可旋轉。
+    /// 關閉近看時才算「看完」（線索會在這時完成，異域反撲在放下之後才開始）。
+    /// </summary>
+    public sealed class LanternInspectable : MonoBehaviour
+    {
+        public enum Kind { Pages, Image, Object }
+        public Kind Type;
+        public string Title = "";
+        [TextArea] public string[] Pages = new string[0];
+        public Texture Front, Back;
+        public string BackText = "";
+        public bool Seen { get; set; }
+        public int Opened { get; set; }
+        public LanternReadable Completes;
     }
 }

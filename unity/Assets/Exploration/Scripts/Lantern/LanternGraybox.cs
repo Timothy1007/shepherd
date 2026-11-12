@@ -633,8 +633,9 @@ namespace Shepherd.Exploration.Lantern
                 float b;
                 if (!baseLight.TryGetValue(l, out b)) { b = l.intensity; baseLight[l] = b; }
                 bool house = HouseRoot != null && l.transform.IsChildOf(HouseRoot);
-                float scale = house ? HouseLightScale : 1f;
-                if (l.type == LightType.Spot) { l.intensity = b * scale; continue; }
+                // 住宅：沒電時只有微弱、閃爍的異域光；電箱修好後穩定亮起（反撲時仍會熄）。
+                float scale = house ? HouseLightScale * (HousePowered ? 1.15f : 0.35f) : 1f;
+                if (l.type == LightType.Spot || house && HousePowered) { l.intensity = b * scale; continue; }
                 float seed = i * 13.7f;
                 float n = Mathf.PerlinNoise(time * 3.1f, seed);
                 float drop = Mathf.PerlinNoise(time * 0.7f, seed + 5f) > 0.78f ? 0.25f : 1f;

@@ -20,6 +20,12 @@ Shader "Shepherd/Prototype/LanternReveal"
         [HDR] _EdgeColor ("Edge Glow", Color) = (1.5,0.95,0.42,1)
         _EdgeWidth ("Edge Width (m)", Range(0.02,1)) = 0.35
         [Toggle] _WorldUV ("World-space UV (m)", Float) = 0
+        [Normal] _BumpMap ("Normal Map", 2D) = "bump" {}
+        _BumpScale ("Normal Strength", Range(0,2)) = 1
+        _RoughMap ("Roughness (R)", 2D) = "white" {}
+        [Toggle] _UseRoughMap ("Use Roughness Map", Float) = 0
+        [Toggle] _AnomalyFromBase ("Anomaly uses Real texture", Float) = 0
+        _AnomalySat ("Anomaly Saturation", Range(0,1)) = 0.25
         _Cull ("Cull", Float) = 2
     }
 
@@ -34,6 +40,8 @@ Shader "Shepherd/Prototype/LanternReveal"
         CBUFFER_START(UnityPerMaterial)
             float4 _BaseColor, _BaseMap_ST, _AnomalyColor, _AnomalyMap_ST, _EmissionColor, _AnomalyEmission, _EdgeColor;
             float _Mode, _Smoothness, _AnomalySmoothness, _Metallic, _Wobble, _EdgeWidth, _Cull, _WorldUV;
+            float4 _BumpMap_ST;
+            float _BumpScale, _UseRoughMap, _AnomalyFromBase, _AnomalySat;
         CBUFFER_END
         float4 _ShepRevealSphere;
         // 額外的現實泡泡（穩定能量的撞擊點、已復原的穩定區）：xyz＝中心、w＝半徑；w≤0＝未使用。
@@ -43,6 +51,8 @@ Shader "Shepherd/Prototype/LanternReveal"
         float4 _ShepRevealShape;
         TEXTURE2D(_BaseMap); SAMPLER(sampler_BaseMap);
         TEXTURE2D(_AnomalyMap); SAMPLER(sampler_AnomalyMap);
+        TEXTURE2D(_BumpMap); SAMPLER(sampler_BumpMap);
+        TEXTURE2D(_RoughMap); SAMPLER(sampler_RoughMap);
 
         float Hash3(float3 p)
         {
@@ -138,7 +148,7 @@ Shader "Shepherd/Prototype/LanternReveal"
             #pragma multi_compile_fog
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 
-            struct A { float4 pos : POSITION; float3 normal : NORMAL; float2 uv : TEXCOORD0; };
+            struct A { float4 pos : POSITION; float3 normal : NORMAL; float4 tangent : TANGENT; float2 uv : TEXCOORD0; };
             struct V
             {
                 float4 pos : SV_POSITION;
@@ -147,6 +157,7 @@ Shader "Shepherd/Prototype/LanternReveal"
                 float2 uv : TEXCOORD2;
                 float3 sh : TEXCOORD3;
                 float fog : TEXCOORD4;
+                float4 wt : TEXCOORD5;
             };
 
             V vert(A a)
@@ -156,6 +167,7 @@ Shader "Shepherd/Prototype/LanternReveal"
                 wp = Wobble(wp, RevealMask(wp));
                 o.wp = wp;
                 o.wn = TransformObjectToWorldNormal(a.normal);
+                o.wt = float4(TransformObjectToWorldDir(a.tangent.xyz), a.tangent.w * GetOddNegativeScale());
                 o.pos = TransformWorldToHClip(wp);
                 o.uv = a.uv;
                 o.sh = SampleSH(o.wn);
@@ -169,19 +181,40 @@ Shader "Shepherd/Prototype/LanternReveal"
                 float m = RevealMaskEdge(i.wp, edge);
                 ClipByMode(m);
                 float2 uv = i.uv;
+                float3 n0 = normalize(i.wn);
+                float3 T, B;
                 if (_WorldUV > 0.5)
                 {
-                    float3 an = abs(i.wn);
-                    uv = an.y > max(an.x, an.z) ? i.wp.xz : (an.x > an.z ? i.wp.zy : i.wp.xy);
+                    float3 an = abs(n0);
+                    if (an.y > max(an.x, an.z)) { uv = i.wp.xz; T = float3(1, 0, 0); B = float3(0, 0, 1) * sign(n0.y); }
+                    else if (an.x > an.z) { uv = i.wp.zy; T = float3(0, 0, 1) * -sign(n0.x); B = float3(0, 1, 0); }
+                    else { uv = i.wp.xy; T = float3(1, 0, 0) * sign(n0.z); B = float3(0, 1, 0); }
                 }
-                float4 realCol = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, uv * _BaseMap_ST.xy + _BaseMap_ST.zw) * _BaseColor;
-                float4 anomCol = SAMPLE_TEXTURE2D(_AnomalyMap, sampler_AnomalyMap, uv * _AnomalyMap_ST.xy + _AnomalyMap_ST.zw) * _AnomalyColor;
+                else
+                {
+                    T = normalize(i.wt.xyz);
+                    B = cross(n0, T) * (i.wt.w < 0 ? -1.0 : 1.0);
+                }
+                float2 uvB = uv * _BaseMap_ST.xy + _BaseMap_ST.zw;
+                float4 baseTex = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, uvB);
+                float4 realCol = baseTex * _BaseColor;
+                float4 anomCol;
+                if (_AnomalyFromBase > 0.5)
+                {
+                    float g = dot(baseTex.rgb, float3(0.3, 0.59, 0.11));
+                    anomCol = float4(lerp(float3(g, g, g), baseTex.rgb, _AnomalySat), 1) * _AnomalyColor;
+                }
+                else anomCol = SAMPLE_TEXTURE2D(_AnomalyMap, sampler_AnomalyMap, uv * _AnomalyMap_ST.xy + _AnomalyMap_ST.zw) * _AnomalyColor;
+                float3 nTS = UnpackNormalScale(SAMPLE_TEXTURE2D(_BumpMap, sampler_BumpMap, uvB), _BumpScale);
+                float3 nWS = normalize(T * nTS.x + B * nTS.y + n0 * nTS.z);
+                float rough = SAMPLE_TEXTURE2D(_RoughMap, sampler_RoughMap, uvB).r;
+                float realSmooth = _UseRoughMap > 0.5 ? saturate((1.0 - rough) * _Smoothness) : _Smoothness;
                 float k = _Mode > 0.5 ? (_Mode > 1.5 ? 0.0 : 1.0) : m;
 
                 InputData d = (InputData)0;
                 d.positionWS = i.wp;
                 d.positionCS = i.pos;
-                d.normalWS = normalize(i.wn);
+                d.normalWS = nWS;
                 d.viewDirectionWS = GetWorldSpaceNormalizeViewDir(i.wp);
                 d.shadowCoord = TransformWorldToShadowCoord(i.wp);
                 d.fogCoord = i.fog;
@@ -192,7 +225,7 @@ Shader "Shepherd/Prototype/LanternReveal"
                 SurfaceData s = (SurfaceData)0;
                 s.albedo = lerp(anomCol.rgb, realCol.rgb, k);
                 s.metallic = _Metallic;
-                s.smoothness = lerp(_AnomalySmoothness, _Smoothness, k);
+                s.smoothness = lerp(_AnomalySmoothness, realSmooth, k);
                 s.occlusion = 1;
                 edge *= 0.32;
                 s.emission = lerp(_AnomalyEmission.rgb, _EmissionColor.rgb, k) + _EdgeColor.rgb * edge;

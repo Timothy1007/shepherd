@@ -195,6 +195,38 @@ namespace Shepherd.Exploration.Lantern
 
         public static Mode GetMode(Material m) => (Mode)Mathf.RoundToInt(m.GetFloat("_Mode"));
 
+        /// <summary>
+        /// Poly Haven（CC0）材質：顏色＋法線＋粗糙度，套用我們的色調。異域外觀由同一張貼圖去飽和、偏冷而來。
+        /// metersPerTile＞0 時用世界座標 UV（牆、地板），否則用模型自己的 UV。
+        /// </summary>
+        public static Material MakePH(string name, string tex, string folder, float metersPerTile, Color tint, Color anomalyTint, float smooth = 0.8f, float anomalySat = 0.2f, float wobble = 0.01f)
+        {
+            var m = new Material(Shader) { name = name };
+            m.SetFloat("_Mode", 0f);
+            var diff = Resources.Load<Texture2D>("PH/" + folder + "/" + tex + "_diff");
+            var nor = Resources.Load<Texture2D>("PH/" + folder + "/" + tex + "_nor");
+            var rough = Resources.Load<Texture2D>("PH/" + folder + "/" + tex + "_rough");
+            if (diff != null) m.SetTexture("_BaseMap", diff);
+            if (nor != null) m.SetTexture("_BumpMap", nor);
+            if (rough != null) { m.SetTexture("_RoughMap", rough); m.SetFloat("_UseRoughMap", 1f); }
+            m.SetColor("_BaseColor", tint);
+            m.SetColor("_AnomalyColor", anomalyTint);
+            m.SetFloat("_AnomalyFromBase", 1f);
+            m.SetFloat("_AnomalySat", anomalySat);
+            m.SetFloat("_Smoothness", smooth);
+            m.SetFloat("_AnomalySmoothness", 0.35f);
+            m.SetFloat("_Wobble", wobble);
+            m.SetFloat("_BumpScale", 1f);
+            if (metersPerTile > 0f)
+            {
+                m.SetFloat("_WorldUV", 1f);
+                m.SetTextureScale("_BaseMap", Vector2.one / metersPerTile);
+            }
+            return m;
+        }
+
+        public static bool HasPH(string tex, string folder) => Resources.Load<Texture2D>("PH/" + folder + "/" + tex + "_diff") != null;
+
         // ---------------- 程式產生的灰盒貼圖 ----------------
 
         private static readonly Dictionary<string, Texture2D> cache = new Dictionary<string, Texture2D>();

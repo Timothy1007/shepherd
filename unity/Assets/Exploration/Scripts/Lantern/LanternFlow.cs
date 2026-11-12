@@ -201,6 +201,12 @@ namespace Shepherd.Exploration.Lantern
         private readonly Camera cam;
         private float lightTimer;
         private readonly HashSet<LanternClue> handled = new HashSet<LanternClue>();
+        /// <summary>修好之後先安靜一下、燈開始閃（預警），然後才反撲。</summary>
+        public const float WarningSeconds = 1.6f;
+        public float WarningTimer { get; private set; } = -1f;
+        private int pendingBacklashes;
+        private bool pendingCollapse;
+        public bool PowerAnnounced { get; private set; }
         private float floatTimer;
         private float time;
         private int lineIndex;
@@ -244,6 +250,10 @@ namespace Shepherd.Exploration.Lantern
             Repaired = 0;
             Backlashes = 0;
             handled.Clear();
+            WarningTimer = -1f;
+            pendingBacklashes = 0;
+            pendingCollapse = false;
+            PowerAnnounced = false;
             CollapseTimer = 0f;
             ClearBossStuff();
             world.HouseLightScale = 1f;
@@ -303,8 +313,29 @@ namespace Shepherd.Exploration.Lantern
                 Repaired++;
                 if (c.Type == LanternClue.Kind.Focus) LanternReveal.AddAnchor(c.transform.position, 1.4f);
                 audio?.Play(LanternAudio.RestoreDone, 0.8f);
-                if (Repaired >= Total) { BeginCollapse(); return; }
-                Backlash();
+                if (Repaired >= Total) pendingCollapse = true;
+                else pendingBacklashes++;
+                if (WarningTimer < 0f) WarningTimer = pendingCollapse ? 1.2f : WarningSeconds;
+                else if (pendingCollapse) WarningTimer = Mathf.Min(WarningTimer, 1.2f);
+            }
+            // 電箱修好：整棟燈亮起。
+            if (world.FuseBox != null && world.FuseBox.Done && !world.HousePowered)
+            {
+                world.HousePowered = true;
+                PowerAnnounced = true;
+                ShowToast("（電來了——整棟房子的燈亮了起來）", 3f);
+            }
+            // 預警：燈快速閃爍、低鳴，然後才反撲／崩壞。
+            if (WarningTimer >= 0f)
+            {
+                WarningTimer -= dt;
+                world.HouseLightScale = Mathf.PerlinNoise(time * 18f, 0.7f) > 0.45f ? 1f : 0.15f;
+                if (WarningTimer < 0f)
+                {
+                    if (pendingCollapse) { pendingCollapse = false; pendingBacklashes = 0; BeginCollapse(); return; }
+                    while (pendingBacklashes > 0) { pendingBacklashes--; Backlash(); }
+                }
+                return;
             }
             if (lightTimer > 0f)
             {
@@ -331,6 +362,15 @@ namespace Shepherd.Exploration.Lantern
             foreach (var s in world.HouseSpawns) if (Mathf.Abs(s.y - feet.y) < 1.5f && Vector3.Distance(s, feet) > 5f) candidates.Add(s);
             candidates.Sort((a, b) => Vector3.Distance(b, feet).CompareTo(Vector3.Distance(a, feet)));
             for (int i = 0; i < spawn && i < candidates.Count; i++) combat.Spawn(candidates[i]);
+        }
+
+        /// <summary>QA 用：直接完成全部線索並進入崩壞（F10）。</summary>
+        public void SkipToBoss()
+        {
+            foreach (var c in world.Clues) if (c != null) c.ForceComplete();
+            foreach (var c in world.Clues) if (c != null) handled.Add(c);
+            Repaired = Total;
+            BeginCollapse();
         }
 
         public void BeginCollapse()
