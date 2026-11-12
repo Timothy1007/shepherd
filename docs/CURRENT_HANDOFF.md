@@ -1,3 +1,5 @@
+> **2026-11-12 戰鬥方向更新（優先於下方歷史描述）**：探索與戰鬥統一**第一人稱即時施法／攻擊**，不再以固定第三人稱卡牌戰術鏡頭為正式方向。舊卡牌／AP／回合／三連／學派規則及程式**僅保留為非約束性參考與歷史 QA**，不可預設沿用；尚未決定哪些概念轉化或淘汰。新玩法先從玩家在 3D 空間中干預敵人與環境的行為設計，建立獨立 QA，不得破壞現有場景。詳見 [第一人稱即時戰鬥方向](FIRST_PERSON_REALTIME_COMBAT_DIRECTION_V0_1.md) 與 [Issue #11](https://github.com/Timothy1007/shepherd/issues/11)。**此為方向與規劃，尚非已實作。**
+
 # 2026-11-12｜全屋重製 v2：九區新平面＋新客廳可玩 QA（Claude；待使用者真人美術驗收）
 文件：`docs/story/case01_seventeenth_door/CASE01_HOUSE_REBUILD_V2_PLAN_AND_QA.md`；平面圖、Blender 參考圖、Unity 對照截圖在 `house_rebuild_v2/`。
 - **入口**：`Shepherd/Case01/全屋重製 QA`（場景 `Assets/Exploration/Scenes/Case01HouseRebuildQA.unity`）。與舊 R3／Phase 1.8／1.9／沉浸式住宅 QA 完全分開，不呼叫舊建築 builder、不放舊家具。
