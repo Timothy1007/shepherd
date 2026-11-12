@@ -1,5 +1,13 @@
 > **2026-11-12 戰鬥方向更新（優先於下方歷史描述）**：探索與戰鬥統一**第一人稱即時施法／攻擊**，不再以固定第三人稱卡牌戰術鏡頭為正式方向。舊卡牌／AP／回合／三連／學派規則及程式**僅保留為非約束性參考與歷史 QA**，不可預設沿用；尚未決定哪些概念轉化或淘汰。新玩法先從玩家在 3D 空間中干預敵人與環境的行為設計，建立獨立 QA，不得破壞現有場景。詳見 [第一人稱即時戰鬥方向](FIRST_PERSON_REALTIME_COMBAT_DIRECTION_V0_1.md) 與 [Issue #11](https://github.com/Timothy1007/shepherd/issues/11)。**此為方向與規劃，尚非已實作。**
 
+# 2026-11-12｜提燈手感 QA 第三批：蛋形光＋聚光、程式合成音效、失序體與戰鬥測試場（Claude；待使用者真人試玩）
+文件：`docs/prototype/LANTERN_PROTOTYPE_V0_3_QA.md`（含截圖 `lantern_v0_3/`）。入口不變；F6＝戰鬥場（x 20–44、z 0–24）。
+- 光：shader 全域 `_ShepRevealForward`／`_ShepRevealShape`（前、側、後倍率＋每公尺變寬），平常往前偏的蛋形，按住 Space 聚光成錐形光束（走路 ×0.6）。
+- `LanternAudio`（程式合成音效，暫用）、`LanternCombat`／`LanternEnemy`（失序體：追擊、0.75 秒前兆後撲擊、中距離光球、暈眩與破綻加倍、消散成永久穩定區、5 秒後重生；玩家生命、回血、倒下重生）。
+- QA 期間 `RenderSettings.reflectionIntensity` 降為 0.25（離開時還原），避免暗色材質反光成亮輪廓。
+- 測試只跑提燈篩選（`-testFilter Shepherd.Exploration.Tests.LanternPrototype`）：EditMode 15、PlayMode 1。**這一輪未重跑舊房子／正式 Demo 的全套測試**（使用者要求；本輪未改共用程式）。
+
+---
 # 2026-11-12｜提燈手感 QA 第二段：光圈修正＋左手提燈／右手穩定器＋射擊、牽引、復原（Claude；待使用者真人試玩）
 文件：`docs/prototype/LANTERN_PROTOTYPE_V0_2_QA.md`（含截圖 `lantern_v0_2/`）。入口不變：`Shepherd/Prototype/提燈手感 QA`。
 - **光圈**依使用者回饋改成以燈為中心、外圈 1.9 m、越遠越淡；光邊改成細柔光。射擊撞擊點與已復原處各是額外的現實泡泡（shader 全域 `_ShepRevealExtra[8]`：前 4 格暫時、後 4 格永久）。
