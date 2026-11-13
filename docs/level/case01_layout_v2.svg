@@ -39,22 +39,20 @@
   <!-- ========== 一樓 ========== -->
   <g transform="translate(240,60)">
     <text class="h" x="0" y="-20">一樓</text>
-    <rect class="yard" x="0" y="0" width="130" height="40"/>
-    <text class="s" x="8" y="24">後院（可選）</text>
-    <rect class="room" x="0" y="40" width="96" height="70"/>
-    <text class="t" x="8" y="62">廚房</text>
+    <rect class="yard" x="80" y="0" width="50" height="100"/>
+    <text class="s" x="84" y="20">側院</text>
+    <rect class="room" x="0" y="0" width="80" height="100"/>
+    <text class="t" x="8" y="62">廚房（加建）</text>
     <text class="s" x="8" y="78">保鮮盒、高櫃</text>
-    <circle class="clue" cx="80" cy="96" r="9"/><text class="clueT" x="76" y="100">2</text>
-    <rect class="room" x="0" y="110" width="96" height="90"/>
+    <circle class="clue" cx="66" cy="86" r="9"/><text class="clueT" x="62" y="90">2</text>
+    <rect class="room" x="0" y="100" width="92" height="100"/>
     <text class="t" x="8" y="134">餐廳（終章）</text>
     <text class="s" x="8" y="150">碗筷、日曆</text>
     <circle class="clue" cx="80" cy="186" r="9"/><text class="clueT" x="76" y="190">6</text>
     <circle class="echo" cx="60" cy="186" r="7"/>
-    <rect class="room" x="96" y="40" width="34" height="160"/>
-    <rect class="stair" x="100" y="110" width="26" height="80"/>
-    <text class="s" x="98" y="58">走廊</text>
-    <text class="s" x="98" y="72">電話</text>
-    <text class="s" x="98" y="100">地下室↓</text>
+    <rect class="room" x="92" y="100" width="38" height="100"/>
+    <rect class="stair" x="110" y="108" width="18" height="76"/>
+    <text class="s" x="94" y="196">走廊</text>
     <rect class="room" x="0" y="200" width="130" height="100"/>
     <text class="t" x="8" y="226">改衣店（店面）</text>
     <text class="s" x="8" y="244">衣架、人台、櫃台</text>

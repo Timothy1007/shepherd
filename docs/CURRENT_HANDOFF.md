@@ -1,5 +1,11 @@
 > **2026-11-12 戰鬥方向更新（優先於下方歷史描述）**：探索與戰鬥統一**第一人稱即時施法／攻擊**，不再以固定第三人稱卡牌戰術鏡頭為正式方向。舊卡牌／AP／回合／三連／學派規則及程式**僅保留為非約束性參考與歷史 QA**，不可預設沿用；尚未決定哪些概念轉化或淘汰。新玩法先從玩家在 3D 空間中干預敵人與環境的行為設計，建立獨立 QA，不得破壞現有場景。詳見 [第一人稱即時戰鬥方向](FIRST_PERSON_REALTIME_COMBAT_DIRECTION_V0_1.md) 與 [Issue #11](https://github.com/Timothy1007/shepherd/issues/11)。**此為方向與規劃，尚非已實作。**
 
+# 2026-11-13｜提燈 QA v0.8a：新版房子 v2 灰盒（開場＋一樓）（Claude；待使用者真人試玩）
+文件：`docs/prototype/LANTERN_PROTOTYPE_V0_8A_QA.md`，截圖 `lantern_v0_8a/`；設計 `docs/level/CASE01_INVESTIGATION_AND_LAYOUT_V2.md`＋`case01_layout_v2.svg`；人物 `docs/story/case01_seventeenth_door/CASE01_CHARACTERS_AND_TONE_DRAFT_V0_1.md`。
+- `LanternHouseV2.cs`：原點 (130,0,0)、×1.3；街道開場（門牌閃爍、`V2FrontDoor` 舉燈才開、進門後 `V2SealWall` 封門）；一樓店面／走廊／餐廳／廚房加建／側院；4 扇真的門（`V2Door`）；樓梯到封住的平台。借用住宅工具（`hpOrigin` 可切換）。
+- `LanternAnomalyBlocker.ExtraProbes`（門洞兩側檢查點）。`LanternNav` 排除可開關的門。舊房子重建不再清掉 v2 的門與燈。
+- 實際遊玩從 v2 門外開始（F1 重開場、F2 店面、F3 舊房子）；測試仍從舊房子開始。
+- 測試只跑提燈篩選：EditMode 37/37、PlayMode 1/1。
 # 2026-11-13｜提燈 QA v0.7a：客廳樣板＋月光與真的窗洞＋安全據點＋母親的筆記（Claude；待使用者真人試玩）
 文件：`docs/prototype/LANTERN_PROTOTYPE_V0_7A_QA.md`，截圖 `lantern_v0_7a/`；設計依據 `docs/level/CASE01_HOUSE_LEVEL_DESIGN_V0_1.md` 第 10 節。
 - 牆改成 `HWall` 通用切割（門洞＋`Win()` 窗洞，真的開口）；`Moon` 方向光；暗處環境光提高到看得到輪廓。
