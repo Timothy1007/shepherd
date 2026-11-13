@@ -1,5 +1,14 @@
 > **2026-11-12 戰鬥方向更新（優先於下方歷史描述）**：探索與戰鬥統一**第一人稱即時施法／攻擊**，不再以固定第三人稱卡牌戰術鏡頭為正式方向。舊卡牌／AP／回合／三連／學派規則及程式**僅保留為非約束性參考與歷史 QA**，不可預設沿用；尚未決定哪些概念轉化或淘汰。新玩法先從玩家在 3D 空間中干預敵人與環境的行為設計，建立獨立 QA，不得破壞現有場景。詳見 [第一人稱即時戰鬥方向](FIRST_PERSON_REALTIME_COMBAT_DIRECTION_V0_1.md) 與 [Issue #11](https://github.com/Timothy1007/shepherd/issues/11)。**此為方向與規劃，尚非已實作。**
 
+# 2026-11-13｜提燈 QA v0.6：廢墟與家＋燈光對比＋失序體找路＋最終戰的燈與結局（Claude；待使用者真人試玩）
+文件：`docs/prototype/LANTERN_PROTOTYPE_V0_6_QA.md`，截圖 `lantern_v0_6/`。
+- 異域＝被遺棄的廢墟（shader `_RuinMap`：異域用 damaged_plaster／blue_plaster_weathered／dirty_tiles／old_planks_02 等貼圖）；家具改成「只存在於真實」＋異域防塵布；生活小物 24 件只存在於真實；異域碎塊、斷木、倒下的椅子、釘死的窗。門框、踢腳板、窗框、燈座。
+- 修好線索 → 整個房間永久真實（`LanternReveal.AddRoom`，8 格盒子、從線索處擴散）。
+- 燈光：沒電 ×0.1、有電 ×2.6＋暖色環境光；反撲熄燈直到這一波被打倒（`LanternFlow.WaveActive`）。
+- 找路：`LanternNav`（執行時 NavMesh、`CalculatePath`）；附近但看不到的出生點（`LanternCombat.HiddenSpawnNear`）；卡住重生；不同樓層不能隔地板攻擊。
+- 最終戰：`LanternBossRoom`（放大歪斜的客廳、4 個 `LanternSwitch`）；暗處傷害 ×0.1、2/3 與 1/3 熄燈；上方生命條、閃白、傷害數字；結局 `Phase.Ending`（回到真實的家 → 文字 → 結案卡）。
+- 素材：Poly Haven CC0 新增 24 件模型＋6 組材質（約 91 MB，經使用者同意）。`LanternAssetImport` 改成保留嵌入材質名稱（版本 2）。
+- 測試只跑提燈篩選：EditMode 32/32、PlayMode 1/1。
 # 2026-11-13｜提燈 QA v0.5：CC0 材質與家具＋找路＋電箱＋生活互動＋近看系統（Claude；待使用者真人試玩）
 文件：`docs/prototype/LANTERN_PROTOTYPE_V0_5_QA.md`（截圖 `lantern_v0_5/`）。
 - 經使用者同意下載 Poly Haven CC0：15 組 2K 材質、14 件 1K 家具（116 MB，`Assets/Exploration/Lantern/Resources/PH/`，`SOURCES.md`）。`LanternAssetImport`（AssetPostprocessor）：`*_nor` 法線、`*_rough` 線性、模型不產生材質。`LanternReveal.MakePH` 與 shader 新增法線／粗糙度／`_AnomalyFromBase`（異域外觀由真實貼圖去飽和而來）。
