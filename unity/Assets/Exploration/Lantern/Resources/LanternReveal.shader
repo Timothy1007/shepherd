@@ -54,6 +54,8 @@ Shader "Shepherd/Prototype/LanternReveal"
         TEXTURE2D(_AnomalyBump); SAMPLER(sampler_AnomalyBump);
         TEXTURE2D(_AnomalyRough); SAMPLER(sampler_AnomalyRough);
         float4 _ShepRevealSphere;
+        // 風格化（參考《冤罪殺機》的手繪感半寫實）：0＝原樣，1＝風格化。全域開關，方便 A/B 比較。
+        float _ShepStylize;
         // 額外的現實泡泡（穩定能量的撞擊點、已復原的穩定區）：xyz＝中心、w＝半徑；w≤0＝未使用。
         float4 _ShepRevealExtra[8];
         // 提燈光的形狀：往前偏的蛋形。_ShepRevealForward.xyz＝朝向；_ShepRevealShape＝(前方倍率, 側面倍率, 後方倍率)。
@@ -222,7 +224,10 @@ Shader "Shepherd/Prototype/LanternReveal"
                     B = cross(n0, T) * (i.wt.w < 0 ? -1.0 : 1.0);
                 }
                 float2 uvB = uv * _BaseMap_ST.xy + _BaseMap_ST.zw;
-                float4 baseTex = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, uvB);
+                // 風格化：貼圖取較模糊的 mip（細節變少、像手繪的色塊），法線變淡。
+                float sty = saturate(_ShepStylize);
+                float bias = sty * 1.8;
+                float4 baseTex = SAMPLE_TEXTURE2D_BIAS(_BaseMap, sampler_BaseMap, uvB, bias);
                 float4 realCol = baseTex * _BaseColor;
                 float4 anomCol;
                 if (_AnomalyFromBase > 0.5)
@@ -235,15 +240,16 @@ Shader "Shepherd/Prototype/LanternReveal"
                 if (_RuinMap > 0.5)
                 {
                     // 廢墟：異域有自己的貼圖（剝落的灰泥、髒磁磚、舊木板），再降一點飽和、偏冷。
-                    float4 ruin = SAMPLE_TEXTURE2D(_AnomalyMap, sampler_AnomalyMap, uvA);
+                    float4 ruin = SAMPLE_TEXTURE2D_BIAS(_AnomalyMap, sampler_AnomalyMap, uvA, bias);
                     float g = dot(ruin.rgb, float3(0.3, 0.59, 0.11));
                     anomCol = float4(lerp(float3(g, g, g), ruin.rgb, _AnomalySat), 1) * _AnomalyColor;
                 }
                 float k = _Mode > 0.5 ? (_Mode > 1.5 ? 0.0 : 1.0) : m;
-                float3 nTS = UnpackNormalScale(SAMPLE_TEXTURE2D(_BumpMap, sampler_BumpMap, uvB), _BumpScale);
+                float bumpS = _BumpScale * lerp(1.0, 0.45, sty);
+                float3 nTS = UnpackNormalScale(SAMPLE_TEXTURE2D_BIAS(_BumpMap, sampler_BumpMap, uvB, bias), bumpS);
                 if (_RuinMap > 0.5)
                 {
-                    float3 nA = UnpackNormalScale(SAMPLE_TEXTURE2D(_AnomalyBump, sampler_AnomalyBump, uvA), _BumpScale);
+                    float3 nA = UnpackNormalScale(SAMPLE_TEXTURE2D_BIAS(_AnomalyBump, sampler_AnomalyBump, uvA, bias), bumpS);
                     nTS = normalize(lerp(nA, nTS, k));
                 }
                 float3 nWS = normalize(T * nTS.x + B * nTS.y + n0 * nTS.z);
@@ -264,6 +270,13 @@ Shader "Shepherd/Prototype/LanternReveal"
 
                 SurfaceData s = (SurfaceData)0;
                 s.albedo = lerp(anomCol.rgb, realCol.rgb, k);
+                if (sty > 0.001)
+                {
+                    // 真實（家）：飽和一點、暖一點；廢墟：維持褪色。
+                    float ga = dot(s.albedo, float3(0.3, 0.59, 0.11));
+                    float3 rich = lerp(float3(ga, ga, ga), s.albedo, 1.0 + 0.25 * k) * lerp(float3(1, 1, 1), float3(1.04, 1.0, 0.94), k);
+                    s.albedo = lerp(s.albedo, saturate(rich), sty);
+                }
                 s.metallic = _Metallic;
                 s.smoothness = lerp(anomSmooth, realSmooth, k);
                 s.occlusion = 1;
@@ -272,6 +285,20 @@ Shader "Shepherd/Prototype/LanternReveal"
                 s.alpha = 1;
                 s.normalTS = float3(0, 0, 1);
                 half4 col = UniversalFragmentPBR(d, s);
+                if (sty > 0.001)
+                {
+                    // 手繪感的光：亮暗分成柔和的色階，暗部帶冷藍紫、亮部偏暖；朝上的面略亮、朝下的面略暗；邊緣一點暖色的勾邊。
+                    float3 alb = max(s.albedo, 0.03);
+                    float L = dot(col.rgb, float3(0.3, 0.59, 0.11)) / max(dot(alb, float3(0.3, 0.59, 0.11)), 0.03);
+                    float stepped = lerp(L, (smoothstep(0.05, 0.22, L) * 0.45 + smoothstep(0.45, 0.75, L) * 0.55) * max(L, 0.35), 0.4);
+                    float3 tint = lerp(float3(0.78, 0.8, 0.98), float3(1.05, 1.0, 0.93), saturate(L * 1.4));
+                    // 保留燈光本身的顏色（暖燈、冷月光），只把亮度整理成色階、暗部帶一點冷色。
+                    float3 painted = col.rgb * (stepped / max(L, 0.03)) * tint;
+                    painted *= lerp(0.86, 1.06, n0.y * 0.5 + 0.5);
+                    float rim = pow(1.0 - saturate(dot(nWS, d.viewDirectionWS)), 3.0) * saturate(L) * 0.12;
+                    painted += rim * float3(1.0, 0.85, 0.65) * alb;
+                    col.rgb = lerp(col.rgb, painted, sty);
+                }
                 col.rgb = MixFog(col.rgb, i.fog);
                 return col;
             }

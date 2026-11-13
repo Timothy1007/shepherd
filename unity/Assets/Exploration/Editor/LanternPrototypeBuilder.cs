@@ -111,6 +111,7 @@ namespace Shepherd.Exploration.Editor
                     for (int i = 0; i < 30 && qa.Actions.Impacts == 0; i++) qa.Step(1f / 30f, ExploreInput.None);
                     log.AppendLine("crosshair error m=" + Vector3.Distance(hit.point, qa.Actions.LastImpact).ToString("F3"));
                 }
+                StyleShots(qa, rt, dir, log);
                 V2Shots(qa, rt, dir, log);
                 LivingShots(qa, rt, dir, log);
                 ClueShots(qa, rt, dir, log);
@@ -137,6 +138,54 @@ namespace Shepherd.Exploration.Editor
         private static void Act(LanternPrototypeQA qa, int frames, LanternActionInput a)
         {
             for (int i = 0; i < frames; i++) qa.Step(1f / 30f, ExploreInput.None, a);
+        }
+
+        /// <summary>風格測試：同一個畫面，A＝原樣、B＝風格化（手繪感半寫實）。</summary>
+        private static void StyleShots(LanternPrototypeQA qa, RenderTexture rt, string dir, StringBuilder log)
+        {
+            var w = qa.World;
+            var o = LanternGraybox.V2Origin;
+            float S = LanternGraybox.V2Scale;
+            void Pair(string tag)
+            {
+                qa.Style.Set(false);
+                Frames(qa, 3);
+                Shot(qa, rt, Path.Combine(dir, "s_" + tag + "_A.png"));
+                qa.Style.Set(true);
+                Frames(qa, 3);
+                Shot(qa, rt, Path.Combine(dir, "s_" + tag + "_B.png"));
+            }
+            w.BuildHouseV2();
+            qa.Rig.SetOn(true);
+            // 門外：舉起提燈、門出現。
+            qa.GoTo("V2Street");
+            qa.Player.Teleport(qa.Player.transform.position + Vector3.forward * 1.6f, 0f, 0f);
+            Frames(qa, 8);
+            Pair("01_street");
+            // 店面：從門口往裡看。
+            qa.Player.Teleport(o + new Vector3(5.6f * S, 0.05f, 0.9f * S), 0f, 0f);
+            Aim(qa, o + new Vector3(1.5f * S, 1.1f, 3.8f * S));
+            Frames(qa, 6);
+            Pair("02_shop");
+            // 走廊：推門那扇門的光。
+            qa.GoTo("V2Hall");
+            Frames(qa, 6);
+            Pair("03_hall");
+            // 舊房子修好的客廳（真實的家、暖燈）。
+            var photo = w.Clues.Find(c => c.Id == "photo");
+            photo.ForceComplete();
+            Frames(qa, 90);
+            qa.Combat.ClearEnemies();
+            qa.GoTo("HouseEnding");
+            Frames(qa, 20);
+            Pair("04_living_home");
+            // 舊房子沒修好的餐廳（廢墟，提燈照著）。
+            qa.GoTo("HouseDining");
+            Frames(qa, 6);
+            Pair("05_dining_ruin");
+            qa.Style.Set(true);
+            qa.SetHouseScale(LanternGraybox.HouseDefaultScale);
+            log.AppendLine("style test done");
         }
 
         /// <summary>新版房子（v2）灰盒：門外開場、店面、走廊樓梯、餐廳、廚房、側院。</summary>
@@ -366,12 +415,19 @@ namespace Shepherd.Exploration.Editor
             cam.targetTexture = rt;
             cam.Render();
             cam.targetTexture = prev;
+            RenderTexture painted = null;
+            if (qa.Style != null && qa.Style.On && qa.Style.PaintMaterial != null)
+            {
+                painted = RenderTexture.GetTemporary(rt.width, rt.height, 0, rt.format);
+                qa.Style.Paint(rt, painted);
+            }
             var active = RenderTexture.active;
-            RenderTexture.active = rt;
+            RenderTexture.active = painted != null ? painted : rt;
             var tex = new Texture2D(rt.width, rt.height, TextureFormat.RGB24, false);
             tex.ReadPixels(new Rect(0, 0, rt.width, rt.height), 0, 0);
             tex.Apply();
             RenderTexture.active = active;
+            if (painted != null) RenderTexture.ReleaseTemporary(painted);
             File.WriteAllBytes(path, tex.EncodeToPNG());
             Object.DestroyImmediate(tex);
         }

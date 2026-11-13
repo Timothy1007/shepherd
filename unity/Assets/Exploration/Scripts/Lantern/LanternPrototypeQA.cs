@@ -27,6 +27,9 @@ namespace Shepherd.Exploration.Lantern
         public FirstPersonController Player { get; private set; }
         public Camera Cam { get; private set; }
         public Case01RebuildPost Post { get; private set; }
+        /// <summary>風格測試（F11 切換 A／B）。</summary>
+        public LanternStyle Style { get; private set; }
+        public void ToggleStyle() { if (Style != null) Style.Set(!Style.On); }
         public int FovIndex { get; private set; } = 1;
         public bool DebugVisible { get; private set; }
         public bool Ready { get; private set; }
@@ -115,6 +118,8 @@ namespace Shepherd.Exploration.Lantern
             camGo.AddComponent<AudioListener>();
             Post = camGo.AddComponent<Case01RebuildPost>();
             Post.Exposure = 1.0f;
+            Style = new LanternStyle(Cam);
+            Style.Set(true);
 
             Rig = LanternRig.Build(Cam, Player);
             Audio = LanternAudio.Build(camGo.transform);
@@ -318,6 +323,7 @@ namespace Shepherd.Exploration.Lantern
             if (dt > 0f && simChanged) Physics.Simulate(dt);
             LanternReveal.Tick(dt);
             ApplyAmbient(dt);
+            Style?.Tick();
             UpdateUi();
         }
 
@@ -366,6 +372,7 @@ namespace Shepherd.Exploration.Lantern
             if (Input.GetKeyDown(KeyCode.F5)) CycleFov();
             if (Input.GetKeyDown(KeyCode.R)) ResetScene();
             if (Input.GetKeyDown(KeyCode.F12)) ToggleDebug();
+            if (Input.GetKeyDown(KeyCode.F11)) ToggleStyle();
             if (Input.GetKeyDown(KeyCode.Tab)) ToggleNotebook();
             FocusHeld = Input.GetKey(KeyCode.Space);
             var inp = ScriptedInput ?? input.Read();
@@ -436,7 +443,7 @@ namespace Shepherd.Exploration.Lantern
             energyBar = Bar(energyBack, new Color(0.6f, 0.85f, 1f, 0.85f));
             shieldText = MakeText("Shield", font, 18, new Vector2(234, 46), TextAnchor.LowerLeft, new Vector2(0, 0));
             hintText = MakeText("Hint", font, 17, new Vector2(24, 14), TextAnchor.LowerLeft, new Vector2(0, 0));
-            hintText.text = "Tab 母親的筆記　左鍵 射擊（按住蓄力）　E 互動（抓起／按住復原／打開／拿起來看）　Q 擬態錨定　按住Space 聚光　F 提燈　F1 新房子門外（重來） F2 新房子店面 F3 舊房子 F4 測試房 F6 戰鬥場　F8 最終戰全部開燈　F9 房子大小　F10 直接打最終戰　R 重來　F12 數值";
+            hintText.text = "Tab 母親的筆記　左鍵 射擊（按住蓄力）　E 互動（抓起／按住復原／打開／拿起來看）　Q 擬態錨定　按住Space 聚光　F 提燈　F1 新房子門外（重來） F2 新房子店面 F3 舊房子 F4 測試房 F6 戰鬥場　F8 最終戰全部開燈　F9 房子大小　F10 直接打最終戰　F11 風格 A／B　R 重來　F12 數值";
             hintText.color = new Color(1f, 1f, 1f, 0.5f);
             progressText = MakeText("Progress", font, 22, new Vector2(-30, -24), TextAnchor.UpperRight, new Vector2(1, 1));
             promptText = MakeText("Prompt", font, 22, new Vector2(0, -70), TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f));
@@ -592,6 +599,7 @@ namespace Shepherd.Exploration.Lantern
         /// <summary>還原暫時改動的全域設定（物理模擬模式、環境光、反射）。可重複呼叫。編輯器模式下不會自動呼叫 OnDestroy，測試與截圖要自己呼叫。</summary>
         public void Shutdown()
         {
+            if (Style != null) { Style.Destroy(); Style = null; }
             if (simChanged)
             {
                 Physics.simulationMode = savedSim;
