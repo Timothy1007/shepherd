@@ -260,6 +260,8 @@ namespace Shepherd.Exploration.Lantern
         public float Progress { get; private set; }
         public bool Done { get; private set; }
         public bool Loose { get; private set; }
+        /// <summary>呼吸週期中的位置（0～1）；小於 LooseFraction 的那段是「鬆」。畫面上的量表用它。</summary>
+        public float Phase { get; private set; }
         public bool Holding { get; private set; }
         public int Slams { get; private set; }
         public float SlamFlash { get; private set; }
@@ -270,7 +272,8 @@ namespace Shepherd.Exploration.Lantern
         public bool Step(float dt, bool holding, bool pressed)
         {
             clock += dt;
-            Loose = Mathf.Repeat(clock / Period, 1f) < LooseFraction;
+            Phase = Mathf.Repeat(clock / Period, 1f);
+            Loose = Phase < LooseFraction;
             SlamFlash = Mathf.MoveTowards(SlamFlash, 0f, dt * 2f);
             Holding = holding && !Done;
             if (GapLight != null)
@@ -301,6 +304,6 @@ namespace Shepherd.Exploration.Lantern
             return false;
         }
 
-        public string Prompt => SlamFlash > 0.3f ? "（門被猛地推了回來）" : Holding ? (Loose ? "推……" : "推不動——門的另一邊在用力") : "按住 E 推" + Label;
+        public string Prompt => SlamFlash > 0.3f ? "（門被猛地推了回來）" : Holding ? (Loose ? "推……" : "推不動——等指針回到亮的那段") : "指針在亮的那段時，按住 E 推" + Label;
     }
 }

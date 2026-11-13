@@ -886,7 +886,7 @@ namespace Shepherd.Exploration.Tests
             var qa = NewQa();
             var w = qa.World;
             Assert.IsNotNull(w.V2Root, "新版房子存在");
-            qa.GoTo("V2Street");
+            qa.GoTo("V2Alley");
             qa.Rig.SetOn(false);
             Act(qa, 20, LanternActionInput.None);
             Assert.IsFalse(w.V2FrontDoor.Open, "提燈放下：門是釘死的");
@@ -923,7 +923,9 @@ namespace Shepherd.Exploration.Tests
             Act(qa, 30, LanternActionInput.None);
             Assert.IsTrue(door.IsOpen);
             Assert.Greater(Quaternion.Angle(Quaternion.identity, door.Moving.localRotation), 80f, "門轉開了");
-            Assert.GreaterOrEqual(w.WindowPanes.Count(r => r.transform.IsChildOf(w.V2Root)), 4, "店面大櫥窗、廚房、二樓有窗");
+            Assert.GreaterOrEqual(w.WindowPanes.Count(r => r.transform.IsChildOf(w.V2Root)), 2, "廚房的兩扇窗（門面藏在巷底，兩側被鄰居擋住）");
+            Assert.IsTrue(w.Marks.ContainsKey("V2Alley"), "16 號和 18 號之間有巷子");
+            Assert.GreaterOrEqual(w.Inspectables.Count(i => i.transform.IsChildOf(w.V2Root) && i.transform.position.z < LanternGraybox.V2Origin.z - 5f), 3, "街上有可以互動的東西（對講機、公告欄、信箱）");
         }
 
         // ---------------- 推門（拉鋸） ----------------

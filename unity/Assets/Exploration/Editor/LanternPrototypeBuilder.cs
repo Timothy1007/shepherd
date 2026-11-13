@@ -158,7 +158,7 @@ namespace Shepherd.Exploration.Editor
             w.BuildHouseV2();
             qa.Rig.SetOn(true);
             // 門外：舉起提燈、門出現。
-            qa.GoTo("V2Street");
+            qa.GoTo("V2Alley");
             qa.Player.Teleport(qa.Player.transform.position + Vector3.forward * 1.6f, 0f, 0f);
             Frames(qa, 8);
             Pair("01_street");
@@ -194,6 +194,16 @@ namespace Shepherd.Exploration.Editor
             var w = qa.World;
             w.BuildHouseV2();
             qa.GoTo("V2Street");
+            qa.Rig.SetOn(false);
+            Frames(qa, 8);
+            Shot(qa, rt, Path.Combine(dir, "v00_street.png"));
+            qa.Player.Teleport(qa.Player.transform.position, -35f, -2f);
+            Frames(qa, 4);
+            Shot(qa, rt, Path.Combine(dir, "v00_street_left.png"));
+            qa.Player.Teleport(qa.Player.transform.position, 150f, -2f);
+            Frames(qa, 4);
+            Shot(qa, rt, Path.Combine(dir, "v00_street_behind.png"));
+            qa.GoTo("V2Alley");
             qa.Rig.SetOn(false);
             Frames(qa, 8);
             Shot(qa, rt, Path.Combine(dir, "v01_street_lantern_down.png"));

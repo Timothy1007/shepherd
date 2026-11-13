@@ -55,7 +55,11 @@ namespace Shepherd.Exploration.Lantern
 
         private float time;
         private Text debugText, hintText, promptText, progressText, readTitle, readBody, toastText, endText, shieldText;
-        private Image endPanel;
+        private Image endPanel, breathBack, breathZone, breathMarker;
+        private bool struggleHintShown;
+        /// <summary>到達街區的轉場（黑屏＋地點字卡），秒數。</summary>
+        public float ArrivalTimer { get; private set; }
+        private Text arrivalText;
         private Image crosshair, chargeBar, chargeBack, healthBar, healthBack, energyBar, energyBack, hurtOverlay, fadeOverlay, readPanel;
         private Text downText, bossName, bossHint;
         private Image bossBack, bossBar, bossTrail;
@@ -141,7 +145,7 @@ namespace Shepherd.Exploration.Lantern
             Post.Apply();
             Physics.SyncTransforms();
             if (play) SetCursor(false);
-            if (play && World.InV2Street(Player.transform.position)) Rig.SetOn(false);
+            if (play && World.InV2Street(Player.transform.position)) { Rig.SetOn(false); ArrivalTimer = 4.5f; }
         }
 
         /// <summary>v2 開場：重建新版房子、回到門外、提燈放下。</summary>
@@ -294,6 +298,7 @@ namespace Shepherd.Exploration.Lantern
         {
             if (!Ready) return;
             time += dt;
+            if (ArrivalTimer > 0f) ArrivalTimer -= dt;
             bool locked = Combat.PlayerDown || Flow.Current == LanternFlow.Phase.Collapsing || Flow.Current == LanternFlow.Phase.Ending && Flow.EndingTime < 3f;
             if (locked) { inp.Move = Vector2.zero; inp.Look = Vector2.zero; act = default(LanternActionInput); if (Inspecting != null) EndInspect(); }
             if (Inspecting != null)
@@ -477,6 +482,10 @@ namespace Shepherd.Exploration.Lantern
             inspectHint.color = new Color(1f, 0.97f, 0.9f, 0.9f);
             inspectPanel.gameObject.SetActive(false);
             fadeOverlay = Img("Fade", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(4000, 3000), new Color(0f, 0f, 0f, 0f));
+            arrivalText = MakeText("Arrival", font, 30, new Vector2(0, 0), TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f));
+            arrivalText.rectTransform.sizeDelta = new Vector2(1400, 160);
+            arrivalText.text = "（暫定）車停在街口。\n\n第十七號門｜某條街，晚上九點";
+            arrivalText.enabled = false;
             downText = MakeText("Down", font, 40, new Vector2(0, 40), TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f));
             downText.text = "你倒下了…";
             downText.enabled = false;
@@ -487,6 +496,22 @@ namespace Shepherd.Exploration.Lantern
             endPanel = Img("EndPanel", new Vector2(0.5f, 0.5f), new Vector2(0, 40), new Vector2(1100, 520), new Color(0.06f, 0.05f, 0.04f, 0.9f));
             endPanel.transform.SetSiblingIndex(endText.transform.GetSiblingIndex());
             endPanel.enabled = false;
+            // 推門的呼吸量表：指針來回擺動，亮的那段＝可以推。
+            breathBack = Img("BreathBack", new Vector2(0.5f, 0.5f), new Vector2(0, -50), new Vector2(220, 12), new Color(0f, 0f, 0f, 0.55f));
+            breathZone = new GameObject("Zone").AddComponent<Image>();
+            breathZone.transform.SetParent(breathBack.transform, false);
+            breathZone.rectTransform.anchorMin = new Vector2(0f, 0f);
+            breathZone.rectTransform.anchorMax = new Vector2(0.38f, 1f);
+            breathZone.rectTransform.offsetMin = breathZone.rectTransform.offsetMax = Vector2.zero;
+            breathZone.color = new Color(1f, 0.8f, 0.45f, 0.75f);
+            breathZone.raycastTarget = false;
+            breathMarker = new GameObject("Marker").AddComponent<Image>();
+            breathMarker.transform.SetParent(breathBack.transform, false);
+            breathMarker.rectTransform.anchorMin = breathMarker.rectTransform.anchorMax = new Vector2(0f, 0.5f);
+            breathMarker.rectTransform.sizeDelta = new Vector2(5, 22);
+            breathMarker.color = Color.white;
+            breathMarker.raycastTarget = false;
+            breathBack.gameObject.SetActive(false);
             // 最後的反撲：畫面上方中央的生命條。
             bossBack = Img("BossBack", new Vector2(0.5f, 1f), new Vector2(0, -64), new Vector2(820, 16), new Color(0f, 0f, 0f, 0.55f));
             bossTrail = Bar(bossBack, new Color(1f, 0.95f, 0.85f, 0.55f));
@@ -537,9 +562,22 @@ namespace Shepherd.Exploration.Lantern
             progressText.text = Flow.Current == LanternFlow.Phase.Explore ? "修復 " + Flow.Repaired + " / " + Flow.Total + (Combat.MemoriesFound > 0 ? "　記憶碎片 " + Combat.MemoriesFound : "")
                 : "";
             toastText.text = Flow.ToastTimer > 0f ? Flow.Toast : "";
-            fadeOverlay.color = new Color(0f, 0f, 0f, Flow.Fade);
+            float arrive = ArrivalTimer > 0f ? Mathf.Clamp01(ArrivalTimer / 1.6f) : 0f;
+            fadeOverlay.color = new Color(0f, 0f, 0f, Mathf.Max(Flow.Fade, arrive));
+            arrivalText.enabled = ArrivalTimer > 0f;
+            if (arrivalText.enabled) arrivalText.color = new Color(0.95f, 0.9f, 0.82f, Mathf.Clamp01(ArrivalTimer - 0.6f) * Mathf.Clamp01((4.5f - ArrivalTimer) / 0.8f));
             endText.enabled = Flow.Current == LanternFlow.Phase.Ended;
             endPanel.enabled = endText.enabled;
+            var stg = Actions.Aimed as LanternStruggle;
+            bool showBreath = stg != null && !stg.Done && Inspecting == null;
+            breathBack.gameObject.SetActive(showBreath);
+            if (showBreath)
+            {
+                breathZone.rectTransform.anchorMax = new Vector2(stg.LooseFraction, 1f);
+                breathMarker.rectTransform.anchoredPosition = new Vector2(220f * stg.Phase, 0f);
+                breathMarker.color = stg.Loose ? new Color(1f, 0.95f, 0.6f) : new Color(0.6f, 0.65f, 0.8f);
+                if (!struggleHintShown) { struggleHintShown = true; Flow.ShowToast("（門的另一邊像是有人抵著……指針到亮的那一段時，按住 E 推；狂按沒有用）", 5f); }
+            }
             var boss = Flow.Boss;
             bool showBoss = Flow.Current == LanternFlow.Phase.Boss && boss != null;
             foreach (var g in new Graphic[] { bossBack, bossName, bossHint }) g.gameObject.SetActive(showBoss);

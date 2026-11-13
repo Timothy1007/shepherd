@@ -78,51 +78,151 @@ namespace Shepherd.Exploration.Lantern
 
         // ---------------- 門外：街道與開場 ----------------
 
+        /// <summary>
+        /// 街區（有人在生活的城市一角）＋16 號與 18 號之間的窄巷。巷底是死路：一面普通的磚牆。
+        /// 17 號在所有人的認知裡都不存在，只有提燈照得出牆上的門。
+        /// 巷子：x 4.2～6.0、z -10～0（真實公尺），巷底就是 17 號的門面。
+        /// </summary>
         private void V2Street()
         {
-            var road = Mat("V2_Road", Mode.Dual, new Color(0.18f, 0.18f, 0.19f), new Color(0.12f, 0.13f, 0.14f), null, null, 0.35f, 0.4f, 0.004f, true);
-            var pave = PH("V2_Pavement", "concrete_floor_worn_001", "Tex", 1.5f, new Color(0.7f, 0.7f, 0.72f), new Color(0.4f, 0.45f, 0.5f), 0.5f);
-            v2Brick = Mat("V2_Brick", Mode.Dual, new Color(0.45f, 0.24f, 0.18f), new Color(0.25f, 0.24f, 0.26f), null, null, 0.2f, 0.25f, 0.006f, true);
+            float zs = -10f, ax0 = 4.2f, ax1 = 6.0f;
+            var road = Mat("V2_Road", Mode.Dual, new Color(0.16f, 0.16f, 0.17f), new Color(0.12f, 0.13f, 0.14f), null, null, 0.45f, 0.45f, 0.004f, true);
+            var pave = PH("V2_Pavement", "concrete_floor_worn_001", "Tex", 1.5f, new Color(0.72f, 0.7f, 0.68f), new Color(0.4f, 0.45f, 0.5f), 0.55f);
+            v2Brick = Mat("V2_Brick", Mode.Dual, new Color(0.5f, 0.27f, 0.2f), new Color(0.3f, 0.28f, 0.29f), null, null, 0.2f, 0.25f, 0.006f, true);
             LanternReveal.AddRuin(v2Brick, "raw_plank_wall", 0f, new Color(0.5f, 0.52f, 0.55f), 0.3f);
-            Box("V2Road", V2(V2Width / 2f, 0f, -6f) + Vector3.down * 0.1f, new Vector3(30f, 0.2f, 6f * V2Scale), road);
-            Box("V2Pavement", V2(V2Width / 2f, 0f, -1.8f) + Vector3.down * 0.06f, new Vector3(30f, 0.12f, 3.6f * V2Scale), pave);
-            Box("V2Kerb", V2(V2Width / 2f, 0f, -3.65f), new Vector3(30f, 0.14f, 0.15f), hWhite, false);
-            // 左右鄰居（16、18 號）的門面。
+            var brick2 = Mat("V2_Brick2", Mode.Dual, new Color(0.36f, 0.3f, 0.27f), new Color(0.28f, 0.28f, 0.3f), null, null, 0.2f, 0.25f, 0.006f, true);
+            var cream = Mat("V2_Stucco", Mode.Dual, new Color(0.82f, 0.78f, 0.7f), new Color(0.5f, 0.52f, 0.55f), null, null, 0.2f, 0.25f, 0.006f, true);
+            var warmWin = Mat("V2_WarmWindow", Mode.Dual, new Color(0.9f, 0.7f, 0.45f), new Color(0.9f, 0.7f, 0.45f), null, null, 0.8f, 0.8f, 0f);
+            warmWin.SetColor("_EmissionColor", new Color(1.6f, 1.05f, 0.55f));
+            warmWin.SetColor("_AnomalyEmission", new Color(1.6f, 1.05f, 0.55f));
+            var tvWin = Mat("V2_TVWindow", Mode.Dual, new Color(0.5f, 0.6f, 0.8f), new Color(0.5f, 0.6f, 0.8f), null, null, 0.8f, 0.8f, 0f);
+            tvWin.SetColor("_EmissionColor", new Color(0.55f, 0.75f, 1.2f));
+            tvWin.SetColor("_AnomalyEmission", new Color(0.55f, 0.75f, 1.2f));
             var dark = Mat("V2_DarkWindow", Mode.Dual, new Color(0.04f, 0.05f, 0.07f), new Color(0.03f, 0.04f, 0.05f), null, null, 0.9f, 0.9f, 0f);
-            foreach (var side in new[] { -1, 1 })
+            var neon = Mat("V2_Neon", Mode.Dual, new Color(1f, 0.3f, 0.25f), new Color(1f, 0.3f, 0.25f), null, null, 0.5f, 0.5f, 0f);
+            neon.SetColor("_EmissionColor", new Color(3.5f, 0.7f, 0.5f));
+            neon.SetColor("_AnomalyEmission", new Color(3.5f, 0.7f, 0.5f));
+            var red = Mat("V2_PhoneRed", Mode.Dual, new Color(0.65f, 0.08f, 0.06f), new Color(0.65f, 0.08f, 0.06f), null, null, 0.55f, 0.55f, 0f);
+            var shadowMat = Mat("V2_Silhouette", Mode.Dual, new Color(0.08f, 0.06f, 0.05f), new Color(0.08f, 0.06f, 0.05f), null, null, 0.1f, 0.1f, 0f);
+
+            // 路面、人行道、路緣。
+            Box("V2Road", V2(3f, 0f, zs - 6.5f) + Vector3.down * 0.1f, new Vector3(56f, 0.2f, 5.5f * V2Scale), road);
+            Box("V2Pavement", V2(3f, 0f, zs - 1.9f) + Vector3.down * 0.06f, new Vector3(56f, 0.12f, 3.8f * V2Scale), pave);
+            Box("V2PavementFar", V2(3f, 0f, zs - 11.2f) + Vector3.down * 0.06f, new Vector3(56f, 0.12f, 3.8f * V2Scale), pave);
+            Box("V2Kerb", V2(3f, 0f, zs - 3.8f), new Vector3(56f, 0.14f, 0.15f), hWhite, false);
+            Box("V2KerbFar", V2(3f, 0f, zs - 9.3f), new Vector3(56f, 0.14f, 0.15f), hWhite, false);
+            // 巷子的地面（石板、濕）。
+            var cobble = PH("V2_Cobble", "concrete_floor_worn_001", "Tex", 0.9f, new Color(0.5f, 0.5f, 0.52f), new Color(0.35f, 0.38f, 0.42f), 0.75f);
+            Box("V2AlleyFloor", V2((ax0 + ax1) / 2f, 0f, zs / 2f) + Vector3.down * 0.05f, new Vector3((ax1 - ax0) * V2Scale + 0.4f, 0.1f, -zs * V2Scale + 0.4f), cobble);
+
+            // 16 號（左）與 18 號（右）：兩棟聯排屋，中間夾著巷子。
+            void Terrace(string num, float x0, float x1, Material wall, bool left)
             {
-                float cx = side < 0 ? -V2Width / 2f : V2Width * 1.5f;
-                Box("V2Neighbour", V2(cx, 3.0f, -0.2f), new Vector3(V2Width * V2Scale, 7f, 0.4f), v2Brick);
-                Box("V2NeighbourDoor", V2(cx + side * 1.6f, 1.1f, -0.42f), new Vector3(1.0f * V2Scale, 2.2f * 1.165f, 0.06f), hDark, false);
-                Box("V2NeighbourWin", V2(cx - side * 1.0f, 1.6f, -0.42f), new Vector3(2.4f * V2Scale, 1.4f, 0.04f), dark, false);
-                Box("V2NeighbourWin", V2(cx, 4.4f, -0.42f), new Vector3(3.6f * V2Scale, 1.3f, 0.04f), dark, false);
-                var nm = Mat("V2_Num" + (side < 0 ? 16 : 18), Mode.Dual, Color.white, Color.white,
-                    LanternReveal.Number(side < 0 ? 16 : 18, new Color32(220, 214, 200, 255), new Color32(30, 30, 30, 255)),
-                    LanternReveal.Number(side < 0 ? 16 : 18, new Color32(200, 205, 210, 255), new Color32(30, 30, 30, 255)), 0.3f, 0.3f, 0f);
-                Quad("V2NeighbourNumber", V2(cx + side * 2.35f, 2.1f, -0.43f), new Vector3(0.28f, 0.28f, 1f), new Vector3(0f, 0f, 0f), nm);
+                float cx = (x0 + x1) / 2f, w = x1 - x0;
+                Box("V2House" + num, V2(cx, 3.2f, zs / 2f), new Vector3(w * V2Scale, 6.6f * 1.165f, -zs * V2Scale), wall);
+                Box("V2Roof" + num, V2(cx, 6.75f, zs / 2f), new Vector3(w * V2Scale + 0.3f, 0.3f, -zs * V2Scale), hDark);
+                float doorX = left ? x1 - 1.4f : x0 + 1.4f;
+                Box("V2Door" + num, V2(doorX, 1.1f, zs - 0.02f), new Vector3(1.0f * V2Scale, 2.2f * 1.165f, 0.08f), num == "16" ? red : hDark, true);
+                Box("V2Step" + num, V2(doorX, 0.08f, zs - 0.35f), new Vector3(1.3f * V2Scale, 0.16f, 0.5f), hWhite, true);
+                var nm = Mat("V2_Num" + num, Mode.Dual, Color.white, Color.white,
+                    LanternReveal.Number(int.Parse(num), new Color32(230, 222, 205, 255), new Color32(30, 30, 30, 255)),
+                    LanternReveal.Number(int.Parse(num), new Color32(230, 222, 205, 255), new Color32(30, 30, 30, 255)), 0.3f, 0.3f, 0f);
+                Quad("V2Number" + num, V2(doorX, 2.55f, zs - 0.06f), new Vector3(0.26f, 0.26f, 1f), Vector3.zero, nm);
+                // 窗：樓下一扇亮著暖光、樓上一扇電視的藍光、一扇暗著。
+                float winX = left ? x0 + 2.0f : x1 - 2.0f;
+                Box("V2Win" + num, V2(winX, 1.6f, zs - 0.03f), new Vector3(2.2f * V2Scale, 1.4f, 0.04f), warmWin, false);
+                Box("V2WinUp" + num, V2(winX, 4.6f, zs - 0.03f), new Vector3(1.5f * V2Scale, 1.3f, 0.04f), num == "18" ? tvWin : dark, false);
+                Box("V2WinUp2" + num, V2(doorX, 4.6f, zs - 0.03f), new Vector3(1.2f * V2Scale, 1.3f, 0.04f), num == "16" ? warmWin : dark, false);
+                AddLight("V2WinLight" + num, LightType.Point, V2(winX, 1.6f, zs - 0.6f), new Color(1f, 0.72f, 0.45f), 1.4f, 4.5f, false, LightShadows.None);
+                // 窗框與窗台的花盆。
+                Box("V2Sill" + num, V2(winX, 0.85f, zs - 0.12f), new Vector3(2.4f * V2Scale, 0.08f, 0.22f), hWhite, false);
+                Prop("V2SillPlant" + num, "potted_plant_02", winX + 0.6f, zs - 0.12f, 0.9f, 0.35f, 0f);
             }
-            // 我們的門牌：16 和 17 之間一直閃。
+            Terrace("16", -9.5f, ax0, cream, true);
+            Terrace("18", ax1, 20f, v2Brick, false);
+            // 窗裡走動的人影（16 號樓下的窗）。
+            v2Silhouette = Quad("V2Silhouette", V2(-7.5f, 1.5f, zs) + Vector3.back * 0.02f, new Vector3(0.55f, 1.1f, 1f), Vector3.zero, shadowMat);
+            v2SilhouetteBase = v2Silhouette.position;
+
+            // 對街：咖啡店（暖光、OPEN 霓虹）、雜貨店、樓上的公寓。
+            float zf = zs - 13.2f;
+            Box("V2Opposite", V2(3f, 3.5f, zf) + Vector3.back * 1.6f, new Vector3(42f, 7f * 1.165f, 3f), brick2);
+            Box("V2CafeWindow", V2(-1.5f, 1.4f, zf), new Vector3(4.5f * V2Scale, 1.8f, 0.05f), warmWin, false);
+            Box("V2CafeNeon", V2(-1.5f, 2.7f, zf + 0.02f), new Vector3(1.2f, 0.25f, 0.05f), neon, false);
+            Box("V2ShopWindow", V2(7.5f, 1.4f, zf), new Vector3(3.5f * V2Scale, 1.8f, 0.05f), warmWin, false);
+            for (int i = 0; i < 6; i++) Box("V2FlatWindow", V2(-6f + i * 3.6f, 4.8f, zf), new Vector3(1.4f * V2Scale, 1.3f, 0.05f), i % 3 == 1 ? dark : (i % 2 == 0 ? warmWin : tvWin), false);
+            AddLight("V2CafeLight", LightType.Point, V2(-1.5f, 1.4f, zf + 0.8f), new Color(1f, 0.7f, 0.42f), 4f, 9f, false, LightShadows.None);
+            AddLight("V2ShopLight", LightType.Point, V2(7.5f, 1.4f, zf + 0.8f), new Color(1f, 0.85f, 0.6f), 3f, 8f, false, LightShadows.None);
+            AddLight("V2NeonLight", LightType.Point, V2(-1.5f, 2.7f, zf + 0.5f), new Color(1f, 0.3f, 0.25f), 1.2f, 3.5f, false, LightShadows.None);
+
+            // 維多利亞式街燈（暖光）。
+            foreach (var lx in new[] { -7f, 1.0f, 10.5f, 17f })
+            {
+                Cyl("V2LampPost", V2(lx, 0f, zs - 3.4f) + Vector3.up * 2.3f, new Vector3(0.1f, 2.3f, 0.1f), hDark);
+                Box("V2LampHead", V2(lx, 0f, zs - 3.4f) + Vector3.up * 4.75f, new Vector3(0.36f, 0.45f, 0.36f), warmWin, false);
+                AddLight("V2StreetLamp", LightType.Point, V2(lx, 0f, zs - 3.4f) + Vector3.up * 4.6f, new Color(1f, 0.68f, 0.38f), 9f, 15f, false, LightShadows.Soft);
+            }
+            // 紅色電話亭、垃圾桶、腳踏車架。
+            var booth = V2(2.6f, 0f, zs - 2.9f);
+            Box("V2PhoneBox", booth + Vector3.up * 1.25f, new Vector3(0.95f, 2.5f, 0.95f), red, true);
+            Box("V2PhoneBoxGlow", booth + new Vector3(0f, 1.5f, -0.48f), new Vector3(0.7f, 1.3f, 0.02f), warmWin, false);
+            Box("V2PhoneBoxSign", booth + new Vector3(0f, 2.35f, -0.49f), new Vector3(0.6f, 0.14f, 0.02f), warmWin, false);
+            AddLight("V2PhoneBoxLight", LightType.Point, booth + Vector3.up * 1.6f, new Color(1f, 0.85f, 0.6f), 0.8f, 3f, false, LightShadows.None);
+            Box("V2Bin", V2(ax1 + 0.35f, 0.55f, zs + 0.6f), new Vector3(0.6f, 1.1f, 0.6f), hDark, true);
+            Box("V2Bin2", V2(ax0 - 0.35f, 0.55f, zs - 0.6f), new Vector3(0.6f, 1.1f, 0.6f), cream, true);
+
+            // 巷子：牆燈、水管、晾衣繩、木箱、積水。
+            // 巷底的一盞老牆燈：看得到死路那面牆（這裡應該什麼都沒有）。
+            var endLamp = V2(ax1, 2.7f, -1.4f) + Vector3.left * 0.12f;
+            Box("V2AlleyEndLampBox", endLamp, new Vector3(0.12f, 0.2f, 0.28f), warmWin, false);
+            AddLight("V2AlleyEndLamp", LightType.Point, endLamp + Vector3.left * 0.35f, new Color(1f, 0.66f, 0.4f), 2.4f, 6.5f, true, LightShadows.Soft);
+            var bulkhead = V2(ax1, 2.6f, zs + 2.5f) + Vector3.left * 0.12f;
+            Box("V2AlleyLampBox", bulkhead, new Vector3(0.12f, 0.2f, 0.28f), warmWin, false);
+            AddLight("V2AlleyLamp", LightType.Point, bulkhead + Vector3.left * 0.3f, new Color(1f, 0.7f, 0.45f), 1.8f, 6f, false, LightShadows.Soft);
+            Cyl("V2DrainPipe", V2(ax0, 3f, zs + 5f) + Vector3.right * 0.08f, new Vector3(0.09f, 3f, 0.09f), hDark);
+            Cyl("V2ClothesLine", V2((ax0 + ax1) / 2f, 3.4f, zs + 4f), new Vector3(0.01f, (ax1 - ax0) * V2Scale / 2f, 0.01f), hDark, new Vector3(0f, 0f, 90f));
+            for (int i = 0; i < 3; i++) Box("V2Laundry", V2(ax0 + 0.4f + i * 0.5f, 3.0f, zs + 4f), new Vector3(0.38f, 0.75f, 0.02f), i == 1 ? hFabric : hWhite, false, new Vector3(0f, 0f, (i - 1) * 4f));
+            Box("V2AlleyCrate", V2(ax0 + 0.35f, 0.3f, zs + 7.2f), new Vector3(0.6f, 0.6f, 0.6f), hLightWood, true, new Vector3(0f, 12f, 0f));
+            var puddle = Mat("V2_Puddle", Mode.Dual, new Color(0.05f, 0.06f, 0.07f), new Color(0.05f, 0.06f, 0.07f), null, null, 0.98f, 0.98f, 0f);
+            Box("V2Puddle", V2((ax0 + ax1) / 2f, 0.004f, zs + 3.2f), new Vector3(1.1f, 0.006f, 1.6f), puddle, false, new Vector3(0f, 18f, 0f));
+            // 巷底牆上的門牌：16 和 17 之間一直閃（這裡應該什麼都沒有）。
             v2Num16 = LanternReveal.Number(16, new Color32(220, 214, 200, 255), new Color32(30, 30, 30, 255));
             v2Num17 = LanternReveal.Number(17, new Color32(235, 225, 200, 255), new Color32(90, 20, 20, 255));
             v2Plate = Mat("V2_Num17", Mode.Dual, Color.white, Color.white, v2Num16, v2Num16, 0.3f, 0.3f, 0f);
-            v2Plate.SetColor("_EmissionColor", new Color(0.25f, 0.22f, 0.18f));
-            v2Plate.SetColor("_AnomalyEmission", new Color(0.2f, 0.2f, 0.22f));
-            Quad("V2DoorNumber", V2(5.95f, 2.15f, -0.16f), new Vector3(0.3f, 0.3f, 1f), new Vector3(0f, 0f, 0f), v2Plate);
-            // 店名招牌（只剩一半，暫定）。
-            Box("V2ShopSign", V2(V2Width / 2f, 2.75f, -0.18f), new Vector3(6.0f * V2Scale, 0.45f, 0.08f), hWood, false);
-            // 街燈（橘光）：從外面照進店面的大櫥窗。
-            Cyl("V2LampPost", V2(1.2f, 0f, -3.3f) + Vector3.up * 2.3f, new Vector3(0.12f, 2.3f, 0.12f), hDark);
-            var sl = AddLight("V2StreetLamp", LightType.Spot, V2(1.2f, 0f, -3.1f) + Vector3.up * 4.4f, new Color(1f, 0.62f, 0.3f), 6f, 16f, false, LightShadows.Soft, 85f, new Vector3(0.15f, -0.55f, 1f));
-            sl.innerSpotAngle = 40f;
-            AddLight("V2StreetGlow", LightType.Point, V2(1.2f, 0f, -3.1f) + Vector3.up * 4.4f, new Color(1f, 0.62f, 0.3f), 1.2f, 6f, false, LightShadows.None);
-            // 街道範圍（看不見的牆）。
-            var c = V2(V2Width / 2f, 0f, -4.5f);
-            Invisible(c + new Vector3(-9f, 4f, 0f), new Vector3(0.3f, 8f, 12f));
-            Invisible(c + new Vector3(15.5f, 4f, 0f), new Vector3(0.3f, 8f, 12f));
-            Invisible(c + new Vector3(3f, 4f, -4.2f), new Vector3(26f, 8f, 0.3f));
-            Mark("V2Street", V2(5.1f, 0f, -2.6f) + Vector3.up * 0.05f, V2(5.1f, 1.3f, 0f));
+            v2Plate.SetColor("_EmissionColor", new Color(0.3f, 0.26f, 0.2f));
+            v2Plate.SetColor("_AnomalyEmission", new Color(0.25f, 0.24f, 0.26f));
+            Quad("V2DoorNumber", V2(5.85f, 2.2f, -0.16f), new Vector3(0.24f, 0.24f, 1f), Vector3.zero, v2Plate);
+
+            // 可以互動的：18 號的對講機、公告欄、信箱。
+            var intercom = Box("V2Intercom", V2(ax1 + 1.4f + 0.75f, 1.35f, zs - 0.07f), new Vector3(0.14f, 0.24f, 0.05f), hTrim, true);
+            AddInspect(intercom.gameObject, LanternInspectable.Kind.Pages, "18 號的對講機", null, null, new[]
+            {
+                "（暫定）沙沙聲，然後一個上了年紀的聲音：\n「找誰？」",
+                "「17 號？……沒有 17 號啦。16 過來就是我們 18。我在這住了二十年了。」\n\n對講機喀一聲掛斷。",
+            }, "");
+            var board = Box("V2NoticeBoard", V2(ax0 - 1.2f, 1.5f, zs - 0.08f), new Vector3(1.2f, 0.9f, 0.05f), hWood, true);
+            AddInspect(board.gameObject, LanternInspectable.Kind.Pages, "社區公告欄", null, null, new[]
+            {
+                "（暫定）「本週日上午，巷口清潔，請勿堆放雜物。」\n\n旁邊一張尋物啟事：「遺失深色外套一件，袖口有手縫的字……」\n聯絡人那一欄，被雨水暈開了。",
+            }, "");
+            var mail = Box("V2Mailboxes", V2(ax1 + 0.55f, 1.2f, zs - 0.06f), new Vector3(0.5f, 0.35f, 0.08f), hDark, true);
+            AddInspect(mail.gameObject, LanternInspectable.Kind.Pages, "信箱", null, null, new[]
+            {
+                "（暫定）一排信箱：16、18。\n\n兩個之間的空位上，有被撬掉的螺絲孔，和一個看不清楚的「1」。",
+            }, "");
+
+            // 範圍：街道左右、對街、巷子（巷子兩側就是房子的牆）。
+            var c = V2(3f, 0f, zs - 6f);
+            Invisible(c + new Vector3(-16f, 4f, 0f), new Vector3(0.3f, 8f, 18f));
+            Invisible(c + new Vector3(22f, 4f, 0f), new Vector3(0.3f, 8f, 18f));
+            Invisible(V2(3f, 4f, zs - 9.5f), new Vector3(42f, 8f, 0.3f));
+            Mark("V2Street", V2(5.1f, 0f, zs - 2.4f) + Vector3.up * 0.05f, V2(5.1f, 1.4f, 0f));
+            Mark("V2Alley", V2(5.1f, 0f, -2.6f) + Vector3.up * 0.05f, V2(5.1f, 1.3f, 0f));
         }
 
+        private float v2Time;
+        private Transform v2Silhouette;
+        private Vector3 v2SilhouetteBase;
         // ---------------- 牆、地板、天花 ----------------
 
         private void V2Shell()
@@ -136,11 +236,10 @@ namespace Shepherd.Exploration.Lantern
             Slab("V2FloorKitchen", 0f, V2ExtWidth, V2Main, V2Depth, 0f, 0.2f, hFloorKitchen);
             Slab("V2FloorYard", V2ExtWidth, V2Width, V2Main, V2Depth, 0f, 0.2f, hFloorScullery);
 
-            // 門面（街道側）：店門、大櫥窗、二樓兩扇窗。
-            Win(0.5f, 4.0f, 0.45f, 2.55f, 1f);
-            Win(0.8f, 2.6f, H1 + 0.9f, H1 + 2.2f, 1f);
-            Win(3.7f, 5.7f, H1 + 0.9f, H1 + 2.2f, 1f);
+            // 門面＝巷底的牆：兩側被 16、18 號擋住，只露出巷子那一段。門框只在光裡出現（暗處就是一面普通的牆）。
+            trims = false;
             HWallX(0f, 0f, V2Width, 0f, H, ExtT, v2Brick, D, new Vector2(4.6f, 5.6f));
+            trims = true;
             // 左右是和鄰居共用的牆（沒有窗）。
             HWallZ(0f, 0f, V2Main, 0f, H, ExtT, hWall, D);
             HWallZ(0f, V2Main, V2Depth, 0f, H1, ExtT, hWallKitchen, D);
@@ -170,16 +269,23 @@ namespace Shepherd.Exploration.Lantern
             Slab("V2Ceiling", 5.5f, V2Width, 9.7f, V2Main, H1, 0.25f, hCeil);
             Slab("V2KitchenRoof", 0f, V2ExtWidth, V2Main, V2Depth, H1 + 0.05f, 0.12f, hCeil);
 
-            // 開場的前門：暗處是木板釘死的門洞（異域），提燈照到才是開著的門。
-            var boarded = Box("V2FrontBoards", V2(5.1f, 1.12f, 0f), new Vector3(1.0f * V2Scale, 2.25f * 1.165f, ExtT + 0.04f), hBoard, true);
+            // 開場的前門：暗處是一面普通的磚牆（只存在於異域），提燈照到才是門。
+            // 和巷底的牆完全一樣的材質（同一套世界座標 UV），只是只存在於異域：暗處看不出這裡有門。
+            var hiddenBrick = new Material(v2Brick) { name = "V2_HiddenBrick" };
+            hiddenBrick.SetFloat("_Mode", (float)Mode.AnomalyOnly);
+            Materials.Add(hiddenBrick);
+            var boarded = Box("V2FrontBoards", V2(5.1f, 1.12f, 0f), new Vector3(1.0f * V2Scale, 2.25f * 1.165f, ExtT + 0.04f), hiddenBrick, true);
             var bl = boarded.gameObject.AddComponent<LanternAnomalyBlocker>();
             bl.Solid = boarded.GetComponent<Collider>();
             bl.Probe = V2(5.1f, 1.0f, 0f);
             bl.ExtraProbes = new[] { V2(5.1f, 1.0f, 0.8f), V2(5.1f, 1.0f, 1.5f) };
             Blockers.Add(bl);
             V2FrontDoor = bl;
-            for (int i = 0; i < 5; i++)
-                Box("V2FrontPlank", V2(5.1f, 0.3f + i * 0.45f, -0.03f) + Vector3.back * 0.12f, new Vector3(1.25f * V2Scale, 0.16f, 0.04f), hBoard, false, new Vector3(0f, 0f, (i % 2 == 0 ? 5f : -4f)));
+            // 真實的門框（只在光裡）。
+            var frameMat = Mat("V2_RealFrame", Mode.RealOnly, new Color(0.92f, 0.88f, 0.8f), Color.black, null, null, 0.4f, 0.4f, 0f);
+            Box("V2RealFrame", V2(4.6f, 1.2f, 0f) + new Vector3(-0.05f, 0f, -0.16f), new Vector3(0.1f, 2.7f, 0.08f), frameMat, false);
+            Box("V2RealFrame", V2(5.6f, 1.2f, 0f) + new Vector3(0.05f, 0f, -0.16f), new Vector3(0.1f, 2.7f, 0.08f), frameMat, false);
+            Box("V2RealFrame", V2(5.1f, 2.3f, 0f) + new Vector3(0f, 0.08f, -0.16f), new Vector3(1.5f, 0.12f, 0.08f), frameMat, false);
             // 真實的門：開著的深綠色木門（只在光裡）。
             var doorMat = Mat("V2_FrontDoor", Mode.RealOnly, new Color(0.12f, 0.25f, 0.2f), Color.black, null, null, 0.45f, 0.4f, 0f);
             var leafHinge = V2(4.6f, 0f, 0f) + new Vector3(0f, 0f, 0.05f);
@@ -299,9 +405,21 @@ namespace Shepherd.Exploration.Lantern
                 var at = V2(x, V2Ground - 0.45f, z);
                 Ball(name + "Bulb", at + Vector3.up * 0.12f, new Vector3(0.12f, 0.14f, 0.12f), hBulb);
                 Cyl(name + "Shade", at + Vector3.up * 0.2f, new Vector3(0.28f, 0.06f, 0.28f), hTrim);
-                var l = AddLight(name, LightType.Point, at, new Color(0.9f, 0.85f, 1f), 1.5f, range * V2Scale, true, LightShadows.Soft);
-                HouseLamps.Add(l);
+                // 異域裡的燈：冷色、會閃，但亮度足以看清路（光的分工：場景自己有光，提燈負責照出不存在的東西）。
+                AddLight(name, LightType.Point, at, new Color(0.72f, 0.82f, 1f), 1.6f, range * V2Scale, true, LightShadows.Soft);
             }
+            // 店面櫃台上一盞會閃的暖色小燈泡：進門第一眼會走過去的地方（地標）。
+            var counterBulb = Mat("V2_CounterBulb", Mode.Dual, new Color(1f, 0.85f, 0.6f), new Color(1f, 0.85f, 0.6f), null, null, 0.8f, 0.8f, 0f);
+            counterBulb.SetColor("_EmissionColor", new Color(3f, 2f, 1.1f));
+            counterBulb.SetColor("_AnomalyEmission", new Color(3f, 2f, 1.1f));
+            var cb = V2(2.0f, 0f, 4.1f) + Vector3.up * (0.99f * FurnitureScale + 0.18f);
+            Cyl("V2CounterLampBase", cb + Vector3.down * 0.14f, new Vector3(0.12f, 0.02f, 0.12f), hDark);
+            Cyl("V2CounterLampStem", cb + Vector3.down * 0.07f, new Vector3(0.02f, 0.06f, 0.02f), hDark);
+            Ball("V2CounterBulb", cb, new Vector3(0.09f, 0.11f, 0.09f), counterBulb);
+            AddLight("V2CounterLight", LightType.Point, cb + Vector3.up * 0.05f, new Color(1f, 0.72f, 0.42f), 1.8f, 5.5f, true, LightShadows.Soft);
+            // 走廊盡頭的後門上方，一盞戶外燈從門縫照進來；廚房窗外的月光。
+            AddLight("V2BackDoorGlow", LightType.Point, V2(5.1f, 2.4f, V2Main + 0.6f), new Color(0.6f, 0.72f, 1f), 1.2f, 5f, false, LightShadows.Soft);
+            AddLight("V2KitchenMoon", LightType.Spot, V2(V2ExtWidth + 1.4f, 3.2f, 11.9f), new Color(0.55f, 0.68f, 1f), 3.5f, 9f, false, LightShadows.Soft, 60f, new Vector3(-1f, -0.6f, 0f));
             Lamp("V2ShopLight", 2.6f, 2.5f, 5.5f);
             Lamp("V2HallLight", 5.0f, 7.5f, 4f);
             Lamp("V2DiningLight", 2.2f, 7.5f, 4.5f);
@@ -314,6 +432,8 @@ namespace Shepherd.Exploration.Lantern
         public bool V2Tick(Vector3 playerFeet, float dt)
         {
             if (V2Root == null) return false;
+            v2Time += dt;
+            if (v2Silhouette != null) v2Silhouette.position = v2SilhouetteBase + Vector3.right * Mathf.Sin(v2Time * 0.35f) * 1.0f;
             v2FlickerTimer -= dt;
             if (v2FlickerTimer <= 0f && v2Plate != null)
             {
@@ -341,7 +461,7 @@ namespace Shepherd.Exploration.Lantern
         public bool InV2Street(Vector3 p)
         {
             var local = p - V2Origin;
-            return local.z < 0f && local.z > -6f * V2Scale && local.x > -9f && local.x < V2Width * V2Scale + 9f;
+            return local.z < 0f && local.z > -24f * V2Scale && local.x > -16f && local.x < 30f;
         }
     }
 }
