@@ -515,7 +515,7 @@ namespace Shepherd.Exploration.Lantern
             if (canvasGo == null) return;
             promptText.text = Reading != null ? "" : Actions.Prompt;
             if (string.IsNullOrEmpty(promptText.text) && !Rig.On && World.InV2Street(Player.transform.position)) promptText.text = "F 舉起提燈";
-            float charge = Actions.Held != null ? Actions.ThrowCharge : Actions.Charge;
+            float charge = Actions.Held != null ? Actions.ThrowCharge : Actions.StruggleProgress >= 0f ? Actions.StruggleProgress : Actions.Charge;
             chargeBack.enabled = charge > 0.01f;
             chargeBar.rectTransform.sizeDelta = new Vector2(80f * charge, 0f);
             crosshair.color = Actions.Aimed != null ? new Color(1f, 0.85f, 0.5f, 0.95f) : new Color(1f, 0.95f, 0.85f, 0.55f);

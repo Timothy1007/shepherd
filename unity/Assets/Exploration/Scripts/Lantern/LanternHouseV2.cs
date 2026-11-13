@@ -27,6 +27,9 @@ namespace Shepherd.Exploration.Lantern
         public Vector3 V2SealedAt { get; private set; }
         public Transform V2SealWall { get; private set; }
         public readonly List<LanternToggle> V2Doors = new List<LanternToggle>();
+        /// <summary>推門（拉鋸）的門。</summary>
+        public readonly List<LanternStruggle> Struggles = new List<LanternStruggle>();
+        public LanternStruggle V2DiningStruggle { get; private set; }
         private Material v2Plate, v2Brick;
         private Texture v2Num16, v2Num17;
         private float v2FlickerTimer;
@@ -37,6 +40,7 @@ namespace Shepherd.Exploration.Lantern
         {
             if (V2Root != null) { ArenaArt.Kill(V2Root.gameObject); LanternNav.Remove("v2"); }
             V2Doors.Clear();
+            Struggles.RemoveAll(x => x == null || V2Root == null || x.transform.IsChildOf(V2Root));
             V2Sealed = false;
             HouseMaterials();
             V2Root = new GameObject("LanternHouseV2").transform;
@@ -224,13 +228,21 @@ namespace Shepherd.Exploration.Lantern
             Slab("V2Roof", 0f, V2Width, 0f, V2Main, H1 + V2Upper + 0.1f, 0.15f, hCeil);
             // 走廊的門：店面 → 走廊、走廊 → 餐廳、餐廳 → 廚房（真的門，E 開關）。
             V2Door("店面通往走廊的門", true, 5f, 4.7f, 5.45f, 1f);
-            V2Door("餐廳的門", false, 4.6f, 6.0f, 6.9f, -1f);
+            var dining = V2Door("餐廳的門", false, 4.6f, 6.0f, 6.9f, -1f);
+            // 推門（拉鋸）原型：餐廳的門像有人在另一邊抵著；門縫漏出一點會呼吸的暖光。
+            var gap = AddLight("V2DiningGapLight", LightType.Point, V2(4.2f, 1.0f, 6.45f), new Color(1f, 0.75f, 0.45f), 0.3f, 3.5f, false, LightShadows.None);
+            var st = dining.gameObject.AddComponent<LanternStruggle>();
+            st.Label = "餐廳的門";
+            st.Door = dining;
+            st.GapLight = gap;
+            Struggles.Add(st);
+            V2DiningStruggle = st;
             V2Door("廚房的門", true, V2Main, 1.2f, 2.1f, 1f);
             V2Door("後門", true, V2Main, 4.75f, 5.45f, 1f);
         }
 
         /// <summary>真的門：鉸鍊在一側，E 打開／關上（轉 100°）。alongX＝門洞在沿 x 的牆上。</summary>
-        private void V2Door(string label, bool alongX, float fixedC, float a0, float a1, float swing)
+        private LanternToggle V2Door(string label, bool alongX, float fixedC, float a0, float a1, float swing)
         {
             float w = (a1 - a0) * V2Scale - 0.04f, h = 2.25f * 1.165f - 0.03f;
             var hingePos = alongX ? V2(a0, 0f, fixedC) : V2(fixedC, 0f, a0);
@@ -242,6 +254,7 @@ namespace Shepherd.Exploration.Lantern
             Box("DoorKnob", hingePos + along * (w - 0.08f) + Vector3.up * 1.0f + (alongX ? Vector3.back : Vector3.left) * 0.05f, Vector3.one * 0.06f, hTrim, false, null, hinge);
             var t = AddToggle(leaf.gameObject, label, LanternToggle.Kind.Rotate, hinge, Vector3.zero, Vector3.zero, Quaternion.identity, Quaternion.Euler(0f, 100f * swing, 0f), null, "打開", "關上");
             V2Doors.Add(t);
+            return t;
         }
 
         // ---------------- 家具（灰盒，之後換模型） ----------------

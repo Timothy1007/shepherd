@@ -925,5 +925,51 @@ namespace Shepherd.Exploration.Tests
             Assert.Greater(Quaternion.Angle(Quaternion.identity, door.Moving.localRotation), 80f, "門轉開了");
             Assert.GreaterOrEqual(w.WindowPanes.Count(r => r.transform.IsChildOf(w.V2Root)), 4, "店面大櫥窗、廚房、二樓有窗");
         }
+
+        // ---------------- 推門（拉鋸） ----------------
+
+        private static LanternStruggle AimAtDiningDoor(LanternPrototypeQA qa)
+        {
+            var w = qa.World;
+            var st = w.V2DiningStruggle;
+            qa.GoTo("V2Hall");
+            var c = st.GetComponent<Collider>().bounds.center;
+            qa.Player.Teleport(c + new Vector3(1.3f, -c.y + 0.05f, 0f), 0f, 0f);
+            qa.Step(Dt, ExploreInput.None);
+            Aim(qa, c);
+            Act(qa, 1, LanternActionInput.None);
+            Assert.AreSame(st, qa.Actions.Aimed, "對準了餐廳的門");
+            StringAssert.Contains("推", qa.PromptText);
+            return st;
+        }
+
+        [Test]
+        public void StruggleDoor_ForcingItOrMashing_DoesNotOpen()
+        {
+            var qa = NewQa();
+            var st = AimAtDiningDoor(qa);
+            Act(qa, 240, new LanternActionInput { Interact = true });
+            Assert.IsFalse(st.Done, "一直硬推，推不開（" + st.Progress.ToString("F2") + "）");
+            for (int i = 0; i < 60; i++) { Act(qa, 1, new LanternActionInput { Interact = true }); Act(qa, 1, LanternActionInput.None); }
+            Assert.IsFalse(st.Done, "狂點也推不開");
+            Assert.Greater(st.Slams, 0, "狂點會讓門猛地推回來");
+        }
+
+        [Test]
+        public void StruggleDoor_PushingWhenItLoosens_OpensIt_ThenItIsANormalDoor()
+        {
+            var qa = NewQa();
+            var st = AimAtDiningDoor(qa);
+            int frames = 0;
+            while (!st.Done && frames++ < 450) qa.Step(Dt, ExploreInput.None, new LanternActionInput { Interact = st.Loose });
+            Assert.IsTrue(st.Done, "在門鬆開時推，推得開（" + (frames * Dt).ToString("F1") + " 秒）");
+            Assert.Less(frames * Dt, 12f, "不會太久");
+            Act(qa, 30, LanternActionInput.None);
+            Assert.IsTrue(st.Door.IsOpen, "門開了");
+            Assert.AreEqual(1, qa.Actions.StrugglesOpened);
+            Aim(qa, st.GetComponent<Collider>().bounds.center);
+            Act(qa, 1, LanternActionInput.None);
+            Assert.AreSame(st.Door, qa.Actions.Aimed, "推開之後就是普通的門（E 開關）");
+        }
     }
 }

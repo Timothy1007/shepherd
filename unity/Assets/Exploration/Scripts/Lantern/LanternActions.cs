@@ -165,6 +165,9 @@ namespace Shepherd.Exploration.Lantern
 
         /// <summary>打開的電燈開關數（射擊或按 E）。</summary>
         public int SwitchesHit { get; private set; }
+        /// <summary>正在推的門的進度（畫面上的小條）；沒在推時是 -1。</summary>
+        public float StruggleProgress { get; private set; } = -1f;
+        public int StrugglesOpened { get; private set; }
 
         public void AddEnergy(float v) => Energy = Mathf.Min(MaxEnergy, Energy + v);
         public static float ShotCost(float charge) => 10f + 10f * Mathf.Clamp01(charge);
@@ -184,13 +187,14 @@ namespace Shepherd.Exploration.Lantern
 
         /// <summary>準星直接對到的東西：只接受指定的元件種類（不會把牆的 Transform 當成目標）。</summary>
         private static readonly System.Type[] TargetTypes = { typeof(LanternTarget), typeof(LanternEnemy), typeof(LanternBoss), typeof(LanternPhrase), typeof(LanternSwitch) };
-        private static readonly System.Type[] InteractTypes = { typeof(LanternTetherable), typeof(LanternRestorable), typeof(LanternToggle), typeof(LanternInspectable), typeof(LanternSwitch) };
+        private static readonly System.Type[] InteractTypes = { typeof(LanternTetherable), typeof(LanternRestorable), typeof(LanternStruggle), typeof(LanternToggle), typeof(LanternInspectable), typeof(LanternSwitch) };
 
         private static Component Pick(Collider col, System.Type[] types)
         {
             foreach (var t in types)
             {
                 var c = col.GetComponentInParent(t);
+                if (c is LanternStruggle && ((LanternStruggle)c).Done) continue;
                 if (c != null) return c;
             }
             return null;
@@ -261,6 +265,7 @@ namespace Shepherd.Exploration.Lantern
             foreach (var t in world.Toggles) if (t != null) yield return t;
             foreach (var i in world.Inspectables) if (i != null) yield return i;
             foreach (var s in world.Switches) if (s != null && !s.On) yield return s;
+            foreach (var s in world.Struggles) if (s != null && !s.Done) yield return s;
         }
 
         // ---------------- 每個影格 ----------------
@@ -280,6 +285,7 @@ namespace Shepherd.Exploration.Lantern
 
             bool active = false;
             Aimed = null;
+            StruggleProgress = -1f;
             if (Suspended) { Prompt = ""; Charge = 0f; beam.enabled = false; holdLight.intensity = 0f; Restoring = null; }
             else if (Held != null)
             {
@@ -305,6 +311,15 @@ namespace Shepherd.Exploration.Lantern
             }
             if (Restoring == null)
                 foreach (var r in world.Restorables) if (r != null) r.Step(dt, false);
+            // 推門（拉鋸）：只有正對著它按住 E 才算在推。
+            foreach (var s in world.Struggles)
+            {
+                if (s == null) continue;
+                bool mine = !Suspended && Held == null && ReferenceEquals(Aimed, s);
+                if (s.Step(dt, mine && inp.Interact, mine && eDown)) { StrugglesOpened++; Audio?.Play(LanternAudio.RestoreDone, 0.7f); }
+                if (mine && s.SlamFlash > 0.95f) { rig.Shake(0.06f); Audio?.Play(LanternAudio.Drop, 0.9f); }
+                if (mine && s.Holding && !s.Loose) rig.Shake(0.006f);
+            }
 
             if (qDown) DeployShield();
             StepShields(dt);
@@ -382,6 +397,7 @@ namespace Shepherd.Exploration.Lantern
             var toggle = aimed as LanternToggle;
             var insp = aimed as LanternInspectable;
             var sw = aimed as LanternSwitch;
+            var st = aimed as LanternStruggle;
             if (tether != null)
             {
                 Prompt = "E 抓起" + tether.Label;
@@ -392,6 +408,11 @@ namespace Shepherd.Exploration.Lantern
             {
                 Prompt = toggle.Prompt;
                 if (eDown) { toggle.Toggle(); Toggled++; Audio?.Play(LanternAudio.Toggle, 0.6f); }
+            }
+            else if (st != null)
+            {
+                Prompt = st.Prompt;
+                StruggleProgress = st.Progress;
             }
             else if (sw != null)
             {
