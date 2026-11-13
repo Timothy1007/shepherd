@@ -9,3 +9,10 @@ quatrefoil_jacquard_fabric、fabric_pattern_07、dirty_carpet、brown_leather。
 
 模型（1K）：Sofa_01、ArmChair_01、CoffeeTable_01、side_table_01、wooden_bookshelf_worn、Television_01、mantel_clock_01、
 dining_table、dining_chair_02、vintage_cabinet_01、old_bed_frame、ClassicNightstand_01、drawer_cabinet、WoodenChair_01。
+
+2026-11-13 第二批（經使用者同意，約 91 MB）：
+材質（2K，廢墟用）：damaged_plaster、blue_plaster_weathered、dirty_tiles、old_planks_02、distressed_painted_planks、raw_plank_wall。
+模型（1K，生活小物）：book_encyclopedia_set_01、potted_plant_01、potted_plant_02、ceramic_vase_01、brass_candleholders、throw_pillows_01、
+hanging_picture_frame_01、fancy_picture_frame_01、standing_picture_frame_01、vintage_electric_kettle、pot_enamel_01、brass_pan_01、
+wooden_bowl_01、wicker_basket_01、rubber_boots、vintage_suitcase、cardboard_box_01、desk_lamp_arm_01、alarm_clock_01、wall_clock、
+ornate_mirror_01、power_box_01、binder_notebook、wooden_broom。
