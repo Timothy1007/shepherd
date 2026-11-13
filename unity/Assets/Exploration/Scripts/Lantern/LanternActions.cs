@@ -187,7 +187,7 @@ namespace Shepherd.Exploration.Lantern
 
         /// <summary>準星直接對到的東西：只接受指定的元件種類（不會把牆的 Transform 當成目標）。</summary>
         private static readonly System.Type[] TargetTypes = { typeof(LanternTarget), typeof(LanternEnemy), typeof(LanternBoss), typeof(LanternPhrase), typeof(LanternSwitch) };
-        private static readonly System.Type[] InteractTypes = { typeof(LanternTetherable), typeof(LanternRestorable), typeof(LanternStruggle), typeof(LanternToggle), typeof(LanternInspectable), typeof(LanternSwitch) };
+        private static readonly System.Type[] InteractTypes = { typeof(LanternTetherable), typeof(LanternRestorable), typeof(LanternStruggle), typeof(LanternToggle), typeof(LanternInspectable), typeof(LanternSwitch), typeof(LanternUsable) };
 
         private static Component Pick(Collider col, System.Type[] types)
         {
@@ -266,6 +266,7 @@ namespace Shepherd.Exploration.Lantern
             foreach (var i in world.Inspectables) if (i != null) yield return i;
             foreach (var s in world.Switches) if (s != null && !s.On) yield return s;
             foreach (var s in world.Struggles) if (s != null && !s.Done) yield return s;
+            foreach (var u in world.Usables) if (u != null && u.gameObject.activeInHierarchy) yield return u;
         }
 
         // ---------------- 每個影格 ----------------
@@ -398,6 +399,7 @@ namespace Shepherd.Exploration.Lantern
             var insp = aimed as LanternInspectable;
             var sw = aimed as LanternSwitch;
             var st = aimed as LanternStruggle;
+            var us = aimed as LanternUsable;
             if (tether != null)
             {
                 Prompt = "E 抓起" + tether.Label;
@@ -408,6 +410,11 @@ namespace Shepherd.Exploration.Lantern
             {
                 Prompt = toggle.Prompt;
                 if (eDown) { toggle.Toggle(); Toggled++; Audio?.Play(LanternAudio.Toggle, 0.6f); }
+            }
+            else if (us != null)
+            {
+                Prompt = us.Prompt;
+                if (eDown) us.Use();
             }
             else if (st != null)
             {

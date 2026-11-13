@@ -23,6 +23,8 @@ namespace Shepherd.Exploration.Lantern
         public LanternActions Actions { get; private set; }
         public LanternCombat Combat { get; private set; }
         public LanternFlow Flow { get; private set; }
+        /// <summary>新房子一樓的謎題（第一批：店面＋側院紅線）。</summary>
+        public LanternV2Puzzles V2 { get; private set; }
         public LanternAudio Audio { get; private set; }
         public FirstPersonController Player { get; private set; }
         public Camera Cam { get; private set; }
@@ -56,6 +58,9 @@ namespace Shepherd.Exploration.Lantern
         private float time;
         private Text debugText, hintText, promptText, progressText, readTitle, readBody, toastText, endText, shieldText;
         private Image endPanel, breathBack, breathZone, breathMarker;
+        private Image tapBack, tapZone, tapMarker;
+        private Text tapText;
+        private bool v2PrimaryWas;
         private bool struggleHintShown;
         /// <summary>到達街區的轉場（黑屏＋地點字卡），秒數。</summary>
         public float ArrivalTimer { get; private set; }
@@ -138,6 +143,7 @@ namespace Shepherd.Exploration.Lantern
             Combat.OnEnergy = v => Actions.AddEnergy(v);
             Combat.OnMemory = s => Flow.ShowToast(s, 4.5f);
             Flow.ResetState();
+            V2 = new LanternV2Puzzles(World, Rig, Cam, Flow, Audio);
             lastFeet = Player.transform.position;
             if (play) BuildUi();
             Ready = true;
@@ -153,6 +159,7 @@ namespace Shepherd.Exploration.Lantern
         {
             Actions.DropHeld(false);
             World.BuildHouseV2();
+            V2.Rebind();
             GoTo("V2Street");
             Rig.SetOn(false);
         }
@@ -292,6 +299,7 @@ namespace Shepherd.Exploration.Lantern
             Rig.SetRadius(1);
             SetHouseScale(World.HouseScale);
             World.BuildHouseV2();
+            V2.Rebind();
         }
 
         public void Step(float dt, ExploreInput inp, LanternActionInput act = default(LanternActionInput))
@@ -310,7 +318,7 @@ namespace Shepherd.Exploration.Lantern
                 act = new LanternActionInput { Interact = true };
             }
             else { inspectInteractWas = act.Interact; inspectPrimaryWas = act.Primary; }
-            Actions.Suspended = Inspecting != null;
+            Actions.Suspended = Inspecting != null || V2.InputCaptured;
             Rig.Focus = FocusHeld;
             Player.WalkSpeedValue = WalkSpeed * Mathf.Lerp(1f, 0.6f, Rig.FocusBlend);
             Player.RunSpeedValue = BriskSpeed * Mathf.Lerp(1f, 0.6f, Rig.FocusBlend);
@@ -323,6 +331,9 @@ namespace Shepherd.Exploration.Lantern
             World.Tick(time);
             if (World.V2Tick(Player.transform.position, dt)) { Audio?.Play(LanternAudio.EnemyWarn, 0.45f); Rig.Shake(0.05f); }
             Actions.Step(dt, act);
+            bool primaryDown = act.Primary && !v2PrimaryWas;
+            v2PrimaryWas = act.Primary;
+            V2.Step(dt, Inspecting == null && (act.Interact || act.Primary), primaryDown);
             Combat.Step(dt);
             Flow.Step(dt);
             if (dt > 0f && simChanged) Physics.Simulate(dt);
@@ -512,6 +523,21 @@ namespace Shepherd.Exploration.Lantern
             breathMarker.color = Color.white;
             breathMarker.raycastTarget = false;
             breathBack.gameObject.SetActive(false);
+            // 穿針的點按量表：指針來回，進到亮的那段時按一下。
+            tapBack = Img("TapBack", new Vector2(0.5f, 0.5f), new Vector2(0, -60), new Vector2(320, 14), new Color(0f, 0f, 0f, 0.6f));
+            tapZone = new GameObject("Zone").AddComponent<Image>();
+            tapZone.transform.SetParent(tapBack.transform, false);
+            tapZone.rectTransform.offsetMin = tapZone.rectTransform.offsetMax = Vector2.zero;
+            tapZone.color = new Color(0.95f, 0.3f, 0.25f, 0.8f);
+            tapZone.raycastTarget = false;
+            tapMarker = new GameObject("Marker").AddComponent<Image>();
+            tapMarker.transform.SetParent(tapBack.transform, false);
+            tapMarker.rectTransform.anchorMin = tapMarker.rectTransform.anchorMax = new Vector2(0f, 0.5f);
+            tapMarker.rectTransform.sizeDelta = new Vector2(4, 26);
+            tapMarker.color = Color.white;
+            tapMarker.raycastTarget = false;
+            tapText = MakeText("TapText", font, 20, new Vector2(0, 26), TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), tapBack.transform);
+            tapBack.gameObject.SetActive(false);
             // 最後的反撲：畫面上方中央的生命條。
             bossBack = Img("BossBack", new Vector2(0.5f, 1f), new Vector2(0, -64), new Vector2(820, 16), new Color(0f, 0f, 0f, 0.55f));
             bossTrail = Bar(bossBack, new Color(1f, 0.95f, 0.85f, 0.55f));
@@ -578,6 +604,17 @@ namespace Shepherd.Exploration.Lantern
                 breathMarker.color = stg.Loose ? new Color(1f, 0.95f, 0.6f) : new Color(0.6f, 0.65f, 0.8f);
                 if (!struggleHintShown) { struggleHintShown = true; Flow.ShowToast("（門的另一邊像是有人抵著……指針到亮的那一段時，按住 E 推；狂按沒有用）", 5f); }
             }
+            var tap = V2.Tap;
+            tapBack.gameObject.SetActive(tap.Active);
+            if (tap.Active)
+            {
+                tapZone.rectTransform.anchorMin = new Vector2(tap.ZoneCenter - tap.ZoneWidth / 2f, 0f);
+                tapZone.rectTransform.anchorMax = new Vector2(tap.ZoneCenter + tap.ZoneWidth / 2f, 1f);
+                tapMarker.rectTransform.anchoredPosition = new Vector2(320f * tap.Pointer, 0f);
+                tapMarker.color = tap.InZone ? new Color(1f, 0.95f, 0.6f) : Color.white;
+                tapText.text = "穿針　" + new string('●', tap.Hits) + new string('○', tap.Need - tap.Hits) + "　（E 或左鍵）";
+                promptText.text = "";
+            }
             var boss = Flow.Boss;
             bool showBoss = Flow.Current == LanternFlow.Phase.Boss && boss != null;
             foreach (var g in new Graphic[] { bossBack, bossName, bossHint }) g.gameObject.SetActive(showBoss);
@@ -594,7 +631,15 @@ namespace Shepherd.Exploration.Lantern
             else bossTrailHp = 1f;
             readPanel.gameObject.SetActive(false);
             var sbClues = new StringBuilder();
-            if (Flow.Current == LanternFlow.Phase.Explore && NotebookOpen)
+            bool inV2 = World.InV2House(Player.transform.position);
+            if (Flow.Current == LanternFlow.Phase.Explore && NotebookOpen && inV2)
+            {
+                sbClues.Append("── 母親的筆記（暫定）──\n");
+                if (SecretsFound > 0) sbClues.Append("記憶碎片 ").Append(SecretsFound).Append("\n");
+                foreach (var line in V2.Notebook) sbClues.Append("・").Append(line).Append('\n');
+                sbClues.Append(V2.ShopRepaired ? "✓ 店面" : "□ 店面").Append('\n');
+            }
+            else if (Flow.Current == LanternFlow.Phase.Explore && NotebookOpen)
             {
                 sbClues.Append("── 母親的筆記（暫定）──\n");
                 if (SecretsFound > 0) sbClues.Append("記憶碎片 ").Append(SecretsFound).Append("\n");

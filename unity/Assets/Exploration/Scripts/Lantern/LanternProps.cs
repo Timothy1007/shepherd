@@ -306,4 +306,15 @@ namespace Shepherd.Exploration.Lantern
 
         public string Prompt => SlamFlash > 0.3f ? "（門被猛地推了回來）" : Holding ? (Loose ? "推……" : "推不動——等指針回到亮的那段") : "指針在亮的那段時，按住 E 推" + Label;
     }
+
+    /// <summary>可以「使用」的東西（謎題用）：對準時顯示提示，按 E 執行。例如縫紉機、撿起一捲紅線。</summary>
+    public sealed class LanternUsable : MonoBehaviour
+    {
+        public string Label = "東西";
+        public System.Func<string> PromptFn;
+        public System.Action OnUse;
+        public int Uses { get; private set; }
+        public string Prompt => PromptFn != null ? PromptFn() : "E 使用" + Label;
+        public void Use() { Uses++; OnUse?.Invoke(); }
+    }
 }

@@ -673,6 +673,9 @@ namespace Shepherd.Exploration.Lantern
                 }
                 bool house = HouseRoot != null && l.transform.IsChildOf(HouseRoot);
                 if (l.type == LightType.Spot || house) { l.intensity = b; continue; }
+                // 新房子：修好的房間常亮暖燈；有電時燈穩定（不再閃）。
+                if (V2SafeLamps.Contains(l)) { l.intensity = b * 1.5f; l.color = WarmLamp; continue; }
+                if (V2Powered && V2Root != null && l.transform.IsChildOf(V2Root)) { l.intensity = b * 1.15f; l.color = Color.Lerp(baseColor[l], WarmLamp, 0.35f); continue; }
                 float sd = i * 13.7f;
                 float n = Mathf.PerlinNoise(time * 3.1f, sd);
                 float drop = Mathf.PerlinNoise(time * 0.7f, sd + 5f) > 0.78f ? 0.25f : 1f;

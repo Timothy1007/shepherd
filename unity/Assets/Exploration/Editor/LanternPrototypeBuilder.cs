@@ -156,6 +156,7 @@ namespace Shepherd.Exploration.Editor
                 Shot(qa, rt, Path.Combine(dir, "s_" + tag + "_B.png"));
             }
             w.BuildHouseV2();
+            qa.V2.Rebind();
             qa.Rig.SetOn(true);
             // 門外：舉起提燈、門出現。
             qa.GoTo("V2Alley");
@@ -193,6 +194,7 @@ namespace Shepherd.Exploration.Editor
         {
             var w = qa.World;
             w.BuildHouseV2();
+            qa.V2.Rebind();
             qa.GoTo("V2Street");
             qa.Rig.SetOn(false);
             Frames(qa, 8);
@@ -233,6 +235,39 @@ namespace Shepherd.Exploration.Editor
             Frames(qa, 6);
             Shot(qa, rt, Path.Combine(dir, "v_V2Shop_dark.png"));
             qa.Rig.SetOn(true);
+            // 第一批謎題：店面全景、電箱、縫紉機、修好後牆上的影子。
+            var o = LanternGraybox.V2Origin;
+            float S = LanternGraybox.V2Scale;
+            var shopEye = o + new Vector3(4.6f * S, 0.05f, 1.4f * S);
+            qa.Player.Teleport(shopEye, 0f, 0f);
+            Aim(qa, o + new Vector3(1.6f * S, 1.0f, 3.6f * S));
+            Frames(qa, 6);
+            Shot(qa, rt, Path.Combine(dir, "b1_shop_overview.png"));
+            qa.Player.Teleport(o + new Vector3(3.2f * S, 0.05f, 2.2f * S), 0f, 0f);
+            Aim(qa, w.V2CoatTag.position);
+            Frames(qa, 4);
+            Shot(qa, rt, Path.Combine(dir, "b1_dress_form_coat.png"));
+            var lever = w.V2PowerLever.GetComponent<Collider>().bounds.center;
+            qa.Player.Teleport(new Vector3(lever.x + 0.3f, o.y + 0.05f, lever.z - 0.75f), 0f, 0f);
+            Aim(qa, lever);
+            Frames(qa, 4);
+            Shot(qa, rt, Path.Combine(dir, "b1_power_box.png"));
+            var sew = w.V2SewingMachine.GetComponent<Collider>().bounds.center;
+            qa.Player.Teleport(new Vector3(sew.x + 1.3f, o.y + 0.05f, sew.z - 0.4f), 0f, 0f);
+            Aim(qa, sew);
+            Frames(qa, 4);
+            Shot(qa, rt, Path.Combine(dir, "b1_sewing_machine.png"));
+            qa.V2.DebugForce(true, true, true, true);
+            Frames(qa, 30);
+            qa.Player.Teleport(o + new Vector3(2.2f * S, 0.05f, 2.9f * S), 0f, 0f);
+            Aim(qa, w.V2ShopEchoAt);
+            Frames(qa, 225);
+            Shot(qa, rt, Path.Combine(dir, "b1_repaired_echo.png"));
+            qa.Player.Teleport(shopEye, 0f, 0f);
+            Aim(qa, o + new Vector3(1.6f * S, 1.0f, 3.6f * S));
+            Frames(qa, 4);
+            Shot(qa, rt, Path.Combine(dir, "b1_repaired_overview.png"));
+            log.AppendLine("b1 repaired=" + qa.V2.ShopRepaired + " echoLines=" + (qa.V2.ShopEcho != null ? qa.V2.ShopEcho.LinesShown : -1));
             log.AppendLine("v2 sealed=" + w.V2Sealed + " doors=" + w.V2Doors.Count);
         }
 

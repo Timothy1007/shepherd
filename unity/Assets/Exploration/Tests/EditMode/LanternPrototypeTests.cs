@@ -928,6 +928,117 @@ namespace Shepherd.Exploration.Tests
             Assert.GreaterOrEqual(w.Inspectables.Count(i => i.transform.IsChildOf(w.V2Root) && i.transform.position.z < LanternGraybox.V2Origin.z - 5f), 3, "街上有可以互動的東西（對講機、公告欄、信箱）");
         }
 
+        // ---------------- v2 一樓密室：第一批（店面＋側院紅線） ----------------
+
+        /// <summary>站到目標前方 dist 公尺（朝 toward 那一側），對準它。</summary>
+        private static void StandAt(LanternPrototypeQA qa, Vector3 target, Vector3 toward, float dist)
+        {
+            var d = toward - target; d.y = 0f;
+            var pos = target + d.normalized * dist;
+            pos.y = LanternGraybox.V2Origin.y + 0.05f;
+            qa.Player.Teleport(pos, 0f, 0f);
+            qa.Step(Dt, ExploreInput.None);
+            Aim(qa, target);
+            Act(qa, 1, LanternActionInput.None);
+        }
+
+        [Test]
+        public void V2Shop_Batch1_PowerTagThreadSewing_RepairsTheShop_AndPlaysTheWallEcho()
+        {
+            var qa = NewQa();
+            var w = qa.World;
+            var v2 = qa.V2;
+            Assert.IsNotNull(v2, "謎題控制器存在");
+            Assert.IsNotNull(w.V2SewingMachine, "縫紉機模型存在");
+            var center = w.V2ShopRoom.center;
+            qa.Rig.SetOn(true);
+
+            // 沒電、沒線時縫紉機不能用。
+            var sew = w.V2SewingMachine.GetComponent<LanternUsable>();
+            Assert.IsNotNull(sew);
+            sew.Use();
+            Assert.IsFalse(v2.Tap.Active, "沒電不能穿針");
+
+            // S1 電箱：按住 E 推回拉桿。
+            var lever = w.V2PowerLever;
+            StandAt(qa, lever.GetComponent<Collider>().bounds.center, center, 0.7f);
+            StringAssert.Contains("按住 E", qa.PromptText);
+            Act(qa, 70, new LanternActionInput { Interact = true });
+            Assert.IsTrue(lever.Done, "拉桿推回去了");
+            Act(qa, 1, LanternActionInput.None);
+            Assert.IsTrue(v2.Powered && w.V2Powered, "有電了");
+
+            // S2 吊牌：聚光照著它。
+            StandAt(qa, w.V2CoatTag.position, center, 1.4f);
+            qa.FocusHeld = true;
+            Act(qa, 75, LanternActionInput.None);
+            qa.FocusHeld = false;
+            Assert.IsTrue(v2.TagRead, "聚光看清吊牌（" + v2.TagFocus.ToString("F2") + "）");
+            Assert.IsTrue(v2.Notebook.Any(l => l.Contains("只有這件沒有")), "筆記記下一行");
+
+            // 有電沒線。
+            sew.Use();
+            Assert.IsFalse(v2.Tap.Active, "沒線不能穿針");
+
+            // Y1 側院的紅線。
+            var spool = w.V2ThreadSpool;
+            StandAt(qa, spool.position, w.Marks["V2Yard"].position, 0.9f);
+            StringAssert.Contains("紅線", qa.PromptText);
+            Act(qa, 1, new LanternActionInput { Interact = true });
+            Act(qa, 1, LanternActionInput.None);
+            Assert.IsTrue(v2.HasThread, "拿到紅線");
+            Assert.IsFalse(spool.gameObject.activeSelf, "紅線從籃子裡拿走了");
+
+            // S4 穿針（點按判定）：亂按不會過；在亮的範圍裡按才算。
+            StandAt(qa, w.V2SewingMachine.GetComponent<Collider>().bounds.center, center, 1.0f);
+            StringAssert.Contains("穿針", qa.PromptText);
+            Act(qa, 1, new LanternActionInput { Interact = true });
+            Assert.IsTrue(v2.Tap.Active, "開始穿針");
+            Assert.AreEqual(0, v2.Tap.Hits, "開始那一下不算");
+            Act(qa, 1, LanternActionInput.None);
+            int frames = 0;
+            bool pressed = false;
+            while (v2.Tap.Active && frames++ < 600)
+            {
+                bool press = !pressed && v2.Tap.InZone;
+                qa.Step(Dt, ExploreInput.None, new LanternActionInput { Interact = press });
+                pressed = press;
+            }
+            Assert.IsTrue(v2.Sewn, "穿好針（" + (frames * Dt).ToString("F1") + " 秒，失誤 " + v2.Tap.Misses + "）");
+            Assert.Less(frames * Dt, 15f);
+
+            // 修復時刻：真實擴散、安全據點、暖燈常亮、牆上的影子殘影＋逐字字幕。
+            Assert.IsTrue(v2.ShopRepaired, "吊牌＋穿針 → 店面修好");
+            Assert.IsTrue(w.InSafeRoom(center), "店面變成安全據點");
+            Assert.Greater(w.V2SafeLamps.Count, 0, "店裡的燈常亮");
+            var echo = v2.ShopEcho;
+            Assert.IsNotNull(echo);
+            Assert.IsTrue(echo.Playing, "影子殘影開始演出");
+            Act(qa, 30, LanternActionInput.None);
+            Assert.GreaterOrEqual(echo.LinesShown, 1);
+            Assert.That(echo.VisibleText.Length, Is.InRange(1, echo.CurrentLine.Length), "字一個一個出現");
+            Act(qa, 25 * 30, LanternActionInput.None);
+            Assert.IsTrue(echo.Finished, "演完會結束");
+            Assert.AreEqual(6, echo.LinesShown);
+        }
+
+        [Test]
+        public void TapJudge_MashingOutsideTheZone_LosesProgress()
+        {
+            var t = new LanternTapJudge();
+            t.Begin();
+            int hits = 0;
+            for (int i = 0; i < 300 && t.Active; i++)
+            {
+                bool farFromZone = Mathf.Abs(t.Pointer - t.ZoneCenter) > t.ZoneWidth; // 留一格指針移動的餘量
+                t.Step(Dt, farFromZone && i % 2 == 0);
+                hits = Mathf.Max(hits, t.Hits);
+            }
+            Assert.IsFalse(t.Succeeded, "只在範圍外按，永遠不會過");
+            Assert.Greater(t.Misses, 10);
+            Assert.AreEqual(0, hits);
+        }
+
         // ---------------- 推門（拉鋸） ----------------
 
         private static LanternStruggle AimAtDiningDoor(LanternPrototypeQA qa)
