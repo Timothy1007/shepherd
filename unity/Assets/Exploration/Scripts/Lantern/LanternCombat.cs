@@ -36,6 +36,10 @@ namespace Shepherd.Exploration.Lantern
         public ParticleSystem Glitch;
         /// <summary>移動速度倍率（被聚光照到、在擬態錨定裡會變慢）。</summary>
         public float SpeedScale = 1f;
+        /// <summary>不能進入的地方（修好的房間＝安全據點）。</summary>
+        public System.Func<Vector3, bool> AvoidZone;
+        /// <summary>被安全據點擋在門外的時間（測試用）。</summary>
+        public float HeldOutSeconds { get; private set; }
 
         private Vector3 lungeDir, lungeStart;
         private bool lungeHit;
@@ -102,6 +106,15 @@ namespace Shepherd.Exploration.Lantern
             var step = flat.normalized * speed * dt;
             if (step.sqrMagnitude > flat.sqrMagnitude) step = flat;
             var p = transform.position + step;
+            if (AvoidZone != null && AvoidZone(p) && !AvoidZone(transform.position))
+            {
+                // 安全據點：停在門口，只能看著。
+                HeldOutSeconds += dt;
+                transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(flat), 1f - Mathf.Exp(-8f * dt));
+                stuckTimer = 0f;
+                stuckFrom = transform.position;
+                return true;
+            }
             Vector3 on;
             if (LanternNav.Sample(p + Vector3.up * 0.3f, 0.9f, out on)) p.y = on.y;
             transform.position = p;
@@ -213,7 +226,8 @@ namespace Shepherd.Exploration.Lantern
                     break;
                 case State.Lunge:
                     pulse = 1f;
-                    if (!Blocked(lungeDir, 0.5f)) transform.position += lungeDir * (LungeDistance / 0.28f) * dt;
+                    var lp = transform.position + lungeDir * (LungeDistance / 0.28f) * dt;
+                    if (!Blocked(lungeDir, 0.5f) && (AvoidZone == null || !AvoidZone(lp))) transform.position = lp;
                     if (!lungeHit && playerAlive && dist < 1.1f) { lungeHit = true; damage = LungeDamage; }
                     if (StateTimer <= 0f) { Current = State.Recover; StateTimer = 0.9f; }
                     break;
@@ -357,6 +371,7 @@ namespace Shepherd.Exploration.Lantern
         {
             var e = world.BuildEnemy(at);
             e.Glitch = glitch;
+            e.AvoidZone = world.InSafeRoom;
             e.Init();
             Enemies.Add(e);
             return e;
@@ -462,6 +477,12 @@ namespace Shepherd.Exploration.Lantern
                 if (shielded) Erode?.Invoke(e.transform.position, dt * 1.5f);
                 float hit = e.gameObject.activeSelf ? e.Step(dt, time, feet, !PlayerDown, Orbs, world.Root, orbMat) : 0f;
                 // 卡住了：換到玩家附近、但看不到的地方重新出現。
+                // 房間變成安全據點時，裡面的失序體會被推到外面看不到的地方。
+                if (e.Alive && e.gameObject.activeSelf && world.InSafeRoom(e.transform.position))
+                {
+                    Vector3 outside;
+                    if (HiddenSpawnNear(feet, world.HouseInterior, out outside, 3f, 18f)) { e.Relocate(outside); Relocations++; }
+                }
                 if (e.Stuck && e.Alive && Region(e.transform.position) != Region(feet)) e.Relocate(e.transform.position);
                 else if (e.Stuck && e.Alive)
                 {
@@ -562,7 +583,7 @@ namespace Shepherd.Exploration.Lantern
                 Vector3 on;
                 if (!LanternNav.Sample(p, 1.5f, out on)) { nS++; continue; }
                 if (Mathf.Abs(on.y - feet.y) > 1.6f) { nY++; continue; }
-                if (!area.Contains(on + Vector3.up)) { nA++; continue; }
+                if (!area.Contains(on + Vector3.up) || world.InSafeRoom(on)) { nA++; continue; }
                 if (!LanternNav.Path(on, feet, pathScratch)) { nP++; continue; }
                 float len = LanternNav.Length(pathScratch);
                 if (len < minPath || len > maxPath) { nL++; continue; }

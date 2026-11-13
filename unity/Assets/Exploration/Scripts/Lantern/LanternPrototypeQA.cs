@@ -37,6 +37,10 @@ namespace Shepherd.Exploration.Lantern
         public float ReadingTimer { get; private set; }
         /// <summary>正在近看的東西（null＝沒有）。</summary>
         public LanternInspectable Inspecting { get; private set; }
+        /// <summary>母親的筆記（Tab）：線索與提示只在這裡，平常畫面上沒有文字。</summary>
+        public bool NotebookOpen { get; private set; }
+        public int SecretsFound { get; private set; }
+        public void ToggleNotebook() => NotebookOpen = !NotebookOpen;
         public int InspectPage { get; private set; }
         public bool InspectFlipped { get; private set; }
         private Transform inspectClone;
@@ -225,6 +229,7 @@ namespace Shepherd.Exploration.Lantern
         public void EndInspect()
         {
             if (Inspecting == null) return;
+            if (Inspecting.Secret && !Inspecting.Seen) { SecretsFound++; Flow.ShowToast("（找到一片記憶碎片）", 3f); }
             Inspecting.Seen = true;
             if (Inspecting.Completes != null) Inspecting.Completes.Read = true;
             Inspecting = null;
@@ -303,7 +308,7 @@ namespace Shepherd.Exploration.Lantern
             UpdateUi();
         }
 
-        public static readonly Color DarkAmbient = new Color(0.035f, 0.038f, 0.045f);
+        public static readonly Color DarkAmbient = new Color(0.055f, 0.064f, 0.085f);
         public static readonly Color WarmAmbient = new Color(0.16f, 0.13f, 0.1f);
         /// <summary>目前套用的環境光亮度（0＝暗、1＝有電的家）。</summary>
         public float AmbientLevel { get; private set; }
@@ -348,6 +353,7 @@ namespace Shepherd.Exploration.Lantern
             if (Input.GetKeyDown(KeyCode.F5)) CycleFov();
             if (Input.GetKeyDown(KeyCode.R)) ResetScene();
             if (Input.GetKeyDown(KeyCode.F12)) ToggleDebug();
+            if (Input.GetKeyDown(KeyCode.Tab)) ToggleNotebook();
             FocusHeld = Input.GetKey(KeyCode.Space);
             var inp = ScriptedInput ?? input.Read();
             if (inp.ReleaseCursor) SetCursor(true);
@@ -417,7 +423,7 @@ namespace Shepherd.Exploration.Lantern
             energyBar = Bar(energyBack, new Color(0.6f, 0.85f, 1f, 0.85f));
             shieldText = MakeText("Shield", font, 18, new Vector2(234, 46), TextAnchor.LowerLeft, new Vector2(0, 0));
             hintText = MakeText("Hint", font, 17, new Vector2(24, 14), TextAnchor.LowerLeft, new Vector2(0, 0));
-            hintText.text = "左鍵 射擊（按住蓄力）　E 互動（抓起／按住復原／打開／拿起來看）　Q 擬態錨定　按住Space 聚光　F 提燈　F1 玄關 F2 客廳 F3 二樓 F4 測試房 F6 戰鬥場　F8 最終戰全部開燈　F9 房子大小　F10 直接打最終戰　R 重來　F12 數值";
+            hintText.text = "Tab 母親的筆記　左鍵 射擊（按住蓄力）　E 互動（抓起／按住復原／打開／拿起來看）　Q 擬態錨定　按住Space 聚光　F 提燈　F1 玄關 F2 客廳 F3 二樓 F4 測試房 F6 戰鬥場　F8 最終戰全部開燈　F9 房子大小　F10 直接打最終戰　R 重來　F12 數值";
             hintText.color = new Color(1f, 1f, 1f, 0.5f);
             progressText = MakeText("Progress", font, 22, new Vector2(-30, -24), TextAnchor.UpperRight, new Vector2(1, 1));
             promptText = MakeText("Prompt", font, 22, new Vector2(0, -70), TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f));
@@ -529,8 +535,10 @@ namespace Shepherd.Exploration.Lantern
             else bossTrailHp = 1f;
             readPanel.gameObject.SetActive(false);
             var sbClues = new StringBuilder();
-            if (Flow.Current == LanternFlow.Phase.Explore)
+            if (Flow.Current == LanternFlow.Phase.Explore && NotebookOpen)
             {
+                sbClues.Append("── 母親的筆記（暫定）──\n");
+                if (SecretsFound > 0) sbClues.Append("記憶碎片 ").Append(SecretsFound).Append("\n");
                 if (!World.HousePowered && World.FuseBox != null) sbClues.Append("・房子沒電——玄關樓梯下好像有電箱\n");
                 foreach (var cl in World.Clues)
                 {
@@ -540,6 +548,7 @@ namespace Shepherd.Exploration.Lantern
                     sbClues.Append('\n');
                 }
             }
+            if (Flow.Current == LanternFlow.Phase.Explore && !NotebookOpen) sbClues.Append("Tab 母親的筆記");
             cluesText.text = Inspecting != null ? "" : sbClues.ToString();
             var ins = Inspecting;
             inspectPanel.gameObject.SetActive(ins != null && ins.Type != LanternInspectable.Kind.Object);

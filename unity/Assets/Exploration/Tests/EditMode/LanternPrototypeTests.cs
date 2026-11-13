@@ -798,5 +798,84 @@ namespace Shepherd.Exploration.Tests
             for (int i = 0; i < (int)(LanternFlow.EndingSeconds / Dt); i++) qa.Step(Dt, ExploreInput.None);
             Assert.AreEqual(LanternFlow.Phase.Ended, qa.Flow.Current, "結案卡");
         }
+
+        // ---------------- v0.7a：月光、安全據點、客廳樣板 ----------------
+
+        [Test]
+        public void Windows_AreRealOpenings_AndMoonlightComesIn()
+        {
+            var qa = NewQa();
+            var w = qa.World;
+            Assert.IsNotNull(w.Moon, "有月光");
+            Assert.AreEqual(LightType.Directional, w.Moon.type);
+            Assert.AreNotEqual(LightShadows.None, w.Moon.shadows, "月光有影子（窗洞投出光斑）");
+            Assert.GreaterOrEqual(w.WindowPanes.Count, 7, "每個主要房間都有窗");
+            Assert.IsTrue(w.WindowPanes.All(r => r.shadowCastingMode == UnityEngine.Rendering.ShadowCastingMode.Off), "玻璃不擋光");
+            // 從客廳裡往前窗看出去：穿過窗洞，打不到牆。
+            var o = LanternGraybox.HouseOrigin;
+            float S = w.HouseScale, Hs = w.HouseHeightScale;
+            var inside = o + new Vector3(1.8f * S, 1.5f * Hs, 1.0f * S);
+            Physics.SyncTransforms();
+            var hits = Physics.RaycastAll(inside, Vector3.back, 3f);
+            Assert.IsFalse(hits.Any(h => h.collider.name == "Wall" || h.collider.name == "Lintel"), "前窗是真的洞");
+            var boards = w.HouseRoot.GetComponentsInChildren<Renderer>(true).Where(r => r.name == "WindowBoard").ToList();
+            Assert.Greater(boards.Count, 10);
+            Assert.AreEqual(LanternReveal.Mode.AnomalyOnly, LanternReveal.GetMode(boards[0].sharedMaterial), "廢墟裡窗戶被釘死");
+        }
+
+        [Test]
+        public void RepairedRoom_KeepsItsWarmLight_AndDisordersCannotEnter()
+        {
+            var qa = NewQa();
+            var w = qa.World;
+            qa.Combat.Invulnerable = true;
+            var chair = w.Clues.First(c => c.Id == "chair");
+            chair.ForceComplete();
+            Act(qa, 70, LanternActionInput.None);
+            Assert.AreEqual(1, w.SafeRooms.Count, "餐廳變成安全據點");
+            Assert.IsNotNull(chair.RoomLamp);
+            qa.GoTo("HouseDining");
+            Act(qa, 2, LanternActionInput.None);
+            Assert.IsTrue(w.InSafeRoom(qa.Player.transform.position));
+            qa.Flow.Backlash();
+            bool entered = false;
+            for (int i = 0; i < 300; i++)
+            {
+                qa.Step(Dt, ExploreInput.None);
+                foreach (var e in qa.Combat.Enemies) if (e != null && e.Alive && w.InSafeRoom(e.transform.position)) entered = true;
+            }
+            Assert.IsTrue(qa.Flow.WaveActive, "反撲中");
+            Assert.Greater(chair.RoomLamp.intensity, 1f, "修好的房間在反撲時燈仍亮著");
+            Assert.IsFalse(entered, "失序體進不了修好的房間");
+            Assert.Less(w.LampIntensity(0), 0.01f, "玄關還是黑的");
+        }
+
+        [Test]
+        public void LivingRoom_IsDense_LampNeedsPower_SecretBehindTheFireScreen()
+        {
+            var qa = NewQa();
+            var w = qa.World;
+            Assert.GreaterOrEqual(w.LivingInteractables, 8, "客廳至少 8 個能碰的東西（" + w.LivingInteractables + "）");
+            foreach (var n in new[] { "UnfinishedScarf", "MugA", "MugB" })
+            {
+                var r = w.HouseRoot.Find(n).GetComponentInChildren<Renderer>();
+                Assert.AreEqual(LanternReveal.Mode.RealOnly, LanternReveal.GetMode(r.sharedMaterial), n + " 只在光裡看得到");
+            }
+            var lamp = w.Toggles.First(t => t.Label == "立燈");
+            lamp.Toggle();
+            Act(qa, 3, LanternActionInput.None);
+            Assert.IsFalse(lamp.Lights[0].enabled, "沒電：立燈不會亮");
+            w.FuseBox.ForceDone();
+            Act(qa, 60, LanternActionInput.None);
+            Assert.IsTrue(lamp.Lights[0].enabled, "有電：立燈亮了");
+            var screen = w.Toggles.First(t => t.Label == "壁爐的防火屏");
+            screen.Toggle();
+            Act(qa, 30, LanternActionInput.None);
+            var secret = w.Inspectables.First(i => i.Secret);
+            qa.BeginInspect(secret);
+            qa.EndInspect();
+            Assert.AreEqual(1, qa.SecretsFound, "找到記憶碎片");
+            Assert.IsFalse(qa.NotebookOpen, "平常不顯示提示（Tab 才打開母親的筆記）");
+        }
     }
 }

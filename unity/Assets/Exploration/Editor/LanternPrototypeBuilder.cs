@@ -111,6 +111,7 @@ namespace Shepherd.Exploration.Editor
                     for (int i = 0; i < 30 && qa.Actions.Impacts == 0; i++) qa.Step(1f / 30f, ExploreInput.None);
                     log.AppendLine("crosshair error m=" + Vector3.Distance(hit.point, qa.Actions.LastImpact).ToString("F3"));
                 }
+                LivingShots(qa, rt, dir, log);
                 ClueShots(qa, rt, dir, log);
                 CombatShots(qa, rt, dir, log);
                 log.AppendLine("ok");
@@ -135,6 +136,51 @@ namespace Shepherd.Exploration.Editor
         private static void Act(LanternPrototypeQA qa, int frames, LanternActionInput a)
         {
             for (int i = 0; i < frames; i++) qa.Step(1f / 30f, ExploreInput.None, a);
+        }
+
+        /// <summary>客廳樣板：從玄關看地標、月光、修好後的真實客廳與細節。</summary>
+        private static void LivingShots(LanternPrototypeQA qa, RenderTexture rt, string dir, StringBuilder log)
+        {
+            var w = qa.World;
+            qa.SetHouseScale(LanternGraybox.HouseDefaultScale);
+            var photo = w.Clues.Find(c => c.Id == "photo");
+            qa.Rig.SetOn(true);
+            qa.GoTo("HouseEntry");
+            qa.Player.Teleport(w.HouseRoot.position + LanternGraybox.HouseOrigin + new Vector3(4.25f * w.HouseScale, 0.05f, 2.8f * w.HouseScale), 0f, 0f);
+            Aim(qa, photo.transform.position);
+            Frames(qa, 6);
+            Shot(qa, rt, Path.Combine(dir, "l01_landmark_from_hall.png"));
+            qa.Rig.SetOn(false);
+            qa.GoTo("HouseLiving");
+            Frames(qa, 6);
+            Shot(qa, rt, Path.Combine(dir, "l02_living_moonlight_dark.png"));
+            qa.Rig.SetOn(true);
+            Frames(qa, 4);
+            Shot(qa, rt, Path.Combine(dir, "l03_living_lantern.png"));
+            photo.ForceComplete();
+            Frames(qa, 90);
+            qa.Combat.ClearEnemies();
+            qa.GoTo("HouseEnding");
+            Frames(qa, 30);
+            Shot(qa, rt, Path.Combine(dir, "l04_living_repaired_unpowered.png"));
+            var mug = w.HouseRoot.Find("MugB");
+            Aim(qa, mug.position);
+            Frames(qa, 2);
+            Shot(qa, rt, Path.Combine(dir, "l05_coffee_table.png"));
+            var scarf = w.HouseRoot.Find("UnfinishedScarf");
+            Aim(qa, scarf.position);
+            Frames(qa, 2);
+            Shot(qa, rt, Path.Combine(dir, "l06_scarf.png"));
+            var screen = w.Toggles.Find(t => t.Label == "壁爐的防火屏");
+            screen.Toggle();
+            Frames(qa, 30);
+            var secret = w.Inspectables.Find(i => i.Secret);
+            qa.Player.Teleport(LanternGraybox.HouseOrigin + new Vector3(1.6f * w.HouseScale, 0.05f, 1.2f * w.HouseScale), 0f, 0f);
+            Aim(qa, secret.transform.position);
+            Frames(qa, 3);
+            Shot(qa, rt, Path.Combine(dir, "l07_fire_screen_secret.png"));
+            log.AppendLine("living interactables=" + w.LivingInteractables + " safeRooms=" + w.SafeRooms.Count + " windows=" + w.WindowPanes.Count);
+            qa.SetHouseScale(LanternGraybox.HouseDefaultScale);
         }
 
         private static void ClueShots(LanternPrototypeQA qa, RenderTexture rt, string dir, StringBuilder log)

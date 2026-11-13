@@ -186,6 +186,9 @@ namespace Shepherd.Exploration.Lantern
         public Quaternion ClosedRot = Quaternion.identity, OpenRot = Quaternion.identity;
         public Light[] Lights;
         public Renderer Screen;
+        /// <summary>要有電才會亮（立燈）；Powered 由住宅每個影格更新。</summary>
+        public bool RequiresPower;
+        public bool Powered = true;
         public bool IsOpen { get; private set; }
         public int Toggles { get; private set; }
         private float k;
@@ -194,12 +197,13 @@ namespace Shepherd.Exploration.Lantern
         {
             IsOpen = !IsOpen;
             Toggles++;
-            if (Lights != null) foreach (var l in Lights) if (l != null) l.enabled = IsOpen;
+            if (Lights != null) foreach (var l in Lights) if (l != null) l.enabled = IsOpen && (!RequiresPower || Powered);
         }
 
         public void Step(float dt, float time)
         {
             k = Mathf.MoveTowards(k, IsOpen ? 1f : 0f, dt * 3.5f);
+            if (RequiresPower && Lights != null) foreach (var l in Lights) if (l != null) l.enabled = IsOpen && Powered;
             float e = Mathf.SmoothStep(0f, 1f, k);
             if (Moving != null)
             {
@@ -210,7 +214,7 @@ namespace Shepherd.Exploration.Lantern
                 foreach (var l in Lights) if (l != null) l.intensity = 0.5f + Mathf.PerlinNoise(time * 9f, 0.3f) * 0.6f;
         }
 
-        public string Prompt => "E " + (IsOpen ? CloseVerb : OpenVerb) + Label;
+        public string Prompt => RequiresPower && !Powered ? "E 按" + Label + "的開關（沒有電）" : "E " + (IsOpen ? CloseVerb : OpenVerb) + Label;
     }
 
     /// <summary>
@@ -228,5 +232,7 @@ namespace Shepherd.Exploration.Lantern
         public bool Seen { get; set; }
         public int Opened { get; set; }
         public LanternReadable Completes;
+        /// <summary>藏起來的記憶碎片（可選）：第一次看完時計入。</summary>
+        public bool Secret;
     }
 }

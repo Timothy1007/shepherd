@@ -17,6 +17,8 @@ namespace Shepherd.Exploration.Lantern
         /// <summary>修好之後，整個房間永久恢復真實的範圍。</summary>
         public Bounds Room;
         public bool HasRoom;
+        /// <summary>這個房間的吊燈：修好後一直亮著（暖光），也是安全據點。</summary>
+        public Light RoomLamp;
         public LanternRestorable Restorable;
         public LanternPlacementSpot Spot;
         public LanternReadable Readable;
@@ -70,6 +72,8 @@ namespace Shepherd.Exploration.Lantern
         public Bounds HouseBounds { get; private set; }
         /// <summary>住宅的吊燈（供電後明亮溫暖；沒電幾乎全黑；反撲時熄滅直到失序體被打倒）。</summary>
         public readonly List<Light> HouseLamps = new List<Light>();
+        /// <summary>月光（方向光，從窗戶照進來）。</summary>
+        public Light Moon { get; private set; }
         /// <summary>電箱修好了（整棟燈穩定亮起）。</summary>
         public bool HousePowered { get; set; }
         public LanternRestorable FuseBox { get; private set; }
@@ -105,8 +109,10 @@ namespace Shepherd.Exploration.Lantern
                 HouseRuin();
                 HouseSigns();
                 HouseInteractions();
+                HouseLivingRoom();
                 HouseClueSet();
                 HouseLights();
+                LinkRoomLamps();
             }
             finally { into = null; }
             HouseBounds = new Bounds(HP(RealWidth / 2f, 1.5f, RealDepth / 2f), new Vector3(RealWidth * HouseScale + 2f, 8f, RealDepth * HouseScale + 2f));
@@ -115,6 +121,39 @@ namespace Shepherd.Exploration.Lantern
             var navBounds = HouseBounds;
             navBounds.Expand(new Vector3(1f, 2f, 1f));
             LanternNav.Build("house", navBounds);
+        }
+
+        /// <summary>線索對應的房間吊燈。</summary>
+        private void LinkRoomLamps()
+        {
+            var map = new Dictionary<string, string> { { "photo", "LivingLight" }, { "chair", "DiningLight" }, { "dents", "KitchenLight" }, { "notebook", "EleanorLight" }, { "map", "StudyLight" } };
+            foreach (var c in Clues)
+            {
+                string n;
+                if (c != null && map.TryGetValue(c.Id, out n)) c.RoomLamp = HouseLamps.Find(l => l != null && l.name == n);
+            }
+        }
+
+        // ---------------- 安全據點（修好的房間） ----------------
+
+        /// <summary>修好的房間：真實、溫暖、失序體不會進來。</summary>
+        public readonly List<Bounds> SafeRooms = new List<Bounds>();
+        public readonly HashSet<Light> SafeLamps = new HashSet<Light>();
+
+        public void MakeSafe(LanternClue c)
+        {
+            if (c == null || !c.HasRoom) return;
+            var b = c.Room;
+            b.Expand(new Vector3(-0.3f, 0f, -0.3f));
+            SafeRooms.Add(b);
+            if (c.RoomLamp != null) SafeLamps.Add(c.RoomLamp);
+        }
+
+        public bool InSafeRoom(Vector3 p)
+        {
+            var q = p + Vector3.up * 0.5f;
+            foreach (var b in SafeRooms) if (b.Contains(q)) return true;
+            return false;
         }
 
         /// <summary>每個房間的範圍（修好那間房的線索，整間房永久變回真實）。upper＝二樓。</summary>
@@ -161,6 +200,11 @@ namespace Shepherd.Exploration.Lantern
             Toggles.Clear();
             Inspectables.Clear();
             HouseLamps.Clear();
+            WindowPanes.Clear();
+            pendingWindows.Clear();
+            SafeRooms.Clear();
+            SafeLamps.Clear();
+            Moon = null;
             FuseBox = null;
             ArenaArt.Kill(root.gameObject);
             HouseRoot = null;
@@ -200,7 +244,7 @@ namespace Shepherd.Exploration.Lantern
             hStair = hFloorHall;
             hRail = hWood;
             hWindow = Mat("LH_Window", Mode.Dual, new Color(0.15f, 0.18f, 0.22f), new Color(0.3f, 0.45f, 0.55f), null, null, 0.9f, 0.9f, 0f);
-            hWindow.SetColor("_EmissionColor", new Color(0.25f, 0.3f, 0.45f));
+            hWindow.SetColor("_EmissionColor", new Color(0.32f, 0.4f, 0.62f));
             hWindow.SetColor("_AnomalyEmission", new Color(0.12f, 0.2f, 0.28f));
             // 暗處（異域）＝被遺棄的廢墟：剝落的灰泥、髒磁磚、舊木板。提燈照到的地方才是有人住的家。
             var ruin = new Color(0.62f, 0.64f, 0.66f);
@@ -246,46 +290,97 @@ namespace Shepherd.Exploration.Lantern
         private bool trims = true;
         private const float SkirtH = 0.13f, TrimW = 0.075f;
 
-        private void HWallZ(float x, float z0, float z1, float y0, float h, float t, Material m, float doorH, params Vector2[] gaps)
+        /// <summary>窗洞：沿牆方向 a0–a1、牆底起算 yb–yt（真實尺寸）；inward＝室內在牆的哪一側（+1／-1）。</summary>
+        private struct WinSpec { public float A0, A1, Yb, Yt, Inward; }
+        private readonly List<WinSpec> pendingWindows = new List<WinSpec>();
+        public readonly List<Renderer> WindowPanes = new List<Renderer>();
+
+        /// <summary>下一道牆開一個窗洞（真的洞，月光照得進來）。</summary>
+        private void Win(float a0, float a1, float yb, float yt, float inward) => pendingWindows.Add(new WinSpec { A0 = a0, A1 = a1, Yb = yb, Yt = yt, Inward = inward });
+
+        private void HWallZ(float x, float z0, float z1, float y0, float h, float t, Material m, float doorH, params Vector2[] gaps) => HWall(false, x, z0, z1, y0, h, t, m, doorH, gaps);
+        private void HWallX(float z, float x0, float x1, float y0, float h, float t, Material m, float doorH, params Vector2[] gaps) => HWall(true, z, x0, x1, y0, h, t, m, doorH, gaps);
+
+        /// <summary>
+        /// 一道牆：門洞（從地板到 doorH）與窗洞（pendingWindows）都是真的開口。
+        /// 牆依開口切成直條，每一條再扣掉開口的高度範圍，剩下的才是實心的牆。
+        /// </summary>
+        private void HWall(bool alongX, float fixedC, float c0, float c1, float y0, float h, float t, Material m, float doorH, Vector2[] gaps)
         {
-            float cur = z0;
-            foreach (var g in gaps)
+            var ops = new List<Vector3>(); // (a0, a1, yb) 高度上界另存
+            var tops = new List<float>();
+            foreach (var g in gaps) { ops.Add(new Vector3(g.x, g.y, 0f)); tops.Add(doorH); }
+            var wins = new List<WinSpec>(pendingWindows);
+            pendingWindows.Clear();
+            foreach (var w in wins) { ops.Add(new Vector3(w.A0, w.A1, w.Yb)); tops.Add(w.Yt); }
+            var pts = new List<float> { c0, c1 };
+            foreach (var o in ops) { pts.Add(Mathf.Clamp(o.x, c0, c1)); pts.Add(Mathf.Clamp(o.y, c0, c1)); }
+            pts.Sort();
+            Vector3 At(float a, float yy) => alongX ? HP(a, yy, fixedC) : HP(fixedC, yy, a);
+            Vector3 Size(float len, float hgt) => alongX ? new Vector3(len * HouseScale, hgt * HouseHeightScale, t) : new Vector3(t, hgt * HouseHeightScale, len * HouseScale);
+            for (int i = 0; i + 1 < pts.Count; i++)
             {
-                if (g.x > cur) { Box("Wall", HP(x, y0 + h / 2f, (cur + g.x) / 2f), new Vector3(t, h * HouseHeightScale, (g.x - cur) * HouseScale), m); SkirtZ(x, cur, g.x, y0, t); }
-                Box("Lintel", HP(x, y0 + (doorH + h) / 2f, (g.x + g.y) / 2f), new Vector3(t, (h - doorH) * HouseHeightScale, (g.y - g.x) * HouseScale), m);
-                if (trims)
+                float p = pts[i], q = pts[i + 1];
+                if (q - p < 1e-4f) continue;
+                float mid = (p + q) / 2f;
+                var holes = new List<Vector2>();
+                for (int k = 0; k < ops.Count; k++) if (mid > ops[k].x && mid < ops[k].y) holes.Add(new Vector2(ops[k].z, tops[k]));
+                holes.Sort((a, b) => a.x.CompareTo(b.x));
+                float cur = 0f;
+                foreach (var hole in holes)
+                {
+                    if (hole.x > cur + 1e-4f) Solid(p, q, cur, hole.x);
+                    cur = Mathf.Max(cur, hole.y);
+                }
+                if (h > cur + 1e-4f) Solid(p, q, cur, h);
+            }
+            void Solid(float p, float q, float s0, float s1)
+            {
+                Box(s0 <= 0f ? "Wall" : "Lintel", At((p + q) / 2f, y0 + (s0 + s1) / 2f), Size(q - p, s1 - s0), m);
+                if (s0 <= 0f) { if (alongX) SkirtX(fixedC, p, q, y0, t); else SkirtZ(fixedC, p, q, y0, t); }
+            }
+            if (trims)
+                foreach (var g in gaps)
                 {
                     float top = HP(0f, y0 + doorH, 0f).y, bot = HP(0f, y0, 0f).y;
-                    var a = HP(x, 0f, g.x); var b = HP(x, 0f, g.y);
-                    Box("DoorTrim", new Vector3(a.x, (top + bot) / 2f, a.z - TrimW / 2f), new Vector3(t + 0.05f, top - bot, TrimW), hTrim, false);
-                    Box("DoorTrim", new Vector3(b.x, (top + bot) / 2f, b.z + TrimW / 2f), new Vector3(t + 0.05f, top - bot, TrimW), hTrim, false);
-                    Box("DoorTrim", new Vector3(a.x, top + TrimW / 2f, (a.z + b.z) / 2f), new Vector3(t + 0.05f, TrimW, b.z - a.z + TrimW * 2f), hTrim, false);
+                    var a = At(g.x, 0f); var b = At(g.y, 0f);
+                    var dir = alongX ? Vector3.right : Vector3.forward;
+                    Vector3 Jamb(float along, float hgt) => alongX ? new Vector3(along, hgt, t + 0.05f) : new Vector3(t + 0.05f, hgt, along);
+                    Box("DoorTrim", new Vector3(a.x, (top + bot) / 2f, a.z) - dir * TrimW / 2f, Jamb(TrimW, top - bot), hTrim, false);
+                    Box("DoorTrim", new Vector3(b.x, (top + bot) / 2f, b.z) + dir * TrimW / 2f, Jamb(TrimW, top - bot), hTrim, false);
+                    Box("DoorTrim", new Vector3((a.x + b.x) / 2f, top + TrimW / 2f, (a.z + b.z) / 2f), Jamb((g.y - g.x) * HouseScale + TrimW * 2f, TrimW), hTrim, false);
                 }
-                cur = g.y;
-            }
-            if (z1 > cur) { Box("Wall", HP(x, y0 + h / 2f, (cur + z1) / 2f), new Vector3(t, h * HouseHeightScale, (z1 - cur) * HouseScale), m); SkirtZ(x, cur, z1, y0, t); }
+            foreach (var w in wins) WindowIn(alongX, fixedC, w, y0, t);
         }
 
-        private void HWallX(float z, float x0, float x1, float y0, float h, float t, Material m, float doorH, params Vector2[] gaps)
+        /// <summary>窗戶：玻璃（不擋光）、窗框窗格（真實）；廢墟裡被木板釘死（木板會擋光，月光從板縫漏進來）。</summary>
+        private void WindowIn(bool alongX, float fixedC, WinSpec w, float y0, float t)
         {
-            float cur = x0;
-            foreach (var g in gaps)
+            var c = alongX ? HP((w.A0 + w.A1) / 2f, y0 + (w.Yb + w.Yt) / 2f, fixedC) : HP(fixedC, y0 + (w.Yb + w.Yt) / 2f, (w.A0 + w.A1) / 2f);
+            float W = (w.A1 - w.A0) * HouseScale, Hh = (w.Yt - w.Yb) * HouseHeightScale;
+            var along = alongX ? Vector3.right : Vector3.forward;
+            var inward = (alongX ? Vector3.forward : Vector3.right) * Mathf.Sign(w.Inward);
+            Vector3 Sz(float a, float hh, float d) => alongX ? new Vector3(a, hh, d) : new Vector3(d, hh, a);
+            var pane = Box("Window", c, Sz(W, Hh, 0.02f), hWindow, false);
+            var pr = pane.GetComponent<Renderer>();
+            pr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            WindowPanes.Add(pr);
+            float d = t + 0.04f;
+            Box("WindowFrame", c + Vector3.up * (Hh / 2f + 0.04f), Sz(W + 0.16f, 0.08f, d), hTrim, false);
+            Box("WindowSill", c + Vector3.down * (Hh / 2f + 0.04f) + inward * 0.05f, Sz(W + 0.24f, 0.07f, d + 0.1f), hTrim, false);
+            Box("WindowFrame", c - along * (W / 2f + 0.04f), Sz(0.08f, Hh, d), hTrim, false);
+            Box("WindowFrame", c + along * (W / 2f + 0.04f), Sz(0.08f, Hh, d), hTrim, false);
+            foreach (var r in new[] { Box("WindowMullion", c, Sz(0.04f, Hh, 0.05f), hTrim, false), Box("WindowTransom", c + Vector3.up * Hh * 0.2f, Sz(W, 0.04f, 0.05f), hTrim, false) })
+                r.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+            int boards = Mathf.Max(3, Mathf.RoundToInt(Hh / 0.32f));
+            for (int i = 0; i < boards; i++)
             {
-                if (g.x > cur) { Box("Wall", HP((cur + g.x) / 2f, y0 + h / 2f, z), new Vector3((g.x - cur) * HouseScale, h * HouseHeightScale, t), m); SkirtX(z, cur, g.x, y0, t); }
-                Box("Lintel", HP((g.x + g.y) / 2f, y0 + (doorH + h) / 2f, z), new Vector3((g.y - g.x) * HouseScale, (h - doorH) * HouseHeightScale, t), m);
-                if (trims)
-                {
-                    float top = HP(0f, y0 + doorH, 0f).y, bot = HP(0f, y0, 0f).y;
-                    var a = HP(g.x, 0f, z); var b = HP(g.y, 0f, z);
-                    Box("DoorTrim", new Vector3(a.x - TrimW / 2f, (top + bot) / 2f, a.z), new Vector3(TrimW, top - bot, t + 0.05f), hTrim, false);
-                    Box("DoorTrim", new Vector3(b.x + TrimW / 2f, (top + bot) / 2f, b.z), new Vector3(TrimW, top - bot, t + 0.05f), hTrim, false);
-                    Box("DoorTrim", new Vector3((a.x + b.x) / 2f, top + TrimW / 2f, a.z), new Vector3(b.x - a.x + TrimW * 2f, TrimW, t + 0.05f), hTrim, false);
-                }
-                cur = g.y;
+                float yy = Mathf.Lerp(-Hh * 0.4f, Hh * 0.4f, boards == 1 ? 0.5f : i / (float)(boards - 1));
+                float tilt = (i % 2 == 0 ? 1f : -1f) * (2f + (i * 37 % 5));
+                var e = alongX ? new Vector3(0f, 0f, tilt) : new Vector3(tilt, 0f, 0f);
+                Box("WindowBoard", c + Vector3.up * yy + inward * (t / 2f + 0.03f), Sz(W + 0.3f, 0.19f, 0.03f), hBoard, false, e);
             }
-            if (x1 > cur) { Box("Wall", HP((cur + x1) / 2f, y0 + h / 2f, z), new Vector3((x1 - cur) * HouseScale, h * HouseHeightScale, t), m); SkirtX(z, cur, x1, y0, t); }
         }
-
         private void SkirtZ(float x, float z0, float z1, float y0, float t)
         {
             if (!trims || z1 - z0 < 0.05f) return;
@@ -303,32 +398,6 @@ namespace Shepherd.Exploration.Lantern
             Box(name, HP((x0 + x1) / 2f, y, (z0 + z1) / 2f) + Vector3.down * thick / 2f, new Vector3((x1 - x0) * HouseScale, thick, (z1 - z0) * HouseScale), m);
         }
 
-        private void Window(float x, float z, float w, bool alongX, float y0)
-        {
-            var size = alongX ? new Vector3(w * HouseScale, 1.3f * HouseHeightScale, 0.03f) : new Vector3(0.03f, 1.3f * HouseHeightScale, w * HouseScale);
-            var c = HP(x, y0 + 1.55f, z);
-            Box("Window", c, size, hWindow, false);
-            // 窗框與窗格（真實）；廢墟裡窗戶被木板釘死。
-            float W = alongX ? size.x : size.z, Hh = size.y;
-            var along = alongX ? Vector3.right : Vector3.forward;
-            var thick = alongX ? new Vector3(0f, 0f, 0.09f) : new Vector3(0.09f, 0f, 0f);
-            Vector3 Sz(float a, float h) => (alongX ? new Vector3(a, h, 0f) : new Vector3(0f, h, a)) + thick;
-            Box("WindowFrame", c + Vector3.up * (Hh / 2f + 0.04f), Sz(W + 0.16f, 0.08f), hTrim, false);
-            Box("WindowSill", c + Vector3.down * (Hh / 2f + 0.04f), Sz(W + 0.24f, 0.08f) + thick * 0.8f, hTrim, false);
-            Box("WindowFrame", c - along * (W / 2f + 0.04f), Sz(0.08f, Hh), hTrim, false);
-            Box("WindowFrame", c + along * (W / 2f + 0.04f), Sz(0.08f, Hh), hTrim, false);
-            Box("WindowMullion", c, Sz(0.045f, Hh), hTrim, false);
-            Box("WindowTransom", c + Vector3.up * Hh * 0.2f, Sz(W, 0.045f), hTrim, false);
-            var inward = alongX ? Vector3.forward : Vector3.right;
-            for (int i = 0; i < 4; i++)
-            {
-                float yy = Mathf.Lerp(-Hh * 0.42f, Hh * 0.42f, i / 3f);
-                float tilt = (i % 2 == 0 ? 1f : -1f) * (3f + i * 1.7f);
-                var e = alongX ? new Vector3(0f, 0f, tilt) : new Vector3(tilt, 0f, 0f);
-                Box("WindowBoard", c + Vector3.up * yy + inward * 0.07f, Sz(W + 0.3f, 0.2f) - thick * 0.5f, hBoard, false, e);
-            }
-        }
-
         private void HouseShell()
         {
             const float D = 2.1f, H1 = RealGroundCeiling;
@@ -339,12 +408,21 @@ namespace Shepherd.Exploration.Lantern
             Slab("FloorKitchen", 0f, 2.9f, 7.98f, 11.5f, 0f, 0.2f, hFloorKitchen);
             Slab("FloorScullery", 0f, 2.9f, 11.5f, RealDepth, 0f, 0.2f, hFloorScullery);
             Slab("FloorYard", 2.9f, RealWidth, 7.98f, RealDepth, 0f, 0.2f, hFloorScullery);
+            // 真的窗洞：前牆（客廳、母親的房間）、西牆（客廳、餐廳、艾琳的房間）、廚房與書房、後廚。
+            Win(1.1f, 2.5f, 0.85f, 2.25f, 1f);
+            Win(1.2f, 2.6f, RealFloor2 + 0.85f, RealFloor2 + 2.1f, 1f);
             HWallX(0f, 0f, RealWidth, 0f, RealFloor2 + RealUpperHeight, ExtT, hWall, D, new Vector2(3.85f, 4.65f));
+            Win(0.45f, 1.25f, 0.85f, 2.2f, 1f);
+            Win(6.5f, 7.5f, 0.85f, 2.2f, 1f);
+            Win(4.0f, 5.0f, RealFloor2 + 0.9f, RealFloor2 + 2.0f, 1f);
             HWallZ(0f, 0f, 7.98f, 0f, RealFloor2 + RealUpperHeight, ExtT, hWall, D);
+            Win(8.9f, 9.9f, 1.15f, 2.1f, 1f);
+            Win(8.8f, 9.8f, RealFloor2 + 0.95f, RealFloor2 + 2.0f, 1f);
             HWallZ(0f, 7.98f, RealDepth, 0f, RealFloor2 + RealUpperHeight, ExtT, hWallKitchen, D);
             HWallZ(RealWidth, 0f, 7.98f, 0f, RealFloor2 + RealUpperHeight, ExtT, hWall, D);
             HWallX(7.98f, 3.72f, RealWidth, 0f, H1, ExtT, hWall, D);
             HWallZ(2.9f, 7.98f, RealDepth, 0f, H1, ExtT, hWallKitchen, D, new Vector2(12.0f, 12.85f));
+            Win(0.9f, 1.8f, 1.05f, 2.05f, -1f);
             HWallX(RealDepth, 0f, 2.9f, 0f, H1, ExtT, hWallKitchen, D);
             // 側院圍牆（加高；上方再有看不見的牆，東西丟不出去）。
             trims = false;
@@ -353,8 +431,6 @@ namespace Shepherd.Exploration.Lantern
             trims = true;
             Invisible(HP(RealWidth, 4f, (7.98f + RealDepth) / 2f), new Vector3(0.3f, 8f, (RealDepth - 7.98f) * HouseScale));
             Invisible(HP((2.9f + RealWidth) / 2f, 4f, RealDepth), new Vector3((RealWidth - 2.9f) * HouseScale, 8f, 0.3f));
-            Window(1.8f, 0.14f, 1.4f, true, 0f);
-            Window(1.8f, 0.14f, 1.6f, true, RealFloor2);
             HWallZ(3.72f, 0f, 7.98f, 0f, H1, IntT, hWall, D, new Vector2(2.3f, 3.3f));
             HWallX(4.26f, 0f, 3.72f, 0f, H1, IntT, hWall, D, new Vector2(0.9f, 2.7f));
             HWallX(7.98f, 0f, 3.72f, 0f, H1, IntT, hWallKitchen, D, new Vector2(1.0f, 1.95f));
@@ -658,7 +734,7 @@ namespace Shepherd.Exploration.Lantern
             Prop("Boots", "rubber_boots", 4.5f, 2.3f, 0f, 0.4f, -80f);
             // 餐廳
             Prop("Bowl", "wooden_bowl_01", 1.95f, 6.0f, OnTop(0.76f), 0.3f, 0f, true);
-            WallProp("DiningPicture", "fancy_picture_frame_01", HP(0f, 1.65f, 6.1f) + Vector3.right * (ExtT / 2f + 0.03f), 0.7f, 90f);
+            WallProp("DiningPicture", "fancy_picture_frame_01", HP(0f, 1.65f, 5.3f) + Vector3.right * (ExtT / 2f + 0.03f), 0.7f, 90f);
             Prop("SideboardPlant", "potted_plant_02", 3.3f, 7.62f, OnTop(1.0f), 0.45f, 0f);
             // 廚房、後廚
             Prop("Kettle", "vintage_electric_kettle", 0.3f, 10.3f, OnTop(0.94f), 0.25f, 90f);
@@ -801,7 +877,7 @@ namespace Shepherd.Exploration.Lantern
             AddToggle(drawer.gameObject, "抽屜", LanternToggle.Kind.Slide, drawer, dpos, dpos + new Vector3(0f, 0f, -0.32f * f), Quaternion.identity, Quaternion.identity, null, "拉開", "推回");
 
             // 客廳窗簾。
-            var curtain = Box("Curtain", HP(1.1f, 1.6f, 0.22f), new Vector3(0.9f * HouseScale, 2.2f * HouseHeightScale, 0.06f), hFabric, false);
+            var curtain = Box("Curtain", HP(1.45f, 1.55f, 0.24f), new Vector3(0.9f * HouseScale, 2.2f * HouseHeightScale, 0.06f), hFabric, false);
             var cpos = curtain.localPosition;
             AddToggle(curtain.gameObject, "窗簾", LanternToggle.Kind.Slide, curtain, cpos, cpos + new Vector3(-0.75f * HouseScale, 0f, 0f), Quaternion.identity, Quaternion.identity, null, "拉開", "拉上");
 
@@ -1033,6 +1109,9 @@ namespace Shepherd.Exploration.Lantern
             Lamp("EleanorLight", 1.3f, RealFloor2 + 2.35f, 5.4f, new Color(0.95f, 0.85f, 1f), 0.6f, 4f);
             Lamp("StudyLight", 1.8f, RealFloor2 + 2.35f, 9.3f, new Color(0.85f, 0.9f, 1f), 0.6f, 4f);
             Lamp("MotherLight", 2.4f, RealFloor2 + 2.35f, 1.7f, new Color(0.9f, 0.88f, 1f), 0.6f, 4.5f);
+            // 月光：低角度從西南方照進來，穿過真的窗洞在地上投出光斑；廢墟裡被木板擋成一條一條。
+            Moon = AddLight("Moon", LightType.Directional, HP(-4f, 12f, -4f), new Color(0.52f, 0.64f, 1f), 0.55f, 0f, false, LightShadows.Soft, 0f, new Vector3(0.55f, -0.42f, 0.72f));
+            Moon.shadowStrength = 1f;
             AddLight("YardMoon", LightType.Spot, HP(3.8f, 6f, 10.8f), new Color(0.55f, 0.65f, 0.9f), 2.2f, 12f, true, LightShadows.Soft, 80f, Vector3.down);
         }
     }

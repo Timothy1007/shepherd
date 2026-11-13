@@ -336,6 +336,8 @@ namespace Shepherd.Exploration.Lantern
             world.HouseLightScale = 1f;
             world.BossBlackout();
             LanternReveal.ClearRooms();
+            world.SafeRooms.Clear();
+            world.SafeLamps.Clear();
             combat.AutoRespawn = true;
             combat.RespawnMark = "HouseEntry";
         }
@@ -403,14 +405,14 @@ namespace Shepherd.Exploration.Lantern
                 if (!c.Done || !handled.Add(c)) continue;
                 Repaired++;
                 // 修好這間房的線索：整間房從線索處開始，永久恢復成真實的家。
-                if (c.HasRoom) LanternReveal.AddRoom(c.Room, c.transform.position);
+                if (c.HasRoom) { LanternReveal.AddRoom(c.Room, c.transform.position); world.MakeSafe(c); }
                 else if (c.Type == LanternClue.Kind.Focus) LanternReveal.AddAnchor(c.transform.position, 1.4f);
                 audio?.Play(LanternAudio.RestoreDone, 0.8f);
                 if (Repaired >= Total) pendingCollapse = true;
                 else pendingBacklashes++;
                 if (WarningTimer < 0f) WarningTimer = pendingCollapse ? 1.2f : WarningSeconds;
                 else if (pendingCollapse) WarningTimer = Mathf.Min(WarningTimer, 1.2f);
-                ShowToast("（" + c.Label + "恢復了——這個房間變回原本的樣子）", 2.5f);
+                ShowToast("（" + c.Label + "恢復了——這個房間變回原本的樣子，燈亮了）", 2.5f);
             }
             // 電箱修好：整棟燈亮起（只是把廢墟照亮，不會讓東西變回真的）。
             if (world.FuseBox != null && world.FuseBox.Done && !world.HousePowered)
@@ -478,7 +480,7 @@ namespace Shepherd.Exploration.Lantern
         public void SkipToBoss()
         {
             foreach (var c in world.Clues) if (c != null) c.ForceComplete();
-            foreach (var c in world.Clues) if (c != null && handled.Add(c) && c.HasRoom) LanternReveal.AddRoom(c.Room, c.transform.position, true);
+            foreach (var c in world.Clues) if (c != null && handled.Add(c) && c.HasRoom) { LanternReveal.AddRoom(c.Room, c.transform.position, true); world.MakeSafe(c); }
             Repaired = Total;
             BeginCollapse();
         }

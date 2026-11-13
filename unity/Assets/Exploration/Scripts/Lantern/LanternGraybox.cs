@@ -132,6 +132,8 @@ namespace Shepherd.Exploration.Lantern
         private Transform Ball(string name, Vector3 center, Vector3 size, Material m, Transform parent = null)
         {
             var t = ArenaArt.Prim(PrimitiveType.Sphere, parent ?? Into, center, size, m, null, name, false, true);
+            // 位置一律是世界座標（父物件可以不在原點）。
+            t.position = center;
             Register(t.GetComponent<Renderer>(), m);
             return t;
         }
@@ -660,8 +662,11 @@ namespace Shepherd.Exploration.Lantern
                     float seed = i * 13.7f;
                     float flick = Mathf.Lerp(0.5f, 1.1f, Mathf.PerlinNoise(time * 3.1f, seed)) * (Mathf.PerlinNoise(time * 0.7f, seed + 5f) > 0.7f ? 0.2f : 1f);
                     float lvl = HousePowered ? HouseLightScale * PoweredBoost : HouseLightScale * UnpoweredLevel * flick;
+                    bool safe = SafeLamps.Contains(l);
+                    // 修好的房間：燈一直亮著、溫暖（停電、反撲都不會熄）。
+                    if (safe) lvl = PoweredBoost;
                     l.intensity = b * lvl;
-                    l.color = HousePowered ? WarmLamp : baseColor[l];
+                    l.color = HousePowered || safe ? WarmLamp : baseColor[l];
                     l.enabled = l.intensity > 0.005f;
                     continue;
                 }
@@ -678,6 +683,7 @@ namespace Shepherd.Exploration.Lantern
                 hBulb.SetColor("_EmissionColor", new Color(2.6f, 1.9f, 1.1f) * on * (HousePowered ? 1.4f : 1f));
                 hBulb.SetColor("_AnomalyEmission", (HousePowered ? new Color(2.4f, 1.8f, 1.1f) : new Color(1.6f, 2.2f, 3f)) * on);
             }
+            foreach (var tg in Toggles) if (tg != null && tg.RequiresPower) tg.Powered = HousePowered && HouseLightScale > 0.3f;
             if (ClockAnomalyHands != null) ClockAnomalyHands.rotation = Quaternion.Euler(0f, 0f, -time * 137f);
         }
     }
