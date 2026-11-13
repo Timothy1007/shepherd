@@ -95,7 +95,8 @@ namespace Shepherd.Exploration.Lantern
             LanternReveal.Clear();
 
             World = LanternGraybox.Build(transform);
-            var spawn = World.Marks["HouseEntry"];
+            // 實際遊玩從新版房子（v2）門外開始；測試仍從舊房子玄關開始。
+            var spawn = World.Marks[play && World.Marks.ContainsKey("V2Street") ? "V2Street" : "HouseEntry"];
             Player = FirstPersonController.Create(transform, spawn.position, spawn.eulerAngles.y);
             Player.WalkSpeedValue = WalkSpeed;
             Player.RunSpeedValue = BriskSpeed;
@@ -135,6 +136,16 @@ namespace Shepherd.Exploration.Lantern
             Post.Apply();
             Physics.SyncTransforms();
             if (play) SetCursor(false);
+            if (play && World.InV2Street(Player.transform.position)) Rig.SetOn(false);
+        }
+
+        /// <summary>v2 開場：重建新版房子、回到門外、提燈放下。</summary>
+        public void StartV2()
+        {
+            Actions.DropHeld(false);
+            World.BuildHouseV2();
+            GoTo("V2Street");
+            Rig.SetOn(false);
         }
 
         private System.Collections.Generic.IEnumerable<Component> AllTargets()
@@ -271,6 +282,7 @@ namespace Shepherd.Exploration.Lantern
             Rig.SetOn(true);
             Rig.SetRadius(1);
             SetHouseScale(World.HouseScale);
+            World.BuildHouseV2();
         }
 
         public void Step(float dt, ExploreInput inp, LanternActionInput act = default(LanternActionInput))
@@ -299,6 +311,7 @@ namespace Shepherd.Exploration.Lantern
             if (stepDistance > 0.8f) { stepDistance = 0f; Audio?.Play(LanternAudio.Step, 0.35f); }
             Rig.Tick(dt, time);
             World.Tick(time);
+            if (World.V2Tick(Player.transform.position, dt)) { Audio?.Play(LanternAudio.EnemyWarn, 0.45f); Rig.Shake(0.05f); }
             Actions.Step(dt, act);
             Combat.Step(dt);
             Flow.Step(dt);
@@ -340,9 +353,9 @@ namespace Shepherd.Exploration.Lantern
         {
             if (!Ready || !Application.isPlaying) return;
             if (Input.GetKeyDown(KeyCode.F)) ToggleLantern();
-            if (Input.GetKeyDown(KeyCode.F1)) GoTo("HouseEntry");
-            if (Input.GetKeyDown(KeyCode.F2)) GoTo("HouseLiving");
-            if (Input.GetKeyDown(KeyCode.F3)) GoTo("HouseUpper");
+            if (Input.GetKeyDown(KeyCode.F1)) StartV2();
+            if (Input.GetKeyDown(KeyCode.F2)) GoTo("V2Shop");
+            if (Input.GetKeyDown(KeyCode.F3)) GoTo("HouseEntry");
             if (Input.GetKeyDown(KeyCode.F4)) GoTo("Spawn");
             if (Input.GetKeyDown(KeyCode.F6)) GoTo("ArenaStart");
             if (Input.GetKeyDown(KeyCode.F8) && Flow.Current == LanternFlow.Phase.Boss && Flow.Boss != null) { foreach (var s in World.Switches) s.Hit(); }
@@ -423,7 +436,7 @@ namespace Shepherd.Exploration.Lantern
             energyBar = Bar(energyBack, new Color(0.6f, 0.85f, 1f, 0.85f));
             shieldText = MakeText("Shield", font, 18, new Vector2(234, 46), TextAnchor.LowerLeft, new Vector2(0, 0));
             hintText = MakeText("Hint", font, 17, new Vector2(24, 14), TextAnchor.LowerLeft, new Vector2(0, 0));
-            hintText.text = "Tab 母親的筆記　左鍵 射擊（按住蓄力）　E 互動（抓起／按住復原／打開／拿起來看）　Q 擬態錨定　按住Space 聚光　F 提燈　F1 玄關 F2 客廳 F3 二樓 F4 測試房 F6 戰鬥場　F8 最終戰全部開燈　F9 房子大小　F10 直接打最終戰　R 重來　F12 數值";
+            hintText.text = "Tab 母親的筆記　左鍵 射擊（按住蓄力）　E 互動（抓起／按住復原／打開／拿起來看）　Q 擬態錨定　按住Space 聚光　F 提燈　F1 新房子門外（重來） F2 新房子店面 F3 舊房子 F4 測試房 F6 戰鬥場　F8 最終戰全部開燈　F9 房子大小　F10 直接打最終戰　R 重來　F12 數值";
             hintText.color = new Color(1f, 1f, 1f, 0.5f);
             progressText = MakeText("Progress", font, 22, new Vector2(-30, -24), TextAnchor.UpperRight, new Vector2(1, 1));
             promptText = MakeText("Prompt", font, 22, new Vector2(0, -70), TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f));
@@ -501,6 +514,7 @@ namespace Shepherd.Exploration.Lantern
         {
             if (canvasGo == null) return;
             promptText.text = Reading != null ? "" : Actions.Prompt;
+            if (string.IsNullOrEmpty(promptText.text) && !Rig.On && World.InV2Street(Player.transform.position)) promptText.text = "F 舉起提燈";
             float charge = Actions.Held != null ? Actions.ThrowCharge : Actions.Charge;
             chargeBack.enabled = charge > 0.01f;
             chargeBar.rectTransform.sizeDelta = new Vector2(80f * charge, 0f);

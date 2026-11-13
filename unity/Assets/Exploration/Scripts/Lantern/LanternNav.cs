@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -41,7 +41,7 @@ namespace Shepherd.Exploration.Lantern
                 var c = s.component as Collider;
                 if (c == null) return false;
                 return c.isTrigger || c.attachedRigidbody != null || c is CharacterController
-                    || c.GetComponentInParent<LanternEnemy>() != null || c.GetComponentInParent<LanternBoss>() != null || c.GetComponentInParent<LanternPhrase>() != null;
+                    || c.GetComponentInParent<LanternToggle>() != null || c.GetComponentInParent<LanternEnemy>() != null || c.GetComponentInParent<LanternBoss>() != null || c.GetComponentInParent<LanternPhrase>() != null;
             });
             var data = NavMeshBuilder.BuildNavMeshData(Settings, sources, bounds, Vector3.zero, Quaternion.identity);
             if (data == null) return false;

@@ -877,5 +877,53 @@ namespace Shepherd.Exploration.Tests
             Assert.AreEqual(1, qa.SecretsFound, "找到記憶碎片");
             Assert.IsFalse(qa.NotebookOpen, "平常不顯示提示（Tab 才打開母親的筆記）");
         }
+
+        // ---------------- v2：新版房子（英式聯排屋＋改衣店）灰盒 ----------------
+
+        [Test]
+        public void V2_FrontDoor_OnlyExistsInLanternLight_AndSealsBehindYou()
+        {
+            var qa = NewQa();
+            var w = qa.World;
+            Assert.IsNotNull(w.V2Root, "新版房子存在");
+            qa.GoTo("V2Street");
+            qa.Rig.SetOn(false);
+            Act(qa, 20, LanternActionInput.None);
+            Assert.IsFalse(w.V2FrontDoor.Open, "提燈放下：門是釘死的");
+            for (int i = 0; i < 90; i++) qa.Step(Dt, new ExploreInput { Move = new Vector2(0f, 1f) });
+            Assert.Less(qa.Player.transform.position.z - LanternGraybox.V2Origin.z, 0.1f, "暗處走不進去");
+            qa.Rig.SetOn(true);
+            bool sealedNow = false;
+            for (int i = 0; i < 150 && !sealedNow; i++) { qa.Step(Dt, new ExploreInput { Move = new Vector2(0f, 1f) }); sealedNow = w.V2Sealed; }
+            Assert.IsTrue(sealedNow, "舉起提燈：門出現，走進去之後封起來");
+            Assert.IsTrue(w.V2SealWall.gameObject.activeSelf);
+            var inside = qa.Player.transform.position;
+            for (int i = 0; i < 90; i++) qa.Step(Dt, new ExploreInput { Move = new Vector2(0f, -1f) });
+            Assert.Greater(qa.Player.transform.position.z - LanternGraybox.V2Origin.z, 0.2f, "回不去了");
+        }
+
+        [Test]
+        public void V2_GroundFloor_IsLargerAndLoops_DoorsOpen()
+        {
+            var qa = NewQa();
+            var w = qa.World;
+            var o = LanternGraybox.V2Origin;
+            float S = LanternGraybox.V2Scale;
+            Physics.SyncTransforms();
+            var shopMid = o + new Vector3(2.0f * S, 1.2f, 2.5f * S);
+            float width = RoomWidth(qa, shopMid, Vector3.right);
+            Assert.Greater(width, 7.5f, "店面比舊客廳寬（" + width.ToString("F2") + " m）");
+            var corners = new System.Collections.Generic.List<Vector3>();
+            Assert.IsTrue(LanternNav.Path(w.Marks["V2Shop"].position, w.Marks["V2Kitchen"].position, corners), "店面走得到廚房");
+            Assert.IsTrue(LanternNav.Path(w.Marks["V2Kitchen"].position, w.Marks["V2Yard"].position, corners), "廚房走得到側院（回圈）");
+            Assert.IsTrue(LanternNav.Path(w.Marks["V2Yard"].position, w.Marks["V2Hall"].position, corners), "側院從後門回到走廊");
+            Assert.GreaterOrEqual(w.V2Doors.Count, 4, "有真的門");
+            var door = w.V2Doors[0];
+            door.Toggle();
+            Act(qa, 30, LanternActionInput.None);
+            Assert.IsTrue(door.IsOpen);
+            Assert.Greater(Quaternion.Angle(Quaternion.identity, door.Moving.localRotation), 80f, "門轉開了");
+            Assert.GreaterOrEqual(w.WindowPanes.Count(r => r.transform.IsChildOf(w.V2Root)), 4, "店面大櫥窗、廚房、二樓有窗");
+        }
     }
 }

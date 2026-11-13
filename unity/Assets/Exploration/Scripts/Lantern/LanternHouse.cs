@@ -86,7 +86,9 @@ namespace Shepherd.Exploration.Lantern
         private float GroundTop => HP(0f, RealFloor2, 0f).y;
         private Font signFont;
 
-        private Vector3 HP(float x, float y, float z) => HouseOrigin + new Vector3(x * HouseScale, y * HouseHeightScale, z * HouseScale);
+        /// <summary>HP 的原點（蓋新版房子時暫時換成 V2Origin）。</summary>
+        private Vector3 hpOrigin = HouseOrigin;
+        private Vector3 HP(float x, float y, float z) => hpOrigin + new Vector3(x * HouseScale, y * HouseHeightScale, z * HouseScale);
 
         // ---------------- 建立／重建 ----------------
 
@@ -197,10 +199,10 @@ namespace Shepherd.Exploration.Lantern
             foreach (var k in drop) Marks.Remove(k);
             Clues.Clear();
             HouseSpawns.Clear();
-            Toggles.Clear();
-            Inspectables.Clear();
-            HouseLamps.Clear();
-            WindowPanes.Clear();
+            Toggles.RemoveAll(t => t == null || t.transform.IsChildOf(root));
+            Inspectables.RemoveAll(i => i == null || i.transform.IsChildOf(root));
+            HouseLamps.RemoveAll(l => l == null || l.transform.IsChildOf(root));
+            WindowPanes.RemoveAll(r => r == null || r.transform.IsChildOf(root));
             pendingWindows.Clear();
             SafeRooms.Clear();
             SafeLamps.Clear();

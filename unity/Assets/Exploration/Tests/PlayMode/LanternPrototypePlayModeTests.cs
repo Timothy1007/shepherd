@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using NUnit.Framework;
 using Shepherd.Exploration.Lantern;
 using UnityEngine;
@@ -16,6 +16,8 @@ namespace Shepherd.Exploration.Tests
             var qa = go.AddComponent<LanternPrototypeQA>();
             yield return null;
             Assert.IsTrue(qa.Ready, "Start 建好場景");
+            Assert.IsFalse(qa.Rig.On, "從新版房子門外開始，提燈先放下");
+            qa.ToggleLantern();
             var start = qa.Player.transform.position;
             qa.ScriptedInput = new ExploreInput { Move = new Vector2(0f, 1f) };
             float t = 0f;

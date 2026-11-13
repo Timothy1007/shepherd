@@ -75,6 +75,7 @@ namespace Shepherd.Exploration.Lantern
             LanternNav.Build("arena", arena);
             g.BuildHouse(HouseDefaultScale);
             g.BuildBossRoom();
+            g.BuildHouseV2();
             return g;
         }
 

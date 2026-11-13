@@ -130,12 +130,17 @@ namespace Shepherd.Exploration.Lantern
     {
         public Collider Solid;
         public Vector3 Probe;
+        /// <summary>其他檢查點（例如門洞的另一側）：任何一點是真實，牆就打開——走到一半不會被關在中間。</summary>
+        public Vector3[] ExtraProbes;
 
         public bool Open => Solid != null && !Solid.enabled;
 
         public void Refresh()
         {
-            if (Solid != null) Solid.enabled = !LanternReveal.IsReal(Probe);
+            if (Solid == null) return;
+            bool real = LanternReveal.IsReal(Probe);
+            if (!real && ExtraProbes != null) foreach (var p in ExtraProbes) if (LanternReveal.IsReal(p)) { real = true; break; }
+            Solid.enabled = !real;
         }
     }
 

@@ -111,6 +111,7 @@ namespace Shepherd.Exploration.Editor
                     for (int i = 0; i < 30 && qa.Actions.Impacts == 0; i++) qa.Step(1f / 30f, ExploreInput.None);
                     log.AppendLine("crosshair error m=" + Vector3.Distance(hit.point, qa.Actions.LastImpact).ToString("F3"));
                 }
+                V2Shots(qa, rt, dir, log);
                 LivingShots(qa, rt, dir, log);
                 ClueShots(qa, rt, dir, log);
                 CombatShots(qa, rt, dir, log);
@@ -136,6 +137,44 @@ namespace Shepherd.Exploration.Editor
         private static void Act(LanternPrototypeQA qa, int frames, LanternActionInput a)
         {
             for (int i = 0; i < frames; i++) qa.Step(1f / 30f, ExploreInput.None, a);
+        }
+
+        /// <summary>新版房子（v2）灰盒：門外開場、店面、走廊樓梯、餐廳、廚房、側院。</summary>
+        private static void V2Shots(LanternPrototypeQA qa, RenderTexture rt, string dir, StringBuilder log)
+        {
+            var w = qa.World;
+            w.BuildHouseV2();
+            qa.GoTo("V2Street");
+            qa.Rig.SetOn(false);
+            Frames(qa, 8);
+            Shot(qa, rt, Path.Combine(dir, "v01_street_lantern_down.png"));
+            qa.Player.Teleport(qa.Player.transform.position + Vector3.forward * 1.6f, 0f, 0f);
+            qa.Rig.SetOn(true);
+            Frames(qa, 8);
+            Shot(qa, rt, Path.Combine(dir, "v02_street_lantern_up.png"));
+            for (int i = 0; i < 150 && !w.V2Sealed; i++)
+            {
+                qa.Step(1f / 30f, new ExploreInput { Move = new Vector2(0f, 1f) });
+                if (i % 15 == 0) log.AppendLine("  walk " + i + " z=" + (qa.Player.transform.position.z).ToString("F2") + " open=" + w.V2FrontDoor.Open + " real=" + LanternReveal.IsReal(w.V2FrontDoor.Probe) + " radius=" + LanternReveal.Radius.ToString("F2") + " center=" + LanternReveal.Center.ToString("F2"));
+            }
+            Frames(qa, 4);
+            log.AppendLine("v2 after walk-in local=" + (qa.Player.transform.position - LanternGraybox.V2Origin).ToString("F2") + " sealedAt=" + (w.V2SealedAt - LanternGraybox.V2Origin).ToString("F2"));
+            qa.Player.Teleport(LanternGraybox.V2Origin + new Vector3(4.6f * LanternGraybox.V2Scale, 0.05f, 2.2f * LanternGraybox.V2Scale), 180f, 0f);
+            Aim(qa, w.V2SealWall.position);
+            Frames(qa, 4);
+            Shot(qa, rt, Path.Combine(dir, "v03_sealed_behind.png"));
+            foreach (var m in new[] { "V2Shop", "V2Hall", "V2Dining", "V2Kitchen", "V2Yard" })
+            {
+                qa.GoTo(m);
+                Frames(qa, 6);
+                Shot(qa, rt, Path.Combine(dir, "v_" + m + ".png"));
+            }
+            qa.GoTo("V2Shop");
+            qa.Rig.SetOn(false);
+            Frames(qa, 6);
+            Shot(qa, rt, Path.Combine(dir, "v_V2Shop_dark.png"));
+            qa.Rig.SetOn(true);
+            log.AppendLine("v2 sealed=" + w.V2Sealed + " doors=" + w.V2Doors.Count);
         }
 
         /// <summary>客廳樣板：從玄關看地標、月光、修好後的真實客廳與細節。</summary>
