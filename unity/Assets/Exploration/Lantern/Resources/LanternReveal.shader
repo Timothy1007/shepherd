@@ -6,7 +6,7 @@ Shader "Shepherd/Prototype/LanternReveal"
 {
     Properties
     {
-        [Enum(Dual,0,RealOnly,1,AnomalyOnly,2)] _Mode ("Mode", Float) = 0
+        [Enum(Dual,0,RealOnly,1,AnomalyOnly,2,AlwaysReal,3)] _Mode ("Mode", Float) = 0
         [MainColor] _BaseColor ("Real Color", Color) = (1,1,1,1)
         [MainTexture] _BaseMap ("Real Albedo", 2D) = "white" {}
         _Smoothness ("Real Smoothness", Range(0,1)) = 0.3
@@ -150,8 +150,12 @@ Shader "Shepherd/Prototype/LanternReveal"
             return wp + o * _Wobble * (1.0 - mask);
         }
 
+        // 3＝永遠是真實（現實世界的街道）：不裁切、不扭動、沒有光圈邊緣。
+        float MaskFor(float3 wp) { return _Mode > 2.5 ? 1.0 : RevealMask(wp); }
+
         void ClipByMode(float mask)
         {
+            if (_Mode > 2.5) return;
             if (_Mode > 1.5) clip(0.5 - mask);
             else if (_Mode > 0.5) clip(mask - 0.5);
         }
@@ -192,7 +196,7 @@ Shader "Shepherd/Prototype/LanternReveal"
             {
                 V o;
                 float3 wp = TransformObjectToWorld(a.pos.xyz);
-                wp = Wobble(wp, RevealMask(wp));
+                wp = Wobble(wp, MaskFor(wp));
                 o.wp = wp;
                 o.wn = TransformObjectToWorldNormal(a.normal);
                 o.wt = float4(TransformObjectToWorldDir(a.tangent.xyz), a.tangent.w * GetOddNegativeScale());
@@ -245,6 +249,7 @@ Shader "Shepherd/Prototype/LanternReveal"
                     anomCol = float4(lerp(float3(g, g, g), ruin.rgb, _AnomalySat), 1) * _AnomalyColor;
                 }
                 float k = _Mode > 0.5 ? (_Mode > 1.5 ? 0.0 : 1.0) : m;
+                if (_Mode > 2.5) { k = 1.0; edge = 0.0; }
                 float bumpS = _BumpScale * lerp(1.0, 0.45, sty);
                 float3 nTS = UnpackNormalScale(SAMPLE_TEXTURE2D_BIAS(_BumpMap, sampler_BumpMap, uvB, bias), bumpS);
                 if (_RuinMap > 0.5)
@@ -323,7 +328,7 @@ Shader "Shepherd/Prototype/LanternReveal"
             {
                 V o;
                 float3 wp = TransformObjectToWorld(a.pos.xyz);
-                wp = Wobble(wp, RevealMask(wp));
+                wp = Wobble(wp, MaskFor(wp));
                 float3 wn = TransformObjectToWorldNormal(a.normal);
             #if _CASTING_PUNCTUAL_LIGHT_SHADOW
                 float3 ld = normalize(_LightPosition - wp);
@@ -354,7 +359,7 @@ Shader "Shepherd/Prototype/LanternReveal"
             #pragma fragment frag
             struct A { float4 pos : POSITION; };
             struct V { float4 pos : SV_POSITION; float3 wp : TEXCOORD0; };
-            V vert(A a) { V o; float3 wp = TransformObjectToWorld(a.pos.xyz); wp = Wobble(wp, RevealMask(wp)); o.wp = wp; o.pos = TransformWorldToHClip(wp); return o; }
+            V vert(A a) { V o; float3 wp = TransformObjectToWorld(a.pos.xyz); wp = Wobble(wp, MaskFor(wp)); o.wp = wp; o.pos = TransformWorldToHClip(wp); return o; }
             half frag(V i) : SV_Target { ClipByMode(RevealMask(i.wp)); return 0; }
             ENDHLSL
         }
@@ -369,7 +374,7 @@ Shader "Shepherd/Prototype/LanternReveal"
             #pragma fragment frag
             struct A { float4 pos : POSITION; float3 normal : NORMAL; };
             struct V { float4 pos : SV_POSITION; float3 wp : TEXCOORD0; float3 wn : TEXCOORD1; };
-            V vert(A a) { V o; float3 wp = TransformObjectToWorld(a.pos.xyz); wp = Wobble(wp, RevealMask(wp)); o.wp = wp; o.wn = TransformObjectToWorldNormal(a.normal); o.pos = TransformWorldToHClip(wp); return o; }
+            V vert(A a) { V o; float3 wp = TransformObjectToWorld(a.pos.xyz); wp = Wobble(wp, MaskFor(wp)); o.wp = wp; o.wn = TransformObjectToWorldNormal(a.normal); o.pos = TransformWorldToHClip(wp); return o; }
             half4 frag(V i) : SV_Target { ClipByMode(RevealMask(i.wp)); return half4(NormalizeNormalPerPixel(normalize(i.wn)), 0); }
             ENDHLSL
         }

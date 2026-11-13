@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 namespace Shepherd.Exploration.Lantern
@@ -13,7 +13,8 @@ namespace Shepherd.Exploration.Lantern
         public const string ShaderResource = "LanternReveal";
         public static readonly int SphereId = Shader.PropertyToID("_ShepRevealSphere");
 
-        public enum Mode { Dual = 0, RealOnly = 1, AnomalyOnly = 2 }
+        /// <summary>AlwaysReal：現實世界（街道），提燈照了也不會變。</summary>
+        public enum Mode { Dual = 0, RealOnly = 1, AnomalyOnly = 2, AlwaysReal = 3 }
 
         private static Shader shader;
 
