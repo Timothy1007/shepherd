@@ -1,5 +1,13 @@
 > **2026-11-12 戰鬥方向更新（優先於下方歷史描述）**：探索與戰鬥統一**第一人稱即時施法／攻擊**，不再以固定第三人稱卡牌戰術鏡頭為正式方向。舊卡牌／AP／回合／三連／學派規則及程式**僅保留為非約束性參考與歷史 QA**，不可預設沿用；尚未決定哪些概念轉化或淘汰。新玩法先從玩家在 3D 空間中干預敵人與環境的行為設計，建立獨立 QA，不得破壞現有場景。詳見 [第一人稱即時戰鬥方向](FIRST_PERSON_REALTIME_COMBAT_DIRECTION_V0_1.md) 與 [Issue #11](https://github.com/Timothy1007/shepherd/issues/11)。**此為方向與規劃，尚非已實作。**
 
+# 2026-11-13｜提燈 QA v0.7a：客廳樣板＋月光與真的窗洞＋安全據點＋母親的筆記（Claude；待使用者真人試玩）
+文件：`docs/prototype/LANTERN_PROTOTYPE_V0_7A_QA.md`，截圖 `lantern_v0_7a/`；設計依據 `docs/level/CASE01_HOUSE_LEVEL_DESIGN_V0_1.md` 第 10 節。
+- 牆改成 `HWall` 通用切割（門洞＋`Win()` 窗洞，真的開口）；`Moon` 方向光；暗處環境光提高到看得到輪廓。
+- 安全據點：`LanternGraybox.SafeRooms／SafeLamps／InSafeRoom`；`LanternEnemy.AvoidZone`；修好房間的吊燈常亮。
+- 客廳樣板 `LanternLivingRoom.cs`（12 個互動、秘密 `LanternInspectable.Secret`、立燈 `LanternToggle.RequiresPower`）。
+- 提示清單改成母親的筆記（Tab，`LanternPrototypeQA.NotebookOpen`）。
+- 修正 `Ball()` 位置算兩次的 bug。
+- 測試只跑提燈篩選：EditMode 35/35、PlayMode 1/1。測試副本因暫存資料夾被清掉而重建（`scratchpad\urp2`）。
 # 2026-11-13｜提燈 QA v0.6：廢墟與家＋燈光對比＋失序體找路＋最終戰的燈與結局（Claude；待使用者真人試玩）
 文件：`docs/prototype/LANTERN_PROTOTYPE_V0_6_QA.md`，截圖 `lantern_v0_6/`。
 - 異域＝被遺棄的廢墟（shader `_RuinMap`：異域用 damaged_plaster／blue_plaster_weathered／dirty_tiles／old_planks_02 等貼圖）；家具改成「只存在於真實」＋異域防塵布；生活小物 24 件只存在於真實；異域碎塊、斷木、倒下的椅子、釘死的窗。門框、踢腳板、窗框、燈座。
