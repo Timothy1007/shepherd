@@ -368,18 +368,15 @@ namespace Shepherd.Exploration.Lantern
         private void V2Furnish()
         {
             float f = FurnitureScale;
-            // 店面：櫃台、衣架（掛著改好的衣服）、人台、縫紉台、試衣簾。
-            Fur("V2Counter", 2.4f, 4.1f, 0f, 2.6f, 0.95f, 0.6f, hWood);
-            Fur("V2CounterTop", 2.4f, 4.1f, 0.95f, 2.7f, 0.04f, 0.66f, hLightWood, false);
-            Fur("V2SewingTable", 0.55f, 3.2f, 0f, 0.6f, 0.75f, 1.2f, hWood);
-            var rackMat = hDark;
-            Cyl("V2RackRail", V2(0.35f, 1.65f, 2.2f), new Vector3(0.03f, 1.0f * V2Scale, 0.03f), rackMat, new Vector3(90f, 0f, 0f));
-            var cloth = new[] { hFabric, hLeather, hWhite, hFabric, hDark, hLeather };
-            for (int i = 0; i < 6; i++)
-                Box("V2Garment", V2(0.38f, 1.15f, 1.0f + i * 0.4f), new Vector3(0.12f, 0.95f, 0.45f), cloth[i], false, new Vector3(0f, (i % 2) * 6f, 0f));
-            Cyl("V2Mannequin", V2(3.2f, 0f, 2.0f) + Vector3.up * 0.75f, new Vector3(0.36f, 0.45f, 0.26f), hLightWood);
-            Cyl("V2MannequinPole", V2(3.2f, 0f, 2.0f) + Vector3.up * 0.2f, new Vector3(0.05f, 0.2f, 0.05f), hDark);
-            Cyl("V2MannequinBase", V2(3.2f, 0f, 2.0f) + Vector3.up * 0.02f, new Vector3(0.35f, 0.02f, 0.35f), hDark);
+            // 店面：Claude 在 Blender 建的模型（櫃台、人台、衣架、縫紉機）；找不到模型時退回方塊。
+            if (CustomModel("V2Counter", "v2_shop_counter", HP(2.4f, 0f, 4.1f), 180f) == null)
+                Fur("V2Counter", 2.4f, 4.1f, 0f, 2.6f, 0.95f, 0.6f, hWood);
+            if (CustomModel("V2SewingMachine", "v2_sewing_machine", HP(0.62f, 0f, 4.55f), 180f) == null)
+                Fur("V2SewingTable", 0.55f, 3.2f, 0f, 0.6f, 0.75f, 1.2f, hWood);
+            if (CustomModel("V2ClothesRack", "v2_clothes_rack", HP(0.45f, 0f, 2.3f), 90f) == null)
+                Cyl("V2RackRail", V2(0.35f, 1.65f, 2.2f), new Vector3(0.03f, 1.0f * V2Scale, 0.03f), hDark, new Vector3(90f, 0f, 0f));
+            if (CustomModel("V2Mannequin", "v2_dress_form", HP(3.2f, 0f, 2.0f), 180f) == null)
+                Cyl("V2Mannequin", V2(3.2f, 0f, 2.0f) + Vector3.up * 0.75f, new Vector3(0.36f, 0.45f, 0.26f), hLightWood);
             Box("V2FittingCurtain", V2(5.9f, 1.2f, 3.6f), new Vector3(1.0f * V2Scale, 2.2f, 0.05f), hFabric, false);
             // 餐廳：餐桌、四張椅子、碗櫃、日曆。
             Furnish("V2DiningTable", "dining_table", 2.2f, 7.5f, 0f, 0.76f, 90f, hWood, new Vector3(1.5f, 0.75f, 0.9f));
@@ -424,6 +421,100 @@ namespace Shepherd.Exploration.Lantern
             Lamp("V2HallLight", 5.0f, 7.5f, 4f);
             Lamp("V2DiningLight", 2.2f, 7.5f, 4.5f);
             Lamp("V2KitchenLight", 2.0f, 12.5f, 4.5f);
+        }
+
+        // ---------------- Claude 在 Blender 建的模型 ----------------
+
+        /// <summary>Blender 材質名稱 → 我們的雙狀態材質（真實的顏色或 PH 貼圖、金屬度、光滑度）。</summary>
+        private static readonly Dictionary<string, (string tex, Color color, float smooth, float metal)> CustomMats = new Dictionary<string, (string, Color, float, float)>
+        {
+            { "SC_Wood", ("dark_wood", new Color(0.5f, 0.32f, 0.24f), 0.65f, 0f) },
+            { "SC_WoodTop", ("dark_wood", new Color(0.72f, 0.5f, 0.36f), 0.75f, 0f) },
+            { "SC_Brass", (null, new Color(0.85f, 0.62f, 0.28f), 0.75f, 1f) },
+            { "SC_Felt", (null, new Color(0.12f, 0.28f, 0.2f), 0.1f, 0f) },
+            { "SC_Paper", (null, new Color(0.85f, 0.8f, 0.68f), 0.2f, 0f) },
+            { "SC_Leather", (null, new Color(0.3f, 0.09f, 0.06f), 0.45f, 0f) },
+            { "SC_Tape", (null, new Color(0.85f, 0.7f, 0.25f), 0.3f, 0f) },
+            { "SC_Steel", (null, new Color(0.7f, 0.7f, 0.72f), 0.75f, 1f) },
+            { "SC_Thread", (null, new Color(0.6f, 0.08f, 0.08f), 0.3f, 0f) },
+            { "SC_ThreadBlue", (null, new Color(0.1f, 0.18f, 0.45f), 0.3f, 0f) },
+            { "SC_JarGlass", (null, new Color(0.75f, 0.82f, 0.8f), 0.9f, 0f) },
+            { "MN_Linen", ("fabric_pattern_07", new Color(0.95f, 0.88f, 0.72f), 0.1f, 0f) },
+            { "MN_Seam", (null, new Color(0.4f, 0.32f, 0.22f), 0.2f, 0f) },
+            { "RK_Iron", (null, new Color(0.06f, 0.06f, 0.065f), 0.55f, 0.8f) },
+            { "RK_Wool1", (null, new Color(0.18f, 0.2f, 0.26f), 0.1f, 0f) },
+            { "RK_Wool2", (null, new Color(0.35f, 0.22f, 0.14f), 0.1f, 0f) },
+            { "RK_Wool3", (null, new Color(0.12f, 0.12f, 0.12f), 0.1f, 0f) },
+            { "RK_Wool4", (null, new Color(0.42f, 0.38f, 0.3f), 0.1f, 0f) },
+            { "RK_Wool5", (null, new Color(0.3f, 0.08f, 0.07f), 0.1f, 0f) },
+            { "RK_Wool6", (null, new Color(0.16f, 0.25f, 0.2f), 0.1f, 0f) },
+            { "SW_BlackEnamel", (null, new Color(0.025f, 0.025f, 0.028f), 0.85f, 0f) },
+            { "SW_GoldDecal", (null, new Color(0.85f, 0.65f, 0.25f), 0.7f, 1f) },
+        };
+        private readonly Dictionary<string, Material> customMatCache = new Dictionary<string, Material>();
+
+        private Material CustomMaterial(string sourceName)
+        {
+            string key = sourceName.Replace(" (Instance)", "");
+            int dot = key.LastIndexOf('.');
+            if (dot > 0 && int.TryParse(key.Substring(dot + 1), out _)) key = key.Substring(0, dot);
+            Material m;
+            if (customMatCache.TryGetValue(key, out m) && m != null) return m;
+            (string tex, Color color, float smooth, float metal) d;
+            if (!CustomMats.TryGetValue(key, out d)) d = (null, new Color(0.6f, 0.58f, 0.55f), 0.3f, 0f);
+            float g = d.color.grayscale;
+            var anom = Color.Lerp(new Color(g, g, g), d.color, 0.25f) * new Color(0.82f, 0.9f, 1f);
+            if (d.tex != null && LanternReveal.HasPH(d.tex, "Tex"))
+            {
+                m = PH("LC_" + key, d.tex, "Tex", 0f, d.color, anom, d.smooth);
+                LanternReveal.AddRuin(m, "distressed_painted_planks", 0f, new Color(0.5f, 0.52f, 0.55f), 0.35f);
+            }
+            else
+            {
+                m = Mat("LC_" + key, Mode.Dual, d.color, anom, null, null, d.smooth, 0.3f, 0.006f);
+                m.SetFloat("_Metallic", d.metal);
+            }
+            customMatCache[key] = m;
+            return m;
+        }
+
+        /// <summary>放一件 Blender 建的模型（Resources/Models/Custom）：真實尺寸 × 家具倍率，底部貼地；材質換成雙狀態。玻璃先隱藏（shader 不透明）。</summary>
+        private Transform CustomModel(string name, string model, Vector3 worldPos, float yaw, bool collider = true)
+        {
+            var prefab = Resources.Load<GameObject>("Models/Custom/" + model);
+            if (prefab == null) return null;
+            var root = new GameObject(name).transform;
+            root.SetParent(Into, false);
+            var inst = Object.Instantiate(prefab, root, false);
+            inst.name = model;
+            foreach (var r in inst.GetComponentsInChildren<Renderer>(true))
+            {
+                var src = r.sharedMaterials;
+                if (src.Length == 1 && src[0] != null && src[0].name.StartsWith("SC_Glass")) { r.enabled = false; continue; }
+                var arr = new Material[src.Length];
+                for (int i = 0; i < src.Length; i++) arr[i] = CustomMaterial(src[i] != null ? src[i].name : "");
+                r.sharedMaterials = arr;
+                r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+                Register(r, arr[0]);
+            }
+            root.localScale = Vector3.one * FurnitureScale;
+            root.position = worldPos;
+            root.rotation = Quaternion.Euler(0f, yaw, 0f);
+            if (collider)
+            {
+                var rs = inst.GetComponentsInChildren<Renderer>();
+                if (rs.Length > 0)
+                {
+                    var b = rs[0].bounds;
+                    foreach (var r in rs) b.Encapsulate(r.bounds);
+                    var box = root.gameObject.AddComponent<BoxCollider>();
+                    box.center = root.InverseTransformPoint(b.center);
+                    var ls = root.lossyScale;
+                    var size = Quaternion.Inverse(root.rotation) * b.size;
+                    box.size = new Vector3(Mathf.Abs(size.x) / ls.x, Mathf.Abs(size.y) / ls.y, Mathf.Abs(size.z) / ls.z);
+                }
+            }
+            return root;
         }
 
         // ---------------- 每個影格 ----------------

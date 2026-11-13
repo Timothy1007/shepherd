@@ -910,7 +910,7 @@ namespace Shepherd.Exploration.Tests
             var o = LanternGraybox.V2Origin;
             float S = LanternGraybox.V2Scale;
             Physics.SyncTransforms();
-            var shopMid = o + new Vector3(2.0f * S, 1.2f, 2.5f * S);
+            var shopMid = o + new Vector3(2.0f * S, 2.3f, 2.5f * S); // 高過衣架與人台，量牆到牆
             float width = RoomWidth(qa, shopMid, Vector3.right);
             Assert.Greater(width, 7.5f, "店面比舊客廳寬（" + width.ToString("F2") + " m）");
             var corners = new System.Collections.Generic.List<Vector3>();
