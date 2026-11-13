@@ -44,6 +44,23 @@ namespace Shepherd.Exploration.Tests
             qa.Player.Teleport(qa.Player.transform.position, Mathf.Atan2(d.x, d.z) * Mathf.Rad2Deg, -Mathf.Atan2(d.y, new Vector2(d.x, d.z).magnitude) * Mathf.Rad2Deg);
         }
 
+        /// <summary>從某個點位出發，沿直線走到目標前 dist 公尺（E 互動要走近才有）。</summary>
+        private static void Approach(LanternPrototypeQA qa, string mark, Vector3 target, float dist = 1.2f)
+        {
+            qa.GoTo(mark);
+            var p = qa.Player.transform.position;
+            var d = target - p; d.y = 0f;
+            if (d.magnitude > dist) qa.Player.Teleport(p + d.normalized * (d.magnitude - dist), 0f, 0f);
+            qa.Step(Dt, ExploreInput.None);
+            Aim(qa, target);
+        }
+
+        private static Vector3 ChairTarget(LanternClue chair)
+        {
+            var col = chair.Restorable != null ? chair.Restorable.GetComponent<Collider>() : chair.GetComponent<Collider>();
+            return col.bounds.center;
+        }
+
         private static void Act(LanternPrototypeQA qa, int frames, LanternActionInput a)
         {
             for (int i = 0; i < frames; i++) qa.Step(Dt, ExploreInput.None, a);
@@ -501,8 +518,7 @@ namespace Shepherd.Exploration.Tests
             var qa = NewQa();
             var w = qa.World;
             Assert.IsFalse(w.HousePowered, "一開始沒電");
-            qa.GoTo("HouseEntry");
-            Aim(qa, w.FuseBox.GetComponent<Collider>().bounds.center);
+            Approach(qa, "HouseEntry", w.FuseBox.GetComponent<Collider>().bounds.center);
             Act(qa, 1, LanternActionInput.None);
             StringAssert.Contains("推回", qa.PromptText);
             Act(qa, 50, new LanternActionInput { Interact = true });
@@ -580,12 +596,13 @@ namespace Shepherd.Exploration.Tests
             var qa = NewQa();
             var w = qa.World;
             var chair = w.Clues.First(c => c.Id == "chair");
-            qa.GoTo("HouseDining");
-            Aim(qa, chair.GetComponent<Collider>().bounds.center);
+            Approach(qa, "HouseDining", ChairTarget(chair));
             Act(qa, 1, LanternActionInput.None);
+            string firstAim = (qa.Actions.Aimed != null ? qa.Actions.Aimed.name : "null") + "/" + qa.PromptText + "/eye " + qa.Cam.transform.position.ToString("F2") + " chair " + ChairTarget(chair).ToString("F2") + " home " + chair.transform.position.ToString("F2");
             Act(qa, 70, new LanternActionInput { Interact = true });
             Act(qa, 2, LanternActionInput.None);
-            Assert.IsTrue(chair.Done, "按住 E 把艾琳的椅子復原");
+            if (!chair.Done) Assert.Fail("對準：" + firstAim);
+            Assert.IsTrue(chair.Done, "按住 E 把艾琳的椅子復原（提示：" + qa.PromptText + "，距離 " + Vector3.Distance(qa.Cam.transform.position, ChairTarget(chair)).ToString("F2") + "）");
             Assert.AreEqual(1, qa.Flow.Repaired);
             for (int i = 0; i < 60; i++) qa.Step(Dt, ExploreInput.None);
             Assert.AreEqual(1, qa.Flow.Backlashes, "修好一處（預警後）＝異域反撲");
@@ -638,8 +655,7 @@ namespace Shepherd.Exploration.Tests
             Act(qa, 5, LanternActionInput.None);
             Assert.IsFalse(LanternReveal.IsReal(corner), "修好之前，餐廳的角落是廢墟");
             qa.Rig.SetOn(true);
-            qa.GoTo("HouseDining");
-            Aim(qa, chair.GetComponent<Collider>().bounds.center);
+            Approach(qa, "HouseDining", ChairTarget(chair));
             Act(qa, 1, LanternActionInput.None);
             Act(qa, 70, new LanternActionInput { Interact = true });
             Assert.IsTrue(chair.Done);
@@ -1013,13 +1029,45 @@ namespace Shepherd.Exploration.Tests
             Assert.Greater(w.V2SafeLamps.Count, 0, "店裡的燈常亮");
             var echo = v2.ShopEcho;
             Assert.IsNotNull(echo);
-            Assert.IsTrue(echo.Playing, "影子殘影開始演出");
+            Assert.IsTrue(echo.Armed && !echo.Playing, "牆先亮起來，等玩家看過去");
+            Assert.Greater(echo.WallLight.intensity, 0.5f, "牆上有一片暖光");
+            Aim(qa, echo.transform.position);
+            Act(qa, 1, LanternActionInput.None);
+            Assert.IsTrue(echo.Playing, "看過去，影子開始演出");
             Act(qa, 30, LanternActionInput.None);
             Assert.GreaterOrEqual(echo.LinesShown, 1);
             Assert.That(echo.VisibleText.Length, Is.InRange(1, echo.CurrentLine.Length), "字一個一個出現");
             Act(qa, 25 * 30, LanternActionInput.None);
             Assert.IsTrue(echo.Finished, "演完會結束");
             Assert.AreEqual(6, echo.LinesShown);
+            echo.Replay.Use();
+            Assert.IsTrue(echo.Playing, "可以再看一次");
+            Assert.AreEqual(2, echo.TimesPlayed);
+        }
+
+        [Test]
+        public void V2Shop_NoShrine_NoDressForm_CoatHangsOnTheWall()
+        {
+            var qa = NewQa();
+            var names = qa.World.V2Root.GetComponentsInChildren<Transform>(true).Select(t => t.name).ToList();
+            Assert.IsFalse(names.Any(n => n.Contains("Shrine")), "店裡沒有神桌");
+            Assert.IsFalse(names.Any(n => n.Contains("Mannequin") || n == "v2_dress_form"), "沒有人台");
+            Assert.IsFalse(names.Any(n => n.Contains("FittingCurtain")), "沒有那片紅色的簾子");
+            Assert.IsTrue(names.Contains("V2HangingCoat"), "外套掛在牆上");
+            Assert.IsTrue(names.Contains("V2ShopWindowGlass"), "店面有窗");
+        }
+
+        [Test]
+        public void Interaction_OnlyPromptsWhenYouWalkClose()
+        {
+            var qa = NewQa();
+            var w = qa.World;
+            var sew = w.V2SewingMachine.GetComponent<Collider>().bounds.center;
+            var center = w.V2ShopRoom.center;
+            StandAt(qa, sew, center, 3.6f);
+            Assert.AreEqual("", qa.PromptText, "站在 3 m 外對準，不會出現 E");
+            StandAt(qa, sew, center, 1.2f);
+            StringAssert.Contains("E", qa.PromptText, "走近才出現");
         }
 
         [Test]

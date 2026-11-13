@@ -26,6 +26,8 @@ namespace Shepherd.Exploration.Lantern
         public bool V2Sealed { get; private set; }
         public Vector3 V2SealedAt { get; private set; }
         public Transform V2SealWall { get; private set; }
+        /// <summary>開著的前門（門板、鑲板、門把）；封門後消失。</summary>
+        public Transform V2FrontDoorLeaf { get; private set; }
         public readonly List<LanternToggle> V2Doors = new List<LanternToggle>();
         /// <summary>推門（拉鋸）的門。</summary>
         public readonly List<LanternStruggle> Struggles = new List<LanternStruggle>();
@@ -317,9 +319,23 @@ namespace Shepherd.Exploration.Lantern
             // 真實的門：開著的深綠色木門（只在光裡）。
             var doorMat = Mat("V2_FrontDoor", Mode.RealOnly, new Color(0.12f, 0.25f, 0.2f), Color.black, null, null, 0.45f, 0.4f, 0f);
             var leafHinge = V2(4.6f, 0f, 0f) + new Vector3(0f, 0f, 0.05f);
-            Box("V2FrontDoorLeaf", leafHinge + Quaternion.Euler(0f, -80f, 0f) * new Vector3(0.65f, 1.3f, 0f), new Vector3(1.0f * V2Scale, 2.25f * 1.165f, 0.05f), doorMat, false, new Vector3(0f, -80f, 0f));
+            // 門板＋四片凸起的鑲板＋黃銅門把，看得出是一扇門；進門封起來之後門板就不見了。
+            var leafRot = Quaternion.Euler(0f, -80f, 0f);
+            V2FrontDoorLeaf = new GameObject("V2FrontDoorGroup").transform;
+            V2FrontDoorLeaf.SetParent(Into, false);
+            Box("V2FrontDoorLeaf", leafHinge + leafRot * new Vector3(0.65f, 1.3f, 0f), new Vector3(1.0f * V2Scale, 2.25f * 1.165f, 0.05f), doorMat, false, new Vector3(0f, -80f, 0f), V2FrontDoorLeaf);
+            var panelMat = Mat("V2_FrontDoorPanel", Mode.RealOnly, new Color(0.1f, 0.22f, 0.17f), Color.black, null, null, 0.5f, 0.4f, 0f);
+            var knobMat = Mat("V2_FrontDoorKnob", Mode.RealOnly, new Color(0.8f, 0.62f, 0.3f), Color.black, null, null, 0.8f, 0.4f, 0f);
+            for (int i = 0; i < 4; i++)
+            {
+                float px = (i % 2 == 0 ? 0.33f : 0.97f), py = (i < 2 ? 0.65f : 1.85f), ph = (i < 2 ? 0.9f : 1.0f);
+                foreach (float side in new[] { -1f, 1f })
+                    Box("V2FrontDoorPanel", leafHinge + leafRot * new Vector3(px, py, side * 0.035f), new Vector3(0.48f, ph, 0.02f), panelMat, false, new Vector3(0f, -80f, 0f), V2FrontDoorLeaf);
+            }
+            foreach (float side in new[] { -1f, 1f })
+                Ball("V2FrontDoorKnob", leafHinge + leafRot * new Vector3(1.18f, 1.05f, side * 0.06f), Vector3.one * 0.06f, knobMat, V2FrontDoorLeaf);
             // 封門：進去之後出現的牆（兩個狀態都在，擋住回頭路）。
-            V2SealWall = Box("V2SealWall", V2(5.1f, 1.2f, 0f) + Vector3.forward * 0.02f, new Vector3(1.05f * V2Scale, 2.4f * 1.165f, ExtT + 0.06f), v2Brick, true);
+            V2SealWall = Box("V2SealWall", V2(5.1f, 1.2f, 0f) + Vector3.forward * 0.02f, new Vector3(1.05f * V2Scale, 2.4f * 1.165f, ExtT + 0.06f), hWall, true); // 門不見了，只剩和店裡一樣的灰泥牆
             V2SealWall.gameObject.SetActive(false);
 
             Mark("V2Shop", V2(5.0f, 0f, 0.9f) + Vector3.up * 0.05f, V2(1.5f, 1.2f, 3.5f));
@@ -473,32 +489,30 @@ namespace Shepherd.Exploration.Lantern
         private void V2Shop()
         {
             V2ShopLamps.Clear();
+            // 動線：門口（右前）→ 中間整片空地 → 櫃台（後）；左前窗下是工作角（縫紉機＋燙衣板），左牆衣架與那件外套，右牆布料架、鏡子、客人的椅子。
             CustomModel("V2Counter", "v2_shop_counter", HP(2.4f, 0f, 4.1f), 180f);
             CustomModel("V2ButtonCabinet", "v2_button_cabinet", HP(0.6f, 0f, 4.7f), 180f);
             CustomModel("V2ClothesRack", "v2_clothes_rack", HP(0.42f, 0f, 2.2f), 90f);
-            V2SewingMachine = CustomModel("V2SewingMachine", "v2_sewing_machine", HP(0.45f, 0f, 3.75f), 90f);
-            CustomModel("V2IroningBoard", "v2_ironing_board", HP(1.6f, 0f, 3.15f), 0f, false);
-            var form = CustomModel("V2Mannequin", "v2_dress_form", HP(3.3f, 0f, 1.7f), 200f);
-            CustomModel("V2FabricShelf", "v2_fabric_shelf", HP(6.18f, 0f, 1.8f), -90f);
-            CustomModel("V2Mirror", "v2_cheval_mirror", HP(6.1f, 0f, 2.95f), -110f);
-            CustomModel("V2Umbrellas", "v2_umbrella_stand", HP(4.05f, 0f, 0.35f), 0f);
+            V2SewingMachine = CustomModel("V2SewingMachine", "v2_sewing_machine", HP(1.35f, 0f, 0.45f), 0f);
+            CustomModel("V2IroningBoard", "v2_ironing_board", HP(3.0f, 0f, 0.55f), 0f, false);
+            // 那件外套：不穿在人台上，掛在左牆的木掛鉤上（客人的衣服都在衣架上，只有它單獨掛著）。
+            var coat = CustomModel("V2HangingCoat", "v2_hanging_coat", HP(0f, 0f, 3.55f) + new Vector3(0.36f, 0f, 0f), 90f);
+            CustomModel("V2FabricShelf", "v2_fabric_shelf", HP(6.18f, 0f, 4.2f), -90f);
+            CustomModel("V2Mirror", "v2_cheval_mirror", HP(6.1f, 0f, 3.05f), -110f);
+            CustomModel("V2Umbrellas", "v2_umbrella_stand", HP(4.3f, 0f, 0.3f), 0f);
             float top = 0.99f * FurnitureScale;
             CustomModel("V2Register", "v2_cash_register", HP(3.15f, 0f, 4.15f) + Vector3.up * top, 180f, false);
-            CustomModel("V2Shrine", "v2_shrine", HP(2.4f, 0f, 4.86f) + Vector3.up * 2.05f, 180f, false);
-            Box("V2ShrineBracket", HP(2.4f, 0f, 4.9f) + Vector3.up * 2.03f, new Vector3(0.6f, 0.04f, 0.32f), hWood, false);
-            AddLight("V2ShrineGlow", LightType.Point, HP(2.4f, 0f, 4.75f) + Vector3.up * 2.25f, new Color(1f, 0.25f, 0.15f), 0.9f, 2.6f, false, LightShadows.None);
-            // 試衣間：簾子＋桿子＋裡面的小凳子。
-            Cyl("V2CurtainRod", HP(5.85f, 0f, 3.65f) + Vector3.up * 2.25f, new Vector3(0.02f, 0.62f * V2Scale, 0.02f), hTrim, new Vector3(0f, 0f, 90f));
-            Box("V2FittingCurtain", HP(5.45f, 0f, 3.95f) + Vector3.up * 1.15f, new Vector3(0.04f, 2.2f, 0.95f * V2Scale), hFabric, false);
-            Fur("V2FittingStool", 6.1f, 4.4f, 0f, 0.36f, 0.45f, 0.36f, hWood);
+            V2ShopWindow();
             // 門口的腳踏墊、客人坐的椅子。
             Box("V2DoorMat", HP(5.1f, 0f, 0.55f) + Vector3.up * 0.006f, new Vector3(1.2f, 0.012f, 0.8f), hRug, false);
             Furnish("V2CustomerChair", "dining_chair_02", 6.1f, 0.7f, 0f, 0.95f, -90f, hWood, new Vector3(0.44f, 0.9f, 0.44f), false);
             // 牆上：營業時間的牌子、月曆、裱框的老照片。
             var paper = Mat("V2_ShopPaper", Mode.Dual, new Color(0.92f, 0.88f, 0.78f), new Color(0.6f, 0.62f, 0.64f), null, null, 0.2f, 0.2f, 0.004f);
-            Box("V2HoursSign", HP(4.4f, 0f, 0.0f) + new Vector3(0f, 1.7f, 0.15f), new Vector3(0.32f, 0.42f, 0.015f), paper, false);
-            Box("V2ShopCalendar", HP(6.5f, 0f, 0.9f) + new Vector3(-0.15f, 1.65f, 0f), new Vector3(0.015f, 0.5f, 0.36f), paper, false);
-            WallProp("V2ShopPhoto", "fancy_picture_frame_01", HP(0f, 0f, 3.75f) + new Vector3(0.16f, 1.75f, 0f), 0.45f, 90f, Mode.Dual);
+            var hours = Box("V2HoursSign", HP(4.4f, 0f, 0.0f) + new Vector3(0f, 1.7f, 0.15f), new Vector3(0.32f, 0.42f, 0.015f), paper, false);
+            WallText(hours, "營業時間\n\n09:00 – 19:00\n週一公休\n\n改衣・修補・訂做", Quaternion.Euler(0f, 180f, 0f), new Vector3(0f, 0f, 0.012f), 0.0055f, new Color(0.18f, 0.12f, 0.08f));
+            var cal = Box("V2ShopCalendar", HP(6.5f, 0f, 0.9f) + new Vector3(-0.15f, 1.65f, 0f), new Vector3(0.015f, 0.5f, 0.36f), paper, false);
+            WallText(cal, "十 月\n\n日 一 二 三 四 五 六\n       1  2  3  4\n 5  6  7  8  9 10 11\n12 13 14 15 16 17 18\n19 20 21 22 23 24 25\n26 27 28 29 30 31", Quaternion.Euler(0f, 90f, 0f), new Vector3(-0.012f, 0f, 0f), 0.0042f, new Color(0.2f, 0.12f, 0.1f));
+            WallProp("V2ShopPhoto", "fancy_picture_frame_01", HP(6.5f, 0f, 2.6f) + new Vector3(-0.16f, 1.95f, 0f), 0.4f, -90f, Mode.Dual);
 
             // 謎題物件 ------------------------------------------------------------
             // S1 電箱：櫃台後的牆上（暗處只看得到小紅燈）。
@@ -516,16 +530,20 @@ namespace Shepherd.Exploration.Lantern
             lr.Init(lever.position + Vector3.down * 0.08f, Quaternion.Euler(70f, 0f, 0f), lever.position, Quaternion.identity);
             Restorables.Add(lr);
             V2PowerLever = lr;
-            // S2 外套吊牌：人台左袖口那張紙吊牌（聚光才看得清楚）。
+            // S2 外套吊牌：袖口那張紙吊牌（聚光才看得清楚）。
             var tag = new GameObject("V2CoatTag").transform;
             tag.SetParent(Into, false);
-            tag.position = form != null ? form.TransformPoint(new Vector3(-0.24f, 0.78f, -0.05f)) : HP(3.1f, 0f, 1.6f) + Vector3.up * 0.8f;
+            Renderer tagR = null;
+            if (coat != null) foreach (var r in coat.GetComponentsInChildren<Renderer>()) if (r.name.Contains("CoatTag")) tagR = r;
+            tag.position = tagR != null ? tagR.bounds.center : HP(0f, 0f, 3.55f) + new Vector3(0.3f, 0.95f, 0.25f);
             var tc = tag.gameObject.AddComponent<BoxCollider>();
             tc.size = new Vector3(0.18f, 0.22f, 0.18f);
             V2CoatTag = tag;
-            // 人台被一道冷光照著（告訴你「看這裡」）。
-            var spot = AddLight("V2FormSpot", LightType.Spot, HP(3.3f, 0f, 1.7f) + new Vector3(0.6f, 2.9f, -0.8f), new Color(0.75f, 0.85f, 1f), 3.2f, 5f, false, LightShadows.Soft, 32f, (HP(3.3f, 0f, 1.7f) + Vector3.up * 1.2f) - (HP(3.3f, 0f, 1.7f) + new Vector3(0.6f, 2.9f, -0.8f)));
-            spot.innerSpotAngle = 18f;
+            // 外套被一道冷光照著（告訴你「看這裡」）。
+            var coatAt = HP(0f, 0f, 3.55f) + new Vector3(0.25f, 1.1f, 0f);
+            var spotFrom = coatAt + new Vector3(1.3f, 1.8f, -0.4f);
+            var spot = AddLight("V2CoatSpot", LightType.Spot, spotFrom, new Color(0.75f, 0.85f, 1f), 3.2f, 5f, false, LightShadows.Soft, 30f, coatAt - spotFrom);
+            spot.innerSpotAngle = 16f;
             // 秘密：衣架後面牆上的舊照片（只在光裡）。
             var secretMat = Mat("V2_SecretPhoto", Mode.RealOnly, Color.white, Color.black, LanternReveal.Photo(true), null, 0.3f, 0.3f, 0f);
             var sp = Box("V2SecretPhoto", HP(0f, 0f, 2.6f) + new Vector3(0.14f, 1.25f, 0f), new Vector3(0.012f, 0.16f, 0.12f), secretMat, true, new Vector3(0f, 0f, 4f));
@@ -534,12 +552,65 @@ namespace Shepherd.Exploration.Lantern
                 "（暫定）泛黃的照片：一個小女孩站在人台旁邊，踮著腳比身高。\n\n背面用鉛筆寫著：七歲，一百二十二。",
             }, "");
             V2SecretPhoto.Secret = true;
-            // 影子殘影的牆：前牆門左邊那段空牆（從櫃台、縫紉機回頭就看得到；右牆被開著的店門擋住）。
-            V2ShopEchoAt = HP(1.9f, 0f, 0f) + new Vector3(0f, 1.25f, 0.14f);
-            V2ShopEchoRot = Quaternion.Euler(0f, 180f, 0f);
+            // 影子殘影的牆：右牆、鏡子旁邊那段空牆（媽媽在鏡子前幫她量身）。
+            V2ShopEchoAt = HP(6.5f, 0f, 1.85f) + new Vector3(-0.14f, 1.25f, 0f);
+            V2ShopEchoRot = Quaternion.Euler(0f, 90f, 0f);
             var shop = new Bounds();
             shop.SetMinMax(HP(0f, 0f, 0f) + new Vector3(0f, -0.3f, 0f), HP(V2Width, 0f, 5f) + new Vector3(0f, V2Ground * 1.165f - 0.1f, 0f));
             V2ShopRoom = shop;
+        }
+
+        /// <summary>貼在紙板上的字（灰盒：TextMesh；之後換成正式貼圖）。rot＝字面朝向（字的正面朝 -Z）。</summary>
+        private void WallText(Transform board, string s, Quaternion rot, Vector3 offset, float size, Color c)
+        {
+            var go = new GameObject(board.name + "Text");
+            go.transform.SetParent(Into, false);
+            go.transform.SetPositionAndRotation(board.position + offset, rot);
+            var tm = go.AddComponent<TextMesh>();
+            tm.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            tm.fontSize = 64;
+            tm.characterSize = size;
+            tm.anchor = TextAnchor.MiddleCenter;
+            tm.alignment = TextAlignment.Center;
+            tm.text = s;
+            var m = new Material(tm.font.material) { name = "V2_WallText", hideFlags = HideFlags.DontSave };
+            m.color = c;
+            go.GetComponent<MeshRenderer>().sharedMaterial = m;
+        }
+
+        /// <summary>
+        /// 店面的前窗（左前、縫紉機上方）：毛玻璃透進巷子路燈的冷光，下半截有一條短的蕾絲窗簾。
+        /// 房子門面藏在巷底，外面看不到這扇窗，所以只做室內這一面。
+        /// </summary>
+        private void V2ShopWindow()
+        {
+            float z = 0.14f;                       // 前牆室內那一面
+            // 前牆在外面是巷底的磚牆；室內貼一層和其他牆一樣的灰泥（不然整面是暗紅色的磚）。
+            float wallH = V2Ground * 1.165f;
+            Box("V2ShopFrontPlaster", (HP(0f, 0f, 0f) + HP(4.6f, 0f, 0f)) / 2f + new Vector3(0f, wallH / 2f, 0.13f), new Vector3(4.6f * V2Scale, wallH, 0.01f), hWall, false);
+            Box("V2ShopFrontPlaster", (HP(5.6f, 0f, 0f) + HP(V2Width, 0f, 0f)) / 2f + new Vector3(0f, wallH / 2f, 0.13f), new Vector3((V2Width - 5.6f) * V2Scale, wallH, 0.01f), hWall, false);
+            Box("V2ShopFrontPlaster", HP(5.1f, 0f, 0f) + new Vector3(0f, (2.25f * 1.165f + 0.1f + wallH) / 2f, 0.13f), new Vector3(1.0f * V2Scale + 0.02f, wallH - 2.25f * 1.165f - 0.1f, 0.01f), hWall, false);
+            var c = HP(1.35f, 0f, 0f);
+            float w = 1.5f, h = 1.25f, bottom = 0.95f, ft = 0.06f;
+            float cy = bottom + h / 2f;
+            var glass = Mat("V2_ShopWindowGlass", Mode.Dual, new Color(0.55f, 0.62f, 0.7f), new Color(0.18f, 0.2f, 0.22f), null, null, 0.85f, 0.4f, 0f);
+            glass.SetColor("_EmissionColor", new Color(0.55f, 0.68f, 0.85f));
+            glass.SetColor("_AnomalyEmission", new Color(0.05f, 0.07f, 0.09f));
+            Box("V2ShopWindowGlass", c + new Vector3(0f, cy, z + 0.005f), new Vector3(w, h, 0.01f), glass, false);
+            Box("V2ShopWindowFrameT", c + new Vector3(0f, bottom + h + ft / 2f, z + 0.03f), new Vector3(w + 2f * ft, ft, 0.06f), hTrim, false);
+            Box("V2ShopWindowFrameB", c + new Vector3(0f, bottom - ft / 2f, z + 0.03f), new Vector3(w + 2f * ft, ft, 0.06f), hTrim, false);
+            Box("V2ShopWindowFrameL", c + new Vector3(-(w + ft) / 2f, cy, z + 0.03f), new Vector3(ft, h, 0.06f), hTrim, false);
+            Box("V2ShopWindowFrameR", c + new Vector3((w + ft) / 2f, cy, z + 0.03f), new Vector3(ft, h, 0.06f), hTrim, false);
+            Box("V2ShopWindowMullion", c + new Vector3(0f, cy, z + 0.025f), new Vector3(0.035f, h, 0.04f), hTrim, false);
+            Box("V2ShopWindowTransom", c + new Vector3(0f, bottom + h * 0.68f, z + 0.025f), new Vector3(w, 0.035f, 0.04f), hTrim, false);
+            Box("V2ShopWindowSill", c + new Vector3(0f, bottom - ft - 0.02f, z + 0.09f), new Vector3(w + 0.25f, 0.04f, 0.2f), hTrim, false);
+            // 下半截的短窗簾（蕾絲）＋細桿。
+            var lace = Mat("V2_ShopLace", Mode.Dual, new Color(0.93f, 0.9f, 0.82f), new Color(0.42f, 0.42f, 0.4f), null, null, 0.2f, 0.3f, 0.006f);
+            Box("V2ShopWindowLace", c + new Vector3(0f, bottom + 0.3f, z + 0.07f), new Vector3(w - 0.04f, 0.58f, 0.012f), lace, false);
+            Cyl("V2ShopWindowLaceRod", c + new Vector3(0f, bottom + 0.6f, z + 0.075f), new Vector3(0.012f, w / 2f, 0.012f), hTrim, new Vector3(0f, 0f, 90f));
+            // 窗外路燈透進來的冷光（照在縫紉機和地板上）。
+            var from = c + new Vector3(0f, bottom + h, z - 0.3f);
+            AddLight("V2ShopWindowLight", LightType.Spot, from, new Color(0.62f, 0.72f, 0.9f), 1.6f, 6f, false, LightShadows.Soft, 75f, new Vector3(0.1f, -0.8f, 1f));
         }
 
         // ---------------- Claude 在 Blender 建的模型 ----------------
@@ -671,6 +742,7 @@ namespace Shepherd.Exploration.Lantern
                     V2Sealed = true;
                     V2SealedAt = playerFeet;
                     if (V2SealWall != null) V2SealWall.gameObject.SetActive(true);
+                    if (V2FrontDoorLeaf != null) V2FrontDoorLeaf.gameObject.SetActive(false);
                     if (V2FrontDoor != null) { Blockers.Remove(V2FrontDoor); V2FrontDoor.Solid.enabled = true; }
                     return true;
                 }

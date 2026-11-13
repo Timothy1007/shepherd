@@ -367,7 +367,11 @@ namespace Shepherd.Exploration.Lantern
               .Append("｜能量 ").Append(Actions.Energy.ToString("0"))
               .Append("｜生命 ").Append(Combat.Health.ToString("0"))
               .Append("｜流程 ").Append(Flow.Current).Append(" ").Append(Flow.Repaired).Append("/").Append(Flow.Total)
-              .Append("｜失序體 ").Append(Combat.Enemies.Count);
+              .Append("｜失序體 ").Append(Combat.Enemies.Count)
+              .Append("\n店面：電 ").Append(V2.Powered ? "✓" : "□").Append(" 吊牌 ").Append(V2.TagRead ? "✓" : "□")
+              .Append(" 紅線 ").Append(V2.HasThread ? "✓" : "□").Append(" 穿針 ").Append(V2.Sewn ? "✓" : "□")
+              .Append(" 修好 ").Append(V2.ShopRepaired ? "✓" : "□")
+              .Append(" 影子 ").Append(V2.ShopEcho == null ? "-" : V2.ShopEcho.Playing ? "演出中" : V2.ShopEcho.Armed ? "等你看" : "演完 ×" + V2.ShopEcho.TimesPlayed);
             return sb.ToString();
         }
 
@@ -637,7 +641,7 @@ namespace Shepherd.Exploration.Lantern
                 sbClues.Append("── 母親的筆記（暫定）──\n");
                 if (SecretsFound > 0) sbClues.Append("記憶碎片 ").Append(SecretsFound).Append("\n");
                 foreach (var line in V2.Notebook) sbClues.Append("・").Append(line).Append('\n');
-                sbClues.Append(V2.ShopRepaired ? "✓ 店面" : "□ 店面").Append('\n');
+                sbClues.Append(V2.ShopRepaired ? "✓ 店面" : "□ 店面（還有 " + V2.ShopRemaining + " 件事沒弄清楚）").Append('\n');
             }
             else if (Flow.Current == LanternFlow.Phase.Explore && NotebookOpen)
             {

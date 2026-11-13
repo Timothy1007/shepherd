@@ -200,14 +200,28 @@ namespace Shepherd.Exploration.Lantern
             return null;
         }
 
-        private Component FindAimedOf(IEnumerable<Component> candidates, System.Type[] types, float maxAngle, float range)
+        /// <summary>E 互動要走到多近（量到物件最近的表面）：一般 2.2 m；用提燈抓東西可以遠一點。</summary>
+        public const float InteractReach = 2.2f, TetherReach = 4.0f;
+
+        public static float ReachOf(Component c) => c is LanternTetherable ? TetherReach : InteractReach;
+
+        /// <summary>眼睛到物件最近表面的距離（大東西像門、櫃子，量到最近的那一面）。</summary>
+        private float SurfaceDistance(Component c)
+        {
+            var col = c.GetComponent<Collider>() ?? c.GetComponentInChildren<Collider>();
+            var eye = cam.transform.position;
+            if (col != null && col.enabled) return Vector3.Distance(col.ClosestPoint(eye), eye);
+            return Vector3.Distance(Center(c), eye);
+        }
+
+        private Component FindAimedOf(IEnumerable<Component> candidates, System.Type[] types, float maxAngle, float range, System.Func<Component, float> reachOf = null)
         {
             RaycastHit hit;
             float wallDist = range;
             if (Physics.SphereCast(AimRay, 0.1f, out hit, range, mask, QueryTriggerInteraction.Ignore))
             {
                 var direct = Pick(hit.collider, types);
-                if (direct != null && (!(direct is LanternRestorable) || !((LanternRestorable)direct).Done)) return direct;
+                if (direct != null && (!(direct is LanternRestorable) || !((LanternRestorable)direct).Done) && (reachOf == null || hit.distance <= reachOf(direct))) return direct;
                 wallDist = hit.distance + 0.5f;
             }
             Component best = null;
@@ -218,6 +232,7 @@ namespace Shepherd.Exploration.Lantern
                 var center = Center(c);
                 var d = center - cam.transform.position;
                 if (d.magnitude > range || d.magnitude > wallDist + 1.5f) continue;
+                if (reachOf != null && SurfaceDistance(c) > reachOf(c)) continue;
                 float a = Vector3.Angle(cam.transform.forward, d);
                 if (a < bestAngle && LineOfSight(center, c)) { bestAngle = a; best = c; }
             }
@@ -306,7 +321,7 @@ namespace Shepherd.Exploration.Lantern
                 if (pDown && Energy < ShotCost(0f)) Audio?.Play(LanternAudio.Toggle, 0.5f);
 
                 // E 情境互動。
-                var aimed = FindAimedOf(Interactables(), InteractTypes, 7f, Reach);
+                var aimed = FindAimedOf(Interactables(), InteractTypes, 7f, Reach, ReachOf);
                 Aimed = aimed;
                 active = StepInteract(dt, inp, eDown, aimed);
             }
@@ -361,7 +376,8 @@ namespace Shepherd.Exploration.Lantern
             if (Restoring != null && inp.Interact && !Restoring.Done)
             {
                 var d = Center(Restoring) - cam.transform.position;
-                if (Vector3.Angle(cam.transform.forward, d) < 22f && d.magnitude < Reach + 1f) target = Restoring;
+                // 站得近時，東西在歸位途中會移動，所以角度放寬；距離量到表面。
+                if (Vector3.Angle(cam.transform.forward, d) < 45f && SurfaceDistance(Restoring) < InteractReach + 1.5f) target = Restoring;
             }
             if (target == null && inp.Interact) target = aimed as LanternRestorable;
             Restoring = target;

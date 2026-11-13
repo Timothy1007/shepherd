@@ -84,6 +84,16 @@ namespace Shepherd.Exploration.Lantern
             tm.color = new Color(1f, 0.88f, 0.68f);
             tgo.GetComponent<MeshRenderer>().sharedMaterial = tm;
             text.text = "";
+            // 可以再看一次：牆上一塊薄薄的感應區（E）。
+            var hit = new GameObject("EchoReplay");
+            hit.transform.SetParent(transform, false);
+            hit.transform.localPosition = new Vector3(0.2f, 0f, -0.04f);
+            var bc = hit.AddComponent<BoxCollider>();
+            bc.size = new Vector3(2.0f, 2.2f, 0.04f);
+            Replay = hit.AddComponent<LanternUsable>();
+            Replay.Label = "牆上的影子";
+            Replay.PromptFn = () => Playing ? "" : Armed ? "E 看牆上的影子" : "E 再看一次（牆上的影子）";
+            Replay.OnUse = () => { if (!Playing) Play(); };
             // 照在牆上的暖光：影子要落在一片亮的牆上才看得出是影子。
             var lgo = new GameObject("EchoLight");
             lgo.transform.SetParent(transform, false);
@@ -101,6 +111,7 @@ namespace Shepherd.Exploration.Lantern
         }
 
         public const float WallLightIntensity = 2.2f;
+        public LanternUsable Replay { get; private set; }
         private Light wallLight;
         public Light WallLight => wallLight;
 
@@ -118,11 +129,26 @@ namespace Shepherd.Exploration.Lantern
             return q.transform;
         }
 
+        /// <summary>等著被看見：牆上先亮起一片暖光（還沒有影子），玩家看過來才開始演。</summary>
+        public bool Armed { get; private set; }
+        public int TimesPlayed { get; private set; }
+
+        public void Arm()
+        {
+            gameObject.SetActive(true);
+            Armed = true;
+            Playing = false;
+            Hide();
+            if (wallLight != null) wallLight.intensity = WallLightIntensity * 0.7f;
+        }
+
         public void Play()
         {
             gameObject.SetActive(true);
+            Armed = false;
             Playing = true;
             Finished = false;
+            TimesPlayed++;
             time = 0f;
             beat = -1;
             typed = 0f;
@@ -130,10 +156,21 @@ namespace Shepherd.Exploration.Lantern
             text.text = "";
         }
 
+        /// <summary>演完（或中斷）：影子、字、光都收掉，物件留著（可以再看一次）。</summary>
         public void Stop()
         {
             Playing = false;
-            gameObject.SetActive(false);
+            Armed = false;
+            Hide();
+        }
+
+        private void Hide()
+        {
+            var c = new Color(0.03f, 0.02f, 0.02f, 0f);
+            motherMat.SetColor("_BaseColor", c); girlMat.SetColor("_BaseColor", c);
+            motherMat.SetColor("_Color", c); girlMat.SetColor("_Color", c);
+            text.text = "";
+            if (wallLight != null) wallLight.intensity = 0f;
         }
 
         /// <summary>每個影格：推進時間軸、切換姿勢、逐字顯示。skip＝這一格玩家按了跳過（整句直接顯示）。</summary>
@@ -166,7 +203,7 @@ namespace Shepherd.Exploration.Lantern
             }
             // 淡入淡出。
             float a = Mathf.Clamp01(time / 1.0f) * Mathf.Clamp01((Duration - time) / 1.2f) * 0.78f;
-            if (wallLight != null) wallLight.intensity = WallLightIntensity * Mathf.Clamp01(time / 0.8f) * Mathf.Clamp01((Duration - time) / 1.5f);
+            if (wallLight != null) wallLight.intensity = WallLightIntensity * Mathf.Lerp(0.7f, 1f, Mathf.Clamp01(time / 0.8f)) * Mathf.Clamp01((Duration - time) / 1.5f);
             var c = new Color(0.03f, 0.02f, 0.02f, a);
             motherMat.SetColor("_BaseColor", c); girlMat.SetColor("_BaseColor", c);
             motherMat.SetColor("_Color", c); girlMat.SetColor("_Color", c);

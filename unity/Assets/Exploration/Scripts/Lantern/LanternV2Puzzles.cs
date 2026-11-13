@@ -118,7 +118,7 @@ namespace Shepherd.Exploration.Lantern
                 };
                 if (!world.Usables.Contains(u)) world.Usables.Add(u);
             }
-            if (ShopEcho != null) Object.DestroyImmediate(ShopEcho.gameObject);
+            if (ShopEcho != null) { world.Usables.Remove(ShopEcho.Replay); Object.DestroyImmediate(ShopEcho.gameObject); }
             ShopEcho = null;
         }
 
@@ -144,7 +144,7 @@ namespace Shepherd.Exploration.Lantern
                 Powered = true;
                 world.V2Powered = true;
                 Note("電來了。燈亮了，照出來的卻是一間廢墟。");
-                flow.ShowToast("（電來了——店裡的燈穩了下來）", 3f);
+                flow.ShowToast("（電來了，燈穩了下來。但這間店還沒有好起來）", 3.5f);
             }
             // S2 外套吊牌：聚光照著它。
             if (!TagRead && world.V2CoatTag != null && cam != null)
@@ -181,8 +181,32 @@ namespace Shepherd.Exploration.Lantern
             }
             // 店面修好 → 修復時刻。
             if (!ShopRepaired && TagRead && Sewn) RepairShop();
-            if (ShopEcho != null && ShopEcho.Playing) ShopEcho.Step(dt, skip);
+            if (ShopEcho != null)
+            {
+                if (ShopEcho.Armed)
+                {
+                    // 看過去才開始演；太久沒看，再提醒一次。
+                    armedTime += dt;
+                    if (EchoInView()) ShopEcho.Play();
+                    else if (armedTime > 12f && !reminded) { reminded = true; flow.ShowToast("（鏡子旁邊的牆上，好像有人影……）", 4f); }
+                }
+                if (ShopEcho.Playing) ShopEcho.Step(dt, skip);
+            }
         }
+
+        private float armedTime;
+        private bool reminded;
+
+        /// <summary>牆上的影子在畫面中間附近、不太遠。</summary>
+        public bool EchoInView()
+        {
+            if (ShopEcho == null || cam == null) return false;
+            var d = ShopEcho.transform.position - cam.transform.position;
+            return d.magnitude < 9f && Vector3.Angle(cam.transform.forward, d) < 30f;
+        }
+
+        /// <summary>店面還差幾件事（筆記用，不寫答案）。</summary>
+        public int ShopRemaining => (TagRead ? 0 : 1) + (Sewn ? 0 : 1);
 
         public bool InputCaptured => Tap.Active;
 
@@ -207,7 +231,8 @@ namespace Shepherd.Exploration.Lantern
             world.SafeRooms.Add(safe);
             audio?.Play(LanternAudio.RestoreDone, 1f);
             Note("店變回了原本的樣子。牆上，有兩個人的影子。");
-            flow.ShowToast("（店變回了原本的樣子）", 3f);
+            flow.ShowToast("（店變回了原本的樣子……鏡子旁邊的牆上，亮了起來）", 4.5f);
+            armedTime = 0f; reminded = false;
             ShopEcho = LanternEcho.Create(world.V2Root, world.V2ShopEchoAt, world.V2ShopEchoRot, new[]
             {
                 new LanternEcho.Beat { T = 0.5f, MotherX = 0.9f, GirlX = -0.35f, MotherPose = 0, GirlPose = 0, Line = "（暫定）站好，別動。" },
@@ -217,7 +242,8 @@ namespace Shepherd.Exploration.Lantern
                 new LanternEcho.Beat { T = 14.0f, MotherX = 0.35f, GirlX = -0.3f, MotherPose = 0, GirlPose = 0, Line = "那明年呢？" },
                 new LanternEcho.Beat { T = 17.0f, MotherX = 0.45f, GirlX = -0.3f, MotherPose = 1, GirlPose = 0, Line = "明年再改。" },
             }, 21f);
-            ShopEcho.Play();
+            ShopEcho.Arm();
+            if (!world.Usables.Contains(ShopEcho.Replay)) world.Usables.Add(ShopEcho.Replay);
         }
     }
 }
