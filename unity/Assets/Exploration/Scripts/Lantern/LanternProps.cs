@@ -74,7 +74,7 @@ namespace Shepherd.Exploration.Lantern
             if (Progress >= 1f)
             {
                 Done = true;
-                LanternReveal.AddAnchor(FixedPosition + Vector3.up * 0.6f, AnchorRadius);
+                if (AnchorRadius > 0f) LanternReveal.AddAnchor(FixedPosition + Vector3.up * 0.6f, AnchorRadius); // 0＝不留穩定區光圈
                 return true;
             }
             return false;

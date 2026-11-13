@@ -983,6 +983,8 @@ namespace Shepherd.Exploration.Tests
             Assert.IsTrue(lever.Done, "拉桿推回去了");
             Act(qa, 1, LanternActionInput.None);
             Assert.IsTrue(v2.Powered && w.V2Powered, "有電了");
+            for (int i = LanternReveal.TempSlots; i < LanternReveal.TempSlots + 4; i++)
+                Assert.LessOrEqual(LanternReveal.Extra(i).w, 0f, "電箱上方不留穩定區光圈");
 
             // S2 吊牌：聚光照著它。
             StandAt(qa, w.V2CoatTag.position, center, 1.4f);

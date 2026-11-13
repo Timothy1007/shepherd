@@ -526,7 +526,7 @@ namespace Shepherd.Exploration.Lantern
             var lr = lever.gameObject.AddComponent<LanternRestorable>();
             lr.Label = "電箱的拉桿（恢復供電）";
             lr.Seconds = 1.1f;
-            lr.AnchorRadius = 0.5f;
+            lr.AnchorRadius = 0f; // 電箱修好的效果是燈穩下來，不在上面留一圈穩定區（試玩回饋：不自然的光圈）
             lr.Init(lever.position + Vector3.down * 0.08f, Quaternion.Euler(70f, 0f, 0f), lever.position, Quaternion.identity);
             Restorables.Add(lr);
             V2PowerLever = lr;
