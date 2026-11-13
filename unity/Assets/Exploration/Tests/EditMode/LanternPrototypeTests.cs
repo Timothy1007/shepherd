@@ -1039,6 +1039,8 @@ namespace Shepherd.Exploration.Tests
             Act(qa, 30, LanternActionInput.None);
             Assert.GreaterOrEqual(echo.LinesShown, 1);
             Assert.That(echo.VisibleText.Length, Is.InRange(1, echo.CurrentLine.Length), "字一個一個出現");
+            StringAssert.StartsWith("媽媽：", qa.SubtitleText, "台詞顯示在畫面下方的字幕，前面有說話的人");
+            Assert.IsFalse(echo.GetComponentInChildren<TextMesh>().GetComponent<MeshRenderer>().enabled, "牆上不打字");
             Act(qa, 25 * 30, LanternActionInput.None);
             Assert.IsTrue(echo.Finished, "演完會結束");
             Assert.AreEqual(6, echo.LinesShown);

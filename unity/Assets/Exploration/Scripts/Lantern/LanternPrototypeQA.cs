@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using Shepherd.Battle.UI.Arena;
 using Shepherd.Exploration.Case01;
 using UnityEngine;
@@ -59,7 +59,17 @@ namespace Shepherd.Exploration.Lantern
         private Text debugText, hintText, promptText, progressText, readTitle, readBody, toastText, endText, shieldText;
         private Image endPanel, breathBack, breathZone, breathMarker;
         private Image tapBack, tapZone, tapMarker;
-        private Text tapText;
+        private Text tapText, subtitleText;
+        private Image subtitleBand;
+        /// <summary>畫面下方的字幕（影子殘影、之後的答錄機）；測試用。</summary>
+        public string SubtitleText => subtitleText != null && subtitleText.enabled ? subtitleText.text : CurrentSubtitle();
+
+        private string CurrentSubtitle()
+        {
+            var e = V2 != null ? V2.ShopEcho : null;
+            if (e == null || !e.Playing || string.IsNullOrEmpty(e.VisibleText)) return "";
+            return (string.IsNullOrEmpty(e.CurrentWho) ? "" : e.CurrentWho + "：") + e.VisibleText;
+        }
         private bool v2PrimaryWas;
         private bool struggleHintShown;
         /// <summary>到達街區的轉場（黑屏＋地點字卡），秒數。</summary>
@@ -542,6 +552,12 @@ namespace Shepherd.Exploration.Lantern
             tapMarker.raycastTarget = false;
             tapText = MakeText("TapText", font, 20, new Vector2(0, 26), TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), tapBack.transform);
             tapBack.gameObject.SetActive(false);
+            // 對話字幕：畫面下方中央，半透明底條（像一般遊戲的對話字幕）。
+            subtitleBand = Img("SubtitleBand", new Vector2(0.5f, 0f), new Vector2(0, 120), new Vector2(1100, 64), new Color(0f, 0f, 0f, 0.45f));
+            subtitleText = MakeText("Subtitle", font, 32, new Vector2(0, 120), TextAnchor.MiddleCenter, new Vector2(0.5f, 0f));
+            subtitleText.rectTransform.sizeDelta = new Vector2(1500, 64);
+            subtitleText.color = new Color(1f, 0.95f, 0.86f);
+            subtitleBand.enabled = subtitleText.enabled = false;
             // 最後的反撲：畫面上方中央的生命條。
             bossBack = Img("BossBack", new Vector2(0.5f, 1f), new Vector2(0, -64), new Vector2(820, 16), new Color(0f, 0f, 0f, 0.55f));
             bossTrail = Bar(bossBack, new Color(1f, 0.95f, 0.85f, 0.55f));
@@ -608,6 +624,9 @@ namespace Shepherd.Exploration.Lantern
                 breathMarker.color = stg.Loose ? new Color(1f, 0.95f, 0.6f) : new Color(0.6f, 0.65f, 0.8f);
                 if (!struggleHintShown) { struggleHintShown = true; Flow.ShowToast("（門的另一邊像是有人抵著……指針到亮的那一段時，按住 E 推；狂按沒有用）", 5f); }
             }
+            var sub = CurrentSubtitle();
+            subtitleText.text = sub;
+            subtitleBand.enabled = subtitleText.enabled = sub.Length > 0;
             var tap = V2.Tap;
             tapBack.gameObject.SetActive(tap.Active);
             if (tap.Active)

@@ -235,12 +235,12 @@ namespace Shepherd.Exploration.Lantern
             armedTime = 0f; reminded = false;
             ShopEcho = LanternEcho.Create(world.V2Root, world.V2ShopEchoAt, world.V2ShopEchoRot, new[]
             {
-                new LanternEcho.Beat { T = 0.5f, MotherX = 0.9f, GirlX = -0.35f, MotherPose = 0, GirlPose = 0, Line = "（暫定）站好，別動。" },
-                new LanternEcho.Beat { T = 3.5f, MotherX = 0.25f, GirlX = -0.35f, MotherPose = 1, GirlPose = 0, Line = "又長高了。" },
-                new LanternEcho.Beat { T = 7.0f, MotherX = 0.25f, GirlX = -0.45f, MotherPose = 1, GirlPose = 1, Line = "媽，你都用看的，不用尺嗎？" },
-                new LanternEcho.Beat { T = 10.5f, MotherX = 0.35f, GirlX = -0.45f, MotherPose = 0, GirlPose = 1, Line = "我的眼睛比尺準。" },
-                new LanternEcho.Beat { T = 14.0f, MotherX = 0.35f, GirlX = -0.3f, MotherPose = 0, GirlPose = 0, Line = "那明年呢？" },
-                new LanternEcho.Beat { T = 17.0f, MotherX = 0.45f, GirlX = -0.3f, MotherPose = 1, GirlPose = 0, Line = "明年再改。" },
+                new LanternEcho.Beat { T = 0.5f, MotherX = 0.9f, GirlX = -0.35f, MotherPose = 0, GirlPose = 0, Who = "媽媽", Line = "（暫定）站好，別動。" },
+                new LanternEcho.Beat { T = 3.5f, MotherX = 0.25f, GirlX = -0.35f, MotherPose = 1, GirlPose = 0, Who = "媽媽", Line = "又長高了。" },
+                new LanternEcho.Beat { T = 7.0f, MotherX = 0.25f, GirlX = -0.45f, MotherPose = 1, GirlPose = 1, Who = "女兒", Line = "媽，你都用看的，不用尺嗎？" },
+                new LanternEcho.Beat { T = 10.5f, MotherX = 0.35f, GirlX = -0.45f, MotherPose = 0, GirlPose = 1, Who = "媽媽", Line = "我的眼睛比尺準。" },
+                new LanternEcho.Beat { T = 14.0f, MotherX = 0.35f, GirlX = -0.3f, MotherPose = 0, GirlPose = 0, Who = "女兒", Line = "那明年呢？" },
+                new LanternEcho.Beat { T = 17.0f, MotherX = 0.45f, GirlX = -0.3f, MotherPose = 1, GirlPose = 0, Who = "媽媽", Line = "明年再改。" },
             }, 21f);
             ShopEcho.Arm();
             if (!world.Usables.Contains(ShopEcho.Replay)) world.Usables.Add(ShopEcho.Replay);

@@ -15,7 +15,13 @@ namespace Shepherd.Exploration.Lantern
             public float MotherX, GirlX;
             public int MotherPose, GirlPose;
             public string Line;
+            /// <summary>誰在說（字幕前面的名字）。</summary>
+            public string Who;
         }
+
+        /// <summary>false（預設）＝字不打在牆上，改由畫面下方的字幕顯示（使用者回饋：牆上的字會糊）。</summary>
+        public bool WorldText = false;
+        public string CurrentWho { get; private set; } = "";
 
         public const float CharsPerSecond = 25f;
         public Beat[] Beats = new Beat[0];
@@ -183,6 +189,7 @@ namespace Shepherd.Exploration.Lantern
                 beat++;
                 typed = 0f;
                 CurrentLine = Beats[beat].Line ?? "";
+                CurrentWho = Beats[beat].Who ?? "";
                 if (CurrentLine.Length > 0) LinesShown++;
                 motherR.sharedMaterial.SetTexture("_BaseMap", Silhouette(false, Beats[beat].MotherPose));
                 girlR.sharedMaterial.SetTexture("_BaseMap", Silhouette(true, Beats[beat].GirlPose));
@@ -207,6 +214,7 @@ namespace Shepherd.Exploration.Lantern
             var c = new Color(0.03f, 0.02f, 0.02f, a);
             motherMat.SetColor("_BaseColor", c); girlMat.SetColor("_BaseColor", c);
             motherMat.SetColor("_Color", c); girlMat.SetColor("_Color", c);
+            text.GetComponent<MeshRenderer>().enabled = WorldText;
             var tc = text.GetComponent<MeshRenderer>().sharedMaterial;
             tc.color = new Color(1f, 0.88f, 0.68f, Mathf.Clamp01(time / 0.6f) * Mathf.Clamp01((Duration - time) / 1.2f));
             if (time >= Duration) { Finished = true; Stop(); }
