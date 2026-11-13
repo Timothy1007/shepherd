@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Shepherd.Battle.UI.Arena;
 using UnityEngine;
 using Mode = Shepherd.Exploration.Lantern.LanternReveal.Mode;
@@ -39,8 +39,18 @@ namespace Shepherd.Exploration.Lantern
         private Transform into;
         private Transform Into => into != null ? into : Root;
         private readonly Dictionary<Light, float> baseLight = new Dictionary<Light, float>();
-        /// <summary>住宅燈光倍率（異域反撲時熄燈）。</summary>
+        private readonly Dictionary<Light, Color> baseColor = new Dictionary<Light, Color>();
+        /// <summary>住宅燈光倍率（異域反撲時熄燈＝0）。</summary>
         public float HouseLightScale = 1f;
+        /// <summary>有電時吊燈的倍率（明亮）；沒電時的倍率（幾乎全黑）。</summary>
+        public const float PoweredBoost = 2.6f, UnpoweredLevel = 0.1f;
+        public static readonly Color WarmLamp = new Color(1f, 0.8f, 0.58f);
+
+        /// <summary>住宅環境光的亮度（0＝全黑、1＝有電且燈亮著）。</summary>
+        public float HouseAmbient => HousePowered ? Mathf.Clamp01(HouseLightScale) : 0f;
+
+        /// <summary>目前這盞住宅吊燈的實際亮度（測試用）。</summary>
+        public float LampIntensity(int i) => i >= 0 && i < HouseLamps.Count && HouseLamps[i] != null && HouseLamps[i].enabled ? HouseLamps[i].intensity : 0f;
         private Material wall, wallBright, floor, ceiling, wood, fabric, metal, white, partition;
 
         public static LanternGraybox Build(Transform parent)
@@ -58,12 +68,19 @@ namespace Shepherd.Exploration.Lantern
             g.Arena();
             g.Lights();
             g.Area = new Bounds(new Vector3(5.5f, 1.35f, 4.2f), new Vector3(11f, 2.7f, 8.4f));
+            LanternNav.Clear();
+            Physics.SyncTransforms();
+            var arena = g.ArenaBounds;
+            arena.Expand(new Vector3(1f, 2f, 1f));
+            LanternNav.Build("arena", arena);
             g.BuildHouse(HouseDefaultScale);
+            g.BuildBossRoom();
             return g;
         }
 
         public void Destroy()
         {
+            LanternNav.Clear();
             if (Root != null) ArenaArt.Kill(Root.gameObject);
             foreach (var m in Materials) ArenaArt.Kill(m);
             Materials.Clear();
@@ -528,10 +545,13 @@ namespace Shepherd.Exploration.Lantern
             var body = new GameObject("Body").transform;
             body.SetParent(root, false);
             var core = Mat("LG_BossCore", Mode.Dual, new Color(0.95f, 0.85f, 0.65f), new Color(0.15f, 0.05f, 0.2f), null, null, 0.6f, 0.3f, 0.05f);
+            // 自己的外殼材質（被打中時閃白，不影響一般失序體）。
+            var shell = new Material(enemyShell) { name = "LG_BossShell" };
+            Materials.Add(shell);
             for (int i = 0; i < 7; i++)
-                Box("BossPart", at + new Vector3(Mathf.Sin(i * 1.3f) * 0.1f, 0.25f + i * 0.3f, Mathf.Cos(i * 2.1f) * 0.06f), new Vector3(0.55f - i * 0.03f, 0.32f, 0.4f - i * 0.02f), enemyShell, false, new Vector3(i * 13f, i * 41f, i * -11f), body);
-            Box("BossArmL", at + new Vector3(-0.5f, 1.2f, 0.1f), new Vector3(0.14f, 1.2f, 0.14f), enemyShell, false, new Vector3(25f, 0f, -25f), body);
-            Box("BossArmR", at + new Vector3(0.5f, 1.2f, 0.1f), new Vector3(0.14f, 1.3f, 0.14f), enemyShell, false, new Vector3(30f, 0f, 28f), body);
+                Box("BossPart", at + new Vector3(Mathf.Sin(i * 1.3f) * 0.1f, 0.25f + i * 0.3f, Mathf.Cos(i * 2.1f) * 0.06f), new Vector3(0.55f - i * 0.03f, 0.32f, 0.4f - i * 0.02f), shell, false, new Vector3(i * 13f, i * 41f, i * -11f), body);
+            Box("BossArmL", at + new Vector3(-0.5f, 1.2f, 0.1f), new Vector3(0.14f, 1.2f, 0.14f), shell, false, new Vector3(25f, 0f, -25f), body);
+            Box("BossArmR", at + new Vector3(0.5f, 1.2f, 0.1f), new Vector3(0.14f, 1.3f, 0.14f), shell, false, new Vector3(30f, 0f, 28f), body);
             Ball("BossCore", at + new Vector3(0f, 1.4f, 0.22f), new Vector3(0.24f, 0.24f, 0.14f), core, body);
             body.localScale = Vector3.one * 1.8f;
             foreach (Transform ch in body) { }
@@ -547,6 +567,7 @@ namespace Shepherd.Exploration.Lantern
             var b = root.gameObject.AddComponent<LanternBoss>();
             b.Body = body;
             b.CoreMat = core;
+            b.ShellMat = shell;
             b.SlamRing = ring;
             b.Glitch = glitch;
             LanternAudio.Spatial(root.gameObject, LanternAudio.EnemyDrone, true, 0.8f).pitch = 0.6f;
@@ -631,15 +652,31 @@ namespace Shepherd.Exploration.Lantern
                 var l = AnomalyLights[i];
                 if (l == null) { AnomalyLights.RemoveAt(i); continue; }
                 float b;
-                if (!baseLight.TryGetValue(l, out b)) { b = l.intensity; baseLight[l] = b; }
+                if (!baseLight.TryGetValue(l, out b)) { b = l.intensity; baseLight[l] = b; baseColor[l] = l.color; }
+                bool lamp = HouseLamps.Contains(l);
+                if (lamp)
+                {
+                    // 住宅吊燈：沒電＝幾乎全黑（只剩一點閃爍的冷光）；有電＝明亮溫暖；反撲＝熄滅。
+                    float seed = i * 13.7f;
+                    float flick = Mathf.Lerp(0.5f, 1.1f, Mathf.PerlinNoise(time * 3.1f, seed)) * (Mathf.PerlinNoise(time * 0.7f, seed + 5f) > 0.7f ? 0.2f : 1f);
+                    float lvl = HousePowered ? HouseLightScale * PoweredBoost : HouseLightScale * UnpoweredLevel * flick;
+                    l.intensity = b * lvl;
+                    l.color = HousePowered ? WarmLamp : baseColor[l];
+                    l.enabled = l.intensity > 0.005f;
+                    continue;
+                }
                 bool house = HouseRoot != null && l.transform.IsChildOf(HouseRoot);
-                // 住宅：沒電時只有微弱、閃爍的異域光；電箱修好後穩定亮起（反撲時仍會熄）。
-                float scale = house ? HouseLightScale * (HousePowered ? 1.15f : 0.35f) : 1f;
-                if (l.type == LightType.Spot || house && HousePowered) { l.intensity = b * scale; continue; }
-                float seed = i * 13.7f;
-                float n = Mathf.PerlinNoise(time * 3.1f, seed);
-                float drop = Mathf.PerlinNoise(time * 0.7f, seed + 5f) > 0.78f ? 0.25f : 1f;
-                l.intensity = b * Mathf.Lerp(0.7f, 1.1f, n) * drop * scale;
+                if (l.type == LightType.Spot || house) { l.intensity = b; continue; }
+                float sd = i * 13.7f;
+                float n = Mathf.PerlinNoise(time * 3.1f, sd);
+                float drop = Mathf.PerlinNoise(time * 0.7f, sd + 5f) > 0.78f ? 0.25f : 1f;
+                l.intensity = b * Mathf.Lerp(0.7f, 1.1f, n) * drop;
+            }
+            if (hBulb != null)
+            {
+                float on = HousePowered ? HouseLightScale : HouseLightScale * UnpoweredLevel;
+                hBulb.SetColor("_EmissionColor", new Color(2.6f, 1.9f, 1.1f) * on * (HousePowered ? 1.4f : 1f));
+                hBulb.SetColor("_AnomalyEmission", (HousePowered ? new Color(2.4f, 1.8f, 1.1f) : new Color(1.6f, 2.2f, 3f)) * on);
             }
             if (ClockAnomalyHands != null) ClockAnomalyHands.rotation = Quaternion.Euler(0f, 0f, -time * 137f);
         }

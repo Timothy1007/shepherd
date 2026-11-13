@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using Shepherd.Battle.UI.Arena;
 using Shepherd.Exploration.Case01;
 using UnityEngine;
@@ -48,8 +48,11 @@ namespace Shepherd.Exploration.Lantern
 
         private float time;
         private Text debugText, hintText, promptText, progressText, readTitle, readBody, toastText, endText, shieldText;
+        private Image endPanel;
         private Image crosshair, chargeBar, chargeBack, healthBar, healthBack, energyBar, energyBack, hurtOverlay, fadeOverlay, readPanel;
-        private Text downText;
+        private Text downText, bossName, bossHint;
+        private Image bossBack, bossBar, bossTrail;
+        private float bossTrailHp;
         private GameObject canvasGo;
         private bool cursorFree;
         private readonly LegacyExploreInput input = new LegacyExploreInput();
@@ -81,7 +84,7 @@ namespace Shepherd.Exploration.Lantern
                 simChanged = true;
             }
             RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
-            RenderSettings.ambientLight = new Color(0.035f, 0.038f, 0.045f);
+            RenderSettings.ambientLight = DarkAmbient;
             RenderSettings.fog = false;
             savedReflection = RenderSettings.reflectionIntensity;
             RenderSettings.reflectionIntensity = 0.25f;
@@ -269,7 +272,7 @@ namespace Shepherd.Exploration.Lantern
         {
             if (!Ready) return;
             time += dt;
-            bool locked = Combat.PlayerDown || Flow.Current == LanternFlow.Phase.Collapsing;
+            bool locked = Combat.PlayerDown || Flow.Current == LanternFlow.Phase.Collapsing || Flow.Current == LanternFlow.Phase.Ending && Flow.EndingTime < 3f;
             if (locked) { inp.Move = Vector2.zero; inp.Look = Vector2.zero; act = default(LanternActionInput); if (Inspecting != null) EndInspect(); }
             if (Inspecting != null)
             {
@@ -296,7 +299,21 @@ namespace Shepherd.Exploration.Lantern
             Flow.Step(dt);
             if (dt > 0f && simChanged) Physics.Simulate(dt);
             LanternReveal.Tick(dt);
+            ApplyAmbient(dt);
             UpdateUi();
+        }
+
+        public static readonly Color DarkAmbient = new Color(0.035f, 0.038f, 0.045f);
+        public static readonly Color WarmAmbient = new Color(0.16f, 0.13f, 0.1f);
+        /// <summary>目前套用的環境光亮度（0＝暗、1＝有電的家）。</summary>
+        public float AmbientLevel { get; private set; }
+
+        /// <summary>在住宅裡：有電且燈亮著時環境光變亮、偏暖；沒電或反撲熄燈時接近全黑。</summary>
+        private void ApplyAmbient(float dt)
+        {
+            float want = World.HouseBounds.Contains(Player.transform.position + Vector3.up) ? World.HouseAmbient : 0f;
+            AmbientLevel = dt > 0f ? Mathf.MoveTowards(AmbientLevel, want, dt * 3f) : want;
+            RenderSettings.ambientLight = Color.Lerp(DarkAmbient, WarmAmbient, AmbientLevel);
         }
 
         public string DebugString()
@@ -323,6 +340,7 @@ namespace Shepherd.Exploration.Lantern
             if (Input.GetKeyDown(KeyCode.F3)) GoTo("HouseUpper");
             if (Input.GetKeyDown(KeyCode.F4)) GoTo("Spawn");
             if (Input.GetKeyDown(KeyCode.F6)) GoTo("ArenaStart");
+            if (Input.GetKeyDown(KeyCode.F8) && Flow.Current == LanternFlow.Phase.Boss && Flow.Boss != null) { foreach (var s in World.Switches) s.Hit(); }
             if (Input.GetKeyDown(KeyCode.F7)) CycleRadius();
             if (Input.GetKeyDown(KeyCode.F9)) CycleHouseScale();
             if (Input.GetKeyDown(KeyCode.F10)) Flow.SkipToBoss();
@@ -399,7 +417,7 @@ namespace Shepherd.Exploration.Lantern
             energyBar = Bar(energyBack, new Color(0.6f, 0.85f, 1f, 0.85f));
             shieldText = MakeText("Shield", font, 18, new Vector2(234, 46), TextAnchor.LowerLeft, new Vector2(0, 0));
             hintText = MakeText("Hint", font, 17, new Vector2(24, 14), TextAnchor.LowerLeft, new Vector2(0, 0));
-            hintText.text = "左鍵 射擊（按住蓄力）　E 互動（抓起／按住復原／打開／拿起來看）　Q 擬態錨定　按住Space 聚光　F 提燈　F1 玄關 F2 客廳 F3 二樓 F4 測試房 F6 戰鬥場　F9 房子大小　F10 直接打最終戰　R 重來　F12 數值";
+            hintText.text = "左鍵 射擊（按住蓄力）　E 互動（抓起／按住復原／打開／拿起來看）　Q 擬態錨定　按住Space 聚光　F 提燈　F1 玄關 F2 客廳 F3 二樓 F4 測試房 F6 戰鬥場　F8 最終戰全部開燈　F9 房子大小　F10 直接打最終戰　R 重來　F12 數值";
             hintText.color = new Color(1f, 1f, 1f, 0.5f);
             progressText = MakeText("Progress", font, 22, new Vector2(-30, -24), TextAnchor.UpperRight, new Vector2(1, 1));
             promptText = MakeText("Prompt", font, 22, new Vector2(0, -70), TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f));
@@ -438,8 +456,20 @@ namespace Shepherd.Exploration.Lantern
             downText.enabled = false;
             endText = MakeText("End", font, 34, new Vector2(0, 40), TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f));
             endText.rectTransform.sizeDelta = new Vector2(1400, 200);
-            endText.text = "（暫定）真相拼回來了。\n她曾經在這裡。\n\nR 重新開始";
+            endText.text = "第十七號門　結案（暫定）\n\n真相：艾琳・維爾曾經住在這裡。\n她仍然下落不明。\n但母親手上，有了她存在過的證明。\n\nR 重新開始";
             endText.enabled = false;
+            endPanel = Img("EndPanel", new Vector2(0.5f, 0.5f), new Vector2(0, 40), new Vector2(1100, 520), new Color(0.06f, 0.05f, 0.04f, 0.9f));
+            endPanel.transform.SetSiblingIndex(endText.transform.GetSiblingIndex());
+            endPanel.enabled = false;
+            // 最後的反撲：畫面上方中央的生命條。
+            bossBack = Img("BossBack", new Vector2(0.5f, 1f), new Vector2(0, -64), new Vector2(820, 16), new Color(0f, 0f, 0f, 0.55f));
+            bossTrail = Bar(bossBack, new Color(1f, 0.95f, 0.85f, 0.55f));
+            bossBar = Bar(bossBack, new Color(0.85f, 0.35f, 0.5f, 0.95f));
+            bossName = MakeText("BossName", font, 24, new Vector2(0, -38), TextAnchor.MiddleCenter, new Vector2(0.5f, 1f));
+            bossName.text = "最後的反撲";
+            bossHint = MakeText("BossHint", font, 18, new Vector2(0, -90), TextAnchor.MiddleCenter, new Vector2(0.5f, 1f));
+            bossHint.color = new Color(1f, 0.92f, 0.8f, 0.85f);
+            foreach (var g in new Graphic[] { bossBack, bossName, bossHint }) g.gameObject.SetActive(false);
         }
 
         private Text MakeText(string name, Font font, int size, Vector2 offset, TextAnchor anchor, Vector2 pivot, Transform parent = null)
@@ -478,10 +508,25 @@ namespace Shepherd.Exploration.Lantern
             hurtOverlay.color = new Color(0.55f, 0f, 0f, Combat.PlayerDown ? 0.75f : vign);
             downText.enabled = Combat.PlayerDown;
             progressText.text = Flow.Current == LanternFlow.Phase.Explore ? "修復 " + Flow.Repaired + " / " + Flow.Total + (Combat.MemoriesFound > 0 ? "　記憶碎片 " + Combat.MemoriesFound : "")
-                : Flow.Current == LanternFlow.Phase.Boss && Flow.Boss != null ? "最後的反撲　" + Mathf.CeilToInt(Mathf.Max(0f, Flow.Boss.Hp)) + " / " + LanternBoss.MaxHp : "";
+                : "";
             toastText.text = Flow.ToastTimer > 0f ? Flow.Toast : "";
-            fadeOverlay.color = new Color(0f, 0f, 0f, Flow.CollapseFade);
+            fadeOverlay.color = new Color(0f, 0f, 0f, Flow.Fade);
             endText.enabled = Flow.Current == LanternFlow.Phase.Ended;
+            endPanel.enabled = endText.enabled;
+            var boss = Flow.Boss;
+            bool showBoss = Flow.Current == LanternFlow.Phase.Boss && boss != null;
+            foreach (var g in new Graphic[] { bossBack, bossName, bossHint }) g.gameObject.SetActive(showBoss);
+            if (showBoss)
+            {
+                float k = Mathf.Clamp01(boss.Hp / LanternBoss.MaxHp);
+                bossTrailHp = Mathf.MoveTowards(Mathf.Max(bossTrailHp, k), k, Time.unscaledDeltaTime * 0.35f);
+                bossBar.rectTransform.sizeDelta = new Vector2(820f * k, 0f);
+                bossTrail.rectTransform.sizeDelta = new Vector2(820f * bossTrailHp, 0f);
+                bossBar.color = Color.Lerp(new Color(0.85f, 0.35f, 0.5f, 0.95f), Color.white, boss.Flash);
+                bossHint.text = boss.Lit ? "它在光裡——現在打得痛！" : "它在暗處：射擊亮紅點的電燈開關（" + World.SwitchesOn + " / " + World.Switches.Count + " 盞亮著），把它引進光裡";
+                bossHint.color = boss.Lit ? new Color(1f, 0.9f, 0.6f, 0.95f) : new Color(0.8f, 0.85f, 1f, 0.8f);
+            }
+            else bossTrailHp = 1f;
             readPanel.gameObject.SetActive(false);
             var sbClues = new StringBuilder();
             if (Flow.Current == LanternFlow.Phase.Explore)

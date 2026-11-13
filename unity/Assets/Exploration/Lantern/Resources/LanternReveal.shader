@@ -26,6 +26,9 @@ Shader "Shepherd/Prototype/LanternReveal"
         [Toggle] _UseRoughMap ("Use Roughness Map", Float) = 0
         [Toggle] _AnomalyFromBase ("Anomaly uses Real texture", Float) = 0
         _AnomalySat ("Anomaly Saturation", Range(0,1)) = 0.25
+        [Toggle] _RuinMap ("Anomaly uses its own Ruin maps", Float) = 0
+        [Normal] _AnomalyBump ("Ruin Normal Map", 2D) = "bump" {}
+        _AnomalyRough ("Ruin Roughness (R)", 2D) = "white" {}
         _Cull ("Cull", Float) = 2
     }
 
@@ -41,8 +44,15 @@ Shader "Shepherd/Prototype/LanternReveal"
             float4 _BaseColor, _BaseMap_ST, _AnomalyColor, _AnomalyMap_ST, _EmissionColor, _AnomalyEmission, _EdgeColor;
             float _Mode, _Smoothness, _AnomalySmoothness, _Metallic, _Wobble, _EdgeWidth, _Cull, _WorldUV;
             float4 _BumpMap_ST;
-            float _BumpScale, _UseRoughMap, _AnomalyFromBase, _AnomalySat;
+            float _BumpScale, _UseRoughMap, _AnomalyFromBase, _AnomalySat, _RuinMap;
         CBUFFER_END
+        // 整間房永久恢復真實（修好那個房間的線索）：盒子範圍內、從線索處往外擴散。
+        // Min.xyz／Max.xyz＝盒子；Min.w＞0＝使用中；Seed.xyz＝擴散起點；Seed.w＝目前擴散半徑。
+        float4 _ShepRevealBoxMin[8];
+        float4 _ShepRevealBoxMax[8];
+        float4 _ShepRevealBoxSeed[8];
+        TEXTURE2D(_AnomalyBump); SAMPLER(sampler_AnomalyBump);
+        TEXTURE2D(_AnomalyRough); SAMPLER(sampler_AnomalyRough);
         float4 _ShepRevealSphere;
         // 額外的現實泡泡（穩定能量的撞擊點、已復原的穩定區）：xyz＝中心、w＝半徑；w≤0＝未使用。
         float4 _ShepRevealExtra[8];
@@ -103,6 +113,22 @@ Shader "Shepherd/Prototype/LanternReveal"
                     float de = distance(wp, s.xyz) + (n - 0.5) * w * 0.8;
                     m = max(m, 1.0 - smoothstep(s.w * 0.6, s.w, de));
                     edge = max(edge, 1.0 - saturate(abs(de - s.w * 0.8) / (w * 0.4)));
+                }
+            }
+            [unroll] for (int b = 0; b < 8; b++)
+            {
+                float4 bmin = _ShepRevealBoxMin[b];
+                if (bmin.w > 0.0)
+                {
+                    float3 bmax = _ShepRevealBoxMax[b].xyz;
+                    float3 q = max(bmin.xyz - wp, wp - bmax);
+                    float outside = length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0);
+                    float inBox = 1.0 - smoothstep(-0.02, 0.06, outside);
+                    float4 seed = _ShepRevealBoxSeed[b];
+                    float ds = distance(wp, seed.xyz) + (n - 0.5) * 0.6;
+                    float front = 1.0 - smoothstep(seed.w - 1.2, seed.w, ds);
+                    m = max(m, inBox * front);
+                    if (seed.w < 25.0) edge = max(edge, inBox * (1.0 - saturate(abs(ds - seed.w + 0.5) / 0.35)));
                 }
             }
             edge = edge * edge * edge;
@@ -205,11 +231,25 @@ Shader "Shepherd/Prototype/LanternReveal"
                     anomCol = float4(lerp(float3(g, g, g), baseTex.rgb, _AnomalySat), 1) * _AnomalyColor;
                 }
                 else anomCol = SAMPLE_TEXTURE2D(_AnomalyMap, sampler_AnomalyMap, uv * _AnomalyMap_ST.xy + _AnomalyMap_ST.zw) * _AnomalyColor;
+                float2 uvA = uv * _AnomalyMap_ST.xy + _AnomalyMap_ST.zw;
+                if (_RuinMap > 0.5)
+                {
+                    // 廢墟：異域有自己的貼圖（剝落的灰泥、髒磁磚、舊木板），再降一點飽和、偏冷。
+                    float4 ruin = SAMPLE_TEXTURE2D(_AnomalyMap, sampler_AnomalyMap, uvA);
+                    float g = dot(ruin.rgb, float3(0.3, 0.59, 0.11));
+                    anomCol = float4(lerp(float3(g, g, g), ruin.rgb, _AnomalySat), 1) * _AnomalyColor;
+                }
+                float k = _Mode > 0.5 ? (_Mode > 1.5 ? 0.0 : 1.0) : m;
                 float3 nTS = UnpackNormalScale(SAMPLE_TEXTURE2D(_BumpMap, sampler_BumpMap, uvB), _BumpScale);
+                if (_RuinMap > 0.5)
+                {
+                    float3 nA = UnpackNormalScale(SAMPLE_TEXTURE2D(_AnomalyBump, sampler_AnomalyBump, uvA), _BumpScale);
+                    nTS = normalize(lerp(nA, nTS, k));
+                }
                 float3 nWS = normalize(T * nTS.x + B * nTS.y + n0 * nTS.z);
                 float rough = SAMPLE_TEXTURE2D(_RoughMap, sampler_RoughMap, uvB).r;
                 float realSmooth = _UseRoughMap > 0.5 ? saturate((1.0 - rough) * _Smoothness) : _Smoothness;
-                float k = _Mode > 0.5 ? (_Mode > 1.5 ? 0.0 : 1.0) : m;
+                float anomSmooth = _RuinMap > 0.5 ? saturate((1.0 - SAMPLE_TEXTURE2D(_AnomalyRough, sampler_AnomalyRough, uvA).r) * _AnomalySmoothness) : _AnomalySmoothness;
 
                 InputData d = (InputData)0;
                 d.positionWS = i.wp;
@@ -225,7 +265,7 @@ Shader "Shepherd/Prototype/LanternReveal"
                 SurfaceData s = (SurfaceData)0;
                 s.albedo = lerp(anomCol.rgb, realCol.rgb, k);
                 s.metallic = _Metallic;
-                s.smoothness = lerp(_AnomalySmoothness, realSmooth, k);
+                s.smoothness = lerp(anomSmooth, realSmooth, k);
                 s.occlusion = 1;
                 edge *= 0.32;
                 s.emission = lerp(_AnomalyEmission.rgb, _EmissionColor.rgb, k) + _EdgeColor.rgb * edge;

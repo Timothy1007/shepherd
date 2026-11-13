@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.Text;
 using Shepherd.Exploration.Lantern;
 using UnityEditor;
@@ -82,6 +82,25 @@ namespace Shepherd.Exploration.Editor
                     Shot(qa, rt, Path.Combine(dir, "h09_scale_" + s.ToString("0.00") + ".png"));
                 }
                 qa.SetHouseScale(LanternGraybox.HouseDefaultScale);
+                // 沒電／有電（提燈開著）。
+                qa.Rig.SetOn(true);
+                qa.GoTo("HouseLiving");
+                Frames(qa, 6);
+                Shot(qa, rt, Path.Combine(dir, "p01_unpowered.png"));
+                qa.World.FuseBox.ForceDone();
+                Frames(qa, 45);
+                Shot(qa, rt, Path.Combine(dir, "p02_powered.png"));
+                qa.GoTo("HouseDining");
+                Frames(qa, 4);
+                Shot(qa, rt, Path.Combine(dir, "p03_powered_dining.png"));
+                qa.GoTo("HouseKitchen");
+                Frames(qa, 4);
+                Shot(qa, rt, Path.Combine(dir, "p04_powered_kitchen.png"));
+                qa.GoTo("HouseEleanor");
+                Frames(qa, 4);
+                Shot(qa, rt, Path.Combine(dir, "p05_powered_eleanor.png"));
+                log.AppendLine("powered=" + qa.World.HousePowered + " lamp0=" + qa.World.LampIntensity(0).ToString("F2") + " ambient=" + qa.AmbientLevel.ToString("F2"));
+                qa.SetHouseScale(LanternGraybox.HouseDefaultScale);
                 // 準心校正：對牆射一發，記錄撞擊點與準心的距離。
                 qa.GoTo("Spawn");
                 RaycastHit hit;
@@ -143,8 +162,19 @@ namespace Shepherd.Exploration.Editor
             Act(qa, 40, new LanternActionInput { Interact = true });
             Act(qa, 45, LanternActionInput.None);
             Shot(qa, rt, Path.Combine(dir, "c03_backlash.png"));
-            log.AppendLine("chair done=" + chair.Done + " backlashes=" + qa.Flow.Backlashes + " houseLight=" + w.HouseLightScale.ToString("F2") + " enemies=" + qa.Combat.Enemies.Count);
+            log.AppendLine("chair done=" + chair.Done + " backlashes=" + qa.Flow.Backlashes + " houseLight=" + w.HouseLightScale.ToString("F2") + " enemies=" + qa.Combat.Enemies.Count + " relocations=" + qa.Combat.Relocations);
             qa.Combat.ClearEnemies();
+            Act(qa, 30, LanternActionInput.None);
+            // 修好的房間：提燈關著也是真實的家。
+            qa.GoTo("HouseDining");
+            qa.Rig.SetOn(false);
+            Frames(qa, 30);
+            Shot(qa, rt, Path.Combine(dir, "c05_room_real_lantern_off.png"));
+            qa.GoTo("HouseLiving");
+            Frames(qa, 4);
+            Shot(qa, rt, Path.Combine(dir, "c06_living_real_lantern_off.png"));
+            qa.Rig.SetOn(true);
+            log.AppendLine("rooms real=" + LanternReveal.ActiveRooms + " waveCleared=" + qa.Flow.WavesCleared);
             // 抓起藍坐墊椅子（後廚）。
             qa.GoTo("HouseScullery");
             var blue = w.Tetherables.Find(t => t.name == "HouseBlueChair");
@@ -181,6 +211,19 @@ namespace Shepherd.Exploration.Editor
             var boss = qa.Flow.Boss;
             if (boss != null)
             {
+                Act(qa, 10, LanternActionInput.None);
+                Aim(qa, boss.transform.position + Vector3.up * 2.2f);
+                Frames(qa, 1);
+                Shot(qa, rt, Path.Combine(dir, "k05_boss_dark.png"));
+                qa.World.Switches[3].Hit();
+                qa.World.Switches[0].Hit();
+                boss.transform.position = qa.World.Switches[3].Zone + Vector3.forward * 2f;
+                qa.Player.Teleport(qa.World.Switches[3].Zone + new Vector3(2.5f, 0f, -3.2f), 0f, 0f);
+                Act(qa, 3, LanternActionInput.None);
+                Aim(qa, boss.transform.position + Vector3.up * 2.2f);
+                Frames(qa, 1);
+                Shot(qa, rt, Path.Combine(dir, "k06_boss_lit.png"));
+                log.AppendLine("boss lit=" + boss.Lit + " switchesOn=" + qa.World.SwitchesOn);
                 for (int i = 0; i < 150 && qa.Flow.Phrases.Count == 0; i++) qa.Step(1f / 30f, ExploreInput.None);
                 Act(qa, 12, LanternActionInput.None);
                 Aim(qa, boss.transform.position + Vector3.up * 2.5f);
@@ -196,6 +239,19 @@ namespace Shepherd.Exploration.Editor
                     Shot(qa, rt, Path.Combine(dir, "k04_warm_line.png"));
                 }
                 log.AppendLine("boss phrases=" + qa.Flow.Phrases.Count + " warm=" + qa.Flow.WarmLinesShown);
+                // 結局：擊倒 → 回到恢復真實的家。
+                for (int i = 0; i < 80 && boss.Alive; i++) { boss.Lit = true; boss.Hit(1f, true); }
+                for (int i = 0; i < 200 && qa.Flow.EndingTime < 7.5f; i++) qa.Step(1f / 30f, ExploreInput.None);
+                Frames(qa, 1);
+                Shot(qa, rt, Path.Combine(dir, "k07_ending_home.png"));
+                qa.Rig.SetOn(false);
+                qa.GoTo("HouseDining");
+                Frames(qa, 3);
+                Shot(qa, rt, Path.Combine(dir, "k08_ending_dining.png"));
+                qa.GoTo("HouseUpper");
+                Frames(qa, 3);
+                Shot(qa, rt, Path.Combine(dir, "k09_ending_upper.png"));
+                log.AppendLine("ending phase=" + qa.Flow.Current + " t=" + qa.Flow.EndingTime.ToString("F1") + " line=" + qa.Flow.EndingLine);
             }
         }
 

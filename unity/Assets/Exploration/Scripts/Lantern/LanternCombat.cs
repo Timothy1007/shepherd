@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Shepherd.Battle.UI.Arena;
 using UnityEngine;
 
@@ -41,12 +41,83 @@ namespace Shepherd.Exploration.Lantern
         private bool lungeHit;
         private float orbCooldown = 0.8f;
         private float lastDamage;
+        // 找路：沿 NavMesh 路徑點走（每 0.5 秒重算一次）。
+        private readonly List<Vector3> path = new List<Vector3>();
+        private int pathIndex;
+        private float repath;
+        private Vector3 stuckFrom;
+        private float stuckTimer, noPathTimer;
+        /// <summary>卡住了（幾秒內幾乎沒移動，或根本找不到路）：由 LanternCombat 換個地方重生。</summary>
+        public bool Stuck { get; private set; }
+        public int StuckCount { get; private set; }
+        public const float StuckSeconds = 3.5f;
+        /// <summary>目前是否正沿著 NavMesh 路徑移動（測試用）。</summary>
+        public bool UsingPath { get; private set; }
 
         public void Init()
         {
             Hp = MaxHp;
             Current = State.Chase;
             StateTimer = 0f;
+            ResetPath();
+        }
+
+        /// <summary>移到新位置（卡住時重生用）。</summary>
+        public void Relocate(Vector3 p)
+        {
+            transform.position = p;
+            ResetPath();
+            if (Current != State.Stunned && Alive) Current = State.Chase;
+        }
+
+        private void ResetPath()
+        {
+            path.Clear();
+            pathIndex = 0;
+            repath = 0f;
+            stuckFrom = transform.position;
+            stuckTimer = 0f;
+            noPathTimer = 0f;
+            Stuck = false;
+        }
+
+        /// <summary>沿 NavMesh 走向玩家；沒有 NavMesh 或找不到路回傳 false（改用舊的直線＋閃避）。</summary>
+        private bool NavMove(Vector3 player, float speed, float dt)
+        {
+            UsingPath = false;
+            if (LanternNav.Count == 0) return false;
+            repath -= dt;
+            if (repath <= 0f)
+            {
+                repath = 0.5f;
+                if (LanternNav.Path(transform.position, player, path)) { noPathTimer = 0f; pathIndex = 1; }
+                else { path.Clear(); noPathTimer += 0.5f; }
+            }
+            if (path.Count == 0) return false;
+            if (pathIndex >= path.Count) { repath = 0f; return true; }
+            var target = path[pathIndex];
+            var d = target - transform.position;
+            var flat = new Vector3(d.x, 0f, d.z);
+            if (flat.magnitude < 0.12f) { pathIndex++; return true; }
+            var step = flat.normalized * speed * dt;
+            if (step.sqrMagnitude > flat.sqrMagnitude) step = flat;
+            var p = transform.position + step;
+            Vector3 on;
+            if (LanternNav.Sample(p + Vector3.up * 0.3f, 0.9f, out on)) p.y = on.y;
+            transform.position = p;
+            transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(flat), 1f - Mathf.Exp(-8f * dt));
+            UsingPath = true;
+            return true;
+        }
+
+        private void CheckStuck(float dt, float dist)
+        {
+            stuckTimer += dt;
+            if (noPathTimer > 2.5f) { if (!Stuck) StuckCount++; Stuck = true; return; }
+            if (stuckTimer < StuckSeconds) return;
+            if (Vector3.Distance(transform.position, stuckFrom) < 0.6f && dist > LungeRange + 0.6f) { StuckCount++; Stuck = true; }
+            stuckTimer = 0f;
+            stuckFrom = transform.position;
         }
 
         public void Hit(float strength, bool thrown)
@@ -71,6 +142,16 @@ namespace Shepherd.Exploration.Lantern
         }
 
         public float LastDamage => lastDamage;
+
+        /// <summary>看得到玩家才丟光球（不會隔著牆亂丟）。</summary>
+        private bool SeesPlayer(Vector3 player)
+        {
+            RaycastHit hit;
+            var from = transform.position + Vector3.up * 1.3f;
+            var to = player + Vector3.up * 1.2f;
+            if (!Physics.Linecast(from, to, out hit, ~(1 << LanternRig.ViewLayer), QueryTriggerInteraction.Ignore)) return true;
+            return hit.collider is CharacterController || hit.collider.attachedRigidbody != null;
+        }
 
         private bool Blocked(Vector3 dir, float dist)
         {
@@ -101,8 +182,10 @@ namespace Shepherd.Exploration.Lantern
         {
             float damage = 0f;
             var to = player - transform.position;
+            // 不同樓層（上下差超過 1.5 m）不能隔著地板攻擊：當成很遠，繼續找路。
+            float dy = Mathf.Abs(to.y);
             to.y = 0f;
-            float dist = to.magnitude;
+            float dist = dy > 1.5f ? Mathf.Max(to.magnitude, 20f) : to.magnitude;
             StateTimer -= dt;
             orbCooldown -= dt;
             float pulse = 0f;
@@ -111,8 +194,9 @@ namespace Shepherd.Exploration.Lantern
                 case State.Chase:
                     if (!playerAlive) break;
                     if (dist < LungeRange) { Current = State.WindUp; StateTimer = WindUpSeconds; Say(LanternAudio.EnemyWarn); break; }
-                    if (dist > 4.5f && dist < 12f && orbCooldown <= 0f) { Current = State.OrbWindUp; StateTimer = OrbWindUpSeconds; Say(LanternAudio.EnemyOrb); break; }
-                    Move(to, Speed * SpeedScale, dt);
+                    if (dist > 4.5f && dist < 12f && orbCooldown <= 0f && SeesPlayer(player)) { Current = State.OrbWindUp; StateTimer = OrbWindUpSeconds; Say(LanternAudio.EnemyOrb); break; }
+                    if (!NavMove(player, Speed * SpeedScale, dt)) Move(to, Speed * SpeedScale, dt);
+                    CheckStuck(dt, dist);
                     break;
                 case State.WindUp:
                     pulse = 1f - Mathf.Clamp01(StateTimer / WindUpSeconds);
@@ -331,9 +415,12 @@ namespace Shepherd.Exploration.Lantern
             get { foreach (var e in Enemies) if (e != null && e.Alive && e.gameObject.activeSelf) yield return e; }
         }
 
+        /// <summary>QA／測試用：玩家不會受傷。</summary>
+        public bool Invulnerable;
+
         public void Damage(float amount)
         {
-            if (PlayerDown || amount <= 0f) return;
+            if (PlayerDown || amount <= 0f || Invulnerable) return;
             Health = Mathf.Max(0f, Health - amount);
             sinceDamage = 0f;
             HurtFlash = Mathf.Min(1f, HurtFlash + amount / 40f + 0.25f);
@@ -374,6 +461,15 @@ namespace Shepherd.Exploration.Lantern
                 e.SpeedScale = shielded ? 0.3f : exposed ? 0.5f : 1f;
                 if (shielded) Erode?.Invoke(e.transform.position, dt * 1.5f);
                 float hit = e.gameObject.activeSelf ? e.Step(dt, time, feet, !PlayerDown, Orbs, world.Root, orbMat) : 0f;
+                // 卡住了：換到玩家附近、但看不到的地方重新出現。
+                if (e.Stuck && e.Alive && Region(e.transform.position) != Region(feet)) e.Relocate(e.transform.position);
+                else if (e.Stuck && e.Alive)
+                {
+                    var area = world.HouseBounds.Contains(feet + Vector3.up) ? world.HouseInterior : world.ArenaBounds;
+                    Vector3 to;
+                    if (HiddenSpawnNear(feet, area, out to)) { e.Relocate(to); Relocations++; }
+                    else e.Relocate(e.transform.position);
+                }
                 if (hit > 0f && InShield != null && InShield(feet)) { Erode?.Invoke(feet, 2.5f); hit *= 0.3f; }
                 Damage(hit);
                 if (!e.Alive && counted.Add(e)) { Kills++; Drop(e.transform.position); }
@@ -429,6 +525,63 @@ namespace Shepherd.Exploration.Lantern
             var ab = b - a;
             float t = ab.sqrMagnitude > 1e-6f ? Mathf.Clamp01(Vector3.Dot(p - a, ab) / ab.sqrMagnitude) : 0f;
             return Vector3.Distance(p, a + ab * t);
+        }
+
+        public int Relocations { get; private set; }
+
+        /// <summary>1＝住宅、2＝戰鬥場、3＝最終戰房間、0＝其他（卡住的失序體只會在玩家所在的區域重新出現）。</summary>
+        private int Region(Vector3 p)
+        {
+            p += Vector3.up;
+            var hb = world.HouseBounds;
+            hb.Expand(new Vector3(0f, 6f, 0f));
+            if (hb.Contains(p)) return 1;
+            if (world.ArenaBounds.Contains(p)) return 2;
+            if (world.BossBounds.Contains(p)) return 3;
+            return 0;
+        }
+        private readonly List<Vector3> pathScratch = new List<Vector3>();
+
+        /// <summary>
+        /// 在玩家附近、但現在看不到的地方找一個出生點：沿 NavMesh 走過來要 minPath～maxPath 公尺，
+        /// 而且不在畫面裡（或被牆擋住）。找不到回傳 false。
+        /// </summary>
+        public bool HiddenSpawnNear(Vector3 feet, Bounds area, out Vector3 spawn, float minPath = 5.5f, float maxPath = 16f)
+        {
+            spawn = feet;
+            if (LanternNav.Count == 0) return false;
+            var cam = rig.Camera;
+            float best = float.MaxValue;
+            bool found = false;
+            int nS = 0, nY = 0, nA = 0, nP = 0, nL = 0, nV = 0;
+            for (int k = 0; k < 40; k++)
+            {
+                float a = k * 137.5f * Mathf.Deg2Rad;
+                float r = 4.5f + (k % 5) * 1.6f;
+                var p = feet + new Vector3(Mathf.Cos(a) * r, 0.4f, Mathf.Sin(a) * r);
+                Vector3 on;
+                if (!LanternNav.Sample(p, 1.5f, out on)) { nS++; continue; }
+                if (Mathf.Abs(on.y - feet.y) > 1.6f) { nY++; continue; }
+                if (!area.Contains(on + Vector3.up)) { nA++; continue; }
+                if (!LanternNav.Path(on, feet, pathScratch)) { nP++; continue; }
+                float len = LanternNav.Length(pathScratch);
+                if (len < minPath || len > maxPath) { nL++; continue; }
+                if (cam != null && Visible(cam, on + Vector3.up * 1.1f)) { nV++; continue; }
+                if (len < best) { best = len; spawn = on; found = true; }
+            }
+            LastSpawnDebug = "sample " + nS + " floor " + nY + " area " + nA + " path " + nP + " len " + nL + " visible " + nV + " found " + found;
+            return found;
+        }
+
+        public string LastSpawnDebug { get; private set; } = "";
+
+        private static bool Visible(Camera cam, Vector3 p)
+        {
+            var vp = cam.WorldToViewportPoint(p);
+            if (vp.z <= 0f || vp.x < -0.15f || vp.x > 1.15f || vp.y < -0.15f || vp.y > 1.15f) return false;
+            RaycastHit hit;
+            if (!Physics.Linecast(cam.transform.position, p, out hit, ~(1 << LanternRig.ViewLayer), QueryTriggerInteraction.Ignore)) return true;
+            return hit.collider.attachedRigidbody != null || Vector3.Distance(hit.point, p) < 0.5f;
         }
 
         private Vector3 FarthestSpawn(Vector3 from)

@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Shepherd.Battle.UI.Arena;
 using UnityEngine;
 
@@ -163,6 +163,9 @@ namespace Shepherd.Exploration.Lantern
             ArenaArt.Kill(shieldMat);
         }
 
+        /// <summary>打開的電燈開關數（射擊或按 E）。</summary>
+        public int SwitchesHit { get; private set; }
+
         public void AddEnergy(float v) => Energy = Mathf.Min(MaxEnergy, Energy + v);
         public static float ShotCost(float charge) => 10f + 10f * Mathf.Clamp01(charge);
 
@@ -180,8 +183,8 @@ namespace Shepherd.Exploration.Lantern
         }
 
         /// <summary>準星直接對到的東西：只接受指定的元件種類（不會把牆的 Transform 當成目標）。</summary>
-        private static readonly System.Type[] TargetTypes = { typeof(LanternTarget), typeof(LanternEnemy), typeof(LanternBoss), typeof(LanternPhrase) };
-        private static readonly System.Type[] InteractTypes = { typeof(LanternTetherable), typeof(LanternRestorable), typeof(LanternToggle), typeof(LanternInspectable) };
+        private static readonly System.Type[] TargetTypes = { typeof(LanternTarget), typeof(LanternEnemy), typeof(LanternBoss), typeof(LanternPhrase), typeof(LanternSwitch) };
+        private static readonly System.Type[] InteractTypes = { typeof(LanternTetherable), typeof(LanternRestorable), typeof(LanternToggle), typeof(LanternInspectable), typeof(LanternSwitch) };
 
         private static Component Pick(Collider col, System.Type[] types)
         {
@@ -257,6 +260,7 @@ namespace Shepherd.Exploration.Lantern
             foreach (var r in world.Restorables) if (r != null && !r.Done) yield return r;
             foreach (var t in world.Toggles) if (t != null) yield return t;
             foreach (var i in world.Inspectables) if (i != null) yield return i;
+            foreach (var s in world.Switches) if (s != null && !s.On) yield return s;
         }
 
         // ---------------- 每個影格 ----------------
@@ -377,6 +381,7 @@ namespace Shepherd.Exploration.Lantern
             var rest = aimed as LanternRestorable;
             var toggle = aimed as LanternToggle;
             var insp = aimed as LanternInspectable;
+            var sw = aimed as LanternSwitch;
             if (tether != null)
             {
                 Prompt = "E 抓起" + tether.Label;
@@ -387,6 +392,11 @@ namespace Shepherd.Exploration.Lantern
             {
                 Prompt = toggle.Prompt;
                 if (eDown) { toggle.Toggle(); Toggled++; Audio?.Play(LanternAudio.Toggle, 0.6f); }
+            }
+            else if (sw != null)
+            {
+                Prompt = "E 打開" + sw.Label + "（也可以從遠處射擊開關）";
+                if (eDown && sw.Hit()) { SwitchesHit++; Audio?.Play(LanternAudio.Toggle, 0.8f); }
             }
             else if (insp != null)
             {
@@ -431,7 +441,8 @@ namespace Shepherd.Exploration.Lantern
                 if (s.Homing != null && s.Homing.gameObject.activeInHierarchy)
                 {
                     var p0 = s.Origin + s.Dir * s.Dist;
-                    var want = (s.Homing.position + Vector3.up * 1.0f - p0).normalized;
+                    var hc = s.Homing.GetComponentInChildren<Collider>();
+                    var want = ((hc != null ? hc.bounds.center : s.Homing.position + Vector3.up * 1.0f) - p0).normalized;
                     s.Dir = Vector3.RotateTowards(s.Dir, want, Mathf.Deg2Rad * 60f * dt, 0f);
                     s.Origin = p0 - s.Dir * s.Dist;
                 }
@@ -468,6 +479,8 @@ namespace Shepherd.Exploration.Lantern
             if (boss != null && boss.Alive) { boss.Hit(charge, false); EnemyHits++; }
             var phrase = c.GetComponentInParent<LanternPhrase>();
             if (phrase != null) phrase.Shatter();
+            var sw = c.GetComponentInParent<LanternSwitch>();
+            if (sw != null && sw.Hit()) { SwitchesHit++; Burst(p, 60); Audio?.Play(LanternAudio.Toggle, 0.9f); }
         }
 
         private void Burst(Vector3 p, int count)

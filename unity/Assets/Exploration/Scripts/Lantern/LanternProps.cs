@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace Shepherd.Exploration.Lantern
 {
@@ -47,6 +47,14 @@ namespace Shepherd.Exploration.Lantern
         public float Progress { get; private set; }
         public bool Done { get; private set; }
         public float AnchorRadius = 1.5f;
+
+        /// <summary>QA／測試用：直接完成。</summary>
+        public void ForceDone()
+        {
+            Progress = 1f;
+            Done = true;
+            Apply();
+        }
 
         public void Init(Vector3 brokenPos, Quaternion brokenRot, Vector3 fixedPos, Quaternion fixedRot)
         {

@@ -1,4 +1,4 @@
-using UnityEditor;
+﻿using UnityEditor;
 
 namespace Shepherd.Exploration.Editor
 {
@@ -8,6 +8,8 @@ namespace Shepherd.Exploration.Editor
     /// </summary>
     public sealed class LanternAssetImport : AssetPostprocessor
     {
+        public override uint GetVersion() => 2;
+
         private bool Ours => assetPath.Replace('\\', '/').Contains("/Lantern/Resources/PH/");
 
         private void OnPreprocessTexture()
@@ -27,7 +29,10 @@ namespace Shepherd.Exploration.Editor
         {
             if (!Ours) return;
             var mi = (ModelImporter)assetImporter;
-            mi.materialImportMode = ModelImporterMaterialImportMode.None;
+            // 材質只保留名稱（嵌在模型裡、不產生檔案）：執行時依名稱對應到哪一組貼圖，再換成 LanternReveal 材質。
+            mi.materialImportMode = ModelImporterMaterialImportMode.ImportStandard;
+            mi.materialLocation = ModelImporterMaterialLocation.InPrefab;
+            mi.materialSearch = ModelImporterMaterialSearch.Local;
             mi.addCollider = false;
             mi.importCameras = false;
             mi.importLights = false;

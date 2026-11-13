@@ -82,7 +82,73 @@ namespace Shepherd.Exploration.Lantern
             SetShape(Vector3.forward, Vector3.one);
             for (int i = 0; i < ExtraCount; i++) { extra[i] = Vector4.zero; life[i] = 0f; }
             PushExtra();
+            ClearRooms();
         }
+
+        /// <summary>清掉永久穩定區（最終戰的燈區要重設時用）。</summary>
+        public static void ClearAnchors()
+        {
+            for (int i = TempSlots; i < ExtraCount; i++) extra[i] = Vector4.zero;
+            PushExtra();
+        }
+
+        /// <summary>指定某一格永久穩定區（radius ≤ 0＝關掉）。slot 0–3 對應第 4–7 格。</summary>
+        public static void SetAnchor(int slot, Vector3 pos, float radius)
+        {
+            int i = TempSlots + Mathf.Clamp(slot, 0, ExtraCount - TempSlots - 1);
+            extra[i] = new Vector4(pos.x, pos.y, pos.z, Mathf.Max(0f, radius));
+            fullRadius[i] = radius;
+            life[i] = -1f;
+            PushExtra();
+        }
+
+        // ---------------- 整間房恢復真實 ----------------
+
+        public const int RoomCount = 8;
+        public static readonly int BoxMinId = Shader.PropertyToID("_ShepRevealBoxMin");
+        public static readonly int BoxMaxId = Shader.PropertyToID("_ShepRevealBoxMax");
+        public static readonly int BoxSeedId = Shader.PropertyToID("_ShepRevealBoxSeed");
+        /// <summary>真實從線索處往外擴散的速度（m/s）。</summary>
+        public const float RoomSpreadSpeed = 6f;
+        public const float RoomSpreadMax = 40f;
+        private static readonly Vector4[] boxMin = new Vector4[RoomCount];
+        private static readonly Vector4[] boxMax = new Vector4[RoomCount];
+        private static readonly Vector4[] boxSeed = new Vector4[RoomCount];
+
+        private static void PushRooms()
+        {
+            Shader.SetGlobalVectorArray(BoxMinId, boxMin);
+            Shader.SetGlobalVectorArray(BoxMaxId, boxMax);
+            Shader.SetGlobalVectorArray(BoxSeedId, boxSeed);
+        }
+
+        public static void ClearRooms()
+        {
+            for (int i = 0; i < RoomCount; i++) { boxMin[i] = Vector4.zero; boxMax[i] = Vector4.zero; boxSeed[i] = Vector4.zero; }
+            PushRooms();
+        }
+
+        /// <summary>讓一整個範圍（房間）永久恢復真實；從 seed 往外擴散。instant＝立刻整間變真實。回傳格子編號（滿了回傳 -1）。</summary>
+        public static int AddRoom(Bounds room, Vector3 seed, bool instant = false)
+        {
+            for (int i = 0; i < RoomCount; i++)
+                if (boxMin[i].w <= 0f)
+                {
+                    boxMin[i] = new Vector4(room.min.x, room.min.y, room.min.z, 1f);
+                    boxMax[i] = new Vector4(room.max.x, room.max.y, room.max.z, 0f);
+                    boxSeed[i] = new Vector4(seed.x, seed.y, seed.z, instant ? RoomSpreadMax : 0.01f);
+                    PushRooms();
+                    return i;
+                }
+            return -1;
+        }
+
+        public static int ActiveRooms
+        {
+            get { int n = 0; for (int i = 0; i < RoomCount; i++) if (boxMin[i].w > 0f) n++; return n; }
+        }
+
+        public static float RoomSpread(int i) => boxSeed[Mathf.Clamp(i, 0, RoomCount - 1)].w;
 
         private static void PushExtra() => Shader.SetGlobalVectorArray(ExtraId, extra);
 
@@ -140,6 +206,22 @@ namespace Shepherd.Exploration.Lantern
                 extra[i].w = Mathf.Max(0.01f, fullRadius[i] * Mathf.SmoothStep(0f, 1f, k));
             }
             PushExtra();
+            bool spread = false;
+            for (int i = 0; i < RoomCount; i++)
+                if (boxMin[i].w > 0f && boxSeed[i].w < RoomSpreadMax) { boxSeed[i].w = Mathf.Min(RoomSpreadMax, boxSeed[i].w + RoomSpreadSpeed * dt); spread = true; }
+            if (spread) PushRooms();
+        }
+
+        private static bool InRoom(Vector3 p)
+        {
+            for (int i = 0; i < RoomCount; i++)
+            {
+                if (boxMin[i].w <= 0f) continue;
+                var mn = boxMin[i]; var mx = boxMax[i];
+                if (p.x < mn.x || p.y < mn.y || p.z < mn.z || p.x > mx.x || p.y > mx.y || p.z > mx.z) continue;
+                if (Vector3.Distance(p, boxSeed[i]) < boxSeed[i].w - 0.6f) return true;
+            }
+            return false;
         }
 
         /// <summary>與 shader 相同的判斷（不含邊緣雜訊；遮罩過半＝真實）：這個點目前是否顯示真實。</summary>
@@ -148,7 +230,7 @@ namespace Shepherd.Exploration.Lantern
             if (Radius > 0f && ShapedDistance(p) < Radius * 0.725f) return true;
             for (int i = 0; i < ExtraCount; i++)
                 if (extra[i].w > 0f && Vector3.Distance(p, extra[i]) < extra[i].w * 0.8f) return true;
-            return false;
+            return InRoom(p);
         }
 
         // ---------------- 特效材質 ----------------
@@ -226,6 +308,28 @@ namespace Shepherd.Exploration.Lantern
         }
 
         public static bool HasPH(string tex, string folder) => Resources.Load<Texture2D>("PH/" + folder + "/" + tex + "_diff") != null;
+
+        /// <summary>
+        /// 讓異域（暗處）顯示「廢墟」：用另一組 Poly Haven 貼圖（剝落的灰泥、髒磁磚、舊木板），而不是同一張貼圖去飽和。
+        /// metersPerTile＞0＝世界座標 UV；sat＝廢墟保留多少原色。找不到貼圖時維持原本的異域外觀。
+        /// </summary>
+        public static bool AddRuin(Material m, string ruinTex, float metersPerTile, Color ruinTint, float sat = 0.45f, float smooth = 0.5f)
+        {
+            var diff = Resources.Load<Texture2D>("PH/Tex/" + ruinTex + "_diff");
+            if (m == null || diff == null) return false;
+            m.SetTexture("_AnomalyMap", diff);
+            var nor = Resources.Load<Texture2D>("PH/Tex/" + ruinTex + "_nor");
+            var rough = Resources.Load<Texture2D>("PH/Tex/" + ruinTex + "_rough");
+            if (nor != null) m.SetTexture("_AnomalyBump", nor);
+            if (rough != null) m.SetTexture("_AnomalyRough", rough);
+            m.SetFloat("_RuinMap", 1f);
+            m.SetFloat("_AnomalyFromBase", 0f);
+            m.SetColor("_AnomalyColor", ruinTint);
+            m.SetFloat("_AnomalySat", sat);
+            m.SetFloat("_AnomalySmoothness", smooth);
+            if (metersPerTile > 0f) m.SetTextureScale("_AnomalyMap", Vector2.one / metersPerTile);
+            return true;
+        }
 
         // ---------------- 程式產生的灰盒貼圖 ----------------
 

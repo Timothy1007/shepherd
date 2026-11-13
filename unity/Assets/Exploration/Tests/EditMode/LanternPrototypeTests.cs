@@ -1,4 +1,4 @@
-using System.Linq;
+﻿using System.Linq;
 using NUnit.Framework;
 using Shepherd.Exploration.Lantern;
 using UnityEngine;
@@ -422,7 +422,11 @@ namespace Shepherd.Exploration.Tests
             var sb = sofaRends[0].bounds;
             foreach (var r in sofaRends) sb.Encapsulate(r.bounds);
             Assert.Less(sb.size.y, 1.05f, "沙發維持接近真實的高度（家具不跟著大幅放大）：" + sb.size.y.ToString("F2"));
-            Assert.AreEqual(LanternReveal.Mode.Dual, LanternReveal.GetMode(sofaRends[0].sharedMaterial), "家具模型也有真實／異域兩個樣子");
+            Assert.AreEqual(LanternReveal.Mode.RealOnly, LanternReveal.GetMode(sofaRends[0].sharedMaterial), "沙發只存在於真實（有人住的家）");
+            var sheet = w.HouseRoot.GetComponentsInChildren<Renderer>(true).Where(r => r.name == "DustSheet").ToList();
+            Assert.Greater(sheet.Count, 5, "廢墟裡的家具蓋著防塵布");
+            Assert.AreEqual(LanternReveal.Mode.AnomalyOnly, LanternReveal.GetMode(sheet[0].sharedMaterial));
+            Assert.IsNotNull(sofaRoot.GetComponent<Collider>(), "暗處也不會穿過沙發");
             qa.SetHouseScale(1.6f);
             living = w.Marks["HouseLiving"].position + Vector3.up * 2.4f;
             float bigger = RoomWidth(qa, new Vector3(living.x - 1.5f, living.y, living.z), Vector3.forward);
@@ -593,7 +597,7 @@ namespace Shepherd.Exploration.Tests
             Assert.AreEqual(LanternFlow.Phase.Collapsing, qa.Flow.Current, "最後一個完成（預警後）＝場景崩壞");
             for (int i = 0; i < 100; i++) qa.Step(Dt, ExploreInput.None);
             Assert.AreEqual(LanternFlow.Phase.Boss, qa.Flow.Current);
-            Assert.IsTrue(w.ArenaBounds.Contains(qa.Player.transform.position + Vector3.up), "被拉進異域深處");
+            Assert.IsTrue(w.BossBounds.Contains(qa.Player.transform.position + Vector3.up), "被拉進她的記憶深處（放大的客廳）");
             Assert.IsTrue(qa.Flow.Boss != null && qa.Flow.Boss.Alive, "最後的反撲");
             Assert.IsFalse(qa.Combat.Enemies.Any(e => e != null && e.Alive), "小怪清空");
         }
@@ -613,10 +617,186 @@ namespace Shepherd.Exploration.Tests
             Assert.IsTrue(qa.Actions.Targets().Contains(phrase), "話語可以被瞄準");
             phrase.Shatter();
             Assert.AreEqual(1, qa.Flow.WarmLinesShown, "射碎後浮現溫暖的另一面");
-            for (int i = 0; i < 20; i++) boss.Hit(1f, true);
+            for (int i = 0; i < 60 && boss.Alive; i++) { boss.Lit = true; boss.Hit(1f, true); }
             Assert.IsFalse(boss.Alive);
             for (int i = 0; i < 90; i++) qa.Step(Dt, ExploreInput.None);
-            Assert.AreEqual(LanternFlow.Phase.Ended, qa.Flow.Current, "擊倒＝結束");
+            Assert.AreEqual(LanternFlow.Phase.Ending, qa.Flow.Current, "擊倒＝結局演出");
+            for (int i = 0; i < (int)(LanternFlow.EndingSeconds / Dt) + 10; i++) qa.Step(Dt, ExploreInput.None);
+            Assert.AreEqual(LanternFlow.Phase.Ended, qa.Flow.Current, "結案");
+        }
+
+        // ---------------- v0.6：廢墟與家、燈光、找路、最終戰 ----------------
+
+        [Test]
+        public void RepairingAClue_MakesTheWholeRoomReal_SpreadingFromTheClue()
+        {
+            var qa = NewQa();
+            var w = qa.World;
+            var chair = w.Clues.First(c => c.Id == "chair");
+            var corner = LanternGraybox.HouseOrigin + new Vector3(0.4f * w.HouseScale, 1.2f, 4.6f * w.HouseScale);
+            qa.Rig.SetOn(false);
+            Act(qa, 5, LanternActionInput.None);
+            Assert.IsFalse(LanternReveal.IsReal(corner), "修好之前，餐廳的角落是廢墟");
+            qa.Rig.SetOn(true);
+            qa.GoTo("HouseDining");
+            Aim(qa, chair.GetComponent<Collider>().bounds.center);
+            Act(qa, 1, LanternActionInput.None);
+            Act(qa, 70, new LanternActionInput { Interact = true });
+            Assert.IsTrue(chair.Done);
+            Assert.AreEqual(1, LanternReveal.ActiveRooms, "整個房間被標記成永久真實");
+            qa.Rig.SetOn(false);
+            Act(qa, 60, LanternActionInput.None);
+            Assert.IsTrue(LanternReveal.IsReal(corner), "提燈關著，餐廳角落也已經是真實的家");
+            var living = LanternGraybox.HouseOrigin + new Vector3(1.0f * w.HouseScale, 1.2f, 2.0f * w.HouseScale);
+            Assert.IsFalse(LanternReveal.IsReal(living), "別的房間還是廢墟");
+        }
+
+        [Test]
+        public void Power_IsAStrongContrast_BacklashBlacksOutUntilTheWaveIsDefeated()
+        {
+            var qa = NewQa();
+            var w = qa.World;
+            Act(qa, 10, LanternActionInput.None);
+            float dark = 0f;
+            for (int i = 0; i < w.HouseLamps.Count; i++) dark = Mathf.Max(dark, w.LampIntensity(i));
+            w.FuseBox.ForceDone();
+            Act(qa, 60, LanternActionInput.None);
+            Assert.IsTrue(w.HousePowered);
+            float bright = w.LampIntensity(0);
+            Assert.Greater(bright, dark * 6f, "有電＝很亮（" + bright.ToString("F2") + "），沒電幾乎全黑（" + dark.ToString("F2") + "）");
+            Assert.Greater(qa.AmbientLevel, 0.8f, "有電時環境光也變亮");
+            qa.Combat.Invulnerable = true;
+            qa.Flow.Backlash();
+            Act(qa, 30, LanternActionInput.None);
+            Assert.IsTrue(qa.Flow.WaveActive);
+            Assert.Less(w.LampIntensity(0), 0.01f, "反撲：燈全部熄滅");
+            Assert.Less(qa.AmbientLevel, 0.2f);
+            Act(qa, 300, LanternActionInput.None);
+            Assert.IsTrue(qa.Flow.WaveActive, "過了 10 秒還是黑的：要打倒這一波燈才會回來");
+            foreach (var e in qa.Combat.Enemies) if (e != null && e.Alive) for (int k = 0; k < 6 && e.Alive; k++) e.Hit(1f, true);
+            Act(qa, 60, LanternActionInput.None);
+            Assert.IsFalse(qa.Flow.WaveActive);
+            Assert.AreEqual(1, qa.Flow.WavesCleared);
+            Assert.Greater(w.LampIntensity(0), bright * 0.8f, "打倒之後燈回來了");
+        }
+
+        [Test]
+        public void Backlash_SpawnsNearThePlayer_ButOutOfView()
+        {
+            var qa = NewQa();
+            var w = qa.World;
+            qa.GoTo("HouseDining");
+            Act(qa, 2, LanternActionInput.None);
+            qa.Flow.Backlash();
+            var e = qa.Combat.Enemies.First(x => x != null && x.Alive && w.HouseBounds.Contains(x.transform.position + Vector3.up));
+            var corners = new System.Collections.Generic.List<Vector3>();
+            Assert.IsTrue(LanternNav.Path(e.transform.position, qa.Player.transform.position, corners), "走得到玩家身邊");
+            float len = LanternNav.Length(corners);
+            Assert.That(len, Is.InRange(5f, 16.5f), "出現在附近（路徑 " + len.ToString("F1") + " m）");
+            var vp = qa.Cam.WorldToViewportPoint(e.transform.position + Vector3.up * 1.1f);
+            bool onScreen = vp.z > 0f && vp.x > 0f && vp.x < 1f && vp.y > 0f && vp.y < 1f;
+            bool blocked = Physics.Linecast(qa.Cam.transform.position, e.transform.position + Vector3.up * 1.1f, ~(1 << LanternRig.ViewLayer), QueryTriggerInteraction.Ignore);
+            Assert.IsTrue(!onScreen || blocked, "出現的瞬間看不到它");
+        }
+
+        [Test]
+        public void Disorder_FindsItsWayThroughTheHouse_AndUpTheStairs()
+        {
+            var qa = NewQa();
+            var w = qa.World;
+            Assert.IsTrue(LanternNav.Has("house"), "住宅有 NavMesh");
+            var corners = new System.Collections.Generic.List<Vector3>();
+            Assert.IsTrue(LanternNav.Path(w.Marks["HouseKitchen"].position, w.Marks["HouseEleanor"].position, corners), "從廚房走得到二樓艾琳的房間（經過樓梯）");
+            qa.GoTo("HouseLiving");
+            Act(qa, 2, LanternActionInput.None);
+            qa.Combat.Invulnerable = true;
+            var e = qa.Combat.Spawn(w.Marks["HouseScullery"].position);
+            float start = Vector3.Distance(e.transform.position, qa.Player.transform.position);
+            bool reached = false;
+            for (int i = 0; i < 600 && !reached; i++)
+            {
+                qa.Step(Dt, ExploreInput.None);
+                if (Vector3.Distance(e.transform.position, qa.Player.transform.position) < LanternEnemy.LungeRange + 0.6f) reached = true;
+            }
+            Assert.IsTrue(reached, "從後廚繞過家具與門口，追到客廳（起點 " + start.ToString("F1") + " m，現在 " + Vector3.Distance(e.transform.position, qa.Player.transform.position).ToString("F1") + " m）");
+            Assert.AreEqual(0, qa.Combat.Relocations, "一路上沒有卡住");
+        }
+
+        [Test]
+        public void StuckDisorder_ReappearsSomewhereElse()
+        {
+            var qa = NewQa();
+            var w = qa.World;
+            qa.GoTo("HouseLiving");
+            Act(qa, 2, LanternActionInput.None);
+            // 放在一個走不到的地方（櫃子頂上）。
+            var e = qa.Combat.Spawn(w.HouseRoot.Find("Wardrobe").position + Vector3.up * 1.6f);
+            for (int i = 0; i < 200 && qa.Combat.Relocations == 0; i++) qa.Step(Dt, ExploreInput.None);
+            Assert.Greater(qa.Combat.Relocations, 0, "卡住的失序體換個地方重新出現（state " + e.Current + " pos " + e.transform.position + " stuck " + e.StuckCount + " path " + e.UsingPath + " spawn " + qa.Combat.LastSpawnDebug + " area " + w.HouseInterior + "）");
+        }
+
+        [Test]
+        public void FinalBattle_DarkIsImmune_ShootingASwitchLightsAnArea_ThresholdsBlackOut()
+        {
+            var qa = NewQa();
+            qa.Flow.SkipToBoss();
+            for (int i = 0; i < 100; i++) qa.Step(Dt, ExploreInput.None);
+            var boss = qa.Flow.Boss;
+            var w = qa.World;
+            Assert.AreEqual(4, w.Switches.Count, "四個角落有電燈開關");
+            Assert.AreEqual(0, w.SwitchesOn, "一開始全暗");
+            float hp = boss.Hp;
+            boss.Hit(1f, false);
+            Assert.Less(hp - boss.Hp, 0.4f, "暗處幾乎打不痛");
+            Assert.Greater(qa.Flow.DamageNumbers, 0, "顯示「無效」");
+            Assert.Greater(qa.Flow.DarkHintShown, 0, "提示要開燈");
+            // 射擊開關。
+            var sw = w.Switches[3];
+            qa.Player.Teleport(sw.Zone + Vector3.back * 0.5f, 0f, 0f);
+            qa.Step(Dt, ExploreInput.None);
+            Aim(qa, sw.GetComponent<Collider>().bounds.center);
+            Act(qa, 1, LanternActionInput.None);
+            Act(qa, 2, new LanternActionInput { Primary = true });
+            Act(qa, 1, LanternActionInput.None);
+            for (int i = 0; i < 30 && !sw.On; i++) qa.Step(Dt, ExploreInput.None);
+            Assert.IsTrue(sw.On, "射中開關：燈亮了");
+            Assert.IsTrue(sw.Lights[0].enabled && sw.Lights[0].intensity > 1f);
+            Assert.IsTrue(LanternReveal.IsReal(sw.Zone + Vector3.up * 1.2f), "燈照到的地方恢復成真實的客廳");
+            boss.transform.position = sw.Zone + Vector3.right * 1.5f;
+            qa.Step(Dt, ExploreInput.None);
+            Assert.IsTrue(boss.Lit);
+            hp = boss.Hp;
+            boss.Hit(1f, false);
+            Assert.Greater(hp - boss.Hp, 2.5f, "在光裡打得痛");
+            while (boss.Alive && boss.Hp > LanternBoss.MaxHp * 2f / 3f) { boss.Hit(1f, false); if (!sw.On) break; }
+            Assert.AreEqual(1, qa.Flow.Blackouts, "生命掉到 2/3：它把燈全部熄掉");
+            Assert.AreEqual(0, w.SwitchesOn);
+        }
+
+        [Test]
+        public void Ending_ReturnsToTheRealHouse_ThePhotoIsWhole_ThenTheCaseCloses()
+        {
+            var qa = NewQa();
+            qa.Flow.SkipToBoss();
+            for (int i = 0; i < 100; i++) qa.Step(Dt, ExploreInput.None);
+            var boss = qa.Flow.Boss;
+            foreach (var s in qa.World.Switches) s.Hit();
+            boss.transform.position = qa.World.Switches[0].Zone;
+            qa.Step(Dt, ExploreInput.None);
+            while (boss.Alive) { foreach (var s in qa.World.Switches) s.Hit(); boss.Lit = true; boss.Hit(1f, true); }
+            for (int i = 0; i < 120; i++) qa.Step(Dt, ExploreInput.None);
+            Assert.AreEqual(LanternFlow.Phase.Ending, qa.Flow.Current);
+            Assert.IsTrue(qa.World.HouseBounds.Contains(qa.Player.transform.position + Vector3.up), "回到家裡");
+            Assert.IsTrue(qa.World.HousePowered, "有電、燈亮著");
+            for (int i = 0; i < 150; i++) qa.Step(Dt, ExploreInput.None);
+            var photo = qa.World.Clues.First(c => c.Id == "photo");
+            Assert.IsTrue(LanternReveal.IsReal(photo.transform.position), "全家福恢復（女兒回到照片裡）");
+            var study = qa.World.Marks["HouseStudy"].position + Vector3.up * 1.2f;
+            for (int i = 0; i < 90; i++) qa.Step(Dt, ExploreInput.None);
+            Assert.IsTrue(LanternReveal.IsReal(study), "所有房間都恢復真實");
+            Assert.GreaterOrEqual(qa.Flow.EndingLine, 0, "出現結局的幾行字");
+            for (int i = 0; i < (int)(LanternFlow.EndingSeconds / Dt); i++) qa.Step(Dt, ExploreInput.None);
+            Assert.AreEqual(LanternFlow.Phase.Ended, qa.Flow.Current, "結案卡");
         }
     }
 }
