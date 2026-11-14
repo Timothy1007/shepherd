@@ -20,6 +20,43 @@ namespace Shepherd.Exploration.Lantern
         public bool On { get; private set; }
         /// <summary>全畫面油彩濾鏡（Kuwahara）。</summary>
         public Material PaintMaterial { get; private set; }
+        /// <summary>
+        /// 全畫面油彩濾鏡要不要用。美術方向 v1（2026-11-14）：關掉（會把畫面抹糊；看火人風格要乾淨的邊緣和平塗的色塊）。
+        /// </summary>
+        public bool UsePaint = false;
+        public static readonly int FadedId = Shader.PropertyToID("_ShepFaded");
+        /// <summary>白天的程度（0＝夜晚、1＝白天）。</summary>
+        public float Day { get; private set; }
+#if SHEPHERD_URP
+        private ColorAdjustments ca;
+        private Vignette vig;
+        private Bloom bloom;
+#endif
+
+        /// <summary>
+        /// 白天（美術方向 v1）：亮、乾淨、淡淡的暖色霧氣；異域改成「褪色」而不是黑。indoor＝在屋子裡（霧淡一點）。
+        /// </summary>
+        public void SetDay(float k, bool indoor)
+        {
+            Day = Mathf.Clamp01(k);
+            Shader.SetGlobalFloat(FadedId, Day > 0.5f ? 1f : 0f);
+#if SHEPHERD_URP
+            if (ca != null)
+            {
+                ca.postExposure.Override(Mathf.Lerp(0.45f, 0.25f, Day));
+                ca.contrast.Override(Mathf.Lerp(16f, 6f, Day));
+                ca.saturation.Override(Mathf.Lerp(14f, 8f, Day));
+                vig.intensity.Override(Mathf.Lerp(0.33f, 0.16f, Day));
+                bloom.threshold.Override(Mathf.Lerp(0.85f, 1.05f, Day));
+            }
+#endif
+            if (On)
+            {
+                RenderSettings.fogMode = FogMode.ExponentialSquared;
+                RenderSettings.fogColor = Color.Lerp(new Color(0.035f, 0.045f, 0.07f), indoor ? new Color(0.72f, 0.7f, 0.68f) : new Color(0.8f, 0.82f, 0.86f), Day);
+                RenderSettings.fogDensity = Mathf.Lerp(0.045f, indoor ? 0.012f : 0.018f, Day);
+            }
+        }
         private readonly Camera cam;
         private RenderTexture screenRt;
         private GameObject paintCanvas;
@@ -57,7 +94,7 @@ namespace Shepherd.Exploration.Lantern
             smh.shadows.Override(new Vector4(0.92f, 0.95f, 1.08f, 0f));
             smh.midtones.Override(new Vector4(1.0f, 0.98f, 0.97f, 0f));
             smh.highlights.Override(new Vector4(1.12f, 1.02f, 0.88f, 0.02f));
-            var ca = profile.Add<ColorAdjustments>(true);
+            ca = profile.Add<ColorAdjustments>(true);
             ca.contrast.Override(16f);
             ca.saturation.Override(14f);
             ca.postExposure.Override(0.45f); // ACES 會壓暗一點，曝光補回來
@@ -67,12 +104,12 @@ namespace Shepherd.Exploration.Lantern
             grain.type.Override(FilmGrainLookup.Thin1);
             grain.intensity.Override(0.22f);
             grain.response.Override(0.85f);
-            var bloom = profile.Add<Bloom>(true);
+            bloom = profile.Add<Bloom>(true);
             bloom.intensity.Override(0.75f);
             bloom.threshold.Override(0.85f);
             bloom.scatter.Override(0.75f);
             bloom.tint.Override(new Color(1f, 0.85f, 0.7f));
-            var vig = profile.Add<Vignette>(true);
+            vig = profile.Add<Vignette>(true);
             vig.intensity.Override(0.33f);
             vig.smoothness.Override(0.5f);
             vig.color.Override(new Color(0.02f, 0.02f, 0.05f));
@@ -129,7 +166,7 @@ namespace Shepherd.Exploration.Lantern
         private void UpdateScreenPaint()
         {
             if (!Application.isPlaying || cam == null) return;
-            bool use = On && PaintMaterial != null;
+            bool use = On && PaintMaterial != null && UsePaint;
             if (!use)
             {
                 if (cam.targetTexture == screenRt) cam.targetTexture = null;

@@ -367,10 +367,27 @@ namespace Shepherd.Exploration.Lantern
         /// <summary>在住宅裡：有電且燈亮著時環境光變亮、偏暖；沒電或反撲熄燈時接近全黑。</summary>
         private void ApplyAmbient(float dt)
         {
-            float want = World.HouseBounds.Contains(Player.transform.position + Vector3.up) ? World.HouseAmbient : 0f;
+            var p = Player.transform.position;
+            float want = World.HouseBounds.Contains(p + Vector3.up) ? World.HouseAmbient : 0f;
             AmbientLevel = dt > 0f ? Mathf.MoveTowards(AmbientLevel, want, dt * 3f) : want;
-            RenderSettings.ambientLight = Color.Lerp(DarkAmbient, WarmAmbient, AmbientLevel);
+            var night = Color.Lerp(DarkAmbient, WarmAmbient, AmbientLevel);
+            // 美術方向 v1：新房子一帶是白天（下午）。屋裡＝柔和的反射光；街上＝天空的藍白。
+            bool indoor = World.InV2House(p);
+            float dayWant = LanternGraybox.V2Day && (indoor || World.InV2Street(p)) ? 1f : 0f;
+            DayLevel = dt > 0f ? Mathf.MoveTowards(DayLevel, dayWant, dt * 2f) : dayWant;
+            var day = indoor ? DayIndoorAmbient : DayStreetAmbient;
+            RenderSettings.ambientLight = Color.Lerp(night, day, DayLevel);
+            if (World.Moon != null) World.Moon.intensity = Mathf.Lerp(0.55f, 0f, DayLevel);
+            if (World.V2Sun != null) World.V2Sun.intensity = 1.9f * DayLevel;
+            Cam.backgroundColor = Color.Lerp(Color.black, DaySky, DayLevel);
+            Style?.SetDay(DayLevel, indoor);
         }
+
+        public static readonly Color DayIndoorAmbient = new Color(0.58f, 0.56f, 0.53f);
+        public static readonly Color DayStreetAmbient = new Color(0.74f, 0.75f, 0.8f);
+        public static readonly Color DaySky = new Color(0.62f, 0.76f, 0.92f);
+        /// <summary>白天的程度（0＝夜晚、1＝白天；新房子與街上是白天）。</summary>
+        public float DayLevel { get; private set; }
 
         public string DebugString()
         {

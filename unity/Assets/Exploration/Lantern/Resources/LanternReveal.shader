@@ -56,6 +56,7 @@ Shader "Shepherd/Prototype/LanternReveal"
         float4 _ShepRevealSphere;
         // 風格化（參考《冤罪殺機》的手繪感半寫實）：0＝原樣，1＝風格化。全域開關，方便 A/B 比較。
         float _ShepStylize;
+        float _ShepFaded;
         // 額外的現實泡泡（穩定能量的撞擊點、已復原的穩定區）：xyz＝中心、w＝半徑；w≤0＝未使用。
         float4 _ShepRevealExtra[8];
         // 提燈光的形狀：往前偏的蛋形。_ShepRevealForward.xyz＝朝向；_ShepRevealShape＝(前方倍率, 側面倍率, 後方倍率)。
@@ -247,6 +248,13 @@ Shader "Shepherd/Prototype/LanternReveal"
                     float4 ruin = SAMPLE_TEXTURE2D_BIAS(_AnomalyMap, sampler_AnomalyMap, uvA, bias);
                     float g = dot(ruin.rgb, float3(0.3, 0.59, 0.11));
                     anomCol = float4(lerp(float3(g, g, g), ruin.rgb, _AnomalySat), 1) * _AnomalyColor;
+                }
+                if (_ShepFaded > 0.5)
+                {
+                    // 美術方向 v1：異域＝真實「褪色」的樣子（像放太久的舊照片：幾乎沒有顏色、偏冷、蒙一層灰），不是黑暗。
+                    float gf = dot(realCol.rgb, float3(0.3, 0.59, 0.11));
+                    float3 faded = lerp(float3(gf, gf, gf), realCol.rgb, 0.16) * float3(0.86, 0.9, 0.98);
+                    anomCol = float4(lerp(faded, float3(0.62, 0.65, 0.7), 0.22), 1);
                 }
                 float k = _Mode > 0.5 ? (_Mode > 1.5 ? 0.0 : 1.0) : m;
                 if (_Mode > 2.5) { k = 1.0; edge = 0.0; }

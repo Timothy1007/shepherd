@@ -147,7 +147,7 @@ namespace Shepherd.Exploration.Lantern
                 Box("V2Win" + num, V2(winX, 1.6f, zs - 0.03f), new Vector3(2.2f * V2Scale, 1.4f, 0.04f), warmWin, false);
                 Box("V2WinUp" + num, V2(winX, 4.6f, zs - 0.03f), new Vector3(1.5f * V2Scale, 1.3f, 0.04f), num == "18" ? tvWin : dark, false);
                 Box("V2WinUp2" + num, V2(doorX, 4.6f, zs - 0.03f), new Vector3(1.2f * V2Scale, 1.3f, 0.04f), num == "16" ? warmWin : dark, false);
-                AddLight("V2WinLight" + num, LightType.Point, V2(winX, 1.6f, zs - 0.6f), new Color(1f, 0.72f, 0.45f), 1.4f, 4.5f, false, LightShadows.None);
+                if (!V2Day) AddLight("V2WinLight" + num, LightType.Point, V2(winX, 1.6f, zs - 0.6f), new Color(1f, 0.72f, 0.45f), 1.4f, 4.5f, false, LightShadows.None);
                 // 窗框與窗台的花盆。
                 Box("V2Sill" + num, V2(winX, 0.85f, zs - 0.12f), new Vector3(2.4f * V2Scale, 0.08f, 0.22f), Real(hWhite), false);
                 Model("V2SillPlant" + num, "potted_plant_02", winX + 0.6f, zs - 0.12f, 0.9f, 0.35f, 0f, false, Real(hWood), Vector3.one * 0.2f, Mode.AlwaysReal);
@@ -165,23 +165,23 @@ namespace Shepherd.Exploration.Lantern
             Box("V2CafeNeon", V2(-1.5f, 2.7f, zf + 0.02f), new Vector3(1.2f, 0.25f, 0.05f), neon, false);
             Box("V2ShopWindow", V2(7.5f, 1.4f, zf), new Vector3(3.5f * V2Scale, 1.8f, 0.05f), warmWin, false);
             for (int i = 0; i < 6; i++) Box("V2FlatWindow", V2(-6f + i * 3.6f, 4.8f, zf), new Vector3(1.4f * V2Scale, 1.3f, 0.05f), i % 3 == 1 ? dark : (i % 2 == 0 ? warmWin : tvWin), false);
-            AddLight("V2CafeLight", LightType.Point, V2(-1.5f, 1.4f, zf + 0.8f), new Color(1f, 0.7f, 0.42f), 4f, 9f, false, LightShadows.None);
-            AddLight("V2ShopLight", LightType.Point, V2(7.5f, 1.4f, zf + 0.8f), new Color(1f, 0.85f, 0.6f), 3f, 8f, false, LightShadows.None);
-            AddLight("V2NeonLight", LightType.Point, V2(-1.5f, 2.7f, zf + 0.5f), new Color(1f, 0.3f, 0.25f), 1.2f, 3.5f, false, LightShadows.None);
+            if (!V2Day) AddLight("V2CafeLight", LightType.Point, V2(-1.5f, 1.4f, zf + 0.8f), new Color(1f, 0.7f, 0.42f), 4f, 9f, false, LightShadows.None);
+            if (!V2Day) AddLight("V2ShopLight", LightType.Point, V2(7.5f, 1.4f, zf + 0.8f), new Color(1f, 0.85f, 0.6f), 3f, 8f, false, LightShadows.None);
+            if (!V2Day) AddLight("V2NeonLight", LightType.Point, V2(-1.5f, 2.7f, zf + 0.5f), new Color(1f, 0.3f, 0.25f), 1.2f, 3.5f, false, LightShadows.None);
 
             // 維多利亞式街燈（暖光）。
             foreach (var lx in new[] { -7f, 1.0f, 10.5f, 17f })
             {
                 Cyl("V2LampPost", V2(lx, 0f, zs - 3.4f) + Vector3.up * 2.3f, new Vector3(0.1f, 2.3f, 0.1f), Real(hDark));
                 Box("V2LampHead", V2(lx, 0f, zs - 3.4f) + Vector3.up * 4.75f, new Vector3(0.36f, 0.45f, 0.36f), warmWin, false);
-                AddLight("V2StreetLamp", LightType.Point, V2(lx, 0f, zs - 3.4f) + Vector3.up * 4.6f, new Color(1f, 0.68f, 0.38f), 9f, 15f, false, LightShadows.Soft);
+                if (!V2Day) AddLight("V2StreetLamp", LightType.Point, V2(lx, 0f, zs - 3.4f) + Vector3.up * 4.6f, new Color(1f, 0.68f, 0.38f), 9f, 15f, false, LightShadows.Soft);
             }
             // 紅色電話亭、垃圾桶、腳踏車架。
             var booth = V2(2.6f, 0f, zs - 2.9f);
             Box("V2PhoneBox", booth + Vector3.up * 1.25f, new Vector3(0.95f, 2.5f, 0.95f), red, true);
             Box("V2PhoneBoxGlow", booth + new Vector3(0f, 1.5f, -0.48f), new Vector3(0.7f, 1.3f, 0.02f), warmWin, false);
             Box("V2PhoneBoxSign", booth + new Vector3(0f, 2.35f, -0.49f), new Vector3(0.6f, 0.14f, 0.02f), warmWin, false);
-            AddLight("V2PhoneBoxLight", LightType.Point, booth + Vector3.up * 1.6f, new Color(1f, 0.85f, 0.6f), 0.8f, 3f, false, LightShadows.None);
+            if (!V2Day) AddLight("V2PhoneBoxLight", LightType.Point, booth + Vector3.up * 1.6f, new Color(1f, 0.85f, 0.6f), 0.8f, 3f, false, LightShadows.None);
             Box("V2Bin", V2(ax1 + 0.35f, 0.55f, zs + 0.6f), new Vector3(0.6f, 1.1f, 0.6f), Real(hDark), true);
             Box("V2Bin2", V2(ax0 - 0.35f, 0.55f, zs - 0.6f), new Vector3(0.6f, 1.1f, 0.6f), cream, true);
 
@@ -192,7 +192,7 @@ namespace Shepherd.Exploration.Lantern
             AddLight("V2AlleyEndLamp", LightType.Point, endLamp + Vector3.left * 0.35f, new Color(1f, 0.66f, 0.4f), 2.4f, 6.5f, true, LightShadows.Soft);
             var bulkhead = V2(ax1, 2.6f, zs + 2.5f) + Vector3.left * 0.12f;
             Box("V2AlleyLampBox", bulkhead, new Vector3(0.12f, 0.2f, 0.28f), warmWin, false);
-            AddLight("V2AlleyLamp", LightType.Point, bulkhead + Vector3.left * 0.3f, new Color(1f, 0.7f, 0.45f), 1.8f, 6f, false, LightShadows.Soft);
+            if (!V2Day) AddLight("V2AlleyLamp", LightType.Point, bulkhead + Vector3.left * 0.3f, new Color(1f, 0.7f, 0.45f), 1.8f, 6f, false, LightShadows.Soft);
             Cyl("V2DrainPipe", V2(ax0, 3f, zs + 5f) + Vector3.right * 0.08f, new Vector3(0.09f, 3f, 0.09f), Real(hDark));
             Cyl("V2ClothesLine", V2((ax0 + ax1) / 2f, 3.4f, zs + 4f), new Vector3(0.01f, (ax1 - ax0) * V2Scale / 2f, 0.01f), Real(hDark), new Vector3(0f, 0f, 90f));
             for (int i = 0; i < 3; i++) Box("V2Laundry", V2(ax0 + 0.4f + i * 0.5f, 3.0f, zs + 4f), new Vector3(0.38f, 0.75f, 0.02f), i == 1 ? Real(hFabric) : Real(hWhite), false, new Vector3(0f, 0f, (i - 1) * 4f));
@@ -232,6 +232,129 @@ namespace Shepherd.Exploration.Lantern
             Invisible(V2(3f, 4f, zs - 9.5f), new Vector3(42f, 8f, 0.3f));
             Mark("V2Street", V2(5.1f, 0f, zs - 2.4f) + Vector3.up * 0.05f, V2(5.1f, 1.4f, 0f));
             Mark("V2Alley", V2(5.1f, 0f, -2.6f) + Vector3.up * 0.05f, V2(5.1f, 1.3f, 0f));
+            if (V2Day) V2Chinatown(zs, zf, ax0, ax1);
+        }
+
+        /// <summary>美術方向 v1（2026-11-14）：第十七號門改成白天（下午）。夜晚的窗光、街燈關掉。</summary>
+        public const bool V2Day = true;
+        /// <summary>下午的太陽（只在新房子一帶開，舊房子仍是夜晚）。</summary>
+        public Light V2Sun { get; private set; }
+
+        /// <summary>
+        /// 白天的華人街（參考倫敦 Gerrard Street、利物浦 Nelson Street、曼徹斯特唐人街）：
+        /// 街上空一排排紅燈籠、中英雙語招牌、漆成紅金綠的店面與遮雨棚、街口的牌樓。不放石獅等帶宗教意味的擺設。
+        /// </summary>
+        private void V2Chinatown(float zs, float zf, float ax0, float ax1)
+        {
+            V2Sun = AddLight("V2Sun", LightType.Directional, V2(3f, 12f, zs), new Color(1f, 0.88f, 0.72f), 1.9f, 0f, false, LightShadows.Soft, 0f, new Vector3(0.72f, -0.5f, -0.48f)); // 低低的午後陽光，沿著街斜照：對街的店面被照亮，巷子在陰影裡
+            V2Sun.shadowStrength = 0.85f;
+            Material Flat(string n, Color c) { var m = Mat(n, Mode.AlwaysReal, c, c, null, null, 0.3f, 0.3f, 0f); return m; }
+            var lanternRed = Flat("V2_LanternRed", new Color(0.86f, 0.12f, 0.08f));
+            lanternRed.SetColor("_EmissionColor", new Color(0.35f, 0.04f, 0.02f));
+            var gold = Flat("V2_Gold", new Color(0.86f, 0.64f, 0.22f));
+            var signRed = Flat("V2_SignRed", new Color(0.72f, 0.1f, 0.08f));
+            var signGreen = Flat("V2_SignGreen", new Color(0.1f, 0.42f, 0.3f));
+            var signYellow = Flat("V2_SignYellow", new Color(0.93f, 0.76f, 0.25f));
+            var wire = Flat("V2_Wire", new Color(0.1f, 0.1f, 0.1f));
+            var tile = Flat("V2_GreenTile", new Color(0.18f, 0.5f, 0.38f));
+            var pillar = Flat("V2_PillarRed", new Color(0.66f, 0.1f, 0.08f));
+            var awnRed = Flat("V2_AwningRed", new Color(0.7f, 0.16f, 0.12f));
+            var awnGreen = Flat("V2_AwningGreen", new Color(0.16f, 0.4f, 0.3f));
+            var glass = Flat("V2_DayGlass", new Color(0.42f, 0.5f, 0.58f));
+
+            // 白天的窗：反射天空的玻璃（蓋在原本夜晚發光的窗上）。
+            foreach (var t in V2Root.GetComponentsInChildren<Transform>(true))
+                if (t.name.StartsWith("V2Win") || t.name == "V2CafeWindow" || t.name == "V2ShopWindow" || t.name == "V2FlatWindow")
+                {
+                    var r = t.GetComponent<Renderer>(); if (r != null) r.sharedMaterial = glass;
+                }
+
+            // 一排排紅燈籠：從這一側的二樓拉到對街。
+            float zNear = zs - 0.3f, zFar = zf + 0.3f, h = 5.4f;
+            for (int row = 0; row < 6; row++)
+            {
+                float x = -8f + row * 4.2f;
+                var a = V2(x, h, zNear); var b = V2(x + 0.6f, h, zFar);
+                var mid = (a + b) / 2f; var d = b - a;
+                Cyl("V2LanternWire", mid, new Vector3(0.012f, d.magnitude / 2f, 0.012f), wire, new Vector3(90f, Mathf.Atan2(d.x, d.z) * Mathf.Rad2Deg, 0f));
+                int n = 7;
+                for (int i = 1; i < n; i++)
+                {
+                    float k = i / (float)n;
+                    var p = Vector3.Lerp(a, b, k) + Vector3.down * (0.35f * Mathf.Sin(Mathf.PI * k) + 0.32f);
+                    Ball("V2Lantern", p, new Vector3(0.36f, 0.42f, 0.36f), lanternRed);
+                    Cyl("V2LanternCap", p + Vector3.up * 0.22f, new Vector3(0.16f, 0.025f, 0.16f), gold);
+                    Cyl("V2LanternCap", p + Vector3.down * 0.22f, new Vector3(0.16f, 0.025f, 0.16f), gold);
+                    Cyl("V2LanternTassel", p + Vector3.down * 0.36f, new Vector3(0.025f, 0.11f, 0.025f), lanternRed);
+                }
+            }
+
+            // 對街的店面：漆成紅、綠、金的招牌與遮雨棚，中英雙語。
+            var shops = new (float x, string zh, string en, Material board, Material awning, Color ink)[]
+            {
+                (-6.5f, "金華燒臘", "GOLDEN BBQ HOUSE", signRed, awnRed, new Color(0.98f, 0.82f, 0.35f)),
+                (-1.5f, "茶餐廳", "TEA HOUSE CAFÉ", signGreen, awnGreen, new Color(0.98f, 0.9f, 0.6f)),
+                (3.5f, "龍鳳餅家", "DRAGON PHOENIX BAKERY", signYellow, awnRed, new Color(0.55f, 0.08f, 0.06f)),
+                (8.0f, "永記雜貨", "WING KEE GROCERY", signRed, awnGreen, new Color(0.98f, 0.82f, 0.35f)),
+                (13.0f, "新華書局", "BOOKS & STATIONERY", signGreen, awnRed, new Color(0.98f, 0.9f, 0.6f)),
+            };
+            // 對街不再是一整片灰牆：每間店一段不同顏色的立面（一樓店面、二三樓灰泥或紅磚）、高低不同的屋簷、白色窗框。
+            var facades = new[] { new Color(0.86f, 0.8f, 0.68f), new Color(0.62f, 0.32f, 0.24f), new Color(0.78f, 0.74f, 0.66f), new Color(0.55f, 0.36f, 0.3f), new Color(0.84f, 0.78f, 0.62f) };
+            var fronts = new[] { new Color(0.62f, 0.1f, 0.08f), new Color(0.14f, 0.36f, 0.28f), new Color(0.82f, 0.62f, 0.2f), new Color(0.6f, 0.12f, 0.1f), new Color(0.16f, 0.32f, 0.36f) };
+            var trim = Flat("V2_WhiteTrim", new Color(0.92f, 0.9f, 0.86f));
+            for (int i = 0; i < shops.Length; i++)
+            {
+                float x = shops[i].x, w = 4.6f, top = 6.6f + (i % 3) * 0.7f;
+                var up = Flat("V2_Facade" + i, facades[i]);
+                var fr = Flat("V2_Shopfront" + i, fronts[i]);
+                Box("V2OppFacade", V2(x, top / 2f, zf) + Vector3.back * 0.3f, new Vector3(w * V2Scale, top * 1.165f, 0.6f), up, false);
+                Box("V2OppCornice", V2(x, top, zf) + Vector3.back * 0.2f, new Vector3(w * V2Scale + 0.2f, 0.25f, 0.8f), trim, false);
+                Box("V2OppShopfront", V2(x, 1.25f, zf) + Vector3.forward * 0.02f, new Vector3(w * V2Scale - 0.4f, 2.5f, 0.06f), fr, false);
+                Box("V2OppShopGlass", V2(x - 0.4f, 1.25f, zf) + Vector3.forward * 0.06f, new Vector3(w * V2Scale * 0.55f, 1.7f, 0.04f), glass, false);
+                Box("V2OppDoor", V2(x + 1.45f, 1.05f, zf) + Vector3.forward * 0.06f, new Vector3(0.9f, 2.1f, 0.04f), Real(hDark), false);
+                for (int f = 0; f < 2; f++)
+                    for (int wi = -1; wi <= 1; wi += 2)
+                    {
+                        var wc = V2(x + wi * 1.1f, 4.2f + f * 1.9f, zf) + Vector3.forward * 0.02f;
+                        Box("V2OppWin", wc, new Vector3(0.9f, 1.2f, 0.04f), glass, false);
+                        Box("V2OppWinFrame", wc + Vector3.back * 0.01f, new Vector3(1.05f, 1.35f, 0.03f), trim, false);
+                        Box("V2OppWinSill", wc + new Vector3(0f, -0.7f, 0.06f), new Vector3(1.1f, 0.06f, 0.14f), trim, false);
+                    }
+            }
+            foreach (var t in V2Root.GetComponentsInChildren<Transform>(true))
+                if (t.name == "V2Opposite" || t.name == "V2FlatWindow" || t.name == "V2CafeWindow" || t.name == "V2ShopWindow" || t.name == "V2CafeNeon") t.gameObject.SetActive(false);
+            foreach (var s in shops)
+            {
+                var signAt = V2(s.x, 2.75f, zf) + Vector3.forward * 0.06f;
+                var board = Box("V2ShopSign", signAt, new Vector3(3.4f, 0.75f, 0.08f), s.board, false);
+                WallText(board, s.zh, Quaternion.Euler(0f, 180f, 0f), new Vector3(0f, 0.08f, 0.05f), 0.034f, s.ink);
+                WallText(board, s.en, Quaternion.Euler(0f, 180f, 0f), new Vector3(0f, -0.24f, 0.05f), 0.011f, s.ink);
+                Box("V2Awning", V2(s.x, 2.2f, zf) + new Vector3(0f, 0f, 0.55f), new Vector3(3.6f, 0.05f, 1.1f), s.awning, false, new Vector3(-18f, 0f, 0f));
+            }
+            // 這一側（16、18 號）樓下也掛一兩塊直式招牌。
+            var v1 = Box("V2HangSign", V2(-3.2f, 3.4f, zs) + new Vector3(0f, 0f, -0.55f), new Vector3(0.08f, 1.4f, 0.55f), signRed, false);
+            WallText(v1, "麻\n將\n館", Quaternion.Euler(0f, 90f, 0f), new Vector3(-0.05f, 0f, 0f), 0.022f, new Color(0.98f, 0.82f, 0.35f));
+            WallText(v1, "麻\n將\n館", Quaternion.Euler(0f, -90f, 0f), new Vector3(0.05f, 0f, 0f), 0.022f, new Color(0.98f, 0.82f, 0.35f));
+            Cyl("V2HangSignArm", V2(-3.2f, 4.15f, zs) + new Vector3(0f, 0f, -0.35f), new Vector3(0.02f, 0.35f, 0.02f), wire, new Vector3(90f, 0f, 0f));
+            var v2s = Box("V2HangSign", V2(14.5f, 3.4f, zs) + new Vector3(0f, 0f, -0.55f), new Vector3(0.08f, 1.4f, 0.55f), signGreen, false);
+            WallText(v2s, "洗\n衣\n店", Quaternion.Euler(0f, 90f, 0f), new Vector3(-0.05f, 0f, 0f), 0.022f, new Color(0.98f, 0.9f, 0.6f));
+            WallText(v2s, "洗\n衣\n店", Quaternion.Euler(0f, -90f, 0f), new Vector3(0.05f, 0f, 0f), 0.022f, new Color(0.98f, 0.9f, 0.6f));
+            Cyl("V2HangSignArm", V2(14.5f, 4.15f, zs) + new Vector3(0f, 0f, -0.35f), new Vector3(0.02f, 0.35f, 0.02f), wire, new Vector3(90f, 0f, 0f));
+
+            // 街口的牌樓（紅柱、綠瓦、金字「華埠」）：站在門口往左看得到。
+            var gx = V2(-12.5f, 0f, zs - 6.5f);
+            float span = 9f;
+            foreach (float side in new[] { -1f, 1f })
+            {
+                Cyl("V2GatePillar", gx + new Vector3(0f, 2.6f, side * span / 2f), new Vector3(0.45f, 2.6f, 0.45f), pillar);
+                Box("V2GateBase", gx + new Vector3(0f, 0.3f, side * span / 2f), new Vector3(0.8f, 0.6f, 0.8f), Real(hWhite), true);
+            }
+            Box("V2GateBeam", gx + new Vector3(0f, 5.0f, 0f), new Vector3(0.5f, 0.5f, span + 0.6f), pillar, false);
+            Box("V2GateRoof", gx + new Vector3(0f, 5.75f, 0f), new Vector3(1.6f, 0.35f, span + 2.2f), tile, false);
+            Box("V2GateRoofTop", gx + new Vector3(0f, 6.05f, 0f), new Vector3(0.7f, 0.3f, span + 1.4f), tile, false);
+            var plaque = Box("V2GatePlaque", gx + new Vector3(0.3f, 4.3f, 0f), new Vector3(0.08f, 0.8f, 2.4f), gold, false);
+            WallText(plaque, "華 埠", Quaternion.Euler(0f, -90f, 0f), new Vector3(0.06f, 0f, 0f), 0.05f, new Color(0.55f, 0.08f, 0.06f));
+            WallText(plaque, "華 埠", Quaternion.Euler(0f, 90f, 0f), new Vector3(-0.06f, 0f, 0f), 0.05f, new Color(0.55f, 0.08f, 0.06f));
         }
 
         private readonly Dictionary<Material, Material> realCopies = new Dictionary<Material, Material>();
@@ -594,7 +717,7 @@ namespace Shepherd.Exploration.Lantern
             float w = 1.5f, h = 1.25f, bottom = 0.95f, ft = 0.06f;
             float cy = bottom + h / 2f;
             var glass = Mat("V2_ShopWindowGlass", Mode.Dual, new Color(0.55f, 0.62f, 0.7f), new Color(0.18f, 0.2f, 0.22f), null, null, 0.85f, 0.4f, 0f);
-            glass.SetColor("_EmissionColor", new Color(0.55f, 0.68f, 0.85f));
+            glass.SetColor("_EmissionColor", V2Day ? new Color(1.25f, 1.18f, 1.05f) : new Color(0.55f, 0.68f, 0.85f)); // 白天：午後的陽光透過毛玻璃
             glass.SetColor("_AnomalyEmission", new Color(0.05f, 0.07f, 0.09f));
             Box("V2ShopWindowGlass", c + new Vector3(0f, cy, z + 0.005f), new Vector3(w, h, 0.01f), glass, false);
             Box("V2ShopWindowFrameT", c + new Vector3(0f, bottom + h + ft / 2f, z + 0.03f), new Vector3(w + 2f * ft, ft, 0.06f), hTrim, false);
@@ -610,7 +733,7 @@ namespace Shepherd.Exploration.Lantern
             Cyl("V2ShopWindowLaceRod", c + new Vector3(0f, bottom + 0.6f, z + 0.075f), new Vector3(0.012f, w / 2f, 0.012f), hTrim, new Vector3(0f, 0f, 90f));
             // 窗外路燈透進來的冷光（照在縫紉機和地板上）。
             var from = c + new Vector3(0f, bottom + h, z - 0.3f);
-            AddLight("V2ShopWindowLight", LightType.Spot, from, new Color(0.62f, 0.72f, 0.9f), 1.6f, 6f, false, LightShadows.Soft, 75f, new Vector3(0.1f, -0.8f, 1f));
+            AddLight("V2ShopWindowLight", LightType.Spot, from, V2Day ? new Color(1f, 0.86f, 0.66f) : new Color(0.62f, 0.72f, 0.9f), V2Day ? 5f : 1.6f, 7f, false, LightShadows.Soft, 75f, new Vector3(0.1f, -0.8f, 1f));
             // 窗光的光束（幾片交叉的柔邊面，加亮）＋光裡飄的灰塵。
             var shaftDir = new Vector3(0.1f, -0.8f, 1f).normalized;
             var shaftAt = c + new Vector3(0f, cy, z + 0.02f) + shaftDir * 1.1f;
@@ -662,7 +785,7 @@ namespace Shepherd.Exploration.Lantern
             shaftMat.renderQueue = 3100;
             shaftMat.SetTexture("_BaseMap", tex);
             shaftMat.SetTexture("_MainTex", tex);
-            var col = new Color(0.55f, 0.65f, 0.85f, 0.07f);
+            var col = V2Day ? new Color(1f, 0.85f, 0.6f, 0.08f) : new Color(0.55f, 0.65f, 0.85f, 0.07f);
             shaftMat.SetColor("_BaseColor", col);
             shaftMat.SetColor("_Color", col);
             return shaftMat;

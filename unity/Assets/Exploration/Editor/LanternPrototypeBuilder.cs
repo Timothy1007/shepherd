@@ -469,7 +469,7 @@ namespace Shepherd.Exploration.Editor
             cam.Render();
             cam.targetTexture = prev;
             RenderTexture painted = null;
-            if (qa.Style != null && qa.Style.On && qa.Style.PaintMaterial != null)
+            if (qa.Style != null && qa.Style.On && qa.Style.UsePaint && qa.Style.PaintMaterial != null)
             {
                 painted = RenderTexture.GetTemporary(rt.width, rt.height, 0, rt.format);
                 qa.Style.Paint(rt, painted);
