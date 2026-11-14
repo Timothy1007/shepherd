@@ -147,6 +147,166 @@ namespace Shepherd.Exploration.Editor
             }
         }
 
+        // ---------------- 一樓餐廳美術品質樣板 QA ----------------
+
+        [MenuItem("Shepherd/Prototype/Case01 餐廳美術樣板 QA 截圖")]
+        public static void CaptureDiningFromMenu()
+        {
+            string dir = Path.GetFullPath(Path.Combine(Application.dataPath, "../Temp/Case01DiningQA"));
+            CaptureDining(dir);
+            EditorUtility.RevealInFinder(dir);
+        }
+
+        public static void CaptureDiningFromCommandLine()
+        {
+            string dir = null;
+            var args = System.Environment.GetCommandLineArgs();
+            for (int i = 0; i < args.Length - 1; i++) if (args[i] == "-captureDir") dir = args[i + 1];
+            CaptureDining(dir ?? Path.GetFullPath(Path.Combine(Application.dataPath, "../Temp/Case01DiningQA")));
+        }
+
+        /// <summary>
+        /// 同一組視角各拍兩次：改之前（DiningSampleOn = false）與改之後；每組都有正常態（記憶中的樣子）與褪色態。
+        /// 特寫用自由相機位置（不是玩家視線），其他都是玩家視線高度。
+        /// </summary>
+        public static void CaptureDining(string dir)
+        {
+            Directory.CreateDirectory(dir);
+            var log = new StringBuilder();
+            try
+            {
+                foreach (var after in new[] { false, true })
+                {
+                    LanternGraybox.DiningSampleOn = after;
+                    CaptureDiningPass(dir, after ? "after_" : "before_", log, after);
+                }
+            }
+            finally
+            {
+                LanternGraybox.DiningSampleOn = true;
+                File.WriteAllText(Path.Combine(dir, "dining_qa.txt"), log.ToString(), new UTF8Encoding(false));
+            }
+        }
+
+        private static void CaptureDiningPass(string dir, string prefix, StringBuilder log, bool after)
+        {
+            if (!File.Exists(LanternPrototypeBuilder.ScenePath)) LanternPrototypeBuilder.BuildScene();
+            EditorSceneManager.OpenScene(LanternPrototypeBuilder.ScenePath, OpenSceneMode.Single);
+            var rt = new RenderTexture(1920, 1080, 24, RenderTextureFormat.ARGB32) { antiAliasing = 4 };
+            var qa = Object.FindObjectOfType<LanternPrototypeQA>();
+            try
+            {
+                qa.Setup(false);
+                var w = qa.World;
+                var o = LanternGraybox.V2Origin;
+                float S = LanternGraybox.V2Scale;
+                Vector3 HP(float x, float y, float z) => o + new Vector3(x * S, y, z * S);
+                qa.Rig.HideHands = true;
+                qa.GoTo("V2Shop");
+                Frames(qa, 10);
+                // 餐廳的門先打開（拉鋸門；正常遊玩要推開才進得去）。
+                var st = w.V2DiningStruggle;
+                if (st != null && st.Door != null && !st.Door.IsOpen) st.Door.Toggle();
+                Frames(qa, 30);
+
+                void View(string tag, Vector3 eye, Vector3 look)
+                {
+                    qa.Player.Teleport(eye, 0f, 0f);
+                    LanternPrototypeBuilder.Aim(qa, look);
+                    Frames(qa, 6);
+                    Shot(qa, rt, Path.Combine(dir, prefix + tag + ".png"));
+                }
+                void Close(string tag, Vector3 cam, Vector3 look)
+                {
+                    qa.Player.Teleport(HP(2.2f, 0.05f, 7.5f) + new Vector3(0f, 0f, 0f), 0f, 0f);
+                    Frames(qa, 4);
+                    var c = qa.Cam.transform;
+                    var p0 = c.position; var r0 = c.rotation; float fov = qa.Cam.fieldOfView;
+                    c.position = cam; c.rotation = Quaternion.LookRotation(look - cam);
+                    qa.Cam.fieldOfView = 45f;
+                    // 特寫用自由相機：玩家身體（膠囊）先藏起來。
+                    var body = new List<Renderer>();
+                    foreach (var r in qa.Player.GetComponentsInChildren<Renderer>()) if (r.enabled) { r.enabled = false; body.Add(r); }
+                    Shot(qa, rt, Path.Combine(dir, prefix + tag + ".png"));
+                    foreach (var r in body) r.enabled = true;
+                    c.position = p0; c.rotation = r0; qa.Cam.fieldOfView = fov;
+                }
+                var views = new (string tag, Vector3 eye, Vector3 look)[]
+                {
+                    ("01_entrance", HP(4.25f, 0.05f, 6.45f), HP(1.0f, 1.0f, 8.3f)),
+                    ("02_other_side", HP(0.9f, 0.05f, 5.6f), HP(3.4f, 0.9f, 9.2f)),
+                    ("03_from_kitchen_door", HP(1.65f, 0.05f, 9.55f), HP(2.6f, 0.9f, 5.5f)),
+                    ("04_corner_northeast", HP(4.0f, 0.05f, 9.3f), HP(1.5f, 0.8f, 6.0f)),
+                };
+                var closes = new (string tag, Vector3 cam, Vector3 look)[]
+                {
+                    ("10_close_table", HP(3.25f, 1.3f, 6.5f), HP(2.2f, 0.78f, 7.6f)),
+                    ("11_close_sideboard", HP(1.75f, 1.35f, 6.9f), HP(0.15f, 1.15f, 7.5f)),
+                    ("12_close_chair", HP(0.95f, 0.95f, 6.35f), HP(1.7f, 0.5f, 7.2f)),
+                    ("13_close_door_trim", HP(3.2f, 1.4f, 8.7f), HP(4.6f, 1.0f, 7.0f)),
+                    ("14_close_pendant", HP(3.0f, 1.65f, 8.5f), HP(2.2f, 2.4f, 7.5f)),
+                };
+                // 褪色態（平常玩家看到的）。
+                qa.Rig.SetOn(false);
+                View("faded_01_entrance", views[0].eye, views[0].look);
+                View("faded_04_corner_northeast", views[3].eye, views[3].look);
+                // 正常態（記憶中的樣子）。
+                var inside = w.V2Interior;
+                inside.Expand(new Vector3(0.5f, 1f, 4f));
+                LanternReveal.AddRoom(inside, inside.center, true);
+                Frames(qa, 4);
+                foreach (var v in views) View("normal_" + v.tag, v.eye, v.look);
+                foreach (var v in closes) Close(v.tag, v.cam, v.look);
+
+                // 走動測試：門口 → 桌子東側 → 往廚房的門 → 碗櫃前 → 桌子南邊 → 門口（玩家用走的，不是瞬移）。
+                if (after)
+                {
+                    var route = new (string name, float x, float z)[] { ("桌子東側", 3.7f, 7.5f), ("桌子東北角", 3.7f, 9.3f), ("往廚房的門", 1.65f, 9.6f), ("碗櫃前", 0.85f, 7.5f), ("桌子南邊", 1.7f, 5.8f), ("門口", 4.1f, 6.45f) };
+                    qa.Player.Teleport(HP(4.1f, 0.05f, 6.45f), 0f, 0f);
+                    Frames(qa, 2);
+                    log.AppendLine("## 走動測試");
+                    foreach (var (name, x, z) in route)
+                    {
+                        bool ok = Walk(qa, HP(x, 0.05f, z), 600, out float secs);
+                        log.AppendLine("- " + name + "：" + (ok ? "到了（" + secs.ToString("0.0") + " 秒）" : "卡住（" + qa.Player.transform.position + "）"));
+                    }
+                    Physics.SyncTransforms();
+                    var res = LanternClearance.Measure(w.V2Root, w.V2ClearanceRoute());
+                    log.AppendLine();
+                    log.AppendLine("## 動線淨寬");
+                    log.Append(LanternClearance.Report(res));
+                }
+                log.AppendLine(prefix + "ok");
+            }
+            catch (System.Exception e)
+            {
+                log.AppendLine(prefix + "error: " + e);
+                throw;
+            }
+            finally
+            {
+                if (qa != null) qa.Shutdown();
+                Object.DestroyImmediate(rt);
+            }
+        }
+
+        private static bool Walk(LanternPrototypeQA qa, Vector3 target, int maxFrames, out float secs)
+        {
+            var p = qa.Player;
+            const float dt = 1f / 30f;
+            for (int i = 0; i < maxFrames; i++)
+            {
+                var d = target - p.transform.position;
+                d.y = 0f;
+                if (d.magnitude < 0.35f) { secs = i * dt; return true; }
+                float want = Mathf.Atan2(d.x, d.z) * Mathf.Rad2Deg;
+                float look = Mathf.Clamp(Mathf.DeltaAngle(p.Yaw, want), -20f, 20f) / (FirstPersonController.LookSensitivity * p.LookScale);
+                qa.Step(dt, new ExploreInput { Move = new Vector2(0f, 1f), Look = new Vector2(look, 0f) });
+            }
+            secs = maxFrames * dt;
+            return false;
+        }
+
         private static void Frames(LanternPrototypeQA qa, int n)
         {
             for (int i = 0; i < n; i++) qa.Step(1f / 30f, ExploreInput.None);

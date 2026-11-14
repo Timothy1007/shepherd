@@ -70,6 +70,7 @@ namespace Shepherd.Exploration.Lantern
                 V2StairsAndUpper();
                 V2Furnish();
                 V2Lights();
+                if (DiningSampleOn) V2DiningSample();
             }
             finally
             {
@@ -539,12 +540,16 @@ namespace Shepherd.Exploration.Lantern
             V2Shop();
             // 餐廳：餐桌、四張椅子、碗櫃、日曆。
             // 美術方向 v1：家具不再蓋防塵布、也不是只在光裡才有；平常是褪色的樣子，提燈照到才有顏色。
-            Model("V2DiningTable", "dining_table", 2.2f, 7.5f, 0f, 0.76f, 90f, true, hWood, new Vector3(1.5f, 0.75f, 0.9f), Mode.Dual);
-            foreach (var p in new[] { new Vector3(1.6f, 6.85f, 0f), new Vector3(2.8f, 6.85f, 0f), new Vector3(1.6f, 8.15f, 180f) })
-                Model("V2DiningChair", "dining_chair_02", p.x, p.y, 0f, 0.95f, p.z, true, hWood, new Vector3(0.44f, 0.9f, 0.44f), Mode.Dual);
-            // 第四張椅子被推開、歪向一邊（那個週日留下的痕跡）。
-            Model("V2DiningChairPushed", "dining_chair_02", 3.35f, 8.55f, 0f, 0.95f, 215f, true, hWood, new Vector3(0.44f, 0.9f, 0.44f), Mode.Dual);
-            Model("V2BowlCabinet", "vintage_cabinet_01", 0.3f, 7.5f, 0f, 1.0f, 90f, true, hWood, new Vector3(0.45f, 0.9f, 1.2f), Mode.Dual);
+            // 餐桌、椅子、碗櫃改由餐廳美術樣板（LanternDining.cs，V2DiningSample）放置；
+            // 舊的版本留著，只給 QA 截「改之前」的對照圖用（DiningSampleOn = false）。
+            if (!DiningSampleOn)
+            {
+                Model("V2DiningTable", "dining_table", 2.2f, 7.5f, 0f, 0.76f, 90f, true, hWood, new Vector3(1.5f, 0.75f, 0.9f), Mode.Dual);
+                foreach (var p in new[] { new Vector3(1.6f, 6.85f, 0f), new Vector3(2.8f, 6.85f, 0f), new Vector3(1.6f, 8.15f, 180f) })
+                    Model("V2DiningChair", "dining_chair_02", p.x, p.y, 0f, 0.95f, p.z, true, hWood, new Vector3(0.44f, 0.9f, 0.44f), Mode.Dual);
+                Model("V2DiningChairPushed", "dining_chair_02", 3.35f, 8.55f, 0f, 0.95f, 215f, true, hWood, new Vector3(0.44f, 0.9f, 0.44f), Mode.Dual);
+                Model("V2BowlCabinet", "vintage_cabinet_01", 0.3f, 7.5f, 0f, 1.0f, 90f, true, hWood, new Vector3(0.45f, 0.9f, 1.2f), Mode.Dual);
+            }
             // 廚房：流理台、爐子、冰箱、高櫃。
             Fur("V2Counter2", 0.35f, 12.4f, 0f, 0.6f, 0.9f, 3.4f, hLightWood);
             Fur("V2CounterTop2", 0.35f, 12.4f, 0.9f, 0.64f, 0.04f, 3.44f, hWhite, false);
@@ -624,7 +629,7 @@ namespace Shepherd.Exploration.Lantern
             Box("V2PhoneNotepad", shelfTop + new Vector3(0.02f, 0.005f, 0.17f), new Vector3(0.1f, 0.01f, 0.14f), hWhite, false, new Vector3(0f, 12f, 0f));
 
             // 餐廳：桌上的一頓飯（兩副碗筷、一盤蓋著的菜、茶壺、報紙）、舊電視櫃、電扇、掛鐘、月曆。
-            CustomModel("V2DiningSetting", "v2_dining_setting", HP(2.2f, 0f, 7.5f) + Vector3.up * 0.76f, 0f, false);
+            CustomModel("V2DiningSetting", "v2_dining_setting", HP(2.2f, 0f, 7.5f) + Vector3.up * (DiningSampleOn ? 0.76f * f : 0.76f), 0f, false);
             CustomModel("V2TVCabinet", "v2_tv_cabinet", HP(1.4f, 0f, 5f) + new Vector3(0f, 0f, intw), 0f);
             CustomModel("V2Fan", "v2_standing_fan", HP(3.9f, 0f, 5.55f), -150f, false);
             CustomModel("V2DiningClock", "v2_wall_clock", HP(0f, 0f, 7.5f) + new Vector3(ext, 0f, 0f), 90f, false);
@@ -976,6 +981,17 @@ namespace Shepherd.Exploration.Lantern
             { "RK_Wool6", (null, new Color(0.16f, 0.25f, 0.2f), 0.1f, 0f) },
             { "SW_BlackEnamel", (null, new Color(0.025f, 0.025f, 0.028f), 0.85f, 0f) },
             { "SW_GoldDecal", (null, new Color(0.85f, 0.65f, 0.25f), 0.7f, 1f) },
+            // 餐廳美術樣板（LanternDining.cs）。
+            { "DN_Walnut", ("dark_wood", new Color(0.56f, 0.37f, 0.27f), 0.55f, 0f) },
+            { "DN_WalnutTop", ("fine_grained_wood", new Color(0.66f, 0.45f, 0.32f), 0.72f, 0f) },
+            { "DN_SeatFabric", ("fabric_pattern_07", new Color(0.62f, 0.26f, 0.18f), 0.08f, 0f) },
+            { "DN_Brass", (null, new Color(0.8f, 0.6f, 0.32f), 0.68f, 1f) },
+            { "DN_LampShade", (null, new Color(0.96f, 0.86f, 0.66f), 0.12f, 0f) },
+            { "DN_PaintCream", (null, new Color(0.9f, 0.86f, 0.76f), 0.38f, 0f) },
+            { "DN_Porcelain", (null, new Color(0.95f, 0.94f, 0.9f), 0.88f, 0f) },
+            { "DN_Celadon", (null, new Color(0.6f, 0.74f, 0.64f), 0.86f, 0f) },
+            { "DN_Cord", (null, new Color(0.1f, 0.09f, 0.08f), 0.3f, 0f) },
+            { "DN_BulbGlow", (null, new Color(1f, 0.9f, 0.7f), 0.8f, 0f) },
         };
         private readonly Dictionary<string, Material> customMatCache = new Dictionary<string, Material>();
 
@@ -999,7 +1015,9 @@ namespace Shepherd.Exploration.Lantern
             }
             float g = d.color.grayscale;
             var anom = Color.Lerp(new Color(g, g, g), d.color, 0.25f) * new Color(0.82f, 0.9f, 1f);
-            if (d.tex != null && LanternReveal.HasPH(d.tex, "Tex"))
+            if (key == "DN_PhotoPaper")
+                m = Mat("LC_" + key, Mode.Dual, Color.white, new Color(0.6f, 0.6f, 0.6f), LanternReveal.Photo(true), null, 0.3f, 0.3f, 0f);
+            else if (d.tex != null && LanternReveal.HasPH(d.tex, "Tex"))
             {
                 m = PH("LC_" + key, d.tex, "Tex", 0f, d.color, anom, d.smooth);
                 LanternReveal.AddRuin(m, "distressed_painted_planks", 0f, new Color(0.5f, 0.52f, 0.55f), 0.35f);
@@ -1009,6 +1027,8 @@ namespace Shepherd.Exploration.Lantern
                 m = Mat("LC_" + key, Mode.Dual, d.color, anom, null, null, d.smooth, 0.3f, 0.006f);
                 m.SetFloat("_Metallic", d.metal);
             }
+            if (key == "DN_LampShade") { m.SetColor("_EmissionColor", new Color(0.55f, 0.4f, 0.24f)); m.SetColor("_AnomalyEmission", new Color(0.15f, 0.15f, 0.16f)); }
+            if (key == "DN_BulbGlow") { m.SetColor("_EmissionColor", new Color(3f, 2.3f, 1.4f)); m.SetColor("_AnomalyEmission", new Color(0.8f, 0.8f, 0.85f)); }
             if (key == "SH_RedBulb") { m.SetColor("_EmissionColor", new Color(2.5f, 0.3f, 0.2f)); m.SetColor("_AnomalyEmission", new Color(2.5f, 0.3f, 0.2f)); }
             customMatCache[key] = m;
             return m;
@@ -1108,6 +1128,8 @@ namespace Shepherd.Exploration.Lantern
             P("側院・往市場的後門", 5.25f, 14.2f, 0f, 1f, 0.85f);
             P("走廊→餐廳 門洞", 4.6f, 6.45f, -1f, 0f, 0.85f, true);
             P("餐廳入口", 4.1f, 6.45f, -1f, 0f, 0.85f);
+            P("餐廳・桌子東側", 3.4f, 7.5f, 0f, 1f, 0.85f);
+            P("餐廳・碗櫃前", 0.85f, 7.5f, 0f, 1f, 0.85f);
             P("餐廳・往廚房", 1.65f, 9.4f, 0f, 1f, 0.85f);
             P("餐廳→廚房 門洞", 1.65f, 10.0f, 0f, 1f, 0.85f, true);
             P("廚房入口", 1.65f, 10.6f, 0f, 1f, 0.85f);
