@@ -77,6 +77,7 @@ namespace Shepherd.Exploration.Lantern
                 HouseScale = savedScale;
                 into = savedInto;
             }
+            YardDoorToMarket();
             V2Bounds = new Bounds(V2(V2Width / 2f, 2f, V2Depth / 2f), new Vector3(V2Width * V2Scale + 2f, 9f, V2Depth * V2Scale + 2f));
             var inside = new Bounds();
             inside.SetMinMax(V2(0.1f, -0.5f, 0.1f), V2(V2Width - 0.1f, V2Ground + V2Upper, V2Depth - 0.1f));

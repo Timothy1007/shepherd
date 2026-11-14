@@ -28,6 +28,10 @@ namespace Shepherd.Exploration.Lantern
         /// <summary>能力小原型：「定」（Q）與三個目標（N 進入）。</summary>
         public LanternHold Hold { get; private set; }
         public LanternSandboxRun Sandbox { get; private set; }
+        /// <summary>記憶空間 A：老街市場（從新房子側院的後門進去；M 直接過去）。</summary>
+        public LanternMarketRun Market { get; private set; }
+
+        public void GoToMarket() { Actions.DropHeld(false); Market.Enter(); Rig.SetOn(true); }
         private bool holdQWas;
 
         /// <summary>進入能力原型（每次都重建，等於重來）。</summary>
@@ -178,6 +182,7 @@ namespace Shepherd.Exploration.Lantern
             V2 = new LanternV2Puzzles(World, Rig, Cam, Flow, Audio);
             Hold = new LanternHold();
             Sandbox = new LanternSandboxRun(World, Player, Hold, Actions, Flow, Audio);
+            Market = new LanternMarketRun(World, Player, Sandbox, Flow, Audio, GoTo);
             lastFeet = Player.transform.position;
             if (play) BuildUi();
             Ready = true;
@@ -194,6 +199,7 @@ namespace Shepherd.Exploration.Lantern
             Actions.DropHeld(false);
             World.BuildHouseV2();
             V2.Rebind();
+            Market.Bind();
             GoTo("V2Street");
             Rig.SetOn(false);
         }
@@ -334,6 +340,7 @@ namespace Shepherd.Exploration.Lantern
             SetHouseScale(World.HouseScale);
             World.BuildHouseV2();
             V2.Rebind();
+            Market.Bind();
         }
 
         public void Step(float dt, ExploreInput inp, LanternActionInput act = default(LanternActionInput))
@@ -367,7 +374,7 @@ namespace Shepherd.Exploration.Lantern
             World.Tick(time);
             if (World.V2Tick(Player.transform.position, dt)) { Audio?.Play(LanternAudio.EnemyWarn, 0.45f); Rig.Shake(0.05f); }
             // 能力原型裡，Q＝「定」（取代擬態錨定）。
-            bool inSandbox = World.InSandbox(Player.transform.position);
+            bool inSandbox = World.InAbilitySpace(Player.transform.position);
             bool qDown = act.Deploy && !holdQWas;
             holdQWas = act.Deploy;
             if (inSandbox)
@@ -383,6 +390,7 @@ namespace Shepherd.Exploration.Lantern
             }
             Actions.Step(dt, act);
             Sandbox.Step(dt);
+            Market.Step(dt);
             bool primaryDown = act.Primary && !v2PrimaryWas;
             v2PrimaryWas = act.Primary;
             V2.Step(dt, Inspecting == null && (act.Interact || act.Primary), primaryDown);
@@ -409,7 +417,7 @@ namespace Shepherd.Exploration.Lantern
             var night = Color.Lerp(DarkAmbient, WarmAmbient, AmbientLevel);
             // 美術方向 v1：新房子一帶是白天（下午）。屋裡＝柔和的反射光；街上＝天空的藍白。
             bool indoor = World.InV2House(p);
-            float dayWant = LanternGraybox.V2Day && (indoor || World.InV2Street(p) || World.InSandbox(p)) ? 1f : 0f;
+            float dayWant = LanternGraybox.V2Day && (indoor || World.InV2Street(p) || World.InAbilitySpace(p)) ? 1f : 0f;
             DayLevel = dt > 0f ? Mathf.MoveTowards(DayLevel, dayWant, dt * 2f) : dayWant;
             var day = indoor ? DayIndoorAmbient : DayStreetAmbient;
             RenderSettings.ambientLight = Color.Lerp(night, day, DayLevel);
@@ -465,6 +473,7 @@ namespace Shepherd.Exploration.Lantern
             if (Input.GetKeyDown(KeyCode.Tab)) ToggleNotebook();
             if (Input.GetKeyDown(KeyCode.H)) ToggleHelp();
             if (Input.GetKeyDown(KeyCode.N)) GoToSandbox();
+            if (Input.GetKeyDown(KeyCode.M)) GoToMarket();
             FocusHeld = Input.GetKey(KeyCode.Space);
             var inp = ScriptedInput ?? input.Read();
             if (inp.ReleaseCursor) SetCursor(true);
@@ -534,7 +543,7 @@ namespace Shepherd.Exploration.Lantern
             energyBar = Bar(energyBack, new Color(0.6f, 0.85f, 1f, 0.85f));
             shieldText = MakeText("Shield", font, 18, new Vector2(234, 46), TextAnchor.LowerLeft, new Vector2(0, 0));
             hintText = MakeText("Hint", font, 17, new Vector2(24, 14), TextAnchor.LowerLeft, new Vector2(0, 0));
-            hintText.text = "Tab 母親的筆記　左鍵 射擊（按住蓄力）　E 互動（抓起／按住復原／打開／拿起來看）　Q 擬態錨定　按住Space 聚光　F 提燈　F1 新房子門外（重來） F2 新房子店面 F3 舊房子 F4 測試房 F6 戰鬥場　F8 最終戰全部開燈　F9 房子大小　F10 直接打最終戰　F11 風格 A／B　R 重來　F12 數值　N 能力原型（Q＝定）";
+            hintText.text = "Tab 母親的筆記　左鍵 射擊（按住蓄力）　E 互動（抓起／按住復原／打開／拿起來看）　Q 擬態錨定　按住Space 聚光　F 提燈　F1 新房子門外（重來） F2 新房子店面 F3 舊房子 F4 測試房 F6 戰鬥場　F8 最終戰全部開燈　F9 房子大小　F10 直接打最終戰　F11 風格 A／B　R 重來　F12 數值　N 能力原型　M 老街市場（Q＝定）";
             hintText.color = new Color(1f, 1f, 1f, 0.5f);
             fullHintText = hintText.text;
             hintText.text = ShortHint;
@@ -672,7 +681,7 @@ namespace Shepherd.Exploration.Lantern
             healthBar.rectTransform.sizeDelta = new Vector2(260f * Combat.Health / LanternCombat.MaxHealth, 0f);
             healthBar.color = Combat.Health < 35f ? new Color(1f, 0.35f, 0.3f, 0.9f) : new Color(0.95f, 0.85f, 0.65f, 0.85f);
             energyBar.rectTransform.sizeDelta = new Vector2(200f * Actions.Energy / LanternActions.MaxEnergy, 0f);
-            shieldText.text = World.InSandbox(Player.transform.position) ? Hold.ChargeText()
+            shieldText.text = World.InAbilitySpace(Player.transform.position) ? Hold.ChargeText()
                 : "擬態錨定 " + new string('◆', Actions.ShieldChargesLeft) + new string('◇', LanternActions.ShieldCharges - Actions.ShieldChargesLeft);
             float vign = Mathf.Max(Combat.HurtFlash * 0.55f, (1f - Combat.Health / LanternCombat.MaxHealth) * 0.25f);
             hurtOverlay.color = new Color(0.55f, 0f, 0f, Combat.PlayerDown ? 0.75f : vign);
@@ -732,7 +741,14 @@ namespace Shepherd.Exploration.Lantern
             readPanel.gameObject.SetActive(false);
             var sbClues = new StringBuilder();
             bool inV2 = World.InV2House(Player.transform.position);
-            if (Flow.Current == LanternFlow.Phase.Explore && NotebookOpen && World.InSandbox(Player.transform.position))
+            if (Flow.Current == LanternFlow.Phase.Explore && NotebookOpen && World.InMarket(Player.transform.position))
+            {
+                sbClues.Append("── 母親的筆記（暫定）──\n");
+                sbClues.Append("後門外面是一條老街。不是這座城市的街。\n\n");
+                foreach (var g in Market.Goals) sbClues.Append(g.Done ? "✓ " : "□ ").Append(g.Name).Append(g.Done ? "——" + g.Method : "").Append('\n');
+                sbClues.Append("\n照（F）　定（Q）　牽（E）");
+            }
+            else if (Flow.Current == LanternFlow.Phase.Explore && NotebookOpen && World.InSandbox(Player.transform.position))
             {
                 sbClues.Append("── 能力原型 ──\n");
                 sbClues.Append("照（F）：光裡的東西是實的\n定（Q）：固定一個東西 25 秒（3 次，會恢復；同時最多 2 個）\n牽（E）：抓起、放下；左鍵丟\n\n");

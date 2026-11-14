@@ -77,6 +77,7 @@ namespace Shepherd.Exploration.Lantern
             g.BuildBossRoom();
             g.BuildHouseV2();
             g.BuildSandbox();
+            g.BuildMarket();
             return g;
         }
 

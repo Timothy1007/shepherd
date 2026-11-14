@@ -313,6 +313,29 @@ namespace Shepherd.Exploration.Editor
             Frames(qa, 10);
             Shot(qa, rt, Path.Combine(dir, "sb05_plate.png"));
             log.AppendLine("sandbox memories=" + qa.World.Memories.Count + " door=" + qa.Sandbox.DoorOpen + " plate=" + qa.Sandbox.PlateBy);
+            // 記憶空間 A：老街市場。
+            var m = LanternGraybox.MarketOrigin;
+            qa.GoToMarket();
+            Frames(qa, 30);
+            Shot(qa, rt, Path.Combine(dir, "mk01_entry.png"));
+            qa.Player.Teleport(m + new Vector3(4.2f, 0.05f, 9.5f), 0f, 0f);
+            Aim(qa, m + new Vector3(7.2f, 1.0f, 12.6f));
+            qa.FocusHeld = true;
+            Frames(qa, 20);
+            qa.FocusHeld = false;
+            Shot(qa, rt, Path.Combine(dir, "mk02_awning_ramp_lit.png"));
+            qa.Player.Teleport(m + new Vector3(9.7f, 2.05f, 25.5f), 0f, 0f);
+            Aim(qa, m + new Vector3(2f, 2.2f, 27f));
+            Frames(qa, 12);
+            Shot(qa, rt, Path.Combine(dir, "mk03_bridge_from_balcony.png"));
+            qa.Player.Teleport(m + new Vector3(0.3f, 2.05f, 27.2f), 0f, 0f);
+            Aim(qa, m + new Vector3(0.1f, 2.8f, 29.8f));
+            Frames(qa, 12);
+            Shot(qa, rt, Path.Combine(dir, "mk04_family_stall.png"));
+            qa.Player.Teleport(m + new Vector3(5f, 0.05f, 22f), 0f, 0f);
+            Aim(qa, m + new Vector3(5f, 1.5f, 8f));
+            Frames(qa, 8);
+            Shot(qa, rt, Path.Combine(dir, "mk05_street_looking_back.png"));
         }
 
         /// <summary>客廳樣板：從玄關看地標、月光、修好後的真實客廳與細節。</summary>

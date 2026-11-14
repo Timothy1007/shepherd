@@ -1213,6 +1213,50 @@ namespace Shepherd.Exploration.Tests
             StringAssert.Contains("記憶中的樓梯", qa.Sandbox.Goals[0].Method);
         }
 
+        // ---------------- 記憶空間 A：老街市場 ----------------
+
+        [Test]
+        public void Market_YardDoorLeadsIn_RampIsMemory_PlateOpensShutter_KeepsakeEndsIt()
+        {
+            var qa = NewQa();
+            var w = qa.World;
+            Assert.IsNotNull(w.MarketRoot, "市場存在");
+            Assert.IsNotNull(w.YardDoor, "側院有後門");
+            w.YardDoor.Use();
+            Act(qa, 2, LanternActionInput.None);
+            Assert.IsTrue(w.InMarket(qa.Player.transform.position), "推開後門就到了老街");
+
+            // 記憶中的遮雨棚：沒有光不在；定住後光拿開還在。
+            var ramp = w.Memories.First(m => m != null && m.name == "MKAwningRamp");
+            qa.Rig.SetOn(false);
+            Act(qa, 20, LanternActionInput.None);
+            Assert.IsFalse(ramp.Present, "沒有光：遮雨棚不在");
+            Assert.IsTrue(ramp.TryHold(25f));
+            Act(qa, 3, LanternActionInput.None);
+            Assert.IsTrue(ramp.Present, "定住：遮雨棚在");
+
+            // 走上遮雨棚斜坡，到騎樓。
+            var o = LanternGraybox.MarketOrigin;
+            qa.Player.Teleport(o + new Vector3(5.2f, 0.05f, 12.6f), 90f, 0f);
+            Act(qa, 2, LanternActionInput.None);
+            for (int i = 0; i < 150 && !qa.Market.Goals[1].Done; i++) qa.Step(Dt, new ExploreInput { Move = new Vector2(0f, 1f) });
+            Assert.IsTrue(qa.Market.Goals[1].Done, "走上遮雨棚到騎樓（" + qa.Player.transform.position + "）");
+            StringAssert.Contains("遮雨棚", qa.Market.Goals[1].Method);
+
+            // 壓板上定住記憶中的米袋：鐵捲門捲上去。
+            Assert.IsTrue(w.MarketSack.TryHold(25f));
+            Act(qa, 75, LanternActionInput.None);
+            Assert.IsTrue(qa.Market.ShutterOpen, "鐵捲門打開（" + qa.Market.PlateBy + "）");
+
+            // 拿到捲尺：最後一個目標完成，信物到手。
+            w.MarketKeepsake.Use();
+            Assert.IsTrue(qa.Market.HasKeepsake && qa.Market.Goals[3].Done);
+            Assert.IsFalse(w.MarketKeepsake.gameObject.activeSelf, "捲尺被拿走了");
+            w.MarketExit.Use();
+            Act(qa, 2, LanternActionInput.None);
+            Assert.IsTrue(w.InV2House(qa.Player.transform.position), "從市場的門回到房子");
+        }
+
         // ---------------- 推門（拉鋸） ----------------
 
         private static LanternStruggle AimAtDiningDoor(LanternPrototypeQA qa)

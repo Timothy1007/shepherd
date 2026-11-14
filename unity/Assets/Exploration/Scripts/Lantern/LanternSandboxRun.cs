@@ -67,9 +67,11 @@ namespace Shepherd.Exploration.Lantern
         }
 
         /// <summary>壓板上有什麼（記憶要在場才算；可以抓的東西放上去就算）。</summary>
-        public string PlateCheck()
+        public string PlateCheck() => PlateCheckAt(world.SandboxPlate);
+
+        public string PlateCheckAt(Vector3 plate)
         {
-            var hits = Physics.OverlapBox(world.SandboxPlate + Vector3.up * 0.3f, new Vector3(0.45f, 0.28f, 0.45f), Quaternion.identity, ~0, QueryTriggerInteraction.Ignore);
+            var hits = Physics.OverlapBox(plate + Vector3.up * 0.3f, new Vector3(0.45f, 0.28f, 0.45f), Quaternion.identity, ~0, QueryTriggerInteraction.Ignore);
             foreach (var c in hits)
             {
                 var m = c.GetComponentInParent<LanternMemory>();

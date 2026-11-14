@@ -52,14 +52,15 @@ namespace Shepherd.Exploration.Lantern
             Physics.SyncTransforms();
         }
 
-        private LanternMemory MemoryBox(string name, string label, Vector3 center, Vector3 size, Material m, bool biased = false)
+        private LanternMemory MemoryBox(string name, string label, Vector3 center, Vector3 size, Material m, bool biased = false, Vector3? euler = null)
         {
             var go = new GameObject(name);
             go.transform.SetParent(Into, false);
             go.transform.position = center;
+            if (euler.HasValue) go.transform.rotation = Quaternion.Euler(euler.Value);
             var col = go.AddComponent<BoxCollider>();
             col.size = size;
-            Box(name + "Mesh", center, size, m, false, null, go.transform);
+            Box(name + "Mesh", center, size, m, false, euler, go.transform);
             var mem = go.AddComponent<LanternMemory>();
             mem.Label = label;
             mem.Biased = biased;
