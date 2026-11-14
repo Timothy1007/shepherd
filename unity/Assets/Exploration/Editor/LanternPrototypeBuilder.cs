@@ -285,6 +285,24 @@ namespace Shepherd.Exploration.Editor
             Aim(qa, o + new Vector3(1.6f * S, 1.0f, 3.6f * S));
             Frames(qa, 4);
             Shot(qa, rt, Path.Combine(dir, "b1_repaired_overview.png"));
+            // 走廊、餐廳、廚房、側院的生活擺設（一張褪色、一張提燈照著）。
+            void Room(string tag, Vector3 eye, Vector3 look)
+            {
+                qa.Player.Teleport(eye, 0f, 0f);
+                Aim(qa, look);
+                qa.Rig.SetOn(false);
+                Frames(qa, 12);
+                Shot(qa, rt, Path.Combine(dir, "r_" + tag + "_faded.png"));
+                qa.Rig.SetOn(true);
+                qa.FocusHeld = true;
+                Frames(qa, 16);
+                qa.FocusHeld = false;
+                Shot(qa, rt, Path.Combine(dir, "r_" + tag + "_lit.png"));
+            }
+            Room("hall", o + new Vector3(5.05f * S, 0.05f, 9.3f * S), o + new Vector3(4.7f * S, 0.9f, 5.4f * S));
+            Room("dining", o + new Vector3(3.9f * S, 0.05f, 9.4f * S), o + new Vector3(1.6f * S, 0.8f, 6.0f * S));
+            Room("kitchen", o + new Vector3(2.6f * S, 0.05f, 13.8f * S), o + new Vector3(0.4f * S, 1.0f, 11.6f * S));
+            Room("yard", o + new Vector3(4.5f * S, 0.05f, 10.6f * S), o + new Vector3(6.2f * S, 0.4f, 13f * S));
             log.AppendLine("b1 repaired=" + qa.V2.ShopRepaired + " echoLines=" + (qa.V2.ShopEcho != null ? qa.V2.ShopEcho.LinesShown : -1));
             log.AppendLine("v2 sealed=" + w.V2Sealed + " doors=" + w.V2Doors.Count);
         }

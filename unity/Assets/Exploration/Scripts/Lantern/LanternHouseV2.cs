@@ -538,16 +538,21 @@ namespace Shepherd.Exploration.Lantern
             float f = FurnitureScale;
             V2Shop();
             // 餐廳：餐桌、四張椅子、碗櫃、日曆。
-            Furnish("V2DiningTable", "dining_table", 2.2f, 7.5f, 0f, 0.76f, 90f, hWood, new Vector3(1.5f, 0.75f, 0.9f));
-            foreach (var p in new[] { new Vector3(1.6f, 6.85f, 0f), new Vector3(2.8f, 6.85f, 0f), new Vector3(1.6f, 8.15f, 180f), new Vector3(2.8f, 8.15f, 180f) })
-                Furnish("V2DiningChair", "dining_chair_02", p.x, p.y, 0f, 0.95f, p.z, hWood, new Vector3(0.44f, 0.9f, 0.44f), false);
-            Furnish("V2BowlCabinet", "vintage_cabinet_01", 0.3f, 7.5f, 0f, 1.0f, 90f, hWood, new Vector3(0.45f, 0.9f, 1.2f));
+            // 美術方向 v1：家具不再蓋防塵布、也不是只在光裡才有；平常是褪色的樣子，提燈照到才有顏色。
+            Model("V2DiningTable", "dining_table", 2.2f, 7.5f, 0f, 0.76f, 90f, true, hWood, new Vector3(1.5f, 0.75f, 0.9f), Mode.Dual);
+            foreach (var p in new[] { new Vector3(1.6f, 6.85f, 0f), new Vector3(2.8f, 6.85f, 0f), new Vector3(1.6f, 8.15f, 180f) })
+                Model("V2DiningChair", "dining_chair_02", p.x, p.y, 0f, 0.95f, p.z, true, hWood, new Vector3(0.44f, 0.9f, 0.44f), Mode.Dual);
+            // 第四張椅子被推開、歪向一邊（那個週日留下的痕跡）。
+            Model("V2DiningChairPushed", "dining_chair_02", 3.35f, 8.55f, 0f, 0.95f, 215f, true, hWood, new Vector3(0.44f, 0.9f, 0.44f), Mode.Dual);
+            Model("V2BowlCabinet", "vintage_cabinet_01", 0.3f, 7.5f, 0f, 1.0f, 90f, true, hWood, new Vector3(0.45f, 0.9f, 1.2f), Mode.Dual);
             // 廚房：流理台、爐子、冰箱、高櫃。
             Fur("V2Counter2", 0.35f, 12.4f, 0f, 0.6f, 0.9f, 3.4f, hLightWood);
             Fur("V2CounterTop2", 0.35f, 12.4f, 0.9f, 0.64f, 0.04f, 3.44f, hWhite, false);
             Fur("V2Stove", 0.35f, 10.7f, 0f, 0.6f, 0.9f, 0.6f, hDark);
-            Fur("V2Fridge", 3.4f, 10.6f, 0f, 0.7f, 1.8f, 0.7f, hWhite);
+            if (CustomModel("V2FridgeModel", "v2_fridge", HP(3.4f, 0f, 10f) + new Vector3(0f, 0f, 0.07f), 0f) == null)
+                Fur("V2Fridge", 3.4f, 10.6f, 0f, 0.7f, 1.8f, 0.7f, hWhite);
             Fur("V2TallCabinet", 2.6f, 14.6f, 0f, 0.6f, 2.0f, 0.5f, hWood);
+            V2Lived();
             // 側院：晾衣繩、花盆、幾個箱子。
             Cyl("V2ClothesLine", V2(5.25f, 1.9f, 12.5f), new Vector3(0.01f, 2.0f * V2Scale, 0.01f), hDark, new Vector3(90f, 0f, 0f));
             Prop("V2YardPlant", "potted_plant_02", 6.1f, 14.4f, 0f, 0.5f, 0f, false, true);
@@ -561,6 +566,77 @@ namespace Shepherd.Exploration.Lantern
             V2ThreadSpool = spool;
             // 晾衣繩上的衣服：兩個人的，一大一小。
             for (int i = 0; i < 4; i++) Box("V2YardLaundry", V2(4.6f + i * 0.45f, 1.55f, 12.5f), new Vector3(0.36f, i % 2 == 0 ? 0.7f : 0.5f, 0.02f), i % 2 == 0 ? hWhite : hFabric, false);
+        }
+
+        /// <summary>
+        /// 走廊、餐廳、廚房、側院的生活擺設（照店面樣板間的標準：小東西放在人會放的地方）。
+        /// 都是 Blender 做的平塗模型；異域時自動變成褪色的樣子，提燈照到才有顏色。
+        /// </summary>
+        private void V2Lived()
+        {
+            float f = FurnitureScale, ext = 0.13f, intw = 0.07f;
+            // 走廊：靠店門那段牆上的掛鉤（兩件外套、一把傘）、下面的鞋架（媽媽的鞋、女兒的球鞋、一雙拖鞋）、長條地毯。
+            CustomModel("V2HallCoats", "v2_hall_coats", HP(4.6f, 0f, 5.45f) + new Vector3(intw, 0f, 0f), 90f, false);
+            CustomModel("V2ShoeRack", "v2_shoe_rack", HP(4.6f, 0f, 5.45f) + new Vector3(intw, 0f, 0f), 90f, false);
+            Box("V2HallRunner", HP(5.05f, 0f, 7.5f) + Vector3.up * 0.006f, new Vector3(0.8f, 0.012f, 4.6f * V2Scale), hRug, false);
+            // 樓梯牆上一路往上的家庭照（四個框）。
+            var frame = Mat("V2_PhotoFrame", Mode.Dual, new Color(0.3f, 0.2f, 0.12f), new Color(0.5f, 0.5f, 0.5f), null, null, 0.4f, 0.4f, 0f);
+            var photoM = Mat("V2_StairPhoto", Mode.Dual, Color.white, new Color(0.6f, 0.6f, 0.6f), LanternReveal.Photo(true), null, 0.3f, 0.3f, 0f);
+            for (int i = 0; i < 4; i++)
+            {
+                float z = 6.4f + i * 0.85f;
+                float y = 1.55f + (z - 5.7f) / (9.6f - 5.7f) * V2Ground * 1.165f;
+                var at = HP(V2Width, 0f, z) + new Vector3(-ext, y, 0f);
+                Box("V2StairFrame", at, new Vector3(0.03f, 0.36f + (i % 2) * 0.08f, 0.3f), frame, false);
+                Box("V2StairPhoto", at + new Vector3(-0.018f, 0f, 0f), new Vector3(0.005f, 0.28f + (i % 2) * 0.08f, 0.22f), photoM, false);
+            }
+            // 電話旁的答錄機（紅燈一閃一閃：之後的 H1）。
+            var ledM = Mat("V2_MachineLed", Mode.Dual, new Color(0.8f, 0.1f, 0.08f), new Color(0.8f, 0.1f, 0.08f), null, null, 0.5f, 0.5f, 0f);
+            ledM.SetColor("_EmissionColor", new Color(2.5f, 0.2f, 0.1f));
+            ledM.SetColor("_AnomalyEmission", new Color(2.5f, 0.2f, 0.1f));
+            var shelfTop = HP(4.6f, 0f, 8.0f) + new Vector3(0.2f, 1.02f, 0f);
+            Box("V2AnsweringMachine", shelfTop + new Vector3(0f, 0.035f, -0.17f), new Vector3(0.16f, 0.06f, 0.12f), hDark, false);
+            Ball("V2MachineLed", shelfTop + new Vector3(0.05f, 0.07f, -0.14f), Vector3.one * 0.015f, ledM);
+            Box("V2PhoneNotepad", shelfTop + new Vector3(0.02f, 0.005f, 0.17f), new Vector3(0.1f, 0.01f, 0.14f), hWhite, false, new Vector3(0f, 12f, 0f));
+
+            // 餐廳：桌上的一頓飯（兩副碗筷、一盤蓋著的菜、茶壺、報紙）、舊電視櫃、電扇、掛鐘、月曆。
+            CustomModel("V2DiningSetting", "v2_dining_setting", HP(2.2f, 0f, 7.5f) + Vector3.up * 0.76f, 0f, false);
+            CustomModel("V2TVCabinet", "v2_tv_cabinet", HP(1.4f, 0f, 5f) + new Vector3(0f, 0f, intw), 0f);
+            CustomModel("V2Fan", "v2_standing_fan", HP(3.9f, 0f, 5.55f), -150f, false);
+            CustomModel("V2DiningClock", "v2_wall_clock", HP(0f, 0f, 7.5f) + new Vector3(ext, 0f, 0f), 90f, false);
+            var paperM = Mat("V2_DiningPaper", Mode.Dual, new Color(0.93f, 0.9f, 0.82f), new Color(0.6f, 0.6f, 0.6f), null, null, 0.2f, 0.2f, 0.004f);
+            var cal = Box("V2DiningCalendar", HP(3.3f, 0f, V2Main) + new Vector3(0f, 1.6f, -intw), new Vector3(0.36f, 0.5f, 0.015f), paperM, false);
+            WallText(cal, "十 月\n\n19\n\n星期日", Quaternion.identity, new Vector3(0f, 0f, -0.012f), 0.012f, new Color(0.55f, 0.1f, 0.08f));
+            var famPhoto = Box("V2DiningPhoto", HP(1.4f, 0f, 5f) + new Vector3(0f, 1.7f, intw + 0.01f), new Vector3(0.5f, 0.38f, 0.02f), frame, false);
+            Box("V2DiningPhotoImg", famPhoto.position + new Vector3(0f, 0f, 0.012f), new Vector3(0.42f, 0.3f, 0.005f), photoM, false);
+
+            // 廚房：流理台上（電鍋、水壺、砧板和蔥、調味罐、碗架）、爐上的炒鍋、高櫃頂上的餅乾鐵盒、米袋。
+            CustomModel("V2KitchenClutter", "v2_kitchen_clutter", HP(0.35f, 0f, 12.6f) + Vector3.up * 0.94f, 90f, false);
+            CustomModel("V2Wok", "v2_wok", HP(0.35f, 0f, 10.7f) + Vector3.up * 0.9f, 90f, false);
+            CustomModel("V2CookieTin", "v2_cookie_tin", HP(2.6f, 0f, 14.6f) + Vector3.up * 2.0f, 15f, false);
+            CustomModel("V2RiceSack", "v2_rice_sack", HP(3.3f, 0f, 14.35f), 20f);
+            // 吊櫃、抽油煙機、掛勺子的橫桿、一張小桌和兩張塑膠凳（她自己一個人吃飯的地方）。
+            var cupboard = Mat("V2_Cupboard", Mode.Dual, new Color(0.78f, 0.7f, 0.55f), new Color(0.5f, 0.5f, 0.5f), null, null, 0.3f, 0.3f, 0.004f);
+            var hood = Mat("V2_Hood", Mode.Dual, new Color(0.72f, 0.74f, 0.76f), new Color(0.5f, 0.5f, 0.5f), null, null, 0.6f, 0.4f, 0f);
+            Box("V2WallCupboard", HP(0f, 0f, 12.9f) + new Vector3(ext + 0.18f, 1.95f, 0f), new Vector3(0.36f, 0.7f, 2.2f * V2Scale), cupboard, false);
+            for (int i = 0; i < 4; i++) Box("V2CupboardSeam", HP(0f, 0f, 11.9f + i * 0.7f) + new Vector3(ext + 0.365f, 1.95f, 0f), new Vector3(0.01f, 0.66f, 0.015f), hDark, false);
+            Box("V2RangeHood", HP(0f, 0f, 10.7f) + new Vector3(ext + 0.28f, 1.85f, 0f), new Vector3(0.56f, 0.32f, 0.7f), hood, false);
+            Cyl("V2UtensilRail", HP(0f, 0f, 11.45f) + new Vector3(ext + 0.04f, 1.45f, 0f), new Vector3(0.012f, 0.4f, 0.012f), hood, new Vector3(90f, 0f, 0f));
+            for (int i = 0; i < 4; i++)
+            {
+                var at = HP(0f, 0f, 11.15f + i * 0.17f) + new Vector3(ext + 0.06f, 1.3f, 0f);
+                Cyl("V2Ladle", at, new Vector3(0.012f, 0.13f, 0.012f), hood);
+                Ball("V2LadleHead", at + Vector3.down * 0.15f, new Vector3(0.06f, 0.025f, 0.06f), hood);
+            }
+            Fur("V2KitchenTable", 2.6f, 12.4f, 0f, 0.7f, 0.72f, 0.6f, hLightWood);
+            CustomModel("V2KitchenStool", "v2_stool", HP(2.95f, 0f, 12.0f), 30f);
+            var bowl = Mat("V2_Bowl", Mode.Dual, new Color(0.93f, 0.93f, 0.9f), new Color(0.5f, 0.5f, 0.5f), null, null, 0.4f, 0.4f, 0f);
+            Cyl("V2KitchenBowl", HP(2.6f, 0f, 12.35f) + Vector3.up * (0.72f * f + 0.03f), new Vector3(0.12f, 0.03f, 0.12f), bowl);
+            Box("V2KitchenChopsticks", HP(2.6f, 0f, 12.35f) + new Vector3(0.12f, 0.72f * f + 0.01f, 0f), new Vector3(0.012f, 0.01f, 0.23f), hWood, false);
+
+            // 側院：保麗龍箱裡種的蔥、紅色塑膠凳、水桶、洗衣盆、靠著圍牆的腳踏車。
+            CustomModel("V2YardGarden", "v2_yard_garden", HP(6.3f, 0f, 11.7f), -90f);
+            CustomModel("V2Bicycle", "v2_bicycle", HP(6.2f, 0f, 13.9f), 90f);
         }
 
         private void V2Lights()
