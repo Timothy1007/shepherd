@@ -1257,6 +1257,20 @@ namespace Shepherd.Exploration.Tests
             Assert.IsTrue(w.InV2House(qa.Player.transform.position), "從市場的門回到房子");
         }
 
+        // ---------------- 家具配置 QA：動線淨寬 ----------------
+
+        [Test]
+        public void HouseV2_RoutesKeepClearWidth_MainAndSecondary()
+        {
+            var qa = NewQa();
+            Physics.SyncTransforms();
+            var res = LanternClearance.Measure(qa.World.V2Root, qa.World.V2ClearanceRoute());
+            var report = LanternClearance.Report(res);
+            Debug.Log(report);
+            var bad = res.Where(r => !r.Ok).ToList();
+            Assert.IsEmpty(bad, "動線淨寬不足：\n" + report);
+        }
+
         // ---------------- 推門（拉鋸） ----------------
 
         private static LanternStruggle AimAtDiningDoor(LanternPrototypeQA qa)

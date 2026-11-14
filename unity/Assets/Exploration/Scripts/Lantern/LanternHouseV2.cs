@@ -551,7 +551,14 @@ namespace Shepherd.Exploration.Lantern
             Fur("V2Stove", 0.35f, 10.7f, 0f, 0.6f, 0.9f, 0.6f, hDark);
             if (CustomModel("V2FridgeModel", "v2_fridge", HP(3.4f, 0f, 10f) + new Vector3(0f, 0f, 0.07f), 0f) == null)
                 Fur("V2Fridge", 3.4f, 10.6f, 0f, 0.7f, 1.8f, 0.7f, hWhite);
-            Fur("V2TallCabinet", 2.6f, 14.6f, 0f, 0.6f, 2.0f, 0.5f, hWood);
+            var tall = Fur("V2TallCabinet", 2.6f, 14.6f, 0f, 0.6f, 2.0f, 0.5f, hWood);
+            // 高櫃（K2 謎題的位置與碰撞不變）：外觀換成有門的乾貨高櫃。
+            if (CustomModel("V2TallCupboard", "v2_tall_cupboard", HP(2.6f, 0f, 14.6f) + new Vector3(0f, 0f, 0.25f * f), 180f, false) != null)
+                tall.GetComponent<Renderer>().enabled = false;
+            // 廚房的大件：後窗下的水槽、流理台上的微波爐、東牆的垃圾桶與回收桶。
+            CustomModel("V2SinkUnit", "v2_sink_unit", HP(1.9f, 0f, V2Depth) + new Vector3(0f, 0f, -0.13f), 180f);
+            CustomModel("V2Microwave", "v2_microwave", HP(0.35f, 0f, 13.75f) + Vector3.up * 0.94f, 90f, false);
+            CustomModel("V2KitchenBins", "v2_kitchen_bins", HP(V2ExtWidth, 0f, 12.95f) + new Vector3(-0.32f, 0f, 0f), -90f);
             V2Lived();
             // 側院：晾衣繩、花盆、幾個箱子。
             Cyl("V2ClothesLine", V2(5.25f, 1.9f, 12.5f), new Vector3(0.01f, 2.0f * V2Scale, 0.01f), hDark, new Vector3(90f, 0f, 0f));
@@ -575,9 +582,26 @@ namespace Shepherd.Exploration.Lantern
         private void V2Lived()
         {
             float f = FurnitureScale, ext = 0.13f, intw = 0.07f;
-            // 走廊：靠店門那段牆上的掛鉤（兩件外套、一把傘）、下面的鞋架（媽媽的鞋、女兒的球鞋、一雙拖鞋）、長條地毯。
-            CustomModel("V2HallCoats", "v2_hall_coats", HP(4.6f, 0f, 5.45f) + new Vector3(intw, 0f, 0f), 90f, false);
-            CustomModel("V2ShoeRack", "v2_shoe_rack", HP(4.6f, 0f, 5.45f) + new Vector3(intw, 0f, 0f), 90f, false);
+            // 家人的出入口：掛鉤（兩件外套、一把傘）和鞋架（媽媽的鞋、女兒的球鞋、一雙拖鞋）放在店面後牆、通往走廊那扇門的右邊。
+            // 走廊淨寬只有約 1.13 m，地上什麼都不放（家具配置 QA：主通道 ≥ 1.1 m）。
+            CustomModel("V2HallCoats", "v2_hall_coats", HP(6.0f, 0f, 5f) + new Vector3(0f, 0f, -intw), 180f, false);
+            CustomModel("V2ShoeRack", "v2_shoe_rack", HP(6.0f, 0f, 5f) + new Vector3(0f, 0f, -intw), 180f, false);
+            // 走廊牆上只掛淺的東西：鑰匙盤小架、玄關小鏡、掛曆；梯下是有門的收納櫃。
+            var shelfM = Mat("V2_KeyShelf", Mode.Dual, new Color(0.55f, 0.38f, 0.22f), new Color(0.5f, 0.5f, 0.5f), null, null, 0.4f, 0.4f, 0f);
+            var mirrorM = Mat("V2_HallMirror", Mode.Dual, new Color(0.75f, 0.8f, 0.82f), new Color(0.5f, 0.5f, 0.5f), null, null, 0.95f, 0.9f, 0f);
+            Box("V2KeyShelf", HP(4.6f, 0f, 5.45f) + new Vector3(intw + 0.05f, 1.05f, 0f), new Vector3(0.1f, 0.03f, 0.4f), shelfM, false);
+            Box("V2KeyTray", HP(4.6f, 0f, 5.45f) + new Vector3(intw + 0.05f, 1.08f, 0.08f), new Vector3(0.08f, 0.02f, 0.14f), hTrim, false);
+            Box("V2HallMirrorFrame", HP(4.6f, 0f, 5.45f) + new Vector3(intw + 0.012f, 1.55f, 0f), new Vector3(0.02f, 0.5f, 0.36f), shelfM, false);
+            Box("V2HallMirror", HP(4.6f, 0f, 5.45f) + new Vector3(intw + 0.024f, 1.55f, 0f), new Vector3(0.006f, 0.44f, 0.3f), mirrorM, false);
+            var calM = Mat("V2_HallCalendar", Mode.Dual, new Color(0.93f, 0.9f, 0.82f), new Color(0.6f, 0.6f, 0.6f), null, null, 0.2f, 0.2f, 0f);
+            var hcal = Box("V2HallCalendar", HP(4.6f, 0f, 7.3f) + new Vector3(intw + 0.008f, 1.6f, 0f), new Vector3(0.012f, 0.42f, 0.3f), calM, false);
+            WallText(hcal, "收衣服\n繳電費\n週日 回來吃飯？", Quaternion.Euler(0f, 90f, 0f), new Vector3(0.01f, 0f, 0f), 0.006f, new Color(0.25f, 0.18f, 0.12f));
+            // 梯下收納：樓梯側牆上一扇矮門（裡面放吸塵器、掃把、工具箱等，之後再做打開）。
+            var closetM = Mat("V2_ClosetDoor", Mode.Dual, new Color(0.86f, 0.82f, 0.72f), new Color(0.5f, 0.5f, 0.5f), null, null, 0.3f, 0.3f, 0f);
+            Box("V2UnderStairPanelHigh", HP(5.55f, 0f, 8.8f) + new Vector3(0.03f, 1.0f, 0f), new Vector3(0.04f, 2.0f, 1.6f * V2Scale), hWall, true);
+            Box("V2UnderStairPanelLow", HP(5.55f, 0f, 7.5f) + new Vector3(0.03f, 0.6f, 0f), new Vector3(0.04f, 1.2f, 1.0f * V2Scale), hWall, true);
+            Box("V2UnderStairDoor", HP(5.55f, 0f, 8.9f) + new Vector3(0.06f, 0.85f, 0f), new Vector3(0.03f, 1.7f, 0.7f), closetM, false);
+            Ball("V2UnderStairKnob", HP(5.55f, 0f, 8.9f) + new Vector3(0.03f, 0.9f, -0.26f), Vector3.one * 0.05f, hTrim);
             Box("V2HallRunner", HP(5.05f, 0f, 7.5f) + Vector3.up * 0.006f, new Vector3(0.8f, 0.012f, 4.6f * V2Scale), hRug, false);
             // 樓梯牆上一路往上的家庭照（四個框）。
             var frame = Mat("V2_PhotoFrame", Mode.Dual, new Color(0.3f, 0.2f, 0.12f), new Color(0.5f, 0.5f, 0.5f), null, null, 0.4f, 0.4f, 0f);
@@ -697,7 +721,7 @@ namespace Shepherd.Exploration.Lantern
             CustomModel("V2IroningBoard", "v2_ironing_board", HP(3.0f, 0f, 0.55f), 0f, false);
             // 那件外套：不穿在人台上，掛在左牆的木掛鉤上（客人的衣服都在衣架上，只有它單獨掛著）。
             var coat = CustomModel("V2HangingCoat", "v2_hanging_coat", HP(0f, 0f, 3.55f) + new Vector3(0.36f, 0f, 0f), 90f);
-            CustomModel("V2FabricShelf", "v2_fabric_shelf", HP(6.18f, 0f, 4.2f), -90f);
+            CustomModel("V2FabricShelf", "v2_fabric_shelf", HP(6.18f, 0f, 3.95f), -90f);
             CustomModel("V2Mirror", "v2_cheval_mirror", HP(6.1f, 0f, 3.05f), -110f);
             CustomModel("V2Umbrellas", "v2_umbrella_stand", HP(4.3f, 0f, 0.3f), 0f);
             float top = 0.99f * FurnitureScale;
@@ -1060,6 +1084,36 @@ namespace Shepherd.Exploration.Lantern
                 }
             }
             return false;
+        }
+
+        /// <summary>
+        /// 家具配置 QA 的動線檢查點（一樓）：主通道＝店門 → 店面 → 走廊 → 後門 → 側院（要求 1.1 m）；
+        /// 次要＝走廊 → 餐廳 → 廚房（0.85 m）。門洞只記錄。
+        /// </summary>
+        public List<LanternClearance.Point> V2ClearanceRoute()
+        {
+            var pts = new List<LanternClearance.Point>();
+            void P(string name, float x, float z, float ax, float az, float need, bool door = false) =>
+                pts.Add(new LanternClearance.Point { Name = name, At = V2(x, 0f, z), Along = new Vector3(ax, 0f, az), Need = need, Doorway = door });
+            P("店門內側", 5.1f, 0.7f, 0f, 1f, 1.1f);
+            P("店面中段（往櫃台／後門）", 4.9f, 2.6f, 0f, 1f, 1.1f);
+            P("店面往走廊的門前", 5.07f, 4.3f, 0f, 1f, 1.1f);
+            P("店面→走廊 門洞", 5.07f, 5.0f, 0f, 1f, 1.1f, true);
+            P("走廊入口", 5.07f, 5.5f, 0f, 1f, 1.1f);
+            P("走廊・餐廳門口", 5.07f, 6.45f, 0f, 1f, 1.1f);
+            P("走廊・電話", 5.07f, 8.0f, 0f, 1f, 1.1f);
+            P("走廊盡頭", 5.07f, 9.4f, 0f, 1f, 1.1f);
+            P("走廊→側院 後門洞", 5.1f, 10.0f, 0f, 1f, 1.1f, true);
+            P("側院", 5.25f, 11.2f, 0f, 1f, 1.1f);
+            P("側院・往市場的後門", 5.25f, 14.2f, 0f, 1f, 0.85f);
+            P("走廊→餐廳 門洞", 4.6f, 6.45f, -1f, 0f, 0.85f, true);
+            P("餐廳入口", 4.1f, 6.45f, -1f, 0f, 0.85f);
+            P("餐廳・往廚房", 1.65f, 9.4f, 0f, 1f, 0.85f);
+            P("餐廳→廚房 門洞", 1.65f, 10.0f, 0f, 1f, 0.85f, true);
+            P("廚房入口", 1.65f, 10.6f, 0f, 1f, 0.85f);
+            P("廚房中段（流理台前）", 1.5f, 12.4f, 0f, 1f, 0.85f);
+            P("廚房・高櫃前", 2.4f, 14.0f, 1f, 0f, 0.85f);
+            return pts;
         }
 
         /// <summary>在新房子裡（含側院）。</summary>
