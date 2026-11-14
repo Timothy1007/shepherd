@@ -10,6 +10,18 @@ namespace Shepherd.Exploration.Lantern
     {
         private static Font ui;
 
+        /// <summary>場景裡的字用的材質（會被牆擋住）。找不到 shader 時退回字型內建材質。</summary>
+        public static Material WorldMaterial(Font font, Color color, string name = "WorldText")
+        {
+            var sh = Shader.Find("Shepherd/WorldText");
+            var m = sh != null ? new Material(sh) : new Material(font.material);
+            m.name = name;
+            m.hideFlags = HideFlags.DontSave;
+            m.mainTexture = font.material.mainTexture;
+            m.color = color;
+            return m;
+        }
+
         public static Font UI
         {
             get

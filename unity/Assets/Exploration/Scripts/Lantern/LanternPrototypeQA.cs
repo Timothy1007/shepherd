@@ -64,6 +64,7 @@ namespace Shepherd.Exploration.Lantern
         private string fullHintText = "";
         public bool HelpOpen { get; private set; }
         public void ToggleHelp() { HelpOpen = !HelpOpen; if (hintText != null) hintText.text = HelpOpen ? fullHintText : ShortHint; }
+        private Image promptBack, toastBack, notePaper;
         private Text tapText, subtitleText;
         private Image subtitleBand;
         /// <summary>畫面下方的字幕（影子殘影、之後的答錄機）；測試用。</summary>
@@ -335,6 +336,7 @@ namespace Shepherd.Exploration.Lantern
             else { inspectInteractWas = act.Interact; inspectPrimaryWas = act.Primary; }
             Actions.Suspended = Inspecting != null || V2.InputCaptured;
             Rig.Focus = FocusHeld;
+            Rig.HideHands = Inspecting != null;
             Player.WalkSpeedValue = WalkSpeed * Mathf.Lerp(1f, 0.6f, Rig.FocusBlend);
             Player.RunSpeedValue = BriskSpeed * Mathf.Lerp(1f, 0.6f, Rig.FocusBlend);
             Player.Step(dt, inp, true);
@@ -578,6 +580,14 @@ namespace Shepherd.Exploration.Lantern
             tapMarker.raycastTarget = false;
             tapText = MakeText("TapText", font, 20, new Vector2(0, 26), TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), tapBack.transform);
             tapBack.gameObject.SetActive(false);
+            // 樣板間的介面：提示和訊息有柔和的深色底，筆記是一張米色的紙。
+            promptBack = Img("PromptBack", new Vector2(0.5f, 0.5f), new Vector2(0, -70), new Vector2(200, 40), new Color(0.05f, 0.04f, 0.04f, 0.55f));
+            promptBack.transform.SetSiblingIndex(promptText.transform.GetSiblingIndex());
+            toastBack = Img("ToastBack", new Vector2(0.5f, 0.5f), new Vector2(0, 160), new Vector2(200, 46), new Color(0.05f, 0.04f, 0.04f, 0.5f));
+            toastBack.transform.SetSiblingIndex(toastText.transform.GetSiblingIndex());
+            notePaper = Img("NotebookPaper", new Vector2(1f, 1f), new Vector2(-18, -44), new Vector2(560, 300), new Color(0.93f, 0.89f, 0.8f, 0.96f));
+            notePaper.transform.SetSiblingIndex(cluesText.transform.GetSiblingIndex());
+            notePaper.enabled = false;
             // 對話字幕：畫面下方中央，半透明底條（像一般遊戲的對話字幕）。
             subtitleBand = Img("SubtitleBand", new Vector2(0.5f, 0f), new Vector2(0, 120), new Vector2(1100, 64), new Color(0f, 0f, 0f, 0.45f));
             subtitleText = MakeText("Subtitle", font, 32, new Vector2(0, 120), TextAnchor.MiddleCenter, new Vector2(0.5f, 0f));
@@ -650,6 +660,11 @@ namespace Shepherd.Exploration.Lantern
                 breathMarker.color = stg.Loose ? new Color(1f, 0.95f, 0.6f) : new Color(0.6f, 0.65f, 0.8f);
                 if (!struggleHintShown) { struggleHintShown = true; Flow.ShowToast("（門的另一邊像是有人抵著……指針到亮的那一段時，按住 E 推；狂按沒有用）", 5f); }
             }
+            // 提示與訊息的底：跟著字的寬度。
+            promptBack.enabled = !string.IsNullOrEmpty(promptText.text);
+            if (promptBack.enabled) promptBack.rectTransform.sizeDelta = new Vector2(Mathf.Min(1400f, promptText.preferredWidth + 44f), Mathf.Max(40f, promptText.preferredHeight + 14f));
+            toastBack.enabled = !string.IsNullOrEmpty(toastText.text);
+            if (toastBack.enabled) toastBack.rectTransform.sizeDelta = new Vector2(Mathf.Min(1400f, toastText.preferredWidth + 56f), Mathf.Max(46f, toastText.preferredHeight + 16f));
             var sub = CurrentSubtitle();
             subtitleText.text = sub;
             subtitleBand.enabled = subtitleText.enabled = sub.Length > 0;
@@ -703,6 +718,20 @@ namespace Shepherd.Exploration.Lantern
             }
             if (Flow.Current == LanternFlow.Phase.Explore && !NotebookOpen) sbClues.Append("Tab 母親的筆記");
             cluesText.text = Inspecting != null ? "" : sbClues.ToString();
+            // 筆記打開時：米色的紙、深色的墨水字；收起來時只留一行淡淡的「Tab 母親的筆記」。
+            bool paper = NotebookOpen && Inspecting == null && Flow.Current == LanternFlow.Phase.Explore;
+            notePaper.enabled = paper;
+            cluesText.color = paper ? new Color(0.22f, 0.16f, 0.11f) : new Color(0.9f, 0.88f, 0.8f, 0.8f);
+            var sh = cluesText.GetComponent<Shadow>(); if (sh != null) sh.enabled = !paper;
+            cluesText.alignment = paper ? TextAnchor.UpperLeft : TextAnchor.UpperRight;
+            cluesText.lineSpacing = paper ? 1.25f : 1f;
+            if (paper)
+            {
+                cluesText.rectTransform.sizeDelta = new Vector2(500f, 600f);
+                cluesText.rectTransform.anchoredPosition = new Vector2(-48f, -64f);
+                notePaper.rectTransform.sizeDelta = new Vector2(560f, Mathf.Min(900f, cluesText.preferredHeight + 48f));
+            }
+            else { cluesText.rectTransform.sizeDelta = new Vector2(900f, 240f); cluesText.rectTransform.anchoredPosition = new Vector2(-30f, -56f); }
             var ins = Inspecting;
             inspectPanel.gameObject.SetActive(ins != null && ins.Type != LanternInspectable.Kind.Object);
             if (ins != null)

@@ -626,6 +626,20 @@ namespace Shepherd.Exploration.Lantern
             float top = 0.99f * FurnitureScale;
             CustomModel("V2Register", "v2_cash_register", HP(3.15f, 0f, 4.15f) + Vector3.up * top, 180f, false);
             V2ShopWindow();
+            // 樣板間：小東西放在人會放的地方（Blender 做的，平塗顏色；異域時自動變成褪色的樣子）。
+            float wallIn = 0.13f;
+            CustomModel("V2ThreadRack", "v2_thread_rack", HP(3.0f, 0f, 0f) + new Vector3(0f, 0f, wallIn), 0f, false);
+            CustomModel("V2CounterClutter", "v2_counter_clutter", HP(2.3f, 0f, 4.1f) + Vector3.up * top, 180f, false);
+            CustomModel("V2FabricBin", "v2_fabric_bin", HP(0.38f, 0f, 0.42f), 90f);
+            CustomModel("V2WallShelf", "v2_wall_shelf", HP(4.15f, 0f, 5f) + new Vector3(0f, 0f, -0.07f), 180f, false);
+            CustomModel("V2WallClock", "v2_wall_clock", HP(V2Width, 0f, 3.9f) + new Vector3(-wallIn, 0f, 0f), -90f, false);
+            CustomModel("V2Boxes", "v2_boxes", HP(3.35f, 0f, 4.72f), 172f);
+            CustomModel("V2Stool", "v2_stool", HP(1.35f, 0f, 1.05f), 20f);
+            if (V2SewingMachine != null)
+            {
+                float tableTop = 0.74f * FurnitureScale;
+                CustomModel("V2SewingClutter", "v2_sewing_clutter", HP(1.35f, 0f, 0.45f) + new Vector3(0.12f, tableTop, 0.0f), 0f, false);
+            }
             // 門口的腳踏墊、客人坐的椅子。
             Box("V2DoorMat", HP(5.1f, 0f, 0.55f) + Vector3.up * 0.006f, new Vector3(1.2f, 0.012f, 0.8f), hRug, false);
             Furnish("V2CustomerChair", "dining_chair_02", 6.1f, 0.7f, 0f, 0.95f, -90f, hWood, new Vector3(0.44f, 0.9f, 0.44f), false);
@@ -696,7 +710,7 @@ namespace Shepherd.Exploration.Lantern
             tm.anchor = TextAnchor.MiddleCenter;
             tm.alignment = TextAlignment.Center;
             tm.text = s;
-            var m = new Material(tm.font.material) { name = "V2_WallText", hideFlags = HideFlags.DontSave };
+            var m = LanternFonts.WorldMaterial(tm.font, c, "V2_WallText");
             m.color = c;
             go.GetComponent<MeshRenderer>().sharedMaterial = m;
         }
@@ -719,7 +733,10 @@ namespace Shepherd.Exploration.Lantern
             var glass = Mat("V2_ShopWindowGlass", Mode.Dual, new Color(0.55f, 0.62f, 0.7f), new Color(0.18f, 0.2f, 0.22f), null, null, 0.85f, 0.4f, 0f);
             glass.SetColor("_EmissionColor", V2Day ? new Color(1.25f, 1.18f, 1.05f) : new Color(0.55f, 0.68f, 0.85f)); // 白天：午後的陽光透過毛玻璃
             glass.SetColor("_AnomalyEmission", new Color(0.05f, 0.07f, 0.09f));
-            Box("V2ShopWindowGlass", c + new Vector3(0f, cy, z + 0.005f), new Vector3(w, h, 0.01f), glass, false);
+            var glassBox = Box("V2ShopWindowGlass", c + new Vector3(0f, cy, z + 0.005f), new Vector3(w, h, 0.01f), glass, false);
+            glassBox.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            // 窗外走過的人影（毛玻璃上模糊的影子），只在窗戶範圍內。
+            if (V2Day) LanternPasserby.Create(Into, c + new Vector3(0f, cy, z + 0.012f), Quaternion.Euler(0f, 180f, 0f), new Vector2(w, h));
             Box("V2ShopWindowFrameT", c + new Vector3(0f, bottom + h + ft / 2f, z + 0.03f), new Vector3(w + 2f * ft, ft, 0.06f), hTrim, false);
             Box("V2ShopWindowFrameB", c + new Vector3(0f, bottom - ft / 2f, z + 0.03f), new Vector3(w + 2f * ft, ft, 0.06f), hTrim, false);
             Box("V2ShopWindowFrameL", c + new Vector3(-(w + ft) / 2f, cy, z + 0.03f), new Vector3(ft, h, 0.06f), hTrim, false);

@@ -324,6 +324,8 @@ namespace Shepherd.Exploration.Lantern
                 var aimed = FindAimedOf(Interactables(), InteractTypes, 7f, Reach, ReachOf);
                 Aimed = aimed;
                 active = StepInteract(dt, inp, eDown, aimed);
+                // 做事的時候右手才伸出來：蓄力、抓著東西、復原中、對著東西按 E。
+                if (Charge > 0f || Held != null || Restoring != null || (inp.Interact && aimed != null)) rig.PokeDevice(0.9f);
             }
             if (Restoring == null)
                 foreach (var r in world.Restorables) if (r != null) r.Step(dt, false);

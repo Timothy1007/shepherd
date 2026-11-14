@@ -150,10 +150,18 @@ namespace Shepherd.Exploration.Tests
             var qa = NewQa();
             var rig = qa.Rig;
             Assert.AreEqual(qa.Cam.fieldOfView, rig.ViewCamera.fieldOfView, 1e-3f, "手的鏡頭和主鏡頭視野一致（裝置位置不會看起來偏掉）");
+            // 平常畫面乾淨：提燈和穩定器都收在畫面外。
+            for (int i = 0; i < 60; i++) qa.Step(Dt, ExploreInput.None);
+            Assert.Less(rig.ViewCamera.WorldToViewportPoint(rig.Glass.position).y, 0f, "平常提燈收在畫面下方外面");
+            Assert.Less(rig.ViewCamera.WorldToViewportPoint(rig.Muzzle.position).y, 0f, "平常穩定器也收起來");
+            // 聚光時提燈舉進畫面左下；做事（按住左鍵蓄力）時穩定器伸進右下。
+            qa.FocusHeld = true;
+            Act(qa, 30, new LanternActionInput { Primary = true });
+            qa.FocusHeld = false;
             var vp = rig.ViewCamera.WorldToViewportPoint(rig.Glass.position);
-            Assert.IsTrue(vp.z > 0f && vp.x > 0f && vp.x < 0.5f && vp.y > 0f && vp.y < 0.6f, "左手提燈在左下（" + vp + "）");
+            Assert.IsTrue(vp.z > 0f && vp.x > 0f && vp.x < 0.5f && vp.y > 0f && vp.y < 0.6f, "聚光時左手提燈在左下（" + vp + "）");
             var mv = rig.ViewCamera.WorldToViewportPoint(rig.Muzzle.position);
-            Assert.IsTrue(mv.z > 0f && mv.x > 0.5f && mv.x < 1f && mv.y > 0f && mv.y < 0.6f, "右手穩定器在右下（" + mv + "）");
+            Assert.IsTrue(mv.z > 0f && mv.x > 0.5f && mv.x < 1f && mv.y > 0f && mv.y < 0.6f, "做事時右手穩定器在右下（" + mv + "）");
             var torso = rig.BodyRenderers.First(r => r.name == "Torso");
             qa.Player.Teleport(qa.Player.transform.position, qa.Player.Yaw, 62f);
             qa.Step(Dt, ExploreInput.None);
@@ -1132,7 +1140,12 @@ namespace Shepherd.Exploration.Tests
             Act(qa, 30, LanternActionInput.None);
             Assert.IsTrue(st.Door.IsOpen, "門開了");
             Assert.AreEqual(1, qa.Actions.StrugglesOpened);
-            Aim(qa, st.GetComponent<Collider>().bounds.center);
+            // 門推開後，門板中心會有一半轉進牆裡；對準看得到的那一部分（離眼睛最近的那一點）。
+            var dc = st.Door.GetComponent<Collider>();
+            var doorway = st.GetComponent<Collider>().bounds.center;
+            qa.Player.Teleport(new Vector3(doorway.x + 0.35f, qa.Player.transform.position.y, doorway.z), 0f, 0f);
+            qa.Step(Dt, ExploreInput.None);
+            Aim(qa, dc.bounds.center);
             Act(qa, 1, LanternActionInput.None);
             Assert.AreSame(st.Door, qa.Actions.Aimed, "推開之後就是普通的門（E 開關）");
         }

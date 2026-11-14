@@ -279,7 +279,7 @@ namespace Shepherd.Exploration.Lantern
             hDebrisWood = Mat("LH_DebrisWood", Mode.AnomalyOnly, Color.white, ruin * 0.7f, null, null, 0.2f, 0.2f, 0.004f);
             LanternReveal.AddRuin(hDebrisWood, "old_planks_02", 0f, ruin * 0.7f, 0.4f, 0.2f);
             signFont = LanternFonts.UI;
-            hSign = new Material(signFont.material) { name = "LH_SignText" };
+            hSign = LanternFonts.WorldMaterial(signFont, Color.white, "LH_SignText");
             hSign.color = new Color(0.95f, 0.9f, 0.75f);
             Materials.Add(hSign);
         }

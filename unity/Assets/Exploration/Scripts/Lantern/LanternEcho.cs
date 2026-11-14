@@ -86,7 +86,7 @@ namespace Shepherd.Exploration.Lantern
             text.characterSize = 0.03f;
             text.anchor = TextAnchor.MiddleCenter;
             text.alignment = TextAlignment.Center;
-            var tm = new Material(text.font.material) { name = "EchoText", hideFlags = HideFlags.DontSave };
+            var tm = LanternFonts.WorldMaterial(text.font, new Color(1f, 0.88f, 0.68f), "EchoText");
             tm.color = new Color(1f, 0.88f, 0.68f);
             tgo.GetComponent<MeshRenderer>().sharedMaterial = tm;
             text.text = "";

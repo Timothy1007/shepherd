@@ -255,6 +255,15 @@ namespace Shepherd.Exploration.Editor
             Aim(qa, o + new Vector3(4.4f * S, 1.6f, 0f));
             Frames(qa, 4);
             Shot(qa, rt, Path.Combine(dir, "b1_hours_sign.png"));
+            // 樣板間的細節：櫃台上、工作角、牆上的架子。
+            qa.Player.Teleport(o + new Vector3(2.3f * S, 0.05f, 3.0f * S), 0f, 0f);
+            Aim(qa, o + new Vector3(2.4f * S, 0.95f, 4.1f * S));
+            Frames(qa, 4);
+            Shot(qa, rt, Path.Combine(dir, "b1_counter_detail.png"));
+            qa.Player.Teleport(o + new Vector3(2.4f * S, 0.05f, 1.9f * S), 0f, 0f);
+            Aim(qa, o + new Vector3(1.4f * S, 0.9f, 0.3f * S));
+            Frames(qa, 4);
+            Shot(qa, rt, Path.Combine(dir, "b1_work_corner.png"));
             var lever = w.V2PowerLever.GetComponent<Collider>().bounds.center;
             qa.Player.Teleport(new Vector3(lever.x + 0.3f, o.y + 0.05f, lever.z - 0.75f), 0f, 0f);
             Aim(qa, lever);

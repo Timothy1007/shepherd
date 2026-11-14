@@ -193,8 +193,9 @@ namespace Shepherd.Exploration.Lantern
             var wood = Lit("LR_DeviceGrip", new Color(0.3f, 0.18f, 0.1f), 0.35f);
             var arm = new GameObject("RightArm").transform;
             arm.SetParent(ViewRoot, false);
-            arm.localPosition = new Vector3(0.2f, -0.15f, 0.46f);
+            arm.localPosition = LoweredDevice;
             arm.localScale = Vector3.one * 0.85f;
+            rightArm = arm;
             var foreR = Part(PrimitiveType.Capsule, arm, new Vector3(0.06f, -0.08f, -0.2f), new Vector3(0.085f, 0.21f, 0.085f), sleeve, new Vector3(68f, -14f, 0f), "ForearmR", ViewRenderers, ViewLayer);
             var handR = Part(PrimitiveType.Sphere, arm, new Vector3(0f, -0.02f, 0f), new Vector3(0.075f, 0.07f, 0.09f), skin, null, "HandR", ViewRenderers, ViewLayer);
             if (ArmModel("fp_arm_right", arm, new Vector3(0f, 0.025f, 0.012f), new Vector3(-12f, 0f, 0f)))
@@ -246,7 +247,7 @@ namespace Shepherd.Exploration.Lantern
             deviceGlow.SetColor("_EmissionColor", c * k);
         }
 
-        public void Recoil() => recoil = 1f;
+        public void Recoil() { recoil = 1f; PokeDevice(); }
 
         private float shake;
         /// <summary>受傷時鏡頭震動（公尺）。</summary>
@@ -266,8 +267,22 @@ namespace Shepherd.Exploration.Lantern
             Part(PrimitiveType.Cube, Body, new Vector3(0.1f, 0.04f, 0.04f), new Vector3(0.1f, 0.08f, 0.26f), shoe, null, "ShoeR", BodyRenderers, 0);
         }
 
-        public void Toggle() => On = !On;
-        public void SetOn(bool on) => On = on;
+        public void Toggle() { On = !On; toggleShow = 1.4f; }
+        public void SetOn(bool on) { if (on != On) toggleShow = 1.4f; On = on; }
+
+        /// <summary>提燈在畫面裡的程度（0＝收在畫面外、1＝舉起來）。</summary>
+        public float LanternShown { get; private set; }
+        /// <summary>右手與穩定器在畫面裡的程度。</summary>
+        public float DeviceShown { get; private set; }
+        /// <summary>近看、演出時把手全部收起來。</summary>
+        public bool HideHands;
+        private float toggleShow, deviceShow;
+        private Transform rightArm;
+        public static readonly Vector3 LoweredLantern = new Vector3(-0.32f, -0.62f, 0.45f);
+        public static readonly Vector3 LoweredDevice = new Vector3(0.3f, -0.62f, 0.32f);
+        public static readonly Vector3 RaisedDevice = new Vector3(0.2f, -0.15f, 0.46f);
+        /// <summary>做事的時候叫一下：右手伸出來，做完約一秒後收回去。</summary>
+        public void PokeDevice(float seconds = 1.1f) { deviceShow = Mathf.Max(deviceShow, seconds); }
         public void CycleRadius() => RadiusIndex = (RadiusIndex + 1) % Radii.Length;
         public void SetRadius(int i) => RadiusIndex = Mathf.Clamp(i, 0, Radii.Length - 1);
 
@@ -303,7 +318,17 @@ namespace Shepherd.Exploration.Lantern
             // 聚光：把燈舉高、往前；光變成細長光束。
             FocusBlend = Mathf.MoveTowards(FocusBlend, Focus && On ? 1f : 0f, dt * 4f);
             float fb = Mathf.SmoothStep(0f, 1f, FocusBlend);
-            if (lanternArm != null) lanternArm.localPosition = Vector3.Lerp(new Vector3(-0.25f, -0.1f, 0.6f), new Vector3(-0.21f, -0.04f, 0.64f), fb);
+            // 平常畫面乾淨（使用者同意的做法）：提燈收在畫面左下角外面，只看得到它的光；
+            // 聚光、開關提燈的時候舉進畫面。右手和穩定器只在做事（射擊、抓、復原、按 E）的時候伸出來。
+            toggleShow = Mathf.Max(0f, toggleShow - dt);
+            deviceShow = Mathf.Max(0f, deviceShow - dt);
+            bool wantLantern = !HideHands && On && (Focus || toggleShow > 0f);
+            LanternShown = Mathf.MoveTowards(LanternShown, wantLantern ? 1f : 0f, dt * (wantLantern ? 3.5f : 2f));
+            DeviceShown = Mathf.MoveTowards(DeviceShown, !HideHands && deviceShow > 0f ? 1f : 0f, dt * (deviceShow > 0f ? 5f : 2.2f));
+            float ls = Mathf.SmoothStep(0f, 1f, LanternShown), ds = Mathf.SmoothStep(0f, 1f, DeviceShown);
+            var raised = Vector3.Lerp(new Vector3(-0.25f, -0.1f, 0.6f), new Vector3(-0.21f, -0.04f, 0.64f), fb);
+            if (lanternArm != null) lanternArm.localPosition = Vector3.Lerp(LoweredLantern, raised, ls);
+            if (rightArm != null) rightArm.localPosition = Vector3.Lerp(LoweredDevice, RaisedDevice, ds);
 
             // 光：開關時光圈平滑展開／收合；燈光輕微呼吸（不是火焰的劇烈跳動）。
             CurrentRadius = Mathf.MoveTowards(CurrentRadius, TargetRadius, dt * 9f);
@@ -320,7 +345,10 @@ namespace Shepherd.Exploration.Lantern
             flame.SetColor("_EmissionColor", new Color(6f, 4.2f, 2.2f) * Mathf.Lerp(0.05f, 1f, Mathf.Clamp01(k)) * breathe);
             glassMat.SetColor("_EmissionColor", new Color(1.4f, 0.95f, 0.5f) * Mathf.Lerp(0.05f, 1f, Mathf.Clamp01(k)));
 
-            RevealCenter = Light.transform.position + Camera.transform.forward * RevealForward;
+            // 光和顯示真實的範圍固定從「提燈原本在的位置」算起（提燈收起來時光還是在那裡）。
+            var lampAt = Camera.transform.TransformPoint(Vector3.Lerp(new Vector3(-0.25f, -0.27f, 0.6f), new Vector3(-0.21f, -0.21f, 0.64f), fb));
+            Light.transform.position = lampAt;
+            RevealCenter = lampAt + Camera.transform.forward * RevealForward;
             LanternReveal.SetSphere(RevealCenter, CurrentRadius);
             LanternReveal.SetShape(Camera.transform.forward, Vector3.Lerp(NormalShape, FocusShape, fb), Mathf.Lerp(NormalSpread, FocusSpread, fb));
         }
