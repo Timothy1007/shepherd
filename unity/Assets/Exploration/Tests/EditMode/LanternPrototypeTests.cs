@@ -1099,6 +1099,120 @@ namespace Shepherd.Exploration.Tests
             Assert.AreEqual(0, hits);
         }
 
+        // ---------------- 能力原型：照、定、牽 ----------------
+
+        private static LanternMemory Mem(LanternPrototypeQA qa, string name) => qa.World.Memories.First(m => m != null && m.name == name);
+
+        /// <summary>站在目標前 dist 公尺（從 from 那一側）、提燈開著、對準它。</summary>
+        private static void FaceIt(LanternPrototypeQA qa, Vector3 target, Vector3 from, float dist)
+        {
+            var d = from - target; d.y = 0f;
+            var pos = target + d.normalized * dist;
+            pos.y = LanternGraybox.SandboxOrigin.y + 0.05f;
+            qa.Player.Teleport(pos, 0f, 0f);
+            qa.Step(Dt, ExploreInput.None);
+            Aim(qa, target);
+            qa.Step(Dt, ExploreInput.None); // 鏡頭跟上新的朝向
+        }
+
+        [Test]
+        public void Sandbox_MemoryIsSolidOnlyInLight_HoldKeepsIt_ThenItFades()
+        {
+            var qa = NewQa();
+            qa.GoToSandbox();
+            var plank = Mem(qa, "SBPlank0");
+            var o = LanternGraybox.SandboxOrigin;
+            qa.Rig.SetOn(false);
+            Act(qa, 20, LanternActionInput.None);
+            Assert.IsFalse(plank.Present, "提燈關著：記憶中的木板不在");
+            qa.Rig.SetOn(true);
+            FaceIt(qa, plank.transform.position, o + new Vector3(7f, 0f, 3.3f), 1.4f);
+            Act(qa, 5, LanternActionInput.None);
+            Assert.IsTrue(plank.Present, "照到：木板是實的");
+            Assert.AreEqual("", qa.Hold.Use(qa.Cam, qa.Actions), "定住它");
+            Assert.IsTrue(plank.Held);
+            Assert.AreEqual(LanternHold.MaxCharges - 1, Mathf.FloorToInt(qa.Hold.Charges));
+            qa.Rig.SetOn(false);
+            Act(qa, 60, LanternActionInput.None);
+            Assert.IsTrue(plank.Present, "光拿開了，定住的木板還在");
+            Act(qa, Mathf.CeilToInt(LanternHold.HoldSeconds / Dt), LanternActionInput.None);
+            Assert.IsFalse(plank.Held, "時間到解開");
+            Assert.IsFalse(plank.Present, "沒有光就消失");
+        }
+
+        [Test]
+        public void Sandbox_AtMostTwoHolds_BiasedMemoryCannotBeHeld()
+        {
+            var qa = NewQa();
+            qa.GoToSandbox();
+            var a = Mem(qa, "SBPlank0"); var b = Mem(qa, "SBPlank1"); var c = Mem(qa, "SBPlank3");
+            Assert.IsTrue(a.TryHold(25f) && b.TryHold(25f));
+            Assert.IsFalse(Mem(qa, "SBPlank2").TryHold(25f), "記憶有偏差的木板定不住");
+            // 用「定」系統：第三個會讓最早的解開。
+            var o = LanternGraybox.SandboxOrigin;
+            foreach (var m in new[] { a, b, c })
+            {
+                FaceIt(qa, m.transform.position, o + new Vector3(7f, 0f, m.transform.position.z - o.z), 1.3f);
+                Act(qa, 3, LanternActionInput.None);
+                qa.Hold.Use(qa.Cam, qa.Actions);
+            }
+            Assert.AreEqual(LanternHold.MaxActive, qa.Hold.ActiveCount, "同時最多定住 2 個");
+        }
+
+        [Test]
+        public void Sandbox_HeldCrateCannotBeGrabbed_PlateOpensTheDoor_ByCrateOrHeldSack()
+        {
+            var qa = NewQa();
+            qa.GoToSandbox();
+            var w = qa.World;
+            var crate = w.SandboxCrateSmall;
+            // 定住的箱子抓不動。
+            FaceIt(qa, crate.transform.position + Vector3.up * 0.15f, crate.transform.position + new Vector3(0f, 0f, -2f), 1.2f);
+            qa.Actions.Grab(crate);
+            Assert.AreEqual("", qa.Hold.Use(qa.Cam, qa.Actions));
+            Act(qa, 2, LanternActionInput.None);
+            Assert.IsNull(qa.Actions.Held, "被定住的東西抓不動");
+            Assert.IsTrue(crate.Body.isKinematic);
+            qa.Hold.Clear();
+
+            // 把箱子放到壓板上：門打開。
+            Act(qa, 1, LanternActionInput.None);
+            w.SandboxSack.Release();
+            qa.Rig.SetOn(false);
+            crate.Body.position = w.SandboxPlate + Vector3.up * 0.1f;
+            crate.transform.position = crate.Body.position;
+            Physics.SyncTransforms();
+            Act(qa, 60, LanternActionInput.None);
+            Assert.IsTrue(qa.Sandbox.DoorOpen, "壓板上有箱子：門開（" + qa.Sandbox.PlateBy + "）");
+            StringAssert.Contains("小木箱", qa.Sandbox.PlateBy);
+            crate.Body.position = crate.HomePosition;
+            crate.transform.position = crate.HomePosition;
+            Physics.SyncTransforms();
+            Act(qa, 60, LanternActionInput.None);
+            Assert.IsFalse(qa.Sandbox.DoorOpen, "拿走就關上");
+
+            // 記憶中的米袋：定住後沒有光也壓著壓板。
+            Assert.IsTrue(w.SandboxSack.TryHold(25f));
+            Act(qa, 60, LanternActionInput.None);
+            Assert.IsTrue(qa.Sandbox.DoorOpen, "定住的米袋壓著壓板：門開");
+            StringAssert.Contains("定住", qa.Sandbox.PlateBy);
+        }
+
+        [Test]
+        public void Sandbox_ReachingThePlatform_RecordsTheMethod()
+        {
+            var qa = NewQa();
+            qa.GoToSandbox();
+            var o = LanternGraybox.SandboxOrigin;
+            // 站在第一階（真的）→ 定住記憶中的兩階 → 走上高台。
+            Assert.IsTrue(Mem(qa, "SBStep2").TryHold(25f) && Mem(qa, "SBStep3").TryHold(25f));
+            qa.Player.Teleport(o + new Vector3(5.2f, 0.05f, 4.4f), 0f, 0f);
+            Act(qa, 3, LanternActionInput.None);
+            for (int i = 0; i < 120 && !qa.Sandbox.Goals[0].Done; i++) qa.Step(Dt, new ExploreInput { Move = new Vector2(0f, 1f) });
+            Assert.IsTrue(qa.Sandbox.Goals[0].Done, "走上高台（" + qa.Player.transform.position + "）");
+            StringAssert.Contains("記憶中的樓梯", qa.Sandbox.Goals[0].Method);
+        }
+
         // ---------------- 推門（拉鋸） ----------------
 
         private static LanternStruggle AimAtDiningDoor(LanternPrototypeQA qa)

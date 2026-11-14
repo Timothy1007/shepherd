@@ -113,6 +113,7 @@ namespace Shepherd.Exploration.Editor
                 }
                 StyleShots(qa, rt, dir, log);
                 V2Shots(qa, rt, dir, log);
+                SandboxShots(qa, rt, dir, log);
                 LivingShots(qa, rt, dir, log);
                 ClueShots(qa, rt, dir, log);
                 CombatShots(qa, rt, dir, log);
@@ -286,6 +287,32 @@ namespace Shepherd.Exploration.Editor
             Shot(qa, rt, Path.Combine(dir, "b1_repaired_overview.png"));
             log.AppendLine("b1 repaired=" + qa.V2.ShopRepaired + " echoLines=" + (qa.V2.ShopEcho != null ? qa.V2.ShopEcho.LinesShown : -1));
             log.AppendLine("v2 sealed=" + w.V2Sealed + " doors=" + w.V2Doors.Count);
+        }
+
+        /// <summary>能力原型：三個房間，提燈照到時記憶中的東西出現。</summary>
+        private static void SandboxShots(LanternPrototypeQA qa, RenderTexture rt, string dir, StringBuilder log)
+        {
+            var o = LanternGraybox.SandboxOrigin;
+            qa.GoToSandbox();
+            Frames(qa, 30);
+            Shot(qa, rt, Path.Combine(dir, "sb01_start.png"));
+            qa.Player.Teleport(o + new Vector3(4.6f, 0.05f, 3.4f), 0f, 0f);
+            Aim(qa, o + new Vector3(5.2f, 0.6f, 5.6f));
+            Frames(qa, 8);
+            Shot(qa, rt, Path.Combine(dir, "sb02_stairs_lit.png"));
+            qa.Rig.SetOn(false);
+            Frames(qa, 20);
+            Shot(qa, rt, Path.Combine(dir, "sb03_stairs_dark.png"));
+            qa.Rig.SetOn(true);
+            qa.Player.Teleport(o + new Vector3(7.2f, 0.05f, 3.9f), 0f, 0f);
+            Aim(qa, o + new Vector3(9.2f, 0f, 3.9f));
+            Frames(qa, 10);
+            Shot(qa, rt, Path.Combine(dir, "sb04_gap_lit.png"));
+            qa.Player.Teleport(o + new Vector3(15.5f, 0.05f, 3.4f), 0f, 0f);
+            Aim(qa, o + new Vector3(13.3f, 0.4f, 6.9f));
+            Frames(qa, 10);
+            Shot(qa, rt, Path.Combine(dir, "sb05_plate.png"));
+            log.AppendLine("sandbox memories=" + qa.World.Memories.Count + " door=" + qa.Sandbox.DoorOpen + " plate=" + qa.Sandbox.PlateBy);
         }
 
         /// <summary>客廳樣板：從玄關看地標、月光、修好後的真實客廳與細節。</summary>
