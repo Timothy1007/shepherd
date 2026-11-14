@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Shepherd.Exploration.Lantern
@@ -81,7 +81,7 @@ namespace Shepherd.Exploration.Lantern
             tgo.transform.SetParent(transform, false);
             tgo.transform.localPosition = new Vector3(0.15f, 0.98f, -0.02f); // 在兩個人的頭上方
             text = tgo.AddComponent<TextMesh>();
-            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.font = LanternFonts.UI;
             text.fontSize = 64;
             text.characterSize = 0.03f;
             text.anchor = TextAnchor.MiddleCenter;

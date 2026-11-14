@@ -60,7 +60,13 @@ namespace Shepherd.Exploration.Lantern
             var ca = profile.Add<ColorAdjustments>(true);
             ca.contrast.Override(16f);
             ca.saturation.Override(14f);
-            ca.postExposure.Override(0.15f);
+            ca.postExposure.Override(0.45f); // ACES 會壓暗一點，曝光補回來
+            var tone = profile.Add<Tonemapping>(true);
+            tone.mode.Override(TonemappingMode.ACES); // 電影感的亮部（燈不會死白）
+            var grain = profile.Add<FilmGrain>(true);
+            grain.type.Override(FilmGrainLookup.Thin1);
+            grain.intensity.Override(0.22f);
+            grain.response.Override(0.85f);
             var bloom = profile.Add<Bloom>(true);
             bloom.intensity.Override(0.75f);
             bloom.threshold.Override(0.85f);

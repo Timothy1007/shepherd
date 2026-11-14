@@ -62,6 +62,90 @@ namespace Shepherd.Exploration.Lantern
         public static AudioClip EnemyHit => Synth("EnemyHit", 0.35f, (t, i) => { float fr = 400f + 900f * Mathf.Abs(Noise(i / 600)); return (Sin(fr, t) * 0.6f + Noise(i) * 0.3f) * Mathf.Exp(-t * 7f) * 0.8f; });
         public static AudioClip EnemyDeath => Synth("EnemyDeath", 1.4f, (t, i) => { float fr = Mathf.Lerp(700f, 60f, t / 1.4f) * (1f + 0.2f * Noise(i / 900)); return (Sin(fr, t) * 0.6f + Noise(i) * 0.25f) * Env(t, 0.02f, 1.4f) * 0.8f; });
 
+        // ---------------- 環境聲（可無縫循環） ----------------
+
+        /// <summary>產生可以無縫循環的長音：多算一段尾巴，交叉淡入到開頭。f 依序被呼叫（可以有狀態）。</summary>
+        private static AudioClip LoopSynth(string name, float seconds, Func<float, int, float> f)
+        {
+            AudioClip c;
+            if (clips.TryGetValue(name, out c) && c != null) return c;
+            int n = Mathf.RoundToInt(seconds * Rate), m = Rate / 2;
+            var raw = new float[n + m];
+            for (int i = 0; i < n + m; i++) raw[i] = f(i / (float)Rate, i);
+            var data = new float[n];
+            for (int i = 0; i < n; i++)
+            {
+                float v = raw[i];
+                if (i < m) { float k = i / (float)m; v = raw[i] * k + raw[n + i] * (1f - k); }
+                data[i] = Mathf.Clamp(v, -1f, 1f);
+            }
+            c = AudioClip.Create("LA_" + name, n, 1, Rate, false);
+            c.SetData(data, 0);
+            c.hideFlags = HideFlags.DontSave;
+            clips[name] = c;
+            return c;
+        }
+
+        /// <summary>室內的底噪：很低、很軟的空氣聲（房間不會「死寂」）。</summary>
+        public static AudioClip RoomTone
+        {
+            get
+            {
+                float b = 0f, b2 = 0f;
+                return LoopSynth("RoomTone", 8f, (t, i) => { b = b * 0.995f + Noise(i) * 0.02f; b2 = b2 * 0.9f + b * 0.1f; return b2 * 1.6f + Sin(50f, t) * 0.006f; });
+            }
+        }
+
+        /// <summary>遠處的城市：低沉的車流聲，每隔幾秒有一台車經過（起伏）。</summary>
+        public static AudioClip CityHum
+        {
+            get
+            {
+                float b = 0f, lp = 0f;
+                return LoopSynth("CityHum", 16f, (t, i) =>
+                {
+                    b = b * 0.998f + Noise(i) * 0.03f;
+                    lp = lp * 0.97f + b * 0.03f;
+                    float d0 = (t - 2.5f) / 1.6f, d1 = (t - 8.0f) / 1.6f, d2 = (t - 12.6f) / 1.6f;
+                    float car = Mathf.Exp(-d0 * d0) + Mathf.Exp(-d1 * d1) + Mathf.Exp(-d2 * d2);
+                    float swish = Noise(i) * 0.05f * car;
+                    return lp * (2.2f + 1.4f * car) + swish + Sin(38f, t) * 0.02f;
+                });
+            }
+        }
+
+        /// <summary>木地板的腳步：幾種輕重不同的悶響，偶爾帶一點木頭的吱聲。</summary>
+        public static AudioClip WoodStep(int v)
+        {
+            v = Mathf.Abs(v) % 4;
+            float body = 60f + v * 9f, creak = v == 3 ? 1f : 0f;
+            return Synth("WoodStep" + v, 0.16f, (t, i) =>
+                (Sin(body, t) * 0.55f * Mathf.Exp(-t * 30f)
+                 + Noise(i + v * 977) * 0.35f * Mathf.Exp(-t * 70f)
+                 + Sin(900f + 300f * Sin(13f, t), t) * 0.05f * creak * Env(t, 0.03f, 0.16f)) * 0.6f);
+        }
+
+        private int stepIndex;
+        private static readonly int[] stepOrder = { 0, 1, 2, 1, 0, 2, 3, 1 };
+        /// <summary>播一個腳步（輪流用不同的版本，聽起來不像機器）。</summary>
+        public void PlayStep(float volume)
+        {
+            stepIndex++;
+            Play(WoodStep(stepOrder[stepIndex % stepOrder.Length]), volume * (0.85f + 0.15f * ((stepIndex * 37) % 7) / 6f));
+        }
+
+        public AudioSource Room { get; private set; }
+        public AudioSource City { get; private set; }
+
+        /// <summary>依位置混音：街上＝城市聲大；室內＝房間底噪＋悶掉的城市聲＋異域的低鳴。</summary>
+        public void Mix(bool onStreet, bool indoors, float dt)
+        {
+            float k = dt > 0f ? dt * 1.5f : 1f;
+            if (City != null) City.volume = Mathf.MoveTowards(City.volume, onStreet ? 0.55f : indoors ? 0.14f : 0.3f, k);
+            if (Room != null) Room.volume = Mathf.MoveTowards(Room.volume, indoors ? 0.45f : 0f, k);
+            if (Ambient != null) Ambient.volume = Mathf.MoveTowards(Ambient.volume, onStreet ? 0.05f : 0.3f, k);
+        }
+
         // ---------------- 播放 ----------------
 
         public static LanternAudio Build(Transform listenerHost)
@@ -85,12 +169,18 @@ namespace Shepherd.Exploration.Lantern
             a.Restore.clip = RestoreHum;
             a.Ambient = Make("Ambient", true, 0.35f);
             a.Ambient.clip = AmbientDrone;
+            a.Room = Make("Room", true, 0f);
+            a.Room.clip = RoomTone;
+            a.City = Make("City", true, 0.3f);
+            a.City.clip = CityHum;
             if (Application.isPlaying)
             {
                 a.Charge.Play();
                 a.Tether.Play();
                 a.Restore.Play();
                 a.Ambient.Play();
+                a.Room.Play();
+                a.City.Play();
             }
             return a;
         }

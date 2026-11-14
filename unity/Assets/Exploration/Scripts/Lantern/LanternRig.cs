@@ -106,8 +106,11 @@ namespace Shepherd.Exploration.Lantern
             arm.localPosition = new Vector3(-0.25f, -0.1f, 0.6f);
             arm.localScale = Vector3.one * 0.85f;
             arm.localRotation = Quaternion.identity;
-            Part(PrimitiveType.Capsule, arm, new Vector3(-0.07f, -0.09f, -0.2f), new Vector3(0.085f, 0.21f, 0.085f), sleeve, new Vector3(62f, 18f, 0f), "Forearm", ViewRenderers, ViewLayer);
+            var foreL = Part(PrimitiveType.Capsule, arm, new Vector3(-0.07f, -0.09f, -0.2f), new Vector3(0.085f, 0.21f, 0.085f), sleeve, new Vector3(62f, 18f, 0f), "Forearm", ViewRenderers, ViewLayer);
             Hand = Part(PrimitiveType.Sphere, arm, new Vector3(0f, -0.01f, 0.02f), new Vector3(0.075f, 0.065f, 0.09f), skin, null, "Hand", ViewRenderers, ViewLayer);
+            // Blender 做的手套與大衣袖子（握著提燈的提把）；有模型就把灰盒的膠囊和圓球藏起來。
+            if (ArmModel("fp_arm_left", arm, new Vector3(0f, -0.03f, 0.02f), new Vector3(0f, 8f, 0f)))
+            { foreL.GetComponent<Renderer>().enabled = false; Hand.GetComponent<Renderer>().enabled = false; }
 
             // 提燈：掛在手下方，以手為支點擺動。
             LanternPivot = new GameObject("LanternPivot").transform;
@@ -192,8 +195,10 @@ namespace Shepherd.Exploration.Lantern
             arm.SetParent(ViewRoot, false);
             arm.localPosition = new Vector3(0.2f, -0.15f, 0.46f);
             arm.localScale = Vector3.one * 0.85f;
-            Part(PrimitiveType.Capsule, arm, new Vector3(0.06f, -0.08f, -0.2f), new Vector3(0.085f, 0.21f, 0.085f), sleeve, new Vector3(68f, -14f, 0f), "ForearmR", ViewRenderers, ViewLayer);
-            Part(PrimitiveType.Sphere, arm, new Vector3(0f, -0.02f, 0f), new Vector3(0.075f, 0.07f, 0.09f), skin, null, "HandR", ViewRenderers, ViewLayer);
+            var foreR = Part(PrimitiveType.Capsule, arm, new Vector3(0.06f, -0.08f, -0.2f), new Vector3(0.085f, 0.21f, 0.085f), sleeve, new Vector3(68f, -14f, 0f), "ForearmR", ViewRenderers, ViewLayer);
+            var handR = Part(PrimitiveType.Sphere, arm, new Vector3(0f, -0.02f, 0f), new Vector3(0.075f, 0.07f, 0.09f), skin, null, "HandR", ViewRenderers, ViewLayer);
+            if (ArmModel("fp_arm_right", arm, new Vector3(0f, 0.025f, 0.012f), new Vector3(-12f, 0f, 0f)))
+            { foreR.GetComponent<Renderer>().enabled = false; handR.GetComponent<Renderer>().enabled = false; }
             Device = new GameObject("Stabilizer").transform;
             Device.SetParent(arm, false);
             Device.localPosition = new Vector3(0f, 0.02f, 0.02f);
@@ -206,6 +211,30 @@ namespace Shepherd.Exploration.Lantern
             Muzzle = new GameObject("Muzzle").transform;
             Muzzle.SetParent(Device, false);
             Muzzle.localPosition = new Vector3(0f, 0.03f, 0.22f);
+        }
+
+        /// <summary>載入 Blender 做的手臂模型（Resources/Models/Custom），換成我們自己的材質、放到疊加層。回傳是否成功。</summary>
+        private bool ArmModel(string res, Transform parent, Vector3 pos, Vector3 euler)
+        {
+            var prefab = Resources.Load<GameObject>("Models/Custom/" + res);
+            if (prefab == null) return false;
+            var inst = Object.Instantiate(prefab, parent, false);
+            inst.name = res;
+            inst.transform.localPosition = pos;
+            inst.transform.localRotation = Quaternion.Euler(euler);
+            var glove = Lit("LR_Glove", new Color(0.13f, 0.09f, 0.065f), 0.45f);
+            var wool = Lit("LR_Wool", new Color(0.085f, 0.09f, 0.115f), 0.12f);
+            var cuff = Lit("LR_Cuff", new Color(0.7f, 0.67f, 0.6f), 0.2f);
+            foreach (var t in inst.GetComponentsInChildren<Transform>(true)) t.gameObject.layer = ViewLayer;
+            foreach (var r in inst.GetComponentsInChildren<Renderer>(true))
+            {
+                var n = r.sharedMaterial != null ? r.sharedMaterial.name : r.name;
+                r.sharedMaterial = n.Contains("Glove") ? glove : n.Contains("Cuff") ? cuff : wool;
+                r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                r.receiveShadows = false;
+                ViewRenderers.Add(r);
+            }
+            return true;
         }
 
         /// <summary>穩定器的模式顏色與蓄力亮度（0～1）；active＝正在牽引／復原。</summary>

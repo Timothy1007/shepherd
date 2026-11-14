@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using Shepherd.Battle.UI.Arena;
 using UnityEngine;
 using Mode = Shepherd.Exploration.Lantern.LanternReveal.Mode;
@@ -567,7 +567,7 @@ namespace Shepherd.Exploration.Lantern
             go.transform.SetParent(Into, false);
             go.transform.SetPositionAndRotation(board.position + offset, rot);
             var tm = go.AddComponent<TextMesh>();
-            tm.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            tm.font = LanternFonts.UI;
             tm.fontSize = 64;
             tm.characterSize = size;
             tm.anchor = TextAnchor.MiddleCenter;
@@ -611,6 +611,101 @@ namespace Shepherd.Exploration.Lantern
             // 窗外路燈透進來的冷光（照在縫紉機和地板上）。
             var from = c + new Vector3(0f, bottom + h, z - 0.3f);
             AddLight("V2ShopWindowLight", LightType.Spot, from, new Color(0.62f, 0.72f, 0.9f), 1.6f, 6f, false, LightShadows.Soft, 75f, new Vector3(0.1f, -0.8f, 1f));
+            // 窗光的光束（幾片交叉的柔邊面，加亮）＋光裡飄的灰塵。
+            var shaftDir = new Vector3(0.1f, -0.8f, 1f).normalized;
+            var shaftAt = c + new Vector3(0f, cy, z + 0.02f) + shaftDir * 1.1f;
+            var shaftMat = ShaftMaterial();
+            for (int i = 0; i < 3; i++)
+            {
+                var q = GameObject.CreatePrimitive(PrimitiveType.Quad);
+                q.name = "V2ShopWindowShaft";
+                Object.DestroyImmediate(q.GetComponent<Collider>());
+                q.transform.SetParent(Into, false);
+                q.transform.position = shaftAt;
+                q.transform.rotation = Quaternion.LookRotation(shaftDir, Vector3.up) * Quaternion.Euler(90f, 0f, 0f) * Quaternion.Euler(0f, i * 60f, 0f);
+                q.transform.localScale = new Vector3(w * 0.95f, 2.3f, 1f);
+                var r = q.GetComponent<Renderer>();
+                r.sharedMaterial = shaftMat;
+                r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                r.receiveShadows = false;
+            }
+            Dust("V2ShopWindowDust", shaftAt, new Vector3(w, 1.6f, 1.6f));
+        }
+
+        private Material shaftMat;
+
+        /// <summary>光束材質：加亮、上濃下淡、兩側柔邊（程式產生的漸層）。</summary>
+        private Material ShaftMaterial()
+        {
+            if (shaftMat != null) return shaftMat;
+            const int W = 32, H = 64;
+            var tex = new Texture2D(W, H, TextureFormat.RGBA32, false) { name = "ShaftGradient", wrapMode = TextureWrapMode.Clamp, hideFlags = HideFlags.DontSave };
+            var px = new Color[W * H];
+            for (int y = 0; y < H; y++) for (int x = 0; x < W; x++)
+            {
+                float u = x / (W - 1f), v = y / (H - 1f);
+                float a = Mathf.Pow(Mathf.Sin(Mathf.PI * u), 3f) * Mathf.Pow(1f - v, 1.4f) * Mathf.SmoothStep(0f, 1f, Mathf.Min(1f, v * 6f)); // v＝0 是窗邊（最亮），往房間裡淡掉
+                px[y * W + x] = new Color(1f, 1f, 1f, a);
+            }
+            tex.SetPixels(px); tex.Apply();
+            var sh = Shader.Find("Universal Render Pipeline/Particles/Unlit");
+            shaftMat = new Material(sh != null ? sh : Shader.Find("Sprites/Default")) { name = "V2_WindowShaft", hideFlags = HideFlags.DontSave };
+            shaftMat.SetFloat("_Surface", 1f);
+            shaftMat.SetFloat("_Blend", 2f); // Additive
+            shaftMat.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
+            shaftMat.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.One);
+            shaftMat.SetFloat("_ZWrite", 0f);
+            shaftMat.SetFloat("_Cull", 0f);
+            shaftMat.SetOverrideTag("RenderType", "Transparent");
+            shaftMat.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            shaftMat.EnableKeyword("_BLENDMODE_ADD");
+            shaftMat.renderQueue = 3100;
+            shaftMat.SetTexture("_BaseMap", tex);
+            shaftMat.SetTexture("_MainTex", tex);
+            var col = new Color(0.55f, 0.65f, 0.85f, 0.07f);
+            shaftMat.SetColor("_BaseColor", col);
+            shaftMat.SetColor("_Color", col);
+            return shaftMat;
+        }
+
+        /// <summary>光裡慢慢飄的灰塵（小顆、很淡、會在範圍裡繞）。</summary>
+        private void Dust(string name, Vector3 center, Vector3 size)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(Into, false);
+            go.transform.position = center;
+            var ps = go.AddComponent<ParticleSystem>();
+            ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            var main = ps.main;
+            main.loop = true;
+            main.duration = 10f;
+            main.startLifetime = 9f;
+            main.startSpeed = 0.01f;
+            main.startSize = new ParticleSystem.MinMaxCurve(0.006f, 0.014f);
+            main.startColor = new Color(0.85f, 0.9f, 1f, 0.55f);
+            main.maxParticles = 140;
+            main.simulationSpace = ParticleSystemSimulationSpace.World;
+            main.prewarm = true;
+            var em = ps.emission; em.rateOverTime = 14f;
+            var shape = ps.shape; shape.shapeType = ParticleSystemShapeType.Box; shape.scale = size;
+            var noise = ps.noise; noise.enabled = true; noise.strength = 0.05f; noise.frequency = 0.25f;
+            var fade = ps.colorOverLifetime; fade.enabled = true;
+            var g = new Gradient();
+            g.SetKeys(new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) },
+                      new[] { new GradientAlphaKey(0f, 0f), new GradientAlphaKey(1f, 0.2f), new GradientAlphaKey(1f, 0.8f), new GradientAlphaKey(0f, 1f) });
+            fade.color = g;
+            var pr = go.GetComponent<ParticleSystemRenderer>();
+            var sh = Shader.Find("Universal Render Pipeline/Particles/Unlit");
+            var m = new Material(sh != null ? sh : Shader.Find("Sprites/Default")) { name = "V2_Dust", hideFlags = HideFlags.DontSave };
+            m.SetFloat("_Surface", 1f); m.SetFloat("_Blend", 2f);
+            m.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
+            m.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.One);
+            m.SetFloat("_ZWrite", 0f);
+            m.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            m.renderQueue = 3100;
+            pr.sharedMaterial = m;
+            pr.renderMode = ParticleSystemRenderMode.Billboard;
+            ps.Play();
         }
 
         // ---------------- Claude 在 Blender 建的模型 ----------------

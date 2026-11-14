@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using Shepherd.Battle.UI.Arena;
 using UnityEngine;
 
@@ -288,7 +288,7 @@ namespace Shepherd.Exploration.Lantern
             this.combat = combat;
             this.audio = audio;
             this.cam = cam;
-            font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            font = LanternFonts.UI;
             phraseMat = new Material(font.material) { name = "PhraseText" };
             phraseMat.color = new Color(1f, 0.55f, 0.5f);
             warmMat = new Material(font.material) { name = "WarmText" };

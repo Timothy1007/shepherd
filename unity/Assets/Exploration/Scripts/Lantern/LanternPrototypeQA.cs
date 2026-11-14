@@ -59,6 +59,11 @@ namespace Shepherd.Exploration.Lantern
         private Text debugText, hintText, promptText, progressText, readTitle, readBody, toastText, endText, shieldText;
         private Image endPanel, breathBack, breathZone, breathMarker;
         private Image tapBack, tapZone, tapMarker;
+        /// <summary>畫面上平常只留一行小提示；按 H 才展開完整按鍵說明（測試用的快捷鍵也在裡面）。</summary>
+        public const string ShortHint = "H 按鍵說明";
+        private string fullHintText = "";
+        public bool HelpOpen { get; private set; }
+        public void ToggleHelp() { HelpOpen = !HelpOpen; if (hintText != null) hintText.text = HelpOpen ? fullHintText : ShortHint; }
         private Text tapText, subtitleText;
         private Image subtitleBand;
         /// <summary>畫面下方的字幕（影子殘影、之後的答錄機）；測試用。</summary>
@@ -336,7 +341,8 @@ namespace Shepherd.Exploration.Lantern
             var feet = Player.transform.position;
             stepDistance += Vector3.Distance(new Vector3(feet.x, 0f, feet.z), new Vector3(lastFeet.x, 0f, lastFeet.z));
             lastFeet = feet;
-            if (stepDistance > 0.8f) { stepDistance = 0f; Audio?.Play(LanternAudio.Step, 0.35f); }
+            if (stepDistance > 0.8f) { stepDistance = 0f; Audio?.PlayStep(0.45f); }
+            Audio?.Mix(World.InV2Street(feet), World.InV2House(feet) || World.HouseBounds.Contains(feet + Vector3.up), dt);
             Rig.Tick(dt, time);
             World.Tick(time);
             if (World.V2Tick(Player.transform.position, dt)) { Audio?.Play(LanternAudio.EnemyWarn, 0.45f); Rig.Shake(0.05f); }
@@ -404,6 +410,7 @@ namespace Shepherd.Exploration.Lantern
             if (Input.GetKeyDown(KeyCode.F12)) ToggleDebug();
             if (Input.GetKeyDown(KeyCode.F11)) ToggleStyle();
             if (Input.GetKeyDown(KeyCode.Tab)) ToggleNotebook();
+            if (Input.GetKeyDown(KeyCode.H)) ToggleHelp();
             FocusHeld = Input.GetKey(KeyCode.Space);
             var inp = ScriptedInput ?? input.Read();
             if (inp.ReleaseCursor) SetCursor(true);
@@ -461,7 +468,7 @@ namespace Shepherd.Exploration.Lantern
             var scaler = canvasGo.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1920, 1080);
-            var font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            var font = LanternFonts.UI;
 
             hurtOverlay = Img("HurtOverlay", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(4000, 3000), new Color(0.55f, 0f, 0f, 0f));
             crosshair = Img("Crosshair", new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(6, 6), new Color(1f, 0.95f, 0.85f, 0.7f));
@@ -475,6 +482,8 @@ namespace Shepherd.Exploration.Lantern
             hintText = MakeText("Hint", font, 17, new Vector2(24, 14), TextAnchor.LowerLeft, new Vector2(0, 0));
             hintText.text = "Tab 母親的筆記　左鍵 射擊（按住蓄力）　E 互動（抓起／按住復原／打開／拿起來看）　Q 擬態錨定　按住Space 聚光　F 提燈　F1 新房子門外（重來） F2 新房子店面 F3 舊房子 F4 測試房 F6 戰鬥場　F8 最終戰全部開燈　F9 房子大小　F10 直接打最終戰　F11 風格 A／B　R 重來　F12 數值";
             hintText.color = new Color(1f, 1f, 1f, 0.5f);
+            fullHintText = hintText.text;
+            hintText.text = ShortHint;
             progressText = MakeText("Progress", font, 22, new Vector2(-30, -24), TextAnchor.UpperRight, new Vector2(1, 1));
             promptText = MakeText("Prompt", font, 22, new Vector2(0, -70), TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f));
             promptText.color = new Color(1f, 0.96f, 0.88f, 0.85f);
