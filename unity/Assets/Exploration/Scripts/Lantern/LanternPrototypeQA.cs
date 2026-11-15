@@ -449,6 +449,9 @@ namespace Shepherd.Exploration.Lantern
               .Append("｜生命 ").Append(Combat.Health.ToString("0"))
               .Append("｜流程 ").Append(Flow.Current).Append(" ").Append(Flow.Repaired).Append("/").Append(Flow.Total)
               .Append("｜失序體 ").Append(Combat.Enemies.Count)
+              .Append("\n滑鼠 ").Append(Cursor.lockState).Append(Cursor.visible ? " 可見" : " 隱藏")
+              .Append(CursorLock.Focused ? " 有焦點" : " 沒焦點").Append(CursorLock.LockFailing ? " 鎖定沒生效" : "")
+              .Append(" 重鎖 ×").Append(CursorLock.Reapplied).Append(" 靈敏度 ×").Append(Player.LookScale.ToString("0.0"))
               .Append("\n店面：電 ").Append(V2.Powered ? "✓" : "□").Append(" 吊牌 ").Append(V2.TagRead ? "✓" : "□")
               .Append(" 紅線 ").Append(V2.HasThread ? "✓" : "□").Append(" 穿針 ").Append(V2.Sewn ? "✓" : "□")
               .Append(" 修好 ").Append(V2.ShopRepaired ? "✓" : "□")
@@ -482,6 +485,7 @@ namespace Shepherd.Exploration.Lantern
             if (Input.GetKeyDown(KeyCode.RightBracket)) AdjustLookScale(LanternLookSettings.StepSize);
             FocusHeld = Input.GetKey(KeyCode.Space);
             var inp = ScriptedInput ?? input.Read();
+            CursorLock.ReportPointer(Input.mousePosition);
             bool clickToLock = HandleCursor(inp.ReleaseCursor, Input.GetMouseButtonDown(0), Input.GetMouseButton(0));
             if (!CursorLock.LookActive && !ScriptedInput.HasValue) inp.Look = Vector2.zero;
             var act = ScriptedAction ?? new LanternActionInput
@@ -537,8 +541,10 @@ namespace Shepherd.Exploration.Lantern
         private void UpdateCursorHint()
         {
             if (cursorHintText == null) return;
-            cursorHintText.enabled = cursorFree && !CursorUiOpen;
-            cursorHintText.text = CursorLock.Focused ? "滑鼠已放開｜點一下畫面繼續" : "";
+            bool failing = !cursorFree && CursorLock.LockFailing;
+            cursorHintText.enabled = (cursorFree && !CursorUiOpen) || failing;
+            cursorHintText.text = failing ? "滑鼠沒有鎖在畫面中央｜點一下畫面鎖定"
+                : CursorLock.Focused ? "滑鼠已放開｜點一下畫面繼續" : "";
         }
 
         // ---------------- 畫面提示 ----------------

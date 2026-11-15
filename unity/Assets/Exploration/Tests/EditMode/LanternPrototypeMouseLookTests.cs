@@ -197,6 +197,45 @@ namespace Shepherd.Exploration.Tests
         }
 
         [Test]
+        public void EditorSaysLockedButCursorMoves_ForcesRelockAndAsksForClick()
+        {
+            // 編輯器讀回來說「鎖著」，但游標其實在螢幕上移動（會跑到邊緣）：要偵測到並強制重鎖。
+            var qa = NewQa();
+            int lockedCalls = 0;
+            qa.CursorLock.ReadLock = () => CursorLockMode.Locked;
+            qa.CursorLock.Apply = locked => { if (locked) lockedCalls++; };
+            var pos = new Vector2(400f, 300f);
+            for (int i = 0; i < 3; i++) { qa.CursorLock.ReportPointer(pos); Frame(qa, Vector2.zero); }
+            int start = qa.CursorLock.Reapplied;
+            Assert.IsFalse(qa.CursorLock.LockFailing);
+
+            // 游標靜止（真的鎖住時就是這樣）：不會誤判。
+            for (int i = 0; i < 40; i++) { qa.CursorLock.ReportPointer(pos); Frame(qa, new Vector2(1f, 0f)); }
+            Assert.AreEqual(start, qa.CursorLock.Reapplied, "游標不動＝鎖定正常，不重鎖");
+
+            // 游標一直在動：每兩格強制重鎖一次，三次都沒用就提示點畫面。
+            for (int i = 0; i < 6; i++) { pos.x += 25f; qa.CursorLock.ReportPointer(pos); Frame(qa, new Vector2(1f, 0f)); }
+            Assert.AreEqual(start + 3, qa.CursorLock.Reapplied, "偵測到游標在動就強制重鎖");
+            Assert.IsTrue(qa.CursorLock.LockFailing, "重鎖沒用：提示點一下畫面");
+
+            // 點一下畫面：再鎖一次，這一下不算射擊。
+            int before = qa.CursorLock.Reapplied;
+            qa.CursorLock.ReportPointer(pos);
+            Assert.IsTrue(Frame(qa, Vector2.zero, click: true), "點畫面用來鎖定");
+            Assert.AreEqual(before + 1, qa.CursorLock.Reapplied);
+            Assert.IsFalse(qa.CursorLock.PrimaryAllowed);
+
+            // 鎖住後游標不再動：提示消失，視角照常轉。
+            for (int i = 0; i < 31; i++) { qa.CursorLock.ReportPointer(pos); Frame(qa, Vector2.zero); }
+            Assert.IsFalse(qa.CursorLock.LockFailing, "鎖住後提示消失");
+            float yaw = qa.Player.Yaw;
+            qa.CursorLock.ReportPointer(pos);
+            Frame(qa, new Vector2(5f / Gain(qa), 0f));
+            Assert.AreEqual(5f, Mathf.DeltaAngle(yaw, qa.Player.Yaw), 0.01f);
+            Assert.Greater(lockedCalls, 0);
+        }
+
+        [Test]
         public void PlatformNeverReportsLocked_LookStillWorks()
         {
             // 有些情況（batchmode、某些平台）讀回來永遠不是 Locked：重試幾次後不要讓視角一直卡住。

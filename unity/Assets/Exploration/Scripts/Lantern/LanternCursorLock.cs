@@ -37,9 +37,47 @@ namespace Shepherd.Exploration.Lantern
         public bool PrimaryAllowed => WantLocked && !swallowHold;
         /// <summary>重新套用鎖定的次數（測試用）。</summary>
         public int Reapplied { get; private set; }
+        /// <summary>鎖定沒有真的生效（游標還在螢幕上移動），重試幾次仍沒用：要玩家點一下畫面。</summary>
+        public bool LockFailing { get; private set; }
 
         private bool applied, everApplied, swallowHold;
         private int settleFrames, desyncStreak;
+        private bool hasPointer;
+        private Vector2 lastPointer;
+        private int strayFrames, forcedInRow, stillFrames;
+
+        /// <summary>
+        /// 回報這一格的游標位置（Input.mousePosition）。真的鎖定時游標固定在畫面中央不會動；
+        /// 「以為鎖著」但游標在動，代表鎖定沒生效（編輯器讀回來的 lockState 不一定可信）→ 強制重鎖。
+        /// 要在 <see cref="Tick"/> 之前呼叫。
+        /// </summary>
+        public void ReportPointer(Vector2 pos)
+        {
+            bool moved = hasPointer && (pos - lastPointer).sqrMagnitude > 4f;
+            lastPointer = pos;
+            hasPointer = true;
+            if (!WantLocked || !applied) { strayFrames = 0; forcedInRow = 0; LockFailing = false; return; }
+            if (!moved)
+            {
+                strayFrames = 0;
+                if (++stillFrames >= 30) { forcedInRow = 0; LockFailing = false; }
+                return;
+            }
+            stillFrames = 0;
+            if (++strayFrames < 2) return;
+            strayFrames = 0;
+            ForceRelock();
+            if (++forcedInRow >= 3) LockFailing = true;
+        }
+
+        private void ForceRelock()
+        {
+            // 先放開再鎖，讓編輯器／系統一定重新套用。
+            Apply(false);
+            Apply(true);
+            Reapplied++;
+            settleFrames = 2;
+        }
 
         public void OnFocus(bool focused)
         {
@@ -69,6 +107,13 @@ namespace Shepherd.Exploration.Lantern
             else if (clickDown && Paused && Focused && !UiNeedsCursor)
             {
                 Paused = false;
+                consumed = true;
+                swallowHold = clickHeld;
+            }
+            else if (clickDown && LockFailing && WantLocked)
+            {
+                // 鎖定沒生效時點畫面：編輯器拿到焦點後才會真的鎖住，這一下不算射擊。
+                ForceRelock();
                 consumed = true;
                 swallowHold = clickHeld;
             }
