@@ -17,6 +17,10 @@ namespace Shepherd.Exploration.Lantern
         public static readonly float[] Fovs = { 55f, 62f, 70f };
         public const float WalkSpeed = 1.9f;
         public const float BriskSpeed = 3.0f;
+        /// <summary>目前使用的步行／快走速度（預設＝上面的正式常數）。只有移動手感 QA 會改它。</summary>
+        public float WalkSpeedNow = WalkSpeed, BriskSpeedNow = BriskSpeed;
+        /// <summary>腳步聲間隔（公尺）；正式預設 0.8。移動手感 QA 會和步伐晃動對齊。</summary>
+        public float StepLength = 0.8f;
 
         public LanternGraybox World { get; private set; }
         public LanternRig Rig { get; private set; }
@@ -146,8 +150,8 @@ namespace Shepherd.Exploration.Lantern
             // 實際遊玩從新版房子（v2）門外開始；測試仍從舊房子玄關開始。
             var spawn = World.Marks[play && World.Marks.ContainsKey("V2Street") ? "V2Street" : "HouseEntry"];
             Player = FirstPersonController.Create(transform, spawn.position, spawn.eulerAngles.y);
-            Player.WalkSpeedValue = WalkSpeed;
-            Player.RunSpeedValue = BriskSpeed;
+            Player.WalkSpeedValue = WalkSpeedNow;
+            Player.RunSpeedValue = BriskSpeedNow;
             Player.EyeHeightValue = 1.62f;
             Player.Acceleration = 7f;
 
@@ -366,13 +370,13 @@ namespace Shepherd.Exploration.Lantern
             Actions.Suspended = Inspecting != null || V2.InputCaptured;
             Rig.Focus = FocusHeld;
             Rig.HideHands = Inspecting != null;
-            Player.WalkSpeedValue = WalkSpeed * Mathf.Lerp(1f, 0.6f, Rig.FocusBlend);
-            Player.RunSpeedValue = BriskSpeed * Mathf.Lerp(1f, 0.6f, Rig.FocusBlend);
+            Player.WalkSpeedValue = WalkSpeedNow * Mathf.Lerp(1f, 0.6f, Rig.FocusBlend);
+            Player.RunSpeedValue = BriskSpeedNow * Mathf.Lerp(1f, 0.6f, Rig.FocusBlend);
             Player.Step(dt, inp, true);
             var feet = Player.transform.position;
             stepDistance += Vector3.Distance(new Vector3(feet.x, 0f, feet.z), new Vector3(lastFeet.x, 0f, lastFeet.z));
             lastFeet = feet;
-            if (stepDistance > 0.8f) { stepDistance = 0f; Audio?.PlayStep(0.45f); }
+            if (stepDistance > StepLength) { stepDistance = 0f; Audio?.PlayStep(0.45f); }
             Audio?.Mix(World.InV2Street(feet), World.InV2House(feet) || World.HouseBounds.Contains(feet + Vector3.up), dt);
             Rig.Tick(dt, time);
             World.Tick(time);

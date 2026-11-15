@@ -44,6 +44,11 @@ namespace Shepherd.Exploration.Lantern
         public int RadiusIndex { get; private set; } = 1;
         public float CurrentRadius { get; private set; }
         public bool HeadBob = true;
+        /// <summary>步伐式晃動（相位跟移動距離走，幅度很小）。false＝原本的晃動（正式預設）；只在移動手感 QA 打開。</summary>
+        public bool GaitBob;
+        /// <summary>步伐式晃動的一步長度（公尺）。</summary>
+        public float GaitStride = 0.7f;
+        private float gaitPhase;
         public float RevealForward = 0.2f;
         public Transform Muzzle { get; private set; }
         public Transform Device { get; private set; }
@@ -292,9 +297,22 @@ namespace Shepherd.Exploration.Lantern
             if (dt <= 0f) dt = 1f / 60f;
             float speed = player.LastHorizontalSpeed;
             float moving = Mathf.Clamp01(speed / 1.5f);
-            bobAmount = Mathf.MoveTowards(bobAmount, HeadBob ? moving : 0f, dt * 3f);
-            bobPhase += dt * Mathf.Lerp(4f, 9f, Mathf.Clamp01(speed / 3f));
-            var bob = new Vector3(Mathf.Cos(bobPhase * 0.5f) * 0.012f, Mathf.Abs(Mathf.Sin(bobPhase * 0.5f)) * 0.022f - 0.011f, 0f) * bobAmount;
+            Vector3 bob;
+            if (GaitBob)
+            {
+                // 步伐式晃動（移動手感 QA）：相位跟著「走了多遠」走，一步 GaitStride 公尺；停下來就停在原地，不會空轉。
+                // 一步上下一次（約 ±0.8 cm），兩步左右一次（約 ±0.5 cm），沒有翻滾，避免暈。
+                gaitPhase += speed * dt / GaitStride * Mathf.PI;
+                bobAmount = Mathf.MoveTowards(bobAmount, HeadBob ? Mathf.Clamp01(speed / 1.2f) : 0f, dt * 5f);
+                bob = new Vector3(Mathf.Sin(gaitPhase) * 0.005f, (Mathf.Abs(Mathf.Sin(gaitPhase)) - 0.64f) * 0.016f, 0f) * bobAmount;
+                bobPhase = gaitPhase;
+            }
+            else
+            {
+                bobAmount = Mathf.MoveTowards(bobAmount, HeadBob ? moving : 0f, dt * 3f);
+                bobPhase += dt * Mathf.Lerp(4f, 9f, Mathf.Clamp01(speed / 3f));
+                bob = new Vector3(Mathf.Cos(bobPhase * 0.5f) * 0.012f, Mathf.Abs(Mathf.Sin(bobPhase * 0.5f)) * 0.022f - 0.011f, 0f) * bobAmount;
+            }
             shake = Mathf.MoveTowards(shake, 0f, dt * 0.35f);
             var jolt = shake > 0f ? new Vector3(Mathf.Sin(time * 61f), Mathf.Sin(time * 47f + 1.3f), 0f) * shake : Vector3.zero;
             Camera.transform.position = player.EyePosition + player.ViewRotation * (bob + jolt);

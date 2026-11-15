@@ -1522,5 +1522,93 @@ namespace Shepherd.Exploration.Tests
             sw.SetB(false);
             Assert.IsTrue(counterA.gameObject.activeSelf && !structB.gameObject.activeSelf, "回到 A：完全復原");
         }
+
+        // ---------------- 移動手感 QA（A／B／C 預設；正式參數不變） ----------------
+
+        [Test]
+        public void Movement_FormalDefaults_AreUnchanged_WithoutTheQa()
+        {
+            var qa = NewQa();
+            Assert.AreEqual(LanternPrototypeQA.WalkSpeed, qa.Player.WalkSpeedValue, 1e-4f, "正式步行速度不變（1.9）");
+            Assert.AreEqual(LanternPrototypeQA.BriskSpeed, qa.Player.RunSpeedValue, 1e-4f, "正式快走速度不變（3.0）");
+            Assert.AreEqual(7f, qa.Player.Acceleration, 1e-4f, "正式加減速不變（7）");
+            Assert.AreEqual(0f, qa.Player.Deceleration, 1e-4f, "正式沒有另外的減速");
+            Assert.IsFalse(qa.Player.SmoothSpeedOnly, "正式維持原本的速度平滑方式");
+            Assert.IsFalse(qa.Rig.GaitBob, "正式維持原本的鏡頭晃動");
+            Assert.AreEqual(0.8f, qa.StepLength, 1e-4f, "正式腳步聲間隔不變");
+        }
+
+        [Test]
+        public void Movement_Presets_ReachSpeedQuickly_StopWithoutSliding_AndTurnWithoutSkid()
+        {
+            var qa = NewQa();
+            var sw = root.AddComponent<LanternMovementFeelSwitch>();
+            sw.Bind(qa);
+            var o = LanternGraybox.V2Origin; float S = LanternGraybox.V2Scale;
+            var hall = o + new Vector3(5.07f * S, 0.05f, 5.4f * S);
+            var p = qa.Player;
+            for (int i = 0; i < 3; i++)
+            {
+                sw.Apply(i);
+                var pr = sw.Current;
+                p.Teleport(hall, 0f, 0f);
+                for (int k = 0; k < 3; k++) qa.Step(Dt, ExploreInput.None);
+                float t = 0f, reach = -1f;
+                for (int k = 0; k < 30; k++)
+                {
+                    qa.Step(Dt, new ExploreInput { Move = new Vector2(0f, 1f) });
+                    t += Dt;
+                    if (reach < 0f && p.LastHorizontalSpeed >= pr.Walk * 0.95f) reach = t;
+                }
+                Assert.AreEqual(pr.Walk, p.LastHorizontalSpeed, pr.Walk * 0.04f, pr.Name + "：穩定步行速度");
+                Assert.Greater(reach, 0.2f, pr.Name + "：不是瞬間到速");
+                Assert.Less(reach, 0.6f, pr.Name + "：起步不拖泥帶水");
+                var a = p.transform.position;
+                for (int k = 0; k < 30 && (k == 0 || p.LastHorizontalSpeed > 0.02f); k++) qa.Step(Dt, ExploreInput.None);
+                var slide = p.transform.position - a; slide.y = 0f;
+                Assert.Less(slide.magnitude, 0.3f, pr.Name + "：放開方向鍵後很快停住（滑行 " + slide.magnitude.ToString("0.00") + " m）");
+                // 滑鼠轉向：同一格就生效（沒有輸入延遲）。
+                float yaw0 = p.Yaw;
+                qa.Step(Dt, new ExploreInput { Look = new Vector2(5f, 0f) });
+                Assert.AreEqual(Mathf.Repeat(yaw0 + 5f * FirstPersonController.LookSensitivity * p.LookScale, 360f), p.Yaw, 0.01f, pr.Name + "：轉向即時");
+            }
+            // 走路時轉 90°：轉完之後就沿著鏡頭方向走（不側滑）。
+            sw.Apply(1);
+            p.Teleport(o + new Vector3(0.125f + 4.6f, 0.05f, 6.56f + 1.2f), -90f, 0f);
+            for (int k = 0; k < 20; k++) qa.Step(Dt, new ExploreInput { Move = new Vector2(0f, 1f) });
+            for (int k = 0; k < 6; k++) qa.Step(Dt, new ExploreInput { Move = new Vector2(0f, 1f), Look = new Vector2(15f / (FirstPersonController.LookSensitivity * p.LookScale), 0f) });
+            var b = p.transform.position;
+            for (int k = 0; k < 10; k++) qa.Step(Dt, new ExploreInput { Move = new Vector2(0f, 1f) });
+            var moved = p.transform.position - b; moved.y = 0f;
+            var fwd = Quaternion.Euler(0f, p.Yaw, 0f) * Vector3.forward;
+            Assert.Less(Mathf.Abs(Vector3.Dot(moved, Quaternion.Euler(0f, 90f, 0f) * fwd)), 0.03f, "B：轉頭後沒有側滑");
+            sw.Apply(3);
+            Assert.AreEqual(7f, p.Acceleration, 1e-4f, "選回「現行」就是正式參數");
+            Assert.IsFalse(qa.Rig.GaitBob);
+        }
+
+        [Test]
+        public void Movement_EveryPreset_StillWalksThroughDoorways_AndUpTheStairs()
+        {
+            var qa = NewQa();
+            var sw = root.AddComponent<LanternMovementFeelSwitch>();
+            sw.Bind(qa);
+            sw.EnterAtStart();
+            var o = LanternGraybox.V2Origin; float S = LanternGraybox.V2Scale;
+            Vector3 HP(float x, float z) => o + new Vector3(x * S, 0.05f, z * S);
+            for (int i = 0; i < 3; i++)
+            {
+                sw.Apply(i);
+                qa.Player.Teleport(HP(5.07f, 5.5f), 0f, 0f);
+                qa.Step(Dt, ExploreInput.None);
+                foreach (var (x, z) in new[] { (5.07f, 6.45f), (4.1f, 6.45f), (2.33f, 7.14f), (1.33f, 7.51f), (1.1f, 8.59f), (1.6f, 9.66f), (1.6f, 10.6f), (1.6f, 9.66f), (1.33f, 7.51f), (4.1f, 6.45f), (5.07f, 6.45f) })
+                    Assert.IsTrue(WalkTo(qa, HP(x, z), 600), sw.Current.Name + "：走得到 (" + x + ", " + z + ")（卡在 " + qa.Player.transform.position + "）");
+                // 樓梯：從走廊上到平台。
+                qa.Player.Teleport(HP(6.02f, 5.3f), 0f, 0f);
+                qa.Step(Dt, ExploreInput.None);
+                WalkTo(qa, HP(6.02f, 9.45f), 900);
+                Assert.Greater(qa.Player.transform.position.y, 2.8f, sw.Current.Name + "：走得上樓梯（高度 " + qa.Player.transform.position.y.ToString("0.00") + "）");
+            }
+        }
     }
 }

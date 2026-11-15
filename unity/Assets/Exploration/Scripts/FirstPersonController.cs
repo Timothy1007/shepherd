@@ -33,6 +33,18 @@ namespace Shepherd.Exploration
         public float LookScale = 1f;
         /// <summary>加減速（m/s²）；0＝關閉（立即到速，正式行為）。</summary>
         public float Acceleration;
+        /// <summary>
+        /// 減速（m/s²）：放開方向鍵、或往反方向走時使用。0＝和 Acceleration 相同（原本的行為）。
+        /// 只在移動手感 QA 裡設定；其他場景維持 0。
+        /// </summary>
+        public float Deceleration;
+        /// <summary>
+        /// true＝只平滑「速度大小」，方向直接跟著輸入與鏡頭（轉頭時不會側滑）；往反方向時先減速到接近 0 再換方向。
+        /// false＝原本的做法（整個速度向量用 MoveTowards 追，轉頭時速度方向會落後、有側滑感）。只在移動手感 QA 裡打開。
+        /// </summary>
+        public bool SmoothSpeedOnly;
+        private float speedNow;
+        private Vector3 dirNow = Vector3.forward;
 
         public float Yaw { get; private set; }
         public float Pitch { get; private set; }
@@ -83,6 +95,7 @@ namespace Shepherd.Exploration
             Pitch = pitch;
             verticalSpeed = 0f;
             horizontalVelocity = Vector3.zero;
+            speedNow = 0f;
             transform.rotation = Quaternion.Euler(0f, Yaw, 0f);
         }
 
@@ -101,7 +114,25 @@ namespace Shepherd.Exploration
             var dir = transform.right * move.x + transform.forward * move.y;
             float speed = input.Run ? RunSpeedValue : WalkSpeedValue;
             var horizontal = dir * speed;
-            if (Acceleration > 0f) horizontal = Vector3.MoveTowards(horizontalVelocity, horizontal, Acceleration * dt);
+            if (SmoothSpeedOnly && Acceleration > 0f)
+            {
+                float target = dir.magnitude * speed;
+                bool reversing = target > 0.01f && speedNow > 0.2f && Vector3.Dot(dir.normalized, dirNow) < -0.2f;
+                if (reversing) target = 0f;                                  // 先煞住，再往新方向走
+                float rate = target < speedNow ? (Deceleration > 0f ? Deceleration : Acceleration) : Acceleration;
+                speedNow = Mathf.MoveTowards(speedNow, target, rate * dt);
+                if (dir.sqrMagnitude > 1e-4f && !reversing) dirNow = dir.normalized;
+                horizontal = dirNow * speedNow;
+            }
+            else if (Acceleration > 0f)
+            {
+                float rate = Acceleration;
+                if (Deceleration > 0f && (horizontal.sqrMagnitude < horizontalVelocity.sqrMagnitude - 1e-4f || Vector3.Dot(horizontal, horizontalVelocity) < 0f)) rate = Deceleration;
+                horizontal = Vector3.MoveTowards(horizontalVelocity, horizontal, rate * dt);
+                speedNow = horizontal.magnitude;
+                if (horizontal.sqrMagnitude > 1e-4f) dirNow = horizontal.normalized;
+            }
+            else { speedNow = horizontal.magnitude; if (horizontal.sqrMagnitude > 1e-4f) dirNow = horizontal.normalized; }
             horizontalVelocity = horizontal;
 
             if (Body.isGrounded && verticalSpeed < 0f) verticalSpeed = -2f;
