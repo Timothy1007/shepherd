@@ -13,14 +13,16 @@ namespace Shepherd.Exploration.Lantern
     ///   2. 爐灶凹槽：西牆是和 16 號共用的牆。附屋原本的燒煤爐灶有自己的煙囪壁柱貼在這面共用牆上，
     ///      煙道直接往上穿出附屋屋頂（屋頂上有一根小煙囪）；它和主屋餐廳那根壁柱在同一面牆、相隔約 2 m，互不相連。
     ///      現在把瓦斯爐放進舊爐灶的凹槽裡，抽油煙機裝在凹槽頂下方。
-    ///   3. 東北角的嵌入式高食物櫃（larder cupboard）：0.6 m 深、到天花板；以 4.95 × 6.25 m 的尺寸，做成完整的小房間會擋住後門與 K2 前方，
-    ///      所以選擇「一整面落地櫃」，有通風小窗格。
+    ///   3. 東北角與後窗下：單純的下櫃＋檯面（使用者回饋 2026-11-16：原本的落地食物櫃看不出用途，改成一般櫃子）。
     ///
-    /// 家具與群組：
-    ///   煮飯區（西牆）：凹槽兩側各一段流理台（南段備料、北段電鍋與微波爐），上方吊櫃與碗盤架、磁磚防濺牆；水槽留在後窗下。
-    ///   一個人吃飯的角落：小桌靠東窗，一張凳子在用、另一張靠牆收著，桌上一副碗筷。
-    ///   儲物：K1 冰箱（原位）、K2 高櫃與餅乾鐵盒（原位）、嵌入式食物櫃、米袋移到水槽旁的角落。
-    ///   生活細節：天花板的滑輪晾衣架、牆上的舊鍋爐與管線、後門邊的掛鉤與雨鞋。
+    /// 家具與群組（2026-11-16 依試玩回饋修改）：
+    ///   煮飯區（西牆）：凹槽南側一段備料台＋碗盤架；凹槽北側緊接著水槽（從後窗下移過來）、再來是切菜與電鍋的台面、最後是微波爐；
+    ///   洗菜 → 切菜 → 下鍋一條線。上方吊櫃、磁磚防濺牆。
+    ///   後窗下與東北角：下櫃＋檯面；K2 高櫃（原位）在兩段之間。
+    ///   窗邊小桌與凳子拿掉（有飯廳，廚房不需要第二張桌子），東窗下留空。
+    ///   晾衣架拿掉（一般廚房不會有）。
+    ///   儲物：K1 冰箱（原位）、K2 高櫃與餅乾鐵盒（原位）、米袋在冰箱旁。
+    ///   生活細節：牆上的舊鍋爐與管線、後門邊的掛鉤與雨鞋。
     ///
     /// 未來的雙狀態：B 的物件依用途分組（KitchenGroup），之後褪色態可以只關掉「生活細節」那組，提燈照亮時再局部顯現。
     /// 未來的隱藏門／樓梯：不在這次新增；刻意保留可擴充的牆面（見 docs/prototype/KITCHEN_LAYOUT_QA_GUIDE.md）。
@@ -102,6 +104,24 @@ namespace Shepherd.Exploration.Lantern
             kitchenMoves.Add(new LayoutMove { T = t, PA = pa, RA = ra, PB = posB, RB = rb });
             foreach (var f in followers)
                 if (f != null) kitchenMoves.Add(new LayoutMove { T = f, PA = f.position, RA = f.rotation, PB = posB + q * (f.position - pa), RB = q * f.rotation });
+        }
+
+        /// <summary>依模型實際外框微調 B 的位置：minX＝左側貼齊（例如背貼西牆），或 cx＝中心 X；cz＝中心 Z；bottom＝底面高度。</summary>
+        private void FitB(Transform t, float? minX, float? cx, float cz, float bottom)
+        {
+            int idx = kitchenMoves.FindLastIndex(m => m.T == t);
+            if (idx < 0) return;
+            var mv = kitchenMoves[idx];
+            t.SetPositionAndRotation(mv.PB, mv.RB);
+            var rs = t.GetComponentsInChildren<Renderer>(true);
+            if (rs.Length > 0)
+            {
+                var b = rs[0].bounds; foreach (var r in rs) b.Encapsulate(r.bounds);
+                float dx = minX.HasValue ? minX.Value - b.min.x : (cx.HasValue ? cx.Value - b.center.x : 0f);
+                mv.PB += new Vector3(dx, bottom - b.min.y, cz - b.center.z);
+                kitchenMoves[idx] = mv;
+            }
+            t.SetPositionAndRotation(mv.PA, mv.RA);
         }
 
         private List<Transform> KFind(string name)
@@ -210,7 +230,6 @@ namespace Shepherd.Exploration.Lantern
                 Box(name + "_Splash", K(0.008f, topY + 0.3f, mid), new Vector3(0.012f, 0.6f, len), tiles, false, null, parent);
             }
             Counter("KT_CounterS", 0.55f, brY0, gFix);
-            Counter("KT_CounterN", brY1, 5.6f, gFix);
             // 吊櫃（北段上方）。
             float wcY0 = brY1 + 0.15f, wcY1 = 5.45f, wcMid = (wcY0 + wcY1) / 2f, wcLen = wcY1 - wcY0;
             Box("KT_WallCabinet", K(0.17f, 1.85f, wcMid), new Vector3(0.34f, 0.7f, wcLen), paintCab, false, null, gFix);
@@ -230,39 +249,37 @@ namespace Shepherd.Exploration.Lantern
             // 凹槽上方的層板：鐵罐、茶葉罐。
             for (int i = 0; i < 3; i++) Cyl("KT_MantelTin", K(brD + 0.08f, openTop + 0.25f, cy - 0.35f + i * 0.33f), new Vector3(0.08f, 0.06f + i * 0.01f, 0.08f), i == 1 ? blueChina : jar, null, gLife);
 
-            // ---------- 4. 窗邊小桌（一個人吃飯的角落） ----------
-            var tableAt = K(kW - 0.33f, 0f, 2.35f);
-            Box("KT_TableTop", tableAt + Vector3.up * 0.74f, new Vector3(0.6f, 0.035f, 0.82f), worktop, true, null, gFix);
-            foreach (var (dx, dz) in new[] { (-0.25f, -0.36f), (0.25f, -0.36f), (-0.25f, 0.36f), (0.25f, 0.36f) })
-                Box("KT_TableLeg", tableAt + new Vector3(dx, 0.36f, dz), new Vector3(0.04f, 0.72f, 0.04f), timber, false, null, gFix);
-            Box("KT_TableApron", tableAt + Vector3.up * 0.66f, new Vector3(0.54f, 0.08f, 0.76f), timber, false, null, gFix);
-            var stool2 = CustomModel("KT_StoolTucked", "v2_stool", K(kW - 0.3f, 0f, 3.05f), 10f);
-            if (stool2 != null) stool2.SetParent(gFix, true);
+            // ---------- 4. 水槽移到切菜區旁（使用者回饋 2026-11-16）：北段流理台＝水槽＋備料台面 ----------
+            // 水槽單元（原本在後窗下）轉 90° 靠西牆，緊接在凹槽北側；旁邊就是砧板與電鍋，洗菜 → 切菜 → 下鍋一條線。
+            var sinkT = KFind1("V2SinkUnit");
+            float sinkW = 1.0f;
+            if (sinkT != null) { var rs0 = sinkT.GetComponentsInChildren<Renderer>(); if (rs0.Length > 0) { var b0 = rs0[0].bounds; foreach (var r in rs0) b0.Encapsulate(r.bounds); sinkW = b0.size.x; } }
+            float sinkY0 = brY1 + 0.03f, sinkY1 = sinkY0 + sinkW;
+            Counter("KT_CounterN", sinkY1 + 0.02f, 5.6f, gFix);
+            Box("KT_SinkSplash", K(0.008f, topY + 0.3f, (sinkY0 + sinkY1) / 2f), new Vector3(0.012f, 0.6f, sinkW), tiles, false, null, gFix);
 
-            // ---------- 5. 東北角：嵌入式高食物櫃 ----------
-            float lx0 = 3.68f, lx1 = kW, ly0 = kD - 0.6f, lMid = (lx0 + lx1) / 2f, lH = CeilY(kD - 0.3f) - 0.02f;
-            Box("KT_LarderBody", K(lMid, lH / 2f, kD - 0.3f), new Vector3(lx1 - lx0, lH, 0.6f), paintCab, true, null, gFix);
-            foreach (var s in new[] { -1f, 1f })
+            // ---------- 5. 後牆（後窗下）與東北角：單純的下櫃＋檯面 ----------
+            void CounterBack(string name, float x0, float x1, Transform parent)
             {
-                float dx = s * (lx1 - lx0) / 4f;
-                Box("KT_LarderDoor", K(lMid + dx, 1.05f, ly0 - 0.006f), new Vector3((lx1 - lx0) / 2f - 0.03f, 1.95f, 0.012f), paintCab, false, null, gFix);
-                Box("KT_LarderDoorPanel", K(lMid + dx, 1.05f, ly0 - 0.013f), new Vector3((lx1 - lx0) / 2f - 0.14f, 1.75f, 0.006f), paintCab, false, null, gFix);
-                Box("KT_LarderKnob", K(lMid + s * 0.05f, 1.05f, ly0 - 0.02f), new Vector3(0.025f, 0.025f, 0.02f), knob, false, null, gFix);
-                Box("KT_LarderTopDoor", K(lMid + dx, 2.25f, ly0 - 0.006f), new Vector3((lx1 - lx0) / 2f - 0.03f, 0.35f, 0.012f), paintCab, false, null, gFix);
+                float len = x1 - x0, mid = (x0 + x1) / 2f;
+                Box(name + "_Plinth", K(mid, 0.05f, kD - 0.26f), new Vector3(len, 0.1f, 0.52f), plinth, true, null, parent);
+                Box(name + "_Carcass", K(mid, 0.5f, kD - 0.29f), new Vector3(len, 0.8f, 0.58f), paintCab, true, null, parent);
+                Box(name + "_Top", K(mid, topY - 0.018f, kD - depth / 2f), new Vector3(len + 0.01f, 0.036f, depth), worktop, false, null, parent);
+                int doors = Mathf.Max(1, Mathf.RoundToInt(len / 0.5f));
+                float dw = len / doors;
+                for (int i = 0; i < doors; i++)
+                {
+                    float c = x0 + dw * (i + 0.5f);
+                    Box(name + "_Door", K(c, 0.48f, kD - 0.585f), new Vector3(dw - 0.03f, 0.68f, 0.012f), paintCab, false, null, parent);
+                    Box(name + "_DoorPanel", K(c, 0.48f, kD - 0.593f), new Vector3(dw - 0.13f, 0.54f, 0.006f), paintCab, false, null, parent);
+                    Box(name + "_Knob", K(c + (i % 2 == 0 ? dw / 2f - 0.07f : -dw / 2f + 0.07f), 0.7f, kD - 0.6f), new Vector3(0.025f, 0.025f, 0.02f), knob, false, null, parent);
+                }
+                Box(name + "_Splash", K(mid, topY + 0.15f, kD - 0.008f), new Vector3(len, 0.3f, 0.012f), tiles, false, null, parent);
             }
-            Box("KT_LarderGrille", K(lMid, 2.25f, ly0 - 0.016f), new Vector3(0.3f, 0.12f, 0.004f), grille, false, null, gFix);
+            CounterBack("KT_CounterBack", 0f, 2.88f, gFix);       // 後窗下（原本水槽的位置），K2 高櫃在它東邊
+            CounterBack("KT_CounterCorner", 3.65f, kW, gFix);     // 東北角（原本的落地食物櫃改成單純的下櫃）
 
-            // ---------- 6. 生活細節：晾衣架、鍋爐、後門掛鉤與雨鞋 ----------
-            float airY = 2.32f; var air = K(2.15f, airY, 2.45f);
-            for (int i = 0; i < 4; i++) Cyl("KT_AirerSlat", air + new Vector3(0f, 0f, -0.21f + i * 0.14f), new Vector3(0.025f, 0.75f, 0.025f), timber, new Vector3(0f, 0f, 90f), gFix);
-            foreach (var s in new[] { -1f, 1f })
-            {
-                Box("KT_AirerEnd", air + new Vector3(s * 0.72f, 0f, 0f), new Vector3(0.03f, 0.12f, 0.5f), plinth, false, null, gFix);
-                Cyl("KT_AirerRope", air + new Vector3(s * 0.72f, (CeilY(2.45f) - airY) / 2f, 0f), new Vector3(0.008f, (CeilY(2.45f) - airY) / 2f, 0.008f), cloth2, null, gFix);
-            }
-            Box("KT_HangTowel", air + new Vector3(-0.4f, -0.2f, -0.07f), new Vector3(0.36f, 0.38f, 0.01f), cloth1, false, null, gLife);
-            Box("KT_HangTowel2", air + new Vector3(0.05f, -0.17f, 0.07f), new Vector3(0.32f, 0.32f, 0.01f), cloth1, false, null, gLife);
-            Box("KT_HangShirt", air + new Vector3(0.45f, -0.22f, 0.21f), new Vector3(0.46f, 0.42f, 0.012f), cloth2, false, null, gLife);
+            // ---------- 6. 生活細節：鍋爐、後門掛鉤與雨鞋（晾衣架依回饋拿掉） ----------
             // 鍋爐（南牆、流理台南段上方），銅管往下進地板，一條沿踢腳板往東接到餐廳暖氣。
             var boiler = K(0.42f, 1.9f, 0.17f);
             Box("KT_Boiler", boiler, new Vector3(0.42f, 0.66f, 0.3f), enamel, false, null, gFix);
@@ -276,8 +293,8 @@ namespace Shepherd.Exploration.Lantern
             Box("KT_ShoppingBag", K(kW - 0.06f, 1.3f, 5.6f), new Vector3(0.05f, 0.32f, 0.22f), cloth1, false, null, gLife);
             foreach (var dz in new[] { 0f, 0.13f })
             {
-                Box("KT_Boot", K(kW - 0.18f, 0.16f, 5.42f + dz), new Vector3(0.24f, 0.32f, 0.1f), boots, false, null, gLife);
-                Box("KT_BootFoot", K(kW - 0.1f, 0.04f, 5.42f + dz), new Vector3(0.12f, 0.08f, 0.1f), boots, false, null, gLife);
+                Box("KT_Boot", K(kW - 0.18f, 0.16f, 5.4f + dz), new Vector3(0.24f, 0.32f, 0.1f), boots, false, null, gLife);
+                Box("KT_BootFoot", K(kW - 0.1f, 0.04f, 5.4f + dz), new Vector3(0.12f, 0.08f, 0.1f), boots, false, null, gLife);
             }
 
             // ---------- 7. B 的燈：天花板日光燈條＋爐灶凹槽的小燈 ----------
@@ -291,8 +308,8 @@ namespace Shepherd.Exploration.Lantern
             Blob(K(0.31f, 0f, (0.55f + brY0) / 2f), new Vector2(0.62f, brY0 - 0.55f), 0f, 0.3f).SetParent(gFix, true);
             Blob(K(0.31f, 0f, (brY1 + 5.6f) / 2f), new Vector2(0.62f, 5.6f - brY1), 0f, 0.3f).SetParent(gFix, true);
             Blob(K(0.33f, 0f, cy), new Vector2(0.62f, 0.62f), 0f, 0.3f).SetParent(gFix, true);
-            Blob(tableAt, new Vector2(0.7f, 0.95f), 0f, 0.28f).SetParent(gFix, true);
-            Blob(K(lMid, 0f, kD - 0.3f), new Vector2(lx1 - lx0, 0.62f), 0f, 0.3f).SetParent(gFix, true);
+            Blob(K(1.44f, 0f, kD - 0.3f), new Vector2(2.88f, 0.62f), 0f, 0.3f).SetParent(gFix, true);
+            Blob(K((3.65f + kW) / 2f, 0f, kD - 0.3f), new Vector2(kW - 3.65f, 0.62f), 0f, 0.3f).SetParent(gFix, true);
 
             // ---------- 既有物件：A 專屬（B 換成上面的新家具）、移到 B 的位置 ----------
             foreach (var n in new[] { "V2Counter2", "V2CounterTop2", "V2Stove", "V2WallCupboard", "V2KitchenTable" })
@@ -306,16 +323,22 @@ namespace Shepherd.Exploration.Lantern
             var rail = KFind1("V2UtensilRail");
             var ladles = new List<Transform>(); ladles.AddRange(KFind("V2Ladle")); ladles.AddRange(KFind("V2LadleHead"));
             KMove(rail, K(0.04f, 1.38f, 1.0f), rail != null ? rail.eulerAngles.y : 0f, ladles.ToArray());
-            // 電鍋、砧板等（clutter）放北段、微波爐放北段靠後。
-            KMove(KFind1("V2KitchenClutter"), K(0.33f, topY, 4.0f), 90f);
-            KMove(KFind1("V2Microwave"), K(0.33f, topY, 5.2f), 90f);
-            // 凳子：桌子西側、面向窗；碗筷跟著到新桌面。
-            KMove(KFind1("V2KitchenStool"), K(kW - 0.85f, 0f, 2.2f), 80f);
+            // 水槽單元：靠西牆、凹槽北側（背貼牆、底貼地，依模型實際大小對齊）。
+            if (sinkT != null) { KMove(sinkT, K(0.3f, 0f, (sinkY0 + sinkY1) / 2f), 90f); FitB(sinkT, kx0 + 0.005f, null, kz0 + (sinkY0 + sinkY1) / 2f, 0f); }
+            // 電鍋、砧板等（clutter）緊接在水槽旁的台面；微波爐放台面最後面，依模型實際大小放在檯面上、不超出檯面。
+            float prepMid = (sinkY1 + 5.6f) / 2f;
+            KMove(KFind1("V2KitchenClutter"), K(0.33f, topY, prepMid + 0.1f), 90f);
+            // 微波爐：後窗下那段台面的東端、K2 高櫃旁邊（面向南），把西牆的備料台面留給切菜與電鍋。
+            var mw = KFind1("V2Microwave");
+            if (mw != null) { KMove(mw, K(2.45f, topY, kD - 0.3f), 180f); FitB(mw, null, kx0 + 2.45f, kz0 + kD - 0.32f, topY); }
+            // 窗邊小桌與凳子依回饋拿掉（B 不需要第二張桌子；有飯廳）：既有的凳子只在 A 出現。
+            foreach (var t in KFind("V2KitchenStool")) kitchenOnlyA.Add(t.gameObject);
+            // 碗筷：洗好放在水槽旁的台面上。
             var bowl = KFind1("V2KitchenBowl"); var sticks = KFind1("V2KitchenChopsticks");
-            if (bowl != null) KMove(bowl, tableAt + new Vector3(-0.12f, 0.755f + 0.02f, -0.05f), bowl.eulerAngles.y);
-            if (sticks != null) KMove(sticks, tableAt + new Vector3(-0.12f, 0.765f, 0.13f), sticks.eulerAngles.y);
-            // 米袋：水槽旁的角落。
-            KMove(KFind1("V2RiceSack"), K(1.15f, 0f, kD - 0.42f), 25f);
+            if (bowl != null) KMove(bowl, K(0.3f, topY + 0.03f, sinkY1 + 0.18f), bowl.eulerAngles.y);
+            if (sticks != null) KMove(sticks, K(0.42f, topY + 0.006f, sinkY1 + 0.18f), sticks.eulerAngles.y);
+            // 米袋：冰箱西側靠牆。
+            KMove(KFind1("V2RiceSack"), K(3.55f, 0f, 0.32f), 25f);
             // 舊燈（異域的冷燈）：燈泡與燈罩在斜天花板上方，B 時隱藏；燈本身移到天花板下。
             foreach (var t in KFind("V2KitchenLightBulb")) { var r = t.GetComponent<Renderer>(); if (r != null) kitchenHiddenInB.Add(r); }
             foreach (var t in KFind("V2KitchenLightShade")) { var r = t.GetComponent<Renderer>(); if (r != null) kitchenHiddenInB.Add(r); }

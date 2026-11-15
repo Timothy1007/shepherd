@@ -1486,7 +1486,17 @@ namespace Shepherd.Exploration.Tests
             Assert.AreEqual(0f, Vector3.Distance(fridgeA, fridge.position), 1e-4f, "K1 冰箱位置不變");
             Assert.AreEqual(0f, Vector3.Distance(tallA, tall.position), 1e-4f, "K2 高櫃位置與碰撞不變");
             Assert.AreEqual(0f, Vector3.Distance(tinA, tin.position), 1e-4f, "K2 餅乾鐵盒位置不變");
-            Assert.AreEqual(0f, Vector3.Distance(sinkA, sink.position), 1e-4f, "水槽在後窗下不變");
+            var sinkB = sink.GetComponentsInChildren<Renderer>().Select(r => r.bounds).Aggregate((a, c) => { a.Encapsulate(c); return a; });
+            var kRoom = w.V2KitchenRoom;
+            Assert.Less(sinkB.min.x - kRoom.min.x, 0.05f, "B：水槽移到西牆（切菜區旁），背貼牆");
+            var prep = Find("KT_CounterN_Top").GetComponent<Renderer>().bounds;
+            Assert.Less(Mathf.Abs(prep.min.z - sinkB.max.z), 0.1f, "B：水槽緊接著備料台面");
+            Assert.IsFalse(Find("V2KitchenStool").gameObject.activeSelf, "B：窗邊的凳子拿掉");
+            Assert.IsFalse(w.V2Root.GetComponentsInChildren<Transform>(true).Any(t => t.name.StartsWith("KT_Airer") || t.name.StartsWith("KT_Table")), "B：沒有晾衣架、沒有窗邊小桌");
+            var micro = Find("V2Microwave").GetComponentsInChildren<Renderer>().Select(r => r.bounds).Aggregate((a, c) => { a.Encapsulate(c); return a; });
+            var backTop = Find("KT_CounterBack_Top").GetComponent<Renderer>().bounds;
+            Assert.AreEqual(backTop.max.y, micro.min.y, 0.02f, "B：微波爐放在檯面上（不穿模、不懸空）");
+            Assert.IsTrue(micro.min.x >= backTop.min.x - 0.02f && micro.max.x <= backTop.max.x + 0.02f && micro.max.z <= backTop.max.z + 0.02f && micro.min.z >= backTop.min.z - 0.05f, "B：微波爐整台都在後窗下那段檯面範圍內");
             Assert.AreEqual(0f, Vector3.Distance(pos, qa.Player.transform.position), 1e-4f, "切換不會移動玩家");
             // 斜天花板：靠主屋高、靠後牆低，平均約 2.85 m；後窗與後門頂部都在天花板下面。
             var ceil = Find("KT_SlopedCeiling").GetComponent<Renderer>().bounds;
