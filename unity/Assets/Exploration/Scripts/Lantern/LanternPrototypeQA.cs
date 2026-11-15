@@ -467,7 +467,7 @@ namespace Shepherd.Exploration.Lantern
             if (Input.GetKeyDown(KeyCode.F2)) GoTo("V2Shop");
             if (Input.GetKeyDown(KeyCode.F3)) GoTo("HouseEntry");
             if (Input.GetKeyDown(KeyCode.F4)) GoTo("Spawn");
-            if (Input.GetKeyDown(KeyCode.F6)) GoTo("ArenaStart");
+            if (Input.GetKeyDown(KeyCode.F6) && !RenderStyleQA) GoTo("ArenaStart");
             if (Input.GetKeyDown(KeyCode.F8) && Flow.Current == LanternFlow.Phase.Boss && Flow.Boss != null) { foreach (var s in World.Switches) s.Hit(); }
             if (Input.GetKeyDown(KeyCode.F7)) CycleRadius();
             if (Input.GetKeyDown(KeyCode.F9)) CycleHouseScale();
@@ -476,7 +476,7 @@ namespace Shepherd.Exploration.Lantern
             if (Input.GetKeyDown(KeyCode.F5)) CycleFov();
             if (Input.GetKeyDown(KeyCode.R)) ResetScene();
             if (Input.GetKeyDown(KeyCode.F12)) ToggleDebug();
-            if (Input.GetKeyDown(KeyCode.F11)) ToggleStyle();
+            if (Input.GetKeyDown(KeyCode.F11) && !RenderStyleQA) ToggleStyle();
             if (Input.GetKeyDown(KeyCode.Tab)) ToggleNotebook();
             if (Input.GetKeyDown(KeyCode.H)) ToggleHelp();
             if (Input.GetKeyDown(KeyCode.N)) GoToSandbox();
@@ -520,6 +520,12 @@ namespace Shepherd.Exploration.Lantern
 
         /// <summary>需要游標指點的介面（目前沒有：筆記只是看、近看用滑鼠相對位移轉物件）。之後的選單在這裡接上。</summary>
         public bool CursorUiOpen;
+
+        /// <summary>
+        /// 三種渲染切換 QA（LanternRenderStyleSwitch）正在使用：F6 讓給渲染切換（平常是傳送到戰鬥場），
+        /// F11 的整體風格開關也停用（避免兩套風格設定互相覆蓋）。只在獨立 QA 場景裡為 true。
+        /// </summary>
+        public bool RenderStyleQA;
 
         public void AdjustLookScale(float delta)
         {

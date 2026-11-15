@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using NUnit.Framework;
 using Shepherd.Exploration.Lantern;
 using UnityEngine;
@@ -1336,6 +1336,81 @@ namespace Shepherd.Exploration.Tests
             Aim(qa, dc.bounds.center);
             Act(qa, 1, LanternActionInput.None);
             Assert.AreSame(st.Door, qa.Actions.Aimed, "推開之後就是普通的門（E 開關）");
+        }
+
+        // ---------------- 三種渲染即時切換 QA ----------------
+
+        private LanternRenderStyleSwitch NewStyleQa(out LanternPrototypeQA qa)
+        {
+            LanternGraybox.DiningArtExperiment = 3;
+            qa = NewQa();
+            var sw = root.AddComponent<LanternRenderStyleSwitch>();
+            sw.Bind(qa);
+            sw.EnterDining();
+            for (int i = 0; i < 10; i++) { qa.Step(Dt, ExploreInput.None); sw.ApplyFrame(); }
+            return sw;
+        }
+
+        [Test]
+        public void RenderStyle_EachModeChangesShaderLightsAndPost_WithoutMovingThePlayer()
+        {
+            try
+            {
+                var sw = NewStyleQa(out var qa);
+                Assert.IsTrue(qa.RenderStyleQA, "F6 讓給渲染切換");
+                Assert.IsTrue(qa.World.V2DiningRoom.Contains(qa.Player.transform.position + Vector3.up), "QA 從餐廳開始");
+                var pos = qa.Player.transform.position; float yaw = qa.Player.Yaw;
+                var pendant = qa.World.V2Root.GetComponentsInChildren<Light>(true).First(l => l.name == "DN_PendantLight");
+                var bounce = qa.World.V2Root.GetComponentsInChildren<Light>(true).First(l => l.name.StartsWith("DN_E2_"));
+                var seen = new System.Collections.Generic.List<(float sty, float paint, float pend, float bounce)>();
+                foreach (var s in new[] { LanternRenderStyleSwitch.Style.A, LanternRenderStyleSwitch.Style.B, LanternRenderStyleSwitch.Style.C })
+                {
+                    sw.Apply(s);
+                    qa.Step(Dt, ExploreInput.None); sw.ApplyFrame();
+                    seen.Add((Shader.GetGlobalFloat(LanternRenderStyleSwitch.StylizeId), Shader.GetGlobalFloat(LanternRenderStyleSwitch.PaintId), pendant.intensity, bounce.intensity));
+                }
+                Assert.AreEqual(0f, seen[0].sty, 1e-4f, "A：自然 PBR（關掉手繪光照）");
+                Assert.AreEqual(0f, seen[0].paint, 1e-4f, "A：沒有繪畫材質層");
+                Assert.AreEqual(1f, seen[1].paint, 1e-4f, "B：繪畫材質層全開");
+                Assert.AreEqual(1f, seen[2].sty, 1e-4f, "C：手繪光階全開");
+                Assert.Greater(seen[2].pend, seen[0].pend * 1.2f, "C：主燈加強");
+                Assert.Less(seen[2].bounce, seen[0].bounce * 0.5f, "C：補光減弱、暗部更深");
+                Assert.AreEqual(0f, Vector3.Distance(pos, qa.Player.transform.position), 1e-3f, "切換不會移動玩家");
+                Assert.AreEqual(yaw, qa.Player.Yaw, 1e-3f, "切換不會改變朝向");
+                sw.Cycle();
+                Assert.AreEqual(LanternRenderStyleSwitch.Style.A, sw.Current, "F6 循環：C → A");
+            }
+            finally { LanternGraybox.DiningArtExperiment = 0; }
+        }
+
+        [Test]
+        public void RenderStyle_LanternStillRevealsLocally_InEveryMode_AndRestoreUndoesEverything()
+        {
+            try
+            {
+                var sw = NewStyleQa(out var qa);
+                float baseSty = 1f;   // 提燈 QA 預設把手繪光照打開
+                qa.Rig.SetOn(true);
+                foreach (var s in new[] { LanternRenderStyleSwitch.Style.A, LanternRenderStyleSwitch.Style.B, LanternRenderStyleSwitch.Style.C })
+                {
+                    sw.Apply(s);
+                    for (int i = 0; i < 20; i++) { qa.Step(Dt, ExploreInput.None); sw.ApplyFrame(); }
+                    var ahead = qa.Rig.RevealCenter;
+                    Assert.Greater(LanternReveal.Radius, 0f, s + "：提燈開著");
+                    Assert.IsTrue(LanternReveal.IsReal(ahead), s + "：光內是記憶態");
+                    Assert.IsFalse(LanternReveal.IsReal(ahead + qa.Cam.transform.forward * 3.5f), s + "：光外仍是褪色態（不是全屋切換）");
+                }
+                var pendant = qa.World.V2Root.GetComponentsInChildren<Light>(true).First(l => l.name == "DN_PendantLight");
+                sw.Apply(LanternRenderStyleSwitch.Style.A);
+                float baseIntensity = pendant.intensity;
+                sw.Apply(LanternRenderStyleSwitch.Style.C);
+                sw.Restore();
+                Assert.AreEqual(baseIntensity, pendant.intensity, 1e-4f, "還原後燈光回到原本的強度");
+                Assert.AreEqual(baseSty, Shader.GetGlobalFloat(LanternRenderStyleSwitch.StylizeId), 1e-4f, "還原後手繪光照參數回到原值");
+                Assert.AreEqual(0f, Shader.GetGlobalFloat(LanternRenderStyleSwitch.PaintId), 1e-4f, "還原後繪畫材質層關閉");
+                Assert.IsFalse(qa.RenderStyleQA, "還原後 F6 回到原本的用途");
+            }
+            finally { LanternGraybox.DiningArtExperiment = 0; }
         }
     }
 }

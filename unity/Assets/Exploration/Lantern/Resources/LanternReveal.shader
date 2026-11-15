@@ -57,6 +57,9 @@ Shader "Shepherd/Prototype/LanternReveal"
         // 風格化（參考《冤罪殺機》的手繪感半寫實）：0＝原樣，1＝風格化。全域開關，方便 A/B 比較。
         float _ShepStylize;
         float _ShepFaded;
+        // 繪畫材質層（三種渲染切換 QA 的 B 模式）：0＝關（預設，正式場景不受影響）；1＝顏料色差＋短筆觸的明度與粗糙度變化。
+        // 只改表面顏色與粗糙度，不改法線和光照，所以體積、陰影和明暗漸層都保留。
+        float _ShepPaint;
         // 額外的現實泡泡（穩定能量的撞擊點、已復原的穩定區）：xyz＝中心、w＝半徑；w≤0＝未使用。
         float4 _ShepRevealExtra[8];
         // 提燈光的形狀：往前偏的蛋形。_ShepRevealForward.xyz＝朝向；_ShepRevealShape＝(前方倍率, 側面倍率, 後方倍率)。
@@ -292,6 +295,23 @@ Shader "Shepherd/Prototype/LanternReveal"
                 }
                 s.metallic = _Metallic;
                 s.smoothness = lerp(anomSmooth, realSmooth, k);
+                float pnt = saturate(_ShepPaint);
+                if (pnt > 0.001)
+                {
+                    // 顏料不均勻：兩層世界座標低頻雜訊（約 0.6 m 與 0.2 m），微調明度並在冷暖之間輕輕擺動。
+                    float n1 = Noise3(i.wp * 1.7);
+                    float n2 = Noise3(i.wp * 5.0 + 7.3);
+                    // 短筆觸：在表面平面上沿一個方向拉長的雜訊（牆面＝水平筆觸、地面／桌面＝沿 x 的筆觸）。
+                    float3 an2 = abs(n0);
+                    float2 p2 = an2.y > max(an2.x, an2.z) ? i.wp.xz : (an2.x > an2.z ? i.wp.zy : i.wp.xy);
+                    float3 sp = float3(p2.x * 2.4, p2.y * 11.0, 0.0);
+                    float stroke = Noise3(sp) * 0.6 + Noise3(sp * 2.3 + 3.1) * 0.4;
+                    float v = (n1 - 0.5) * 0.34 + (n2 - 0.5) * 0.14 + (stroke - 0.5) * 0.32;
+                    float3 warmCool = lerp(float3(0.92, 0.98, 1.09), float3(1.09, 1.0, 0.89), saturate(n1 * 1.3 - 0.15));
+                    s.albedo = saturate(s.albedo * (1.0 + v * pnt) * lerp(float3(1, 1, 1), warmCool, 0.7 * pnt));
+                    // 反光跟著筆觸起伏：同一面不會像塑膠一樣均勻地亮。
+                    s.smoothness = saturate(s.smoothness * lerp(1.0, 0.7 + stroke * 0.45, pnt));
+                }
                 s.occlusion = 1;
                 edge *= 0.32;
                 s.emission = lerp(_AnomalyEmission.rgb, _EmissionColor.rgb, k) + _EdgeColor.rgb * edge;
