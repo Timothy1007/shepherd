@@ -189,7 +189,11 @@ namespace Shepherd.Exploration.Lantern
             Rig.Snap();
             Post.Apply();
             Physics.SyncTransforms();
-            if (play) SetCursor(false);
+            if (play)
+            {
+                Player.LookScale = LanternLookSettings.Load();
+                HandleCursor(false, false, false);
+            }
             if (play && World.InV2Street(Player.transform.position)) { Rig.SetOn(false); ArrivalTimer = 4.5f; }
         }
 
@@ -474,26 +478,67 @@ namespace Shepherd.Exploration.Lantern
             if (Input.GetKeyDown(KeyCode.H)) ToggleHelp();
             if (Input.GetKeyDown(KeyCode.N)) GoToSandbox();
             if (Input.GetKeyDown(KeyCode.M)) GoToMarket();
+            if (Input.GetKeyDown(KeyCode.LeftBracket)) AdjustLookScale(-LanternLookSettings.StepSize);
+            if (Input.GetKeyDown(KeyCode.RightBracket)) AdjustLookScale(LanternLookSettings.StepSize);
             FocusHeld = Input.GetKey(KeyCode.Space);
             var inp = ScriptedInput ?? input.Read();
-            if (inp.ReleaseCursor) SetCursor(true);
-            bool clickToLock = cursorFree && Input.GetMouseButtonDown(0);
-            if (clickToLock) SetCursor(false);
-            if (cursorFree && !ScriptedInput.HasValue) inp.Look = Vector2.zero;
+            bool clickToLock = HandleCursor(inp.ReleaseCursor, Input.GetMouseButtonDown(0), Input.GetMouseButton(0));
+            if (!CursorLock.LookActive && !ScriptedInput.HasValue) inp.Look = Vector2.zero;
             var act = ScriptedAction ?? new LanternActionInput
             {
-                Primary = !cursorFree && !clickToLock && Input.GetMouseButton(0),
+                Primary = CursorLock.PrimaryAllowed && !clickToLock && Input.GetMouseButton(0),
                 Interact = Input.GetKey(KeyCode.E),
                 Deploy = Input.GetKey(KeyCode.Q),
             };
             Step(Time.deltaTime, inp, act);
         }
 
-        private void SetCursor(bool free)
+        // ---------------- 滑鼠與游標 ----------------
+
+        /// <summary>游標鎖定狀態（探索＝鎖定；Esc／失去焦點＝放開）。</summary>
+        public LanternCursorLock CursorLock { get; } = new LanternCursorLock();
+
+        /// <summary>
+        /// 處理一個影格的游標狀態。Esc 先關近看或筆記，沒有東西可關時才放開滑鼠；
+        /// 放開時點一下畫面恢復。回傳 true＝這次左鍵是用來恢復鎖定的。
+        /// </summary>
+        public bool HandleCursor(bool escDown, bool clickDown, bool clickHeld)
         {
-            cursorFree = free;
-            Cursor.lockState = free ? CursorLockMode.None : CursorLockMode.Locked;
-            Cursor.visible = free;
+            bool pause = escDown;
+            if (escDown && Inspecting != null) pause = false;          // 近看：Esc 只放下東西（StepInspect 處理）
+            else if (escDown && NotebookOpen) { NotebookOpen = false; pause = false; }
+            CursorLock.UiNeedsCursor = CursorUiOpen;
+            bool consumed = CursorLock.Tick(pause, clickDown, clickHeld);
+            cursorFree = !CursorLock.WantLocked;
+            UpdateCursorHint();
+            return consumed;
+        }
+
+        /// <summary>需要游標指點的介面（目前沒有：筆記只是看、近看用滑鼠相對位移轉物件）。之後的選單在這裡接上。</summary>
+        public bool CursorUiOpen;
+
+        public void AdjustLookScale(float delta)
+        {
+            Player.LookScale = LanternLookSettings.Clamp(Player.LookScale + delta);
+            LanternLookSettings.Save(Player.LookScale);
+            Flow.ShowToast("滑鼠靈敏度 ×" + Player.LookScale.ToString("0.0") + "（[ 降低　] 提高）", 1.5f);
+        }
+
+        private void OnApplicationFocus(bool focus)
+        {
+            if (!Application.isPlaying || !Ready) return;
+            CursorLock.OnFocus(focus);
+            cursorFree = !CursorLock.WantLocked;
+            UpdateCursorHint();
+        }
+
+        private Text cursorHintText;
+
+        private void UpdateCursorHint()
+        {
+            if (cursorHintText == null) return;
+            cursorHintText.enabled = cursorFree && !CursorUiOpen;
+            cursorHintText.text = CursorLock.Focused ? "滑鼠已放開｜點一下畫面繼續" : "";
         }
 
         // ---------------- 畫面提示 ----------------
@@ -543,7 +588,7 @@ namespace Shepherd.Exploration.Lantern
             energyBar = Bar(energyBack, new Color(0.6f, 0.85f, 1f, 0.85f));
             shieldText = MakeText("Shield", font, 18, new Vector2(234, 46), TextAnchor.LowerLeft, new Vector2(0, 0));
             hintText = MakeText("Hint", font, 17, new Vector2(24, 14), TextAnchor.LowerLeft, new Vector2(0, 0));
-            hintText.text = "Tab 母親的筆記　左鍵 射擊（按住蓄力）　E 互動（抓起／按住復原／打開／拿起來看）　Q 擬態錨定　按住Space 聚光　F 提燈　F1 新房子門外（重來） F2 新房子店面 F3 舊房子 F4 測試房 F6 戰鬥場　F8 最終戰全部開燈　F9 房子大小　F10 直接打最終戰　F11 風格 A／B　R 重來　F12 數值　N 能力原型　M 老街市場（Q＝定）";
+            hintText.text = "Tab 母親的筆記　左鍵 射擊（按住蓄力）　E 互動（抓起／按住復原／打開／拿起來看）　Q 擬態錨定　按住Space 聚光　F 提燈　F1 新房子門外（重來） F2 新房子店面 F3 舊房子 F4 測試房 F6 戰鬥場　F8 最終戰全部開燈　F9 房子大小　F10 直接打最終戰　F11 風格 A／B　R 重來　F12 數值　N 能力原型　M 老街市場（Q＝定）　[ ] 滑鼠靈敏度　Esc 放開滑鼠（點畫面繼續）";
             hintText.color = new Color(1f, 1f, 1f, 0.5f);
             fullHintText = hintText.text;
             hintText.text = ShortHint;
@@ -647,6 +692,9 @@ namespace Shepherd.Exploration.Lantern
             bossHint = MakeText("BossHint", font, 18, new Vector2(0, -90), TextAnchor.MiddleCenter, new Vector2(0.5f, 1f));
             bossHint.color = new Color(1f, 0.92f, 0.8f, 0.85f);
             foreach (var g in new Graphic[] { bossBack, bossName, bossHint }) g.gameObject.SetActive(false);
+            cursorHintText = MakeText("CursorHint", font, 24, new Vector2(0, -130), TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f));
+            cursorHintText.color = new Color(1f, 0.96f, 0.88f, 0.9f);
+            cursorHintText.enabled = false;
         }
 
         private Text MakeText(string name, Font font, int size, Vector2 offset, TextAnchor anchor, Vector2 pivot, Transform parent = null)
