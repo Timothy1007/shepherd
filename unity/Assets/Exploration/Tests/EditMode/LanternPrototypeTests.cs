@@ -1459,5 +1459,58 @@ namespace Shepherd.Exploration.Tests
             Assert.AreEqual(0f, Vector3.Distance(booksA, books.position), 1e-4f, "回到 A：書櫃回原位");
             Assert.IsFalse(portiere.gameObject.activeSelf, "回到 A：門簾收起");
         }
+
+        // ---------------- 廚房空間改造 QA（A 現況／B 改造） ----------------
+
+        [Test]
+        public void KitchenLayout_B_KeepsDoorsAndPuzzlePieces_GroupsForDualState_AndRoutesStayOpen()
+        {
+            var qa = NewQa();
+            var w = qa.World;
+            var sw = root.AddComponent<LanternKitchenLayoutSwitch>();
+            sw.Bind(qa);
+            Assert.IsFalse(w.KitchenLayoutIsB, "正式遊戲預設是 A");
+            Transform Find(string n) => w.V2Root.GetComponentsInChildren<Transform>(true).First(t => t.name == n);
+            var fridge = Find("V2FridgeModel"); var tall = Find("V2TallCabinet"); var tin = Find("V2CookieTin"); var sink = Find("V2SinkUnit");
+            var counterA = Find("V2Counter2"); var structB = Find("KT_B_Structure"); var lifeB = Find("KT_B_Life");
+            var fridgeA = fridge.position; var tallA = tall.position; var tinA = tin.position; var sinkA = sink.position;
+            Assert.IsTrue(counterA.gameObject.activeSelf && !structB.gameObject.activeSelf, "A：舊流理台在、B 的結構不在");
+
+            qa.Player.Teleport(LanternKitchenLayoutSwitch.EntrancePoint, 0f, 0f);
+            qa.Step(Dt, ExploreInput.None);
+            var pos = qa.Player.transform.position;
+            sw.SetB(true);
+            Assert.IsTrue(w.KitchenLayoutIsB);
+            Assert.IsFalse(counterA.gameObject.activeSelf, "B：灰盒流理台換掉");
+            Assert.IsTrue(structB.gameObject.activeSelf && lifeB.gameObject.activeSelf, "B：斜天花板、爐灶凹槽、生活細節都在");
+            Assert.AreEqual(0f, Vector3.Distance(fridgeA, fridge.position), 1e-4f, "K1 冰箱位置不變");
+            Assert.AreEqual(0f, Vector3.Distance(tallA, tall.position), 1e-4f, "K2 高櫃位置與碰撞不變");
+            Assert.AreEqual(0f, Vector3.Distance(tinA, tin.position), 1e-4f, "K2 餅乾鐵盒位置不變");
+            Assert.AreEqual(0f, Vector3.Distance(sinkA, sink.position), 1e-4f, "水槽在後窗下不變");
+            Assert.AreEqual(0f, Vector3.Distance(pos, qa.Player.transform.position), 1e-4f, "切換不會移動玩家");
+            // 斜天花板：靠主屋高、靠後牆低，平均約 2.85 m；後窗與後門頂部都在天花板下面。
+            var ceil = Find("KT_SlopedCeiling").GetComponent<Renderer>().bounds;
+            Assert.AreEqual(2.85f, ceil.center.y, 0.06f, "天花板平均高度約 2.85 m");
+            // 雙狀態預留：生活細節可以單獨關掉，敘事物件不受影響。
+            sw.SetLife(false);
+            Assert.IsFalse(lifeB.gameObject.activeSelf, "生活細節那組可以關掉（之後的褪色態）");
+            Assert.IsTrue(fridge.gameObject.activeSelf && tall.gameObject.activeSelf && tin.gameObject.activeSelf, "K1／K2 永遠在");
+            sw.SetLife(true);
+
+            // B 的動線：廚房門內繞一圈（爐灶、流理台、水槽、K2、後門、窗邊、K1），每一點都走得到；淨寬全部合格。
+            var o = LanternGraybox.V2Origin; float S = LanternGraybox.V2Scale;
+            Vector3 HP(float x, float z) => o + new Vector3(x * S, 0.05f, z * S);
+            qa.Player.Teleport(HP(1.635f, 10.558f), 0f, 0f);
+            qa.Step(Dt, ExploreInput.None);
+            foreach (var (name, x, z) in new[] { ("爐灶前", 1.019f, 11.827f), ("流理台北段前", 1.096f, 13.327f), ("水槽前", 1.865f, 13.942f), ("高櫃前（K2）", 2.596f, 13.942f),
+                ("後門前", 3.404f, 13.788f), ("廚房中央", 1.865f, 13.173f), ("廚房中段", 1.865f, 11.635f), ("冰箱前（K1）", 2.865f, 11.019f), ("廚房門內", 1.635f, 10.558f) })
+                Assert.IsTrue(WalkTo(qa, HP(x, z), 600), "B：走得到「" + name + "」（卡在 " + qa.Player.transform.position + "）");
+            Physics.SyncTransforms();
+            var res = LanternClearance.Measure(w.V2Root, w.V2ClearanceRoute());
+            Assert.IsEmpty(res.Where(r => !r.Ok).ToList(), "B：動線淨寬不足：\n" + LanternClearance.Report(res));
+
+            sw.SetB(false);
+            Assert.IsTrue(counterA.gameObject.activeSelf && !structB.gameObject.activeSelf, "回到 A：完全復原");
+        }
     }
 }
