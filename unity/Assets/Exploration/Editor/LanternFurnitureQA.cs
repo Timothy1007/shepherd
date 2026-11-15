@@ -231,29 +231,32 @@ namespace Shepherd.Exploration.Editor
                     foreach (var r in body) r.enabled = true;
                     c.position = p0; c.rotation = r0; qa.Cam.fieldOfView = fov;
                 }
+                // R(X, y, Y)：餐廳室內座標（離西牆 X 公尺、離南牆 Y 公尺、高度 y）。
+                Vector3 R(float X, float y, float Y) => o + new Vector3(0.125f + X, y, 6.56f + Y);
                 var views = new (string tag, Vector3 eye, Vector3 look)[]
                 {
                     ("01_entrance", HP(4.25f, 0.05f, 6.45f), HP(1.0f, 1.0f, 8.3f)),
                     ("02_other_side", HP(0.9f, 0.05f, 5.6f), HP(3.4f, 0.9f, 9.2f)),
                     ("03_from_kitchen_door", HP(1.65f, 0.05f, 9.55f), HP(2.6f, 0.9f, 5.5f)),
                     ("04_corner_northeast", HP(4.0f, 0.05f, 9.3f), HP(1.5f, 0.8f, 6.0f)),
-                    // 第二版：站在餐廳裡（門口進來一步）往四個方向看。
-                    ("20_look_north", HP(3.5f, 0.05f, 6.5f), HP(2.9f, 1.15f, 10f)),
-                    ("21_look_east", HP(2.6f, 0.05f, 8.9f), HP(4.6f, 1.15f, 8.0f)),
-                    ("22_look_south", HP(3.0f, 0.05f, 8.9f), HP(2.0f, 1.0f, 5.0f)),
-                    ("23_look_west", HP(3.6f, 0.05f, 7.3f), HP(0f, 1.05f, 7.6f)),
+                    // 第三版：四個方向（站在玩家會站的地方）。
+                    ("20_look_north", R(3.7f, 0.05f, 1.0f), R(2.4f, 1.25f, 6.3f)),
+                    ("21_look_east", R(1.3f, 0.05f, 3.6f), R(5.8f, 1.1f, 3.6f)),
+                    ("22_look_south", R(2.2f, 0.05f, 5.75f), R(2.8f, 1.0f, 0f)),
+                    ("23_look_west", R(5.0f, 0.05f, 3.5f), R(0f, 1.2f, 4.7f)),
                 };
                 var closes = new (string tag, Vector3 cam, Vector3 look)[]
                 {
-                    ("10_close_table", HP(3.25f, 1.3f, 6.5f), HP(2.2f, 0.78f, 7.6f)),
-                    ("11_close_sideboard", HP(1.75f, 1.35f, 6.9f), HP(0.15f, 1.15f, 7.5f)),
-                    ("12_close_chair", HP(0.95f, 0.95f, 6.35f), HP(1.7f, 0.5f, 7.2f)),
-                    ("13_close_door_trim", HP(3.2f, 1.4f, 8.7f), HP(4.6f, 1.0f, 7.0f)),
-                    ("14_close_pendant", HP(3.0f, 1.65f, 8.5f), HP(2.2f, 2.4f, 7.5f)),
-                    ("15_close_console_calendar", HP(2.5f, 1.4f, 8.5f), HP(2.75f, 1.15f, 10f)),
-                    ("16_close_desk", HP(3.1f, 1.5f, 8.4f), HP(4.5f, 0.95f, 9.2f)),
-                    ("17_close_reading_corner", HP(1.7f, 1.35f, 7.1f), HP(0.45f, 0.55f, 5.6f)),
-                    ("18_close_bookcase", HP(2.4f, 1.3f, 6.6f), HP(2.85f, 0.7f, 5.0f)),
+                    ("10_close_table", R(4.5f, 1.35f, 3.3f), R(3.05f, 0.8f, 4.45f)),
+                    ("11_close_sideboard", R(3.6f, 1.4f, 3.7f), R(5.8f, 1.15f, 4.0f)),
+                    ("12_close_chair", R(1.7f, 0.95f, 3.1f), R(2.6f, 0.5f, 3.8f)),
+                    ("13_close_door_trim", R(3.6f, 1.4f, 3.4f), R(5.8f, 1.0f, 1.8f)),
+                    ("14_close_pendant", R(3.9f, 1.65f, 5.7f), R(3.05f, 2.4f, 4.45f)),
+                    ("15_close_fireplace", R(2.1f, 1.35f, 4.58f), R(0.45f, 0.85f, 4.58f)),
+                    ("16_close_alcove_cupboard", R(1.7f, 1.45f, 4.9f), R(0.2f, 1.15f, 5.8f)),
+                    ("17_close_radiator", R(1.8f, 1.25f, 3.9f), R(0.1f, 0.5f, 3.3f)),
+                    ("18_beam_from_sitting", R(3.0f, 1.62f, 1.3f), R(3.0f, 2.75f, 2.7f)),
+                    ("19_sitting_corner", R(3.2f, 1.45f, 2.3f), R(1.0f, 0.6f, 0.8f)),
                 };
                 // 褪色態（平常玩家看到的）。
                 qa.Rig.SetOn(false);
@@ -266,6 +269,32 @@ namespace Shepherd.Exploration.Editor
                 Frames(qa, 4);
                 foreach (var v in views) View("normal_" + v.tag, v.eye, v.look);
                 foreach (var v in closes) Close(v.tag, v.cam, v.look);
+
+                // 只有建築：把可移動的家具與小物全部藏起來（保留牆、壁柱、壁爐、壁龕櫃、暖氣片、燈具、門）。
+                if (after)
+                {
+                    string[] movable = { "DN_Table", "DN_Chair", "DN_Rug", "DN_Sideboard", "DN_Armchair", "DN_SideTable", "DN_Slippers", "DN_FloorPlant", "DN_Bookcase",
+                        "DN_TableDressing", "DN_Award", "DN_ContactShadow", "DN_FamilyFrame", "DN_FamilyPhoto", "DN_MantelFrame", "DN_MantelPhoto", "DN_Alcove", "V2TVCabinet", "V2Fan", "V2DiningSetting", "V2DiningPhoto", "V2DiningClock" };
+                    string[] keep = { "DN_AlcoveBase", "DN_AlcoveTop", "DN_AlcoveDoor", "DN_AlcoveDoorPanel", "DN_AlcoveKnob", "DN_AlcoveShelf" };
+                    var room = w.V2DiningRoom; room.Expand(0.2f);
+                    var hiddenR = new List<Renderer>();
+                    foreach (var r in w.V2Root.GetComponentsInChildren<Renderer>())
+                    {
+                        if (!r.enabled || !room.Contains(r.bounds.center)) continue;
+                        bool hide = false;
+                        for (var t = r.transform; t != null && t != w.V2Root; t = t.parent)
+                        {
+                            foreach (var k in movable) if (t.name.StartsWith(k)) hide = true;
+                            foreach (var k in keep) if (t.name == k) { hide = false; goto decided; }
+                        }
+                        decided:
+                        if (hide) { r.enabled = false; hiddenR.Add(r); }
+                    }
+                    Frames(qa, 2);
+                    foreach (var v in views) if (v.tag.StartsWith("2") || v.tag.StartsWith("01")) View("arch_" + v.tag, v.eye, v.look);
+                    foreach (var r in hiddenR) r.enabled = true;
+                    Frames(qa, 2);
+                }
 
                 // 走動測試：門口 → 桌子東側 → 往廚房的門 → 碗櫃前 → 桌子南邊 → 門口（玩家用走的，不是瞬移）。
                 if (after)
@@ -299,11 +328,12 @@ namespace Shepherd.Exploration.Editor
             }
         }
 
-        /// <summary>餐廳走動路線（HP 座標）：門口 → 桌子東側 → 書桌與矮櫃之間 → 廚房門 → 碗櫃前 → 扶手椅旁 → 電視前 → 門口。</summary>
+        /// <summary>餐廳走動路線（HP 座標）：門口 → 起居區 → 橫樑開口 → 壁爐前走道 → 廚房門 → 壁龕櫃前 → 北側椅背後 → 碗櫃前 → 東側開口 → 電視前 → 門口。</summary>
         public static readonly (string name, float x, float z)[] DiningRoute =
         {
-            ("桌子東側", 3.6f, 7.2f), ("書桌前", 3.35f, 9.15f), ("矮櫃前", 2.3f, 9.15f), ("往廚房的門", 1.65f, 9.6f),
-            ("碗櫃前", 0.95f, 7.8f), ("扶手椅旁", 1.15f, 6.5f), ("電視前", 2.0f, 5.9f), ("門口", 4.1f, 6.45f),
+            ("起居區中間", 3.02f, 6.28f), ("橫樑開口西側", 1.33f, 7.51f), ("壁爐前走道", 1.10f, 8.59f), ("往廚房的門", 1.52f, 9.66f),
+            ("壁龕櫃前", 0.87f, 9.47f), ("北側椅背後", 1.52f, 9.62f), ("北側椅背後（東）", 3.56f, 9.62f), ("碗櫃前", 3.71f, 8.12f),
+            ("橫樑開口東側", 3.63f, 6.82f), ("電視前", 1.94f, 5.89f), ("門口", 4.1f, 6.45f),
         };
 
         private static bool Walk(LanternPrototypeQA qa, Vector3 target, int maxFrames, out float secs)

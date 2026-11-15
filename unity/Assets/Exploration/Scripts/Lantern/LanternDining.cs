@@ -42,7 +42,6 @@ namespace Shepherd.Exploration.Lantern
             var trim = Mat("DN_Trim", Mode.Dual, new Color(0.94f, 0.91f, 0.84f), new Color(0.55f, 0.55f, 0.55f), null, null, 0.45f, 0.3f, 0.002f);
             var woodTrim = PH("DN_DoorTrim", "dark_wood", "Tex", 1.0f, new Color(0.62f, 0.42f, 0.3f), new Color(0.45f, 0.45f, 0.45f), 0.55f);
             var plate = Mat("DN_SwitchPlate", Mode.Dual, new Color(0.95f, 0.94f, 0.9f), new Color(0.6f, 0.6f, 0.6f), null, null, 0.6f, 0.4f, 0f);
-            var scuff = Mat("DN_ChairScuff", Mode.Dual, new Color(0.42f, 0.4f, 0.36f), new Color(0.3f, 0.3f, 0.3f), null, null, 0.2f, 0.2f, 0f);
 
             // ---------- A 建築細節 ----------
             // 沿牆一段一段做（避開門洞）：護牆板 0.12～0.9、腰線、上半灰泥 0.92～H-0.12、天花線。
@@ -89,57 +88,142 @@ namespace Shepherd.Exploration.Lantern
             Architrave(true, zN, -1f, dN0, dN1);
             Box("DN_ThresholdE", new Vector3(xE + 0.06f, 0.008f, (dE0 + dE1) / 2f), new Vector3(0.14f, 0.016f, dE1 - dE0), woodTrim, false);
             Box("DN_ThresholdN", new Vector3((dN0 + dN1) / 2f, 0.008f, zN + 0.125f), new Vector3(dN1 - dN0, 0.016f, 0.27f), woodTrim, false);
-            // 開關、插座。
-            // 開關在門的北側（門往南開，開著時不會被門板擋住）。
-            Box("DN_LightSwitch", new Vector3(xE - 0.012f, 1.25f, dE1 + 0.24f), new Vector3(0.012f, 0.085f, 0.085f), plate, false);
-            Box("DN_LightSwitchRocker", new Vector3(xE - 0.02f, 1.25f, dE1 + 0.24f), new Vector3(0.008f, 0.03f, 0.018f), plate, false);
+            // ---------- A2 建築層次（第三版，使用者 2026-11-15 確認的方案） ----------
+            // 下面的平面座標用「離西牆／南牆幾公尺」表示：X 往東、Y 往北。
+            float Xw(float X) => xW + X;
+            float Ys(float Y) => zS + Y;
+            var iron = Mat("DN_CastIron", Mode.Dual, new Color(0.07f, 0.07f, 0.075f), new Color(0.12f, 0.12f, 0.13f), null, null, 0.45f, 0.4f, 0f);
+            iron.SetFloat("_Metallic", 0.7f);
+            var fireboard = Mat("DN_Fireboard", Mode.Dual, new Color(0.16f, 0.14f, 0.13f), new Color(0.2f, 0.2f, 0.2f), null, null, 0.1f, 0.1f, 0.004f);
+            var tile = Mat("DN_FireTile", Mode.Dual, new Color(0.18f, 0.36f, 0.3f), new Color(0.35f, 0.36f, 0.36f), null, null, 0.85f, 0.5f, 0.002f);
+            var hearthM = PH("DN_Hearth", "floor_tiles_06", "Tex", 1.2f, new Color(0.72f, 0.42f, 0.3f), new Color(0.45f, 0.45f, 0.45f), 0.35f);
+            var gilt = Mat("DN_Gilt", Mode.Dual, new Color(0.72f, 0.56f, 0.3f), new Color(0.5f, 0.5f, 0.5f), null, null, 0.6f, 0.5f, 0f);
+            gilt.SetFloat("_Metallic", 0.8f);
+            // 鏡子：場景沒有反射探針，全金屬會變成黑洞；用帶灰綠的亮面玻璃代替（看得出是鏡面，但不搶眼）。
+            var mirror = Mat("DN_Mirror", Mode.Dual, new Color(0.56f, 0.62f, 0.62f), new Color(0.5f, 0.52f, 0.54f), null, null, 0.88f, 0.8f, 0f);
+            var radM = Mat("DN_Radiator", Mode.Dual, new Color(0.88f, 0.86f, 0.8f), new Color(0.55f, 0.55f, 0.55f), null, null, 0.5f, 0.4f, 0f);
+            var cupboardM = Mat("DN_AlcoveCupboard", Mode.Dual, new Color(0.86f, 0.82f, 0.72f), new Color(0.5f, 0.5f, 0.5f), null, null, 0.4f, 0.3f, 0.003f);
+            var china = Mat("DN_AlcoveChina", Mode.Dual, new Color(0.95f, 0.94f, 0.9f), new Color(0.6f, 0.6f, 0.6f), null, null, 0.85f, 0.5f, 0f);
+            var blueChina = Mat("DN_AlcoveBlue", Mode.Dual, new Color(0.35f, 0.45f, 0.65f), new Color(0.5f, 0.5f, 0.5f), null, null, 0.85f, 0.5f, 0f);
+            var album = Mat("DN_AlcoveAlbum", Mode.Dual, new Color(0.42f, 0.12f, 0.1f), new Color(0.4f, 0.4f, 0.4f), null, null, 0.4f, 0.3f, 0f);
+            var album2 = Mat("DN_AlcoveAlbum2", Mode.Dual, new Color(0.14f, 0.2f, 0.34f), new Color(0.4f, 0.4f, 0.4f), null, null, 0.4f, 0.3f, 0f);
+            var brass = Mat("DN_Knob", Mode.Dual, new Color(0.8f, 0.6f, 0.32f), new Color(0.5f, 0.5f, 0.5f), null, null, 0.7f, 0.5f, 0f);
+            brass.SetFloat("_Metallic", 1f);
+
+            // (1) 過去改建時留下的承重橫樑和兩側短牆：位置在走廊門北側（距南牆 2.6 m），橫跨共用牆到走廊牆。
+            //     樑往下只有 0.24 m（樑底 ≈ 3.0 m，比玩家眼睛高 1.4 m），不會壓迫。之後蓋二樓時，二樓的隔間牆可以落在這根樑上方。
+            const float beamY0 = 2.6f, beamY1 = 2.85f, nibW = 0.6f, nibE = 0.45f;
+            float zb0 = Ys(beamY0), zb1 = Ys(beamY1);
+            Box("DN_Beam", new Vector3((xW + xE) / 2f, H - 0.12f, (zb0 + zb1) / 2f), new Vector3(xE - xW, 0.24f, zb1 - zb0), trim, false);
+            Box("DN_BeamMould", new Vector3((xW + xE) / 2f, H - 0.245f, (zb0 + zb1) / 2f), new Vector3(xE - xW, 0.02f, zb1 - zb0 + 0.04f), trim, false);
+            Box("DN_NibW", new Vector3(xW + nibW / 2f, H / 2f, (zb0 + zb1) / 2f), new Vector3(nibW, H, zb1 - zb0), upper, true);
+            Box("DN_NibE", new Vector3(xE - nibE / 2f, H / 2f, (zb0 + zb1) / 2f), new Vector3(nibE, H, zb1 - zb0), upper, true);
+            Band(true, zb0, -1f, xW, xW + nibW); Band(true, zb1, 1f, xW, xW + nibW); Band(false, xW + nibW, 1f, zb0, zb1);
+            Band(true, zb0, -1f, xE - nibE, xE); Band(true, zb1, 1f, xE - nibE, xE); Band(false, xE - nibE, -1f, zb0, zb1);
+            // 開關改裝在東邊短牆朝南的那一面（走進門就摸得到）。
+            Box("DN_LightSwitch", new Vector3(xE - 0.2f, 1.25f, zb0 - 0.012f), new Vector3(0.085f, 0.085f, 0.012f), plate, false);
+            Box("DN_LightSwitchRocker", new Vector3(xE - 0.2f, 1.25f, zb0 - 0.02f), new Vector3(0.018f, 0.03f, 0.008f), plate, false);
             Box("DN_Socket", new Vector3(xW + 0.012f, 0.32f, HP(0f, 0f, 6.1f).z), new Vector3(0.012f, 0.085f, 0.145f), plate, false);
             Box("DN_Socket2", new Vector3((xW + xE) / 2f + 0.6f, 0.32f, zS + 0.012f), new Vector3(0.145f, 0.085f, 0.012f), plate, false);
 
-            // ---------- B 家具 ----------
-            // 餐廳淨面積約 5.8 × 6.3 m（36 m²）。第一版只有中間一張 1.6 m 的桌子和西牆一座碗櫃，三面牆幾乎是空的。
-            // 第二版：桌子加長到 1.8 m（一家人加阿嬤坐得下），四面牆各有一個生活用途——
-            //   西牆＝收納與待客（碗櫃、角落的盆栽、看電視的扶手椅）；南牆＝一家人的客廳角（電視櫃、家庭照、書櫃與相簿）；
-            //   北牆＝通往廚房的備餐角（矮櫃上的熱水壺、藥箱、信件、月曆；門框上量身高的鉛筆線）；
-            //   東牆＝女兒寫功課、媽媽記帳的書桌（帳本、算盤、軟木板上的課表與帳單）。
-            // 通道照舊：門口 → 桌子東側 → 廚房門；碗櫃前 ≥ 0.85 m。
-            var table = HP(2.2f, 0f, 7.5f);
-            var rug = CustomModel("DN_Rug", "dn_rug", table, 90f, false);
+            // (2) 共用牆上的煙囪壁柱和封起來的舊壁爐（保留鑄鐵框、壁爐架、爐台；不能用）。
+            const float brY0 = 3.88f, brY1 = 5.28f, brD = 0.45f;
+            float zc = Ys((brY0 + brY1) / 2f), bx = xW + brD;
+            Box("DN_ChimneyBreast", new Vector3(xW + brD / 2f, H / 2f, zc), new Vector3(brD, H, brY1 - brY0), upper, true);
+            Band(false, bx, 1f, Ys(brY0), Ys(brY1)); Band(true, Ys(brY0), -1f, xW, bx); Band(true, Ys(brY1), 1f, xW, bx);
+            Box("DN_FireInsert", new Vector3(bx + 0.015f, 0.5f, zc), new Vector3(0.03f, 1.0f, 0.9f), iron, false);
+            Box("DN_FireBoard", new Vector3(bx + 0.032f, 0.42f, zc), new Vector3(0.006f, 0.56f, 0.5f), fireboard, false);
+            Box("DN_FireHood", new Vector3(bx + 0.045f, 0.73f, zc), new Vector3(0.03f, 0.07f, 0.58f), iron, false);
+            Box("DN_FireFret", new Vector3(bx + 0.05f, 0.14f, zc), new Vector3(0.025f, 0.1f, 0.58f), iron, false);
+            foreach (var s in new[] { -1f, 1f })
+            {
+                Box("DN_FireTiles", new Vector3(bx + 0.033f, 0.5f, zc + s * 0.37f), new Vector3(0.008f, 0.84f, 0.12f), tile, false);
+                for (int i = 1; i < 6; i++) Box("DN_TileJoint", new Vector3(bx + 0.038f, 0.08f + i * 0.14f, zc + s * 0.37f), new Vector3(0.002f, 0.006f, 0.12f), fireboard, false);
+                Box("DN_SurroundPilaster", new Vector3(bx + 0.035f, 0.55f, zc + s * 0.56f), new Vector3(0.07f, 1.1f, 0.16f), woodTrim, false);
+            }
+            Box("DN_SurroundFrieze", new Vector3(bx + 0.035f, 1.03f, zc), new Vector3(0.07f, 0.16f, 1.28f), woodTrim, false);
+            Box("DN_Mantel", new Vector3(bx + 0.09f, 1.135f, zc), new Vector3(0.2f, 0.04f, 1.42f), woodTrim, false);
+            Box("DN_Hearth", new Vector3(bx + 0.175f, 0.012f, zc), new Vector3(0.35f, 0.024f, 1.3f), hearthM, false);
+            Box("DN_OvermantelFrame", new Vector3(bx + 0.012f, 1.6f, zc), new Vector3(0.02f, 0.55f, 0.7f), gilt, false);
+            Box("DN_OvermantelMirror", new Vector3(bx + 0.024f, 1.6f, zc), new Vector3(0.004f, 0.47f, 0.62f), mirror, false);
+            // 壁爐架上：兩張小相框（原本的掛鐘移到壁柱上、鏡子上方）。
+            var frameM = Mat("DN_MantelFrame", Mode.Dual, new Color(0.3f, 0.2f, 0.12f), new Color(0.5f, 0.5f, 0.5f), null, null, 0.4f, 0.4f, 0f);
+            var photoM = Mat("DN_MantelPhoto", Mode.Dual, Color.white, new Color(0.6f, 0.6f, 0.6f), LanternReveal.Photo(true), null, 0.3f, 0.3f, 0f);
+            foreach (var (dz, w, h, rot) in new[] { (-0.45f, 0.16f, 0.2f, -8f), (0.42f, 0.2f, 0.15f, 10f) })
+            {
+                var c = new Vector3(bx + 0.1f, 1.155f + h / 2f, zc + dz);
+                var e = new Vector3(0f, 90f + rot, -8f);
+                Box("DN_MantelFrame", c, new Vector3(w, h, 0.015f), frameM, false, e);
+                var ph = Box("DN_MantelPhoto", c, new Vector3(w - 0.04f, h - 0.04f, 0.004f), photoM, false, e);
+                ph.position += ph.forward * 0.009f;
+            }
+            foreach (var t in Into.GetComponentsInChildren<Transform>(true))
+                if (t.name == "V2DiningClock") { t.position = new Vector3(bx + 0.005f, 0f, zc); break; }
+
+            // (3) 壁柱兩側的壁龕：北側是嵌入式櫃子（收碗盤、相簿），南側是鑄鐵暖氣片（管線外露，後來加裝的中央暖氣）。
+            float ac0 = Ys(brY1) + 0.01f, ac1 = zN - 0.01f, acz = (ac0 + ac1) / 2f, acw = ac1 - ac0;
+            Box("DN_AlcoveBase", new Vector3(xW + 0.21f, 0.42f, acz), new Vector3(0.42f, 0.84f, acw), cupboardM, true);
+            Box("DN_AlcoveTop", new Vector3(xW + 0.225f, 0.855f, acz), new Vector3(0.45f, 0.03f, acw + 0.01f), woodTrim, false);
+            foreach (var s in new[] { -1f, 1f })
+            {
+                Box("DN_AlcoveDoor", new Vector3(xW + 0.425f, 0.43f, acz + s * acw / 4f), new Vector3(0.01f, 0.7f, acw / 2f - 0.04f), cupboardM, false);
+                Box("DN_AlcoveDoorPanel", new Vector3(xW + 0.432f, 0.43f, acz + s * acw / 4f), new Vector3(0.006f, 0.56f, acw / 2f - 0.14f), trim, false);
+                Box("DN_AlcoveKnob", new Vector3(xW + 0.44f, 0.6f, acz + s * 0.04f), new Vector3(0.015f, 0.02f, 0.02f), brass, false);
+            }
+            foreach (var y in new[] { 1.32f, 1.74f })
+                Box("DN_AlcoveShelf", new Vector3(xW + 0.15f, y, acz), new Vector3(0.3f, 0.025f, acw), trim, false);
+            // 層架上：盤子、碗、玻璃罐、相簿（不多，看得出是平常在用的）。
+            for (int i = 0; i < 4; i++) Cyl("DN_AlcovePlate", new Vector3(xW + 0.15f, 1.345f + i * 0.012f, acz - 0.28f), new Vector3(0.24f, 0.006f, 0.24f), i % 2 == 0 ? china : blueChina);
+            for (int i = 0; i < 3; i++) Cyl("DN_AlcoveBowl", new Vector3(xW + 0.15f, 1.36f + i * 0.035f, acz + 0.05f), new Vector3(0.13f, 0.02f, 0.13f), china);
+            Cyl("DN_AlcoveJar", new Vector3(xW + 0.14f, 1.42f, acz + 0.3f), new Vector3(0.1f, 0.08f, 0.1f), blueChina);
+            for (int i = 0; i < 4; i++) Box("DN_AlcoveAlbum", new Vector3(xW + 0.15f, 1.9f, acz - 0.3f + i * 0.065f), new Vector3(0.24f, 0.29f, 0.055f), i % 2 == 0 ? album : album2, false);
+            Box("DN_AlcoveBox", new Vector3(xW + 0.16f, 1.82f, acz + 0.22f), new Vector3(0.22f, 0.13f, 0.26f), cupboardM, false);
+            Cyl("DN_AlcoveTeapot", new Vector3(xW + 0.2f, 0.93f, acz + 0.2f), new Vector3(0.14f, 0.06f, 0.14f), blueChina);
+            Box("DN_AlcoveTray", new Vector3(xW + 0.22f, 0.875f, acz - 0.15f), new Vector3(0.3f, 0.012f, 0.22f), woodTrim, false);
+
+            float rz = Ys((beamY1 + brY0) / 2f);
+            for (int i = 0; i < 13; i++)
+                Box("DN_RadiatorColumn", new Vector3(xW + 0.08f, 0.47f, rz - 0.36f + i * 0.06f), new Vector3(0.09f, 0.6f, 0.04f), radM, false);
+            Box("DN_RadiatorTop", new Vector3(xW + 0.08f, 0.76f, rz), new Vector3(0.05f, 0.03f, 0.78f), radM, false);
+            Box("DN_RadiatorBottom", new Vector3(xW + 0.08f, 0.18f, rz), new Vector3(0.05f, 0.03f, 0.78f), radM, false);
+            foreach (var s in new[] { -1f, 1f })
+            {
+                Cyl("DN_RadiatorPipe", new Vector3(xW + 0.08f, 0.09f, rz + s * 0.45f), new Vector3(0.022f, 0.09f, 0.022f), radM);
+                Cyl("DN_RadiatorPipeH", new Vector3(xW + 0.08f, 0.18f, rz + s * 0.415f), new Vector3(0.022f, 0.035f, 0.022f), radM, new Vector3(90f, 0f, 0f));
+                Cyl("DN_RadiatorValve", new Vector3(xW + 0.08f, 0.24f, rz + s * 0.45f), new Vector3(0.035f, 0.03f, 0.035f), s < 0 ? brass : radM);
+            }
+
+            // ---------- B 家具（第三版：不新增，只重新安排） ----------
+            // 用餐區（橫樑北側）：餐桌改東西向、正對壁爐；碗櫃移到東牆、正對壁爐；西端留走道通往廚房門。
+            // 起居區（橫樑南側）：只是一家人平常坐一下的角落（電視、扶手椅、小茶几、書櫃），不是完整的客廳——主要客廳在二樓。
+            var table = new Vector3(Xw(3.05f), 0f, Ys(4.45f));
+            var rug = CustomModel("DN_Rug", "dn_rug", table, 0f, false);
             if (rug != null) rug.localScale = new Vector3(f * 1.18f, f, f * 1.32f);
-            CustomModel("DN_Table", "dn_table", table, 90f);
-            // 四張椅子：西側兩張、東側一張靠好；東側另一張被推開、歪向一邊（那個週日留下的痕跡），後面的牆上有一道椅背撞到的痕。
-            var chairW1 = table + new Vector3(-0.66f, 0f, -0.5f);
-            var chairW2 = table + new Vector3(-0.64f, 0f, 0.48f);
-            var chairE1 = table + new Vector3(0.66f, 0f, -0.46f);
-            CustomModel("DN_ChairW1", "dn_chair", chairW1, 90f);
-            CustomModel("DN_ChairW2", "dn_chair", chairW2, 87f);
-            CustomModel("DN_ChairE1", "dn_chair", chairE1, -92f);
-            var pushed = table + new Vector3(1.15f, 0f, 0.62f);
-            CustomModel("DN_ChairPushed", "dn_chair", pushed, -90f + 38f);
-            Box("DN_WallScuff", new Vector3(xE - 0.003f, 0.88f, pushed.z + 0.12f), new Vector3(0.004f, 0.05f, 0.22f), scuff, false, new Vector3(4f, 0f, 0f));
+            CustomModel("DN_Table", "dn_table", table, 0f);
+            var chairN1 = table + new Vector3(-0.45f, 0f, 0.66f);
+            var chairN2 = table + new Vector3(0.47f, 0f, 0.64f);
+            var chairS1 = table + new Vector3(-0.46f, 0f, -0.66f);
+            CustomModel("DN_ChairN1", "dn_chair", chairN1, 180f);
+            CustomModel("DN_ChairN2", "dn_chair", chairN2, 183f);
+            CustomModel("DN_ChairS1", "dn_chair", chairS1, -2f);
+            // 被推開的那張椅子（那個週日留下的痕跡）：往後推、歪向一邊。
+            var pushed = table + new Vector3(0.62f, 0f, -1.12f);
+            CustomModel("DN_ChairPushed", "dn_chair", pushed, 32f);
+            // 桌上那頓飯（劇情物件）跟著桌子移過來，轉成東西向。
+            foreach (var t in Into.GetComponentsInChildren<Transform>(true))
+                if (t.name == "V2DiningSetting") { t.position = table + Vector3.up * (0.76f * f); t.rotation = Quaternion.Euler(0f, 90f, 0f); break; }
+            CustomModel("DN_TableDressing", "dn_table_dressing", table + Vector3.up * (0.76f * f), 0f, false);
+            CustomModel("DN_Pendant", "dn_pendant", new Vector3(table.x, H, table.z), 0f, false);
 
-            // 西牆：碗櫃稍微偏北（不是正中間），兩盞壁燈跟著碗櫃；西北角一盆橡膠樹；西南角看電視的扶手椅和小茶几（老花眼鏡、報紙、蓋杯）。
-            var sb = new Vector3(xW + 0.02f, 0f, HP(0f, 0f, 7.8f).z);
-            CustomModel("DN_Sideboard", "dn_sideboard", sb, 90f);
-            CustomModel("DN_SideboardDressing", "dn_sideboard_dressing", sb + Vector3.up * (0.85f * f), 90f, false);
-            CustomModel("DN_SconceA", "dn_sconce", new Vector3(xW, 0f, sb.z - 1.05f), 90f, false);
-            CustomModel("DN_SconceB", "dn_sconce", new Vector3(xW, 0f, sb.z + 1.05f), 90f, false);
-            var plant = new Vector3(xW + 0.32f, 0f, zN - 0.34f);
-            CustomModel("DN_FloorPlant", "dn_floor_plant", plant, 40f);
-            var arm = new Vector3(HP(0.6f, 0f, 0f).x, 0f, HP(0f, 0f, 6.2f).z);
-            CustomModel("DN_Armchair", "dn_armchair", arm, 143f);
-            var side = new Vector3(xW + 0.3f, 0f, zS + 0.32f);
-            var sideT = CustomModel("DN_SideTable", "dn_side_table", side, 20f);
-            CustomModel("DN_Slippers", "dn_slippers", arm + new Vector3(0.32f, 0f, -0.42f), 150f, false);
-
-            // 南牆：電視櫃（原本的）＋上面的家庭照；電視櫃東邊一座矮書櫃（相簿、課本、收音機、獎盃、黃金葛）。
-            var books = new Vector3(HP(2.85f, 0f, 0f).x, 0f, zS);
-            CustomModel("DN_Bookcase", "dn_bookcase", books, 0f);
-
-            // 北牆：廚房門東邊的矮櫃（熱水壺、茶葉罐、信件盤、藥箱、糖果罐），月曆就掛在它上方；門框旁的牆上是量身高的鉛筆線。
-            var console = new Vector3(HP(2.95f, 0f, 0f).x, 0f, zN);
-            CustomModel("DN_Console", "dn_console", console, 180f);
-            CustomModel("DN_FoldingChair", "dn_folding_chair", new Vector3(HP(3.78f, 0f, 0f).x, 0f, zN), 180f, false);
+            var sb = new Vector3(xE - 0.02f, 0f, Ys(4.02f));
+            CustomModel("DN_Sideboard", "dn_sideboard", sb, -90f);
+            CustomModel("DN_SideboardDressing", "dn_sideboard_dressing", sb + Vector3.up * (0.85f * f), -90f, false);
+            // 壁燈移到煙囪壁柱兩側。
+            CustomModel("DN_SconceA", "dn_sconce", new Vector3(bx, 0f, zc - 0.58f), 90f, false);
+            CustomModel("DN_SconceB", "dn_sconce", new Vector3(bx, 0f, zc + 0.58f), 90f, false);
+            // 獎狀：用餐區東牆靠北（碗櫃旁邊）。
+            CustomModel("DN_Award", "dn_award", new Vector3(xE, 0f, Ys(5.65f)), -90f, false);
+            // 廚房門旁量身高的鉛筆線（生活紀錄）。
             var ink = Mat("DN_PencilMark", Mode.Dual, new Color(0.22f, 0.2f, 0.2f), new Color(0.3f, 0.3f, 0.3f), null, null, 0.3f, 0.3f, 0f);
             float markX = dN1 + 0.27f;
             foreach (var (y, label) in new[] { (0.98f, "1989"), (1.1f, "1991"), (1.22f, "1993"), (1.33f, "1995"), (1.43f, "1997") })
@@ -148,19 +232,20 @@ namespace Shepherd.Exploration.Lantern
                 WallText(mk, label, Quaternion.identity, new Vector3(0.1f, 0.008f, -0.004f), 0.0065f, new Color(0.12f, 0.1f, 0.1f));
             }
 
-            // 東牆：門北邊掛一張獎狀；靠北的角落是書桌（女兒的功課、媽媽的帳本和算盤），椅子拉出來一點，上面是軟木板。
-            var desk = new Vector3(xE - 0.01f, 0f, HP(0f, 0f, 9.15f).z);
-            var deskT = CustomModel("DN_Desk", "dn_desk", desk, -90f);
-            var deskChair = desk + new Vector3(-0.78f, 0f, -0.12f);
-            CustomModel("DN_DeskChair", "dn_chair", deskChair, 78f);
-            CustomModel("DN_Corkboard", "dn_corkboard", desk, -90f, false);
-            CustomModel("DN_Award", "dn_award", new Vector3(xE, 0f, HP(0f, 0f, 7.75f).z), -90f, false);
-
-            // 吊燈（天花圓盤＋布燈罩）。
-            CustomModel("DN_Pendant", "dn_pendant", new Vector3(table.x, H, table.z), 0f, false);
+            // 起居區：電視櫃（原本的）、扶手椅轉向電視、小茶几、書櫃、角落的盆栽；天花板中間有自己的圓盤和小吊燈。
+            var arm = new Vector3(Xw(1.35f), 0f, Ys(1.85f));
+            CustomModel("DN_Armchair", "dn_armchair", arm, 165f);
+            var side = new Vector3(Xw(0.42f), 0f, Ys(1.95f));
+            var sideT = CustomModel("DN_SideTable", "dn_side_table", side, 20f);
+            CustomModel("DN_Slippers", "dn_slippers", arm + new Vector3(0.12f, 0f, -0.55f), 170f, false);
+            var plant = new Vector3(Xw(0.32f), 0f, Ys(0.34f));
+            CustomModel("DN_FloorPlant", "dn_floor_plant", plant, 40f);
+            var books = new Vector3(HP(2.85f, 0f, 0f).x, 0f, zS);
+            CustomModel("DN_Bookcase", "dn_bookcase", books, 0f);
+            var sitPendant = new Vector3(Xw(2.6f), H, Ys(1.35f));
+            CustomModel("DN_PendantSitting", "dn_pendant", sitPendant, 0f, false);
 
             // ---------- C 生活配置 ----------
-            CustomModel("DN_TableDressing", "dn_table_dressing", table + Vector3.up * (0.76f * f), 90f, false);
             // 南牆電視櫃上方：再兩張家庭照（和原本那張排成一組）。
             var frame = Mat("DN_WallFrame", Mode.Dual, new Color(0.32f, 0.2f, 0.12f), new Color(0.5f, 0.5f, 0.5f), null, null, 0.4f, 0.4f, 0f);
             var photo = Mat("DN_WallPhoto", Mode.Dual, Color.white, new Color(0.6f, 0.6f, 0.6f), LanternReveal.Photo(true), null, 0.3f, 0.3f, 0f);
@@ -172,30 +257,28 @@ namespace Shepherd.Exploration.Lantern
             }
 
             // ---------- D 光影 ----------
-            // 暖色吊燈（燈罩下緣約在 2.45 m）、壁燈、書桌檯燈、茶几小燈；原本那顆冷色的燈泡和燈罩藏起來。
             V2DiningPendantLight = AddLight("DN_PendantLight", LightType.Point, new Vector3(table.x, H - 0.95f, table.z), new Color(1f, 0.78f, 0.55f), 2.4f, 6.5f, false, LightShadows.Soft);
             V2DiningPendantLight.shadowStrength = 0.75f;
             var down = AddLight("DN_PendantDown", LightType.Spot, new Vector3(table.x, H - 1.0f, table.z), new Color(1f, 0.8f, 0.58f), 3.2f, 4f, false, LightShadows.Soft, 95f, Vector3.down);
             down.innerSpotAngle = 50f;
-            foreach (var z in new[] { sb.z - 1.05f, sb.z + 1.05f })
-                AddLight("DN_SconceLight", LightType.Point, new Vector3(xW + 0.18f, 1.72f, z), new Color(1f, 0.76f, 0.5f), 0.7f, 2.4f, false, LightShadows.None);
-            var deskBulb = FindChild(deskT, "LampBulb");
-            if (deskBulb != null) AddLight("DN_DeskLampLight", LightType.Point, deskBulb.position + Vector3.down * 0.05f, new Color(1f, 0.82f, 0.6f), 0.9f, 2.2f, false, LightShadows.None);
+            AddLight("DN_SittingLight", LightType.Point, new Vector3(sitPendant.x, H - 0.95f, sitPendant.z), new Color(1f, 0.78f, 0.56f), 1.4f, 5f, false, LightShadows.None);
+            foreach (var z in new[] { zc - 0.58f, zc + 0.58f })
+                AddLight("DN_SconceLight", LightType.Point, new Vector3(bx + 0.18f, 1.72f, z), new Color(1f, 0.76f, 0.5f), 0.7f, 2.4f, false, LightShadows.None);
             var sideBulb = FindChild(sideT, "LampBulb");
             if (sideBulb != null) AddLight("DN_SideLampLight", LightType.Point, sideBulb.position, new Color(1f, 0.74f, 0.48f), 0.8f, 2.4f, false, LightShadows.None);
             foreach (var t in Into.GetComponentsInChildren<Transform>(true))
                 if (t.name == "V2DiningLightBulb" || t.name == "V2DiningLightShade") { var r = t.GetComponent<Renderer>(); if (r != null) r.enabled = false; }
-            // 接觸陰影：家具底下一圈很淡的影子（讓家具「坐」在地上）。
-            Blob(table, new Vector2(1.0f, 2.0f), 90f, 0.32f);
-            foreach (var c in new[] { chairW1, chairW2, chairE1, pushed, deskChair })
+            // 接觸陰影。
+            Blob(table, new Vector2(1.0f, 2.0f), 0f, 0.32f);
+            foreach (var c in new[] { chairN1, chairN2, chairS1, pushed })
                 Blob(c, new Vector2(0.56f, 0.56f), 0f, 0.28f);
-            Blob(sb + new Vector3(0.24f, 0f, 0f), new Vector2(0.62f, 1.55f), 0f, 0.34f);
-            Blob(arm, new Vector2(0.75f, 0.75f), 143f, 0.3f);
+            Blob(sb + new Vector3(-0.24f, 0f, 0f), new Vector2(0.62f, 1.55f), 0f, 0.34f);
+            Blob(arm, new Vector2(0.75f, 0.75f), 165f, 0.3f);
             Blob(side, new Vector2(0.55f, 0.55f), 0f, 0.26f);
             Blob(plant, new Vector2(0.5f, 0.5f), 0f, 0.3f);
             Blob(books + new Vector3(0f, 0f, 0.18f), new Vector2(1.15f, 0.42f), 0f, 0.3f);
-            Blob(console + new Vector3(0f, 0f, -0.22f), new Vector2(1.05f, 0.48f), 0f, 0.3f);
-            Blob(desk + new Vector3(-0.28f, 0f, 0f), new Vector2(0.6f, 1.15f), 0f, 0.3f);
+            Blob(new Vector3(xW + 0.22f, 0f, acz), new Vector2(0.5f, acw), 0f, 0.3f);
+            Blob(new Vector3(bx + 0.1f, 0f, zc), new Vector2(0.3f, 1.4f), 0f, 0.25f);
         }
 
         private static Transform FindChild(Transform root, string name)
