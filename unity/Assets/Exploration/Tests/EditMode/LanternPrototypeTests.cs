@@ -1412,5 +1412,52 @@ namespace Shepherd.Exploration.Tests
             }
             finally { LanternGraybox.DiningArtExperiment = 0; }
         }
+
+        // ---------------- 餐廳空間構圖 QA（A 現況／B 構圖改造） ----------------
+
+        [Test]
+        public void DiningLayout_SwitchingToBAndBack_MovesOnlyTheListedPieces_AndKeepsRoutesOpen()
+        {
+            var qa = NewQa();
+            var w = qa.World;
+            var sw = root.AddComponent<LanternDiningLayoutSwitch>();
+            sw.Bind(qa);
+            Assert.IsFalse(w.DiningLayoutIsB, "正式遊戲預設是 A");
+            Transform Find(string n) => w.V2Root.GetComponentsInChildren<Transform>(true).First(t => t.name == n);
+            var books = Find("DN_Bookcase"); var table = Find("DN_Table"); var portiere = Find("DN_LayoutB_Portiere");
+            var focus = w.V2Root.GetComponentsInChildren<Light>(true).Where(l => l.name.StartsWith("DN_Focus_")).ToList();
+            var booksA = books.position; var tableA = table.position;
+            Assert.IsFalse(portiere.gameObject.activeSelf, "A 沒有門簾");
+            Assert.IsTrue(focus.All(l => !l.enabled), "A 沒有引導燈");
+
+            qa.Player.Teleport(LanternDiningLayoutSwitch.EntrancePoint, -90f, 0f);
+            qa.Step(Dt, ExploreInput.None);
+            var pos = qa.Player.transform.position;
+            sw.SetB(true);
+            Assert.IsTrue(w.DiningLayoutIsB);
+            Assert.Greater(Vector3.Distance(booksA, books.position), 0.5f, "B：書櫃轉過來當矮隔間");
+            Assert.AreEqual(0f, Vector3.Distance(tableA, table.position), 1e-4f, "B：餐桌不動");
+            Assert.IsTrue(portiere.gameObject.activeSelf, "B：有門簾");
+            Assert.IsTrue(focus.All(l => l.enabled), "B：光照引導預設開");
+            sw.SetFocus(false);
+            Assert.IsTrue(focus.All(l => !l.enabled), "B：光照引導可以關（只改擺設）");
+            Assert.AreEqual(0f, Vector3.Distance(pos, qa.Player.transform.position), 1e-4f, "切換不會移動玩家");
+
+            // B 的動線：門口繞一圈回到門口，每一點都走得到；淨寬全部合格。
+            var o = LanternGraybox.V2Origin; float S = LanternGraybox.V2Scale;
+            Vector3 HP(float x, float z) => o + new Vector3(x * S, 0.05f, z * S);
+            qa.Player.Teleport(HP(4.1f, 6.45f), -90f, 0f);
+            qa.Step(Dt, ExploreInput.None);
+            foreach (var (name, x, z) in new[] { ("起居區中間", 3.02f, 6.28f), ("橫樑開口西側", 1.33f, 7.51f), ("壁爐前走道", 1.10f, 8.59f), ("往廚房的門", 1.52f, 9.66f),
+                ("北側椅背後（東）", 3.56f, 9.62f), ("碗櫃前", 3.71f, 8.12f), ("橫樑開口東側", 3.63f, 6.82f), ("書櫃旁", 2.56f, 6.47f), ("電視前", 2.29f, 5.78f), ("書櫃旁（回程）", 2.56f, 6.47f), ("門口", 4.1f, 6.45f) })
+                Assert.IsTrue(WalkTo(qa, HP(x, z), 600), "B：走得到「" + name + "」（卡在 " + qa.Player.transform.position + "）");
+            Physics.SyncTransforms();
+            var res = LanternClearance.Measure(w.V2Root, w.V2ClearanceRoute());
+            Assert.IsEmpty(res.Where(r => !r.Ok).ToList(), "B：動線淨寬不足：\n" + LanternClearance.Report(res));
+
+            sw.SetB(false);
+            Assert.AreEqual(0f, Vector3.Distance(booksA, books.position), 1e-4f, "回到 A：書櫃回原位");
+            Assert.IsFalse(portiere.gameObject.activeSelf, "回到 A：門簾收起");
+        }
     }
 }

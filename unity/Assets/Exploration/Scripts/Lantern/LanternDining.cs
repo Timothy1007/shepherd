@@ -260,14 +260,14 @@ namespace Shepherd.Exploration.Lantern
 
             // 起居區：電視櫃（原本的）、扶手椅轉向電視、小茶几、書櫃、角落的盆栽；天花板中間有自己的圓盤和小吊燈。
             var arm = new Vector3(Xw(1.35f), 0f, Ys(1.85f));
-            CustomModel("DN_Armchair", "dn_armchair", arm, 165f);
+            var armT = CustomModel("DN_Armchair", "dn_armchair", arm, 165f);
             var side = new Vector3(Xw(0.42f), 0f, Ys(1.95f));
             var sideT = CustomModel("DN_SideTable", "dn_side_table", side, 20f);
-            CustomModel("DN_Slippers", "dn_slippers", arm + new Vector3(0.12f, 0f, -0.55f), 170f, false);
+            var slipT = CustomModel("DN_Slippers", "dn_slippers", arm + new Vector3(0.12f, 0f, -0.55f), 170f, false);
             var plant = new Vector3(Xw(0.32f), 0f, Ys(0.34f));
             CustomModel("DN_FloorPlant", "dn_floor_plant", plant, 40f);
             var books = new Vector3(HP(2.85f, 0f, 0f).x, 0f, zS);
-            CustomModel("DN_Bookcase", "dn_bookcase", books, 0f);
+            var booksT = CustomModel("DN_Bookcase", "dn_bookcase", books, 0f);
             var sitPendant = new Vector3(Xw(2.6f), H, Ys(1.35f));
             CustomModel("DN_PendantSitting", "dn_pendant", sitPendant, 0f, false);
 
@@ -275,11 +275,13 @@ namespace Shepherd.Exploration.Lantern
             // 南牆電視櫃上方：再兩張家庭照（和原本那張排成一組）。
             var frame = Mat("DN_WallFrame", Mode.Dual, new Color(0.32f, 0.2f, 0.12f), new Color(0.5f, 0.5f, 0.5f), null, null, 0.4f, 0.4f, 0f);
             var photo = Mat("DN_WallPhoto", Mode.Dual, Color.white, new Color(0.6f, 0.6f, 0.6f), LanternReveal.Photo(true), null, 0.3f, 0.3f, 0f);
+            var famFrames = new System.Collections.Generic.List<(Transform f, Transform p)>();
             foreach (var (dx, dy, w, h) in new[] { (-0.55f, 1.62f, 0.26f, 0.34f), (0.55f, 1.78f, 0.3f, 0.24f) })
             {
                 var c = new Vector3(HP(1.4f, 0f, 0f).x + dx, dy, zS + 0.012f);
-                Box("DN_FamilyFrame", c, new Vector3(w, h, 0.02f), frame, false);
-                Box("DN_FamilyPhoto", c + new Vector3(0f, 0f, 0.012f), new Vector3(w - 0.05f, h - 0.05f, 0.004f), photo, false);
+                var ff = Box("DN_FamilyFrame", c, new Vector3(w, h, 0.02f), frame, false);
+                var fp = Box("DN_FamilyPhoto", c + new Vector3(0f, 0f, 0.012f), new Vector3(w - 0.05f, h - 0.05f, 0.004f), photo, false);
+                famFrames.Add((ff, fp));
             }
 
             // ---------- D 光影 ----------
@@ -299,15 +301,16 @@ namespace Shepherd.Exploration.Lantern
             foreach (var c in new[] { chairN1, chairN2, chairS1, pushed })
                 Blob(c, new Vector2(0.56f, 0.56f), 0f, 0.28f);
             Blob(sb + new Vector3(-0.24f, 0f, 0f), new Vector2(0.62f, 1.55f), 0f, 0.34f);
-            Blob(arm, new Vector2(0.75f, 0.75f), 165f, 0.3f);
-            Blob(side, new Vector2(0.55f, 0.55f), 0f, 0.26f);
+            var armBlob = Blob(arm, new Vector2(0.75f, 0.75f), 165f, 0.3f);
+            var sideBlob = Blob(side, new Vector2(0.55f, 0.55f), 0f, 0.26f);
             Blob(plant, new Vector2(0.5f, 0.5f), 0f, 0.3f);
-            Blob(books + new Vector3(0f, 0f, 0.18f), new Vector2(1.15f, 0.42f), 0f, 0.3f);
+            var booksBlob = Blob(books + new Vector3(0f, 0f, 0.18f), new Vector2(1.15f, 0.42f), 0f, 0.3f);
             Blob(new Vector3(xW + 0.22f, 0f, acz), new Vector2(0.5f, acw), 0f, 0.3f);
             Blob(new Vector3(bx + 0.1f, 0f, zc), new Vector2(0.3f, 1.4f), 0f, 0.25f);
 
             if (DiningE1) DiningExperimentModelMaterials(room);
             if (DiningE2) DiningExperimentLight(table, sitPendant, H);
+            DiningLayoutB(Xw, Ys, H, zc, bx, zb0, zb1, nibW, nibE, booksT, booksBlob, armT, armBlob, slipT, sideT, sideBlob, famFrames, upper, woodTrim, brass);
         }
 
         // ---------------- 美術實驗（只在 QA 開） ----------------
@@ -381,7 +384,7 @@ namespace Shepherd.Exploration.Lantern
         }
 
         /// <summary>接觸陰影：貼在地上的柔邊深色面（不影響碰撞與謎題）。</summary>
-        private void Blob(Vector3 at, Vector2 size, float yaw, float alpha)
+        private Transform Blob(Vector3 at, Vector2 size, float yaw, float alpha)
         {
             if (blobMat == null)
             {
@@ -418,6 +421,7 @@ namespace Shepherd.Exploration.Lantern
             m.SetColor("_BaseColor", c); m.SetColor("_Color", c);
             r.sharedMaterial = m;
             r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            return q.transform;
         }
     }
 }
