@@ -328,6 +328,157 @@ namespace Shepherd.Exploration.Editor
             }
         }
 
+        // ---------------- 餐廳美術實驗 QA（docs/CH17_3D_ART_DIRECTION_AND_PIPELINE.md 第 4 節第 1、2 步） ----------------
+
+        [MenuItem("Shepherd/Prototype/Case01 餐廳美術實驗 QA（E1 材質／E2 光照）")]
+        public static void CaptureDiningExperimentFromMenu()
+        {
+            string dir = Path.GetFullPath(Path.Combine(Application.dataPath, "../Temp/Case01DiningArtExperiment"));
+            CaptureDiningExperiment(dir);
+            EditorUtility.RevealInFinder(dir);
+        }
+
+        public static void CaptureDiningExperimentFromCommandLine()
+        {
+            string dir = null;
+            var args = System.Environment.GetCommandLineArgs();
+            for (int i = 0; i < args.Length - 1; i++) if (args[i] == "-captureDir") dir = args[i + 1];
+            CaptureDiningExperiment(dir ?? Path.GetFullPath(Path.Combine(Application.dataPath, "../Temp/Case01DiningArtExperiment")));
+        }
+
+        /// <summary>
+        /// 四種組合（e0 原版、e1 材質、e2 光照、e3 兩者）各拍同一組固定機位：
+        /// 褪色態（提燈關）、褪色態＋提燈照亮的局部、褪色態近看、記憶態參考（整間顯現，非玩家實際畫面）。
+        /// 每張褪色態截圖記錄平均亮度與對比（亮度標準差），寫進 stats.md。
+        /// </summary>
+        public static void CaptureDiningExperiment(string dir)
+        {
+            Directory.CreateDirectory(dir);
+            var stats = new StringBuilder();
+            stats.AppendLine("| 組合 | 畫面 | 平均亮度 | 對比（標準差） |");
+            stats.AppendLine("|---|---|---|---|");
+            try
+            {
+                for (int e = 0; e <= 3; e++)
+                {
+                    LanternGraybox.DiningArtExperiment = e;
+                    ExperimentPass(dir, "e" + e + "_", stats);
+                }
+            }
+            finally
+            {
+                LanternGraybox.DiningArtExperiment = 0;
+                File.WriteAllText(Path.Combine(dir, "stats.md"), stats.ToString(), new UTF8Encoding(false));
+            }
+        }
+
+        private static void ExperimentPass(string dir, string prefix, StringBuilder stats)
+        {
+            if (!File.Exists(LanternPrototypeBuilder.ScenePath)) LanternPrototypeBuilder.BuildScene();
+            EditorSceneManager.OpenScene(LanternPrototypeBuilder.ScenePath, OpenSceneMode.Single);
+            var rt = new RenderTexture(1920, 1080, 24, RenderTextureFormat.ARGB32) { antiAliasing = 4 };
+            var qa = Object.FindObjectOfType<LanternPrototypeQA>();
+            try
+            {
+                qa.Setup(false);
+                var w = qa.World;
+                var o = LanternGraybox.V2Origin;
+                Vector3 R(float X, float y, float Y) => o + new Vector3(0.125f + X, y, 6.56f + Y);
+                qa.Rig.HideHands = true;
+                qa.GoTo("V2Shop");
+                Frames(qa, 10);
+                var st = w.V2DiningStruggle;
+                if (st != null && st.Door != null && !st.Door.IsOpen) st.Door.Toggle();
+                Frames(qa, 30);
+
+                var views = new (string tag, Vector3 eye, Vector3 look)[]
+                {
+                    ("01_entrance", R(5.2f, 0.05f, 1.83f), R(1.2f, 1.0f, 4.6f)),
+                    ("20_north", R(3.7f, 0.05f, 1.0f), R(2.4f, 1.25f, 6.3f)),
+                    ("21_east", R(1.3f, 0.05f, 3.6f), R(5.8f, 1.1f, 3.6f)),
+                    ("22_south", R(2.2f, 0.05f, 5.75f), R(2.8f, 1.0f, 0f)),
+                    ("23_west", R(5.0f, 0.05f, 3.5f), R(0f, 1.2f, 4.7f)),
+                };
+                var closes = new (string tag, Vector3 cam, Vector3 look)[]
+                {
+                    ("c1_fireplace", R(2.1f, 1.35f, 4.58f), R(0.45f, 0.85f, 4.58f)),
+                    ("c2_table_chair", R(4.5f, 1.35f, 3.3f), R(3.05f, 0.7f, 4.3f)),
+                    ("c3_sideboard_china", R(3.9f, 1.45f, 3.6f), R(5.8f, 1.2f, 4.0f)),
+                    ("c4_door_wainscot", R(3.6f, 1.4f, 3.4f), R(5.8f, 1.0f, 1.8f)),
+                };
+                void View(string tag, Vector3 eye, Vector3 look, bool stat)
+                {
+                    qa.Player.Teleport(eye, 0f, 0f);
+                    LanternPrototypeBuilder.Aim(qa, look);
+                    Frames(qa, 8);
+                    var (mean, sd) = ShotStats(qa, rt, Path.Combine(dir, prefix + tag + ".png"));
+                    if (stat) stats.AppendLine("| " + prefix.TrimEnd('_') + " | " + tag + " | " + mean.ToString("0.000") + " | " + sd.ToString("0.000") + " |");
+                }
+                void Close(string tag, Vector3 cam, Vector3 look)
+                {
+                    qa.Player.Teleport(R(3.0f, 0.05f, 1.2f), 0f, 0f);
+                    Frames(qa, 4);
+                    var c = qa.Cam.transform;
+                    var p0 = c.position; var r0 = c.rotation; float fov = qa.Cam.fieldOfView;
+                    c.position = cam; c.rotation = Quaternion.LookRotation(look - cam); qa.Cam.fieldOfView = 45f;
+                    var body = new List<Renderer>();
+                    foreach (var r in qa.Player.GetComponentsInChildren<Renderer>()) if (r.enabled) { r.enabled = false; body.Add(r); }
+                    ShotStats(qa, rt, Path.Combine(dir, prefix + tag + ".png"));
+                    foreach (var r in body) r.enabled = true;
+                    c.position = p0; c.rotation = r0; qa.Cam.fieldOfView = fov;
+                }
+
+                // 1. 褪色態（提燈關）＝玩家預設看到的畫面。
+                qa.Rig.SetOn(false);
+                Frames(qa, 20);
+                foreach (var v in views) View("faded_" + v.tag, v.eye, v.look, true);
+                foreach (var v in closes) Close("faded_" + v.tag, v.cam, v.look);
+                // 2. 褪色態＋提燈照亮的局部（光內記憶態、光外褪色態同時在畫面裡）。
+                qa.Rig.SetOn(true);
+                Frames(qa, 30);
+                foreach (var v in views) View("lantern_" + v.tag, v.eye, v.look, false);
+                qa.Rig.SetOn(false);
+                Frames(qa, 20);
+                // 3. 記憶態參考：整間顯現，只用來看材質本身，不是玩家實際畫面。
+                var inside = w.V2Interior; inside.Expand(new Vector3(0.5f, 1f, 4f));
+                LanternReveal.AddRoom(inside, inside.center, true);
+                Frames(qa, 4);
+                View("memoryref_01_entrance", views[0].eye, views[0].look, false);
+                foreach (var v in closes) Close("memoryref_" + v.tag, v.cam, v.look);
+            }
+            finally
+            {
+                if (qa != null) qa.Shutdown();
+                Object.DestroyImmediate(rt);
+            }
+        }
+
+        private static (float mean, float sd) ShotStats(LanternPrototypeQA qa, RenderTexture rt, string path)
+        {
+            var cam = qa.Cam;
+            var prev = cam.targetTexture;
+            cam.targetTexture = rt;
+            cam.Render();
+            cam.targetTexture = prev;
+            var prevA = RenderTexture.active;
+            RenderTexture.active = rt;
+            var tex = new Texture2D(rt.width, rt.height, TextureFormat.RGB24, false);
+            tex.ReadPixels(new Rect(0, 0, rt.width, rt.height), 0, 0);
+            tex.Apply();
+            RenderTexture.active = prevA;
+            File.WriteAllBytes(path, tex.EncodeToPNG());
+            var px = tex.GetPixels32();
+            double sum = 0, sum2 = 0; int n = 0;
+            for (int i = 0; i < px.Length; i += 37)
+            {
+                float l = (0.2126f * px[i].r + 0.7152f * px[i].g + 0.0722f * px[i].b) / 255f;
+                sum += l; sum2 += l * l; n++;
+            }
+            Object.DestroyImmediate(tex);
+            float mean = (float)(sum / n);
+            return (mean, Mathf.Sqrt(Mathf.Max(0f, (float)(sum2 / n) - mean * mean)));
+        }
+
         /// <summary>餐廳走動路線（HP 座標）：門口 → 起居區 → 橫樑開口 → 壁爐前走道 → 廚房門 → 壁龕櫃前 → 北側椅背後 → 碗櫃前 → 東側開口 → 電視前 → 門口。</summary>
         public static readonly (string name, float x, float z)[] DiningRoute =
         {

@@ -16,6 +16,15 @@ namespace Shepherd.Exploration.Lantern
     {
         /// <summary>QA 對照用：false ＝ 建出改之前的餐廳（舊桌椅、舊櫃子、沒有建築細節）。正式遊戲一律 true。</summary>
         public static bool DiningSampleOn = true;
+        /// <summary>
+        /// 餐廳美術實驗（docs/CH17_3D_ART_DIRECTION_AND_PIPELINE.md 第 4 節第 1、2 步），只給 QA 對照用，正式遊戲一律 0。
+        /// 1 ＝ E1 材質：只用現有 Poly Haven 貼圖，把餐廳的單色材質換成有紋理、法線、粗糙度的版本。
+        /// 2 ＝ E2 環境光：餐廳裡加幾盞不投影的補光模擬牆面反彈的光（反射探針試過但沒有生效，見 DiningExperimentLight）。
+        /// 3 ＝ 兩個都開。
+        /// </summary>
+        public static int DiningArtExperiment = 0;
+        private static bool DiningE1 => (DiningArtExperiment & 1) != 0;
+        private static bool DiningE2 => (DiningArtExperiment & 2) != 0;
         /// <summary>餐廳的範圍（世界座標，QA 用）。</summary>
         public Bounds V2DiningRoom { get; private set; }
         public Light V2DiningPendantLight { get; private set; }
@@ -42,6 +51,12 @@ namespace Shepherd.Exploration.Lantern
             var trim = Mat("DN_Trim", Mode.Dual, new Color(0.94f, 0.91f, 0.84f), new Color(0.55f, 0.55f, 0.55f), null, null, 0.45f, 0.3f, 0.002f);
             var woodTrim = PH("DN_DoorTrim", "dark_wood", "Tex", 1.0f, new Color(0.62f, 0.42f, 0.3f), new Color(0.45f, 0.45f, 0.45f), 0.55f);
             var plate = Mat("DN_SwitchPlate", Mode.Dual, new Color(0.95f, 0.94f, 0.9f), new Color(0.6f, 0.6f, 0.6f), null, null, 0.6f, 0.4f, 0f);
+            if (DiningE1)
+            {
+                // E1：護牆板、線板改成「刷過油漆的表面」（灰泥貼圖的細微起伏＋粗糙度變化），不再是一片純色。
+                wainscot = PH("DN_WainscotTex", "painted_plaster_wall", "Tex", 1.2f, new Color(0.97f, 0.93f, 0.84f), new Color(0.5f, 0.5f, 0.5f), 0.42f);
+                trim = PH("DN_TrimTex", "painted_plaster_wall", "Tex", 0.8f, new Color(1f, 0.97f, 0.9f), new Color(0.55f, 0.55f, 0.55f), 0.5f);
+            }
 
             // ---------- A 建築細節 ----------
             // 沿牆一段一段做（避開門洞）：護牆板 0.12～0.9、腰線、上半灰泥 0.92～H-0.12、天花線。
@@ -109,6 +124,17 @@ namespace Shepherd.Exploration.Lantern
             var album2 = Mat("DN_AlcoveAlbum2", Mode.Dual, new Color(0.14f, 0.2f, 0.34f), new Color(0.4f, 0.4f, 0.4f), null, null, 0.4f, 0.3f, 0f);
             var brass = Mat("DN_Knob", Mode.Dual, new Color(0.8f, 0.6f, 0.32f), new Color(0.5f, 0.5f, 0.5f), null, null, 0.7f, 0.5f, 0f);
             brass.SetFloat("_Metallic", 1f);
+            if (DiningE1)
+            {
+                // E1：鑄鐵（帶斑駁的粗糙度和法線）、磁磚（有磚縫的貼圖）、封爐板、暖氣片與壁龕櫃的漆面。
+                var anom = new Color(0.5f, 0.5f, 0.5f);
+                iron = PH("DN_CastIronTex", "concrete_floor_worn_001", "Tex", 0.6f, new Color(0.16f, 0.16f, 0.17f), anom, 0.5f);
+                iron.SetFloat("_Metallic", 0.55f);
+                fireboard = PH("DN_FireboardTex", "plastered_wall_03", "Tex", 0.8f, new Color(0.26f, 0.23f, 0.21f), anom, 0.15f);
+                tile = PH("DN_FireTileTex", "long_white_tiles", "Tex", 0.3f, new Color(0.3f, 0.6f, 0.5f), anom, 0.85f);
+                radM = PH("DN_RadiatorTex", "painted_plaster_wall", "Tex", 0.6f, new Color(0.95f, 0.93f, 0.86f), anom, 0.55f);
+                cupboardM = PH("DN_AlcoveCupboardTex", "painted_plaster_wall", "Tex", 1.0f, new Color(0.93f, 0.88f, 0.77f), anom, 0.45f);
+            }
 
             // (1) 過去改建時留下的承重橫樑和兩側短牆：位置在走廊門北側（距南牆 2.6 m），橫跨共用牆到走廊牆。
             //     樑往下只有 0.24 m（樑底 ≈ 3.0 m，比玩家眼睛高 1.4 m），不會壓迫。之後蓋二樓時，二樓的隔間牆可以落在這根樑上方。
@@ -279,6 +305,72 @@ namespace Shepherd.Exploration.Lantern
             Blob(books + new Vector3(0f, 0f, 0.18f), new Vector2(1.15f, 0.42f), 0f, 0.3f);
             Blob(new Vector3(xW + 0.22f, 0f, acz), new Vector2(0.5f, acw), 0f, 0.3f);
             Blob(new Vector3(bx + 0.1f, 0f, zc), new Vector2(0.3f, 1.4f), 0f, 0.25f);
+
+            if (DiningE1) DiningExperimentModelMaterials(room);
+            if (DiningE2) DiningExperimentLight(table, sitPendant, H);
+        }
+
+        // ---------------- 美術實驗（只在 QA 開） ----------------
+
+        /// <summary>E1：Blender 家具的單色材質，依名稱換成有紋理的版本（顏色沿用原本的）。只動餐廳裡 DN_ 開頭的模型。</summary>
+        private void DiningExperimentModelMaterials(Bounds room)
+        {
+            var cache = new System.Collections.Generic.Dictionary<Material, Material>();
+            var area = room; area.Expand(0.3f);
+            foreach (var r in Into.GetComponentsInChildren<Renderer>(true))
+            {
+                if (!area.Contains(r.bounds.center)) continue;
+                bool dn = false;
+                for (var t = r.transform; t != null && t != Into; t = t.parent) if (t.name.StartsWith("DN_")) { dn = true; break; }
+                if (!dn) continue;
+                var mats = r.sharedMaterials; bool changed = false;
+                for (int i = 0; i < mats.Length; i++)
+                {
+                    var m = mats[i];
+                    if (m == null || !m.name.StartsWith("LC_DN_")) continue;
+                    if (!cache.TryGetValue(m, out var n)) { n = DiningExperimentMaterialFor(m); cache[m] = n; }
+                    if (n != null) { mats[i] = n; changed = true; }
+                }
+                if (changed) r.sharedMaterials = mats;
+            }
+        }
+
+        private Material DiningExperimentMaterialFor(Material src)
+        {
+            string key = src.name.Substring(3);
+            var col = src.HasProperty("_BaseColor") ? src.GetColor("_BaseColor") : Color.gray;
+            var anom = new Color(0.5f, 0.5f, 0.5f);
+            string tex = null; float tile = 1f, smooth = src.HasProperty("_Smoothness") ? src.GetFloat("_Smoothness") : 0.3f;
+            // 布料：坐墊、燈罩、地毯、靠墊。
+            // 地毯不換：它本身有設計好的圖案，套通用格紋會改掉設計。
+            if (key.Contains("Rug")) return null;
+            if (key.Contains("Fabric") || key.Contains("Cushion") || key.Contains("Shade") || key.Contains("Knit")) { tex = "fabric_pattern_07"; tile = 0.35f; smooth = 0.08f; }
+            // 刷漆的木頭／金屬：書櫃以外的漆面、相框紙板。
+            else if (key.Contains("Paint") || key.Contains("Cream") || key.Contains("Med") || key.Contains("Radio")) { tex = "painted_plaster_wall"; tile = 0.6f; }
+            // 木頭（沒有貼圖的書架、框）。
+            else if (key.Contains("Frame") && !key.Contains("Gilt")) { tex = "fine_grained_wood"; tile = 0.5f; }
+            // 陶瓷與玻璃：不加貼圖，只把光滑度拉開（釉面亮、素燒霧）。
+            else if (key.Contains("Porcelain") || key.Contains("Celadon") || key.Contains("BlueWhite") || key.Contains("Glaze")) { var m2 = new Material(src) { name = src.name + "_E1" }; m2.SetFloat("_Smoothness", 0.93f); return m2; }
+            else if (key.Contains("Terracotta") || key.Contains("Soil")) { tex = "plastered_wall_03"; tile = 0.4f; smooth = 0.1f; }
+            if (tex == null || !LanternReveal.HasPH(tex, "Tex")) return null;
+            var m = PH(src.name + "_E1", tex, "Tex", tile, col * 1.08f, anom, smooth);
+            if (src.HasProperty("_EmissionColor")) m.SetColor("_EmissionColor", src.GetColor("_EmissionColor"));
+            if (src.HasProperty("_AnomalyEmission")) m.SetColor("_AnomalyEmission", src.GetColor("_AnomalyEmission"));
+            if (src.HasProperty("_Metallic")) m.SetFloat("_Metallic", src.GetFloat("_Metallic"));
+            return m;
+        }
+
+        /// <summary>
+        /// E2：沒有烘焙 GI，所以用幾盞不投影、很弱的補光模擬「光打到地板和天花板再反彈」。
+        /// 反射探針也試過（自訂立方體貼圖、即時探針兩種），在目前的 Forward+ 與執行時建立的探針下都沒有生效（金屬鏡面仍是黑的），
+        /// 已記錄為待查問題，這一輪不放探針。
+        /// </summary>
+        private void DiningExperimentLight(Vector3 table, Vector3 sitPendant, float H)
+        {
+            var warm = new Color(1f, 0.82f, 0.64f);
+            AddLight("DN_E2_FloorBounce", LightType.Point, new Vector3(table.x, 0.35f, table.z), warm, 0.35f, 4.2f, false, LightShadows.None);
+            AddLight("DN_E2_CeilingBounce", LightType.Point, new Vector3(table.x, H - 0.35f, table.z), new Color(1f, 0.9f, 0.8f), 0.45f, 4.8f, false, LightShadows.None);
+            AddLight("DN_E2_SittingBounce", LightType.Point, new Vector3(sitPendant.x, H - 0.4f, sitPendant.z), new Color(0.95f, 0.9f, 0.85f), 0.35f, 4.2f, false, LightShadows.None);
         }
 
         private static Transform FindChild(Transform root, string name)
