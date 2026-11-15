@@ -1280,8 +1280,8 @@ namespace Shepherd.Exploration.Tests
             Assert.IsNotNull(qa.World.V2Root.Find("DN_Table"), "餐廳樣板的餐桌在場景裡");
             qa.Player.Teleport(HP(4.1f, 6.45f), 0f, 0f);
             qa.Step(Dt, ExploreInput.None);
-            // 門口 → 桌子東側 → 往廚房的門 → 碗櫃前 → 桌子南邊 → 回到門口。
-            foreach (var (name, x, z) in new[] { ("桌子東側", 3.7f, 7.5f), ("桌子東北角", 3.7f, 9.3f), ("往廚房的門", 1.65f, 9.6f), ("碗櫃前", 0.85f, 7.5f), ("桌子南邊", 1.7f, 5.8f), ("門口", 4.1f, 6.45f) })
+            // 門口 → 桌子東側 → 書桌前 → 矮櫃前 → 往廚房的門 → 碗櫃前 → 扶手椅旁 → 電視前 → 回到門口。
+            foreach (var (name, x, z) in new[] { ("桌子東側", 3.6f, 7.2f), ("書桌前", 3.35f, 9.15f), ("矮櫃前", 2.3f, 9.15f), ("往廚房的門", 1.65f, 9.6f), ("碗櫃前", 0.95f, 7.8f), ("扶手椅旁", 1.15f, 6.5f), ("電視前", 2.0f, 5.9f), ("門口", 4.1f, 6.45f) })
                 Assert.IsTrue(WalkTo(qa, HP(x, z), 600), "走得到「" + name + "」（卡在 " + qa.Player.transform.position + "）");
         }
 

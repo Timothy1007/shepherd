@@ -97,26 +97,67 @@ namespace Shepherd.Exploration.Lantern
             Box("DN_Socket2", new Vector3((xW + xE) / 2f + 0.6f, 0.32f, zS + 0.012f), new Vector3(0.145f, 0.085f, 0.012f), plate, false);
 
             // ---------- B 家具 ----------
+            // 餐廳淨面積約 5.8 × 6.3 m（36 m²）。第一版只有中間一張 1.6 m 的桌子和西牆一座碗櫃，三面牆幾乎是空的。
+            // 第二版：桌子加長到 1.8 m（一家人加阿嬤坐得下），四面牆各有一個生活用途——
+            //   西牆＝收納與待客（碗櫃、角落的盆栽、看電視的扶手椅）；南牆＝一家人的客廳角（電視櫃、家庭照、書櫃與相簿）；
+            //   北牆＝通往廚房的備餐角（矮櫃上的熱水壺、藥箱、信件、月曆；門框上量身高的鉛筆線）；
+            //   東牆＝女兒寫功課、媽媽記帳的書桌（帳本、算盤、軟木板上的課表與帳單）。
+            // 通道照舊：門口 → 桌子東側 → 廚房門；碗櫃前 ≥ 0.85 m。
             var table = HP(2.2f, 0f, 7.5f);
             var rug = CustomModel("DN_Rug", "dn_rug", table, 90f, false);
+            if (rug != null) rug.localScale = new Vector3(f * 1.18f, f, f * 1.32f);
             CustomModel("DN_Table", "dn_table", table, 90f);
             // 四張椅子：西側兩張、東側一張靠好；東側另一張被推開、歪向一邊（那個週日留下的痕跡），後面的牆上有一道椅背撞到的痕。
-            CustomModel("DN_ChairW1", "dn_chair", table + new Vector3(-0.66f, 0f, -0.36f), 90f);
-            CustomModel("DN_ChairW2", "dn_chair", table + new Vector3(-0.66f, 0f, 0.36f), 90f);
-            CustomModel("DN_ChairE1", "dn_chair", table + new Vector3(0.66f, 0f, -0.36f), -90f);
-            var pushed = table + new Vector3(1.12f, 0f, 0.5f);
+            var chairW1 = table + new Vector3(-0.66f, 0f, -0.5f);
+            var chairW2 = table + new Vector3(-0.64f, 0f, 0.48f);
+            var chairE1 = table + new Vector3(0.66f, 0f, -0.46f);
+            CustomModel("DN_ChairW1", "dn_chair", chairW1, 90f);
+            CustomModel("DN_ChairW2", "dn_chair", chairW2, 87f);
+            CustomModel("DN_ChairE1", "dn_chair", chairE1, -92f);
+            var pushed = table + new Vector3(1.15f, 0f, 0.62f);
             CustomModel("DN_ChairPushed", "dn_chair", pushed, -90f + 38f);
             Box("DN_WallScuff", new Vector3(xE - 0.003f, 0.88f, pushed.z + 0.12f), new Vector3(0.004f, 0.05f, 0.22f), scuff, false, new Vector3(4f, 0f, 0f));
-            // 碗櫃（下櫃＋玻璃上櫃），靠西牆，取代原本的舊櫃子。
-            var sb = new Vector3(xW + 0.02f, 0f, HP(0f, 0f, 7.5f).z);
+
+            // 西牆：碗櫃稍微偏北（不是正中間），兩盞壁燈跟著碗櫃；西北角一盆橡膠樹；西南角看電視的扶手椅和小茶几（老花眼鏡、報紙、蓋杯）。
+            var sb = new Vector3(xW + 0.02f, 0f, HP(0f, 0f, 7.8f).z);
             CustomModel("DN_Sideboard", "dn_sideboard", sb, 90f);
             CustomModel("DN_SideboardDressing", "dn_sideboard_dressing", sb + Vector3.up * (0.85f * f), 90f, false);
-            // 吊燈（天花圓盤＋布燈罩）與兩盞壁燈（碗櫃兩側）。
-            CustomModel("DN_Pendant", "dn_pendant", new Vector3(table.x, H, table.z), 0f, false);
             CustomModel("DN_SconceA", "dn_sconce", new Vector3(xW, 0f, sb.z - 1.05f), 90f, false);
             CustomModel("DN_SconceB", "dn_sconce", new Vector3(xW, 0f, sb.z + 1.05f), 90f, false);
-            // 靠北牆的備用折疊椅。
-            CustomModel("DN_FoldingChair", "dn_folding_chair", new Vector3(HP(3.75f, 0f, 0f).x, 0f, zN), 180f, false);
+            var plant = new Vector3(xW + 0.32f, 0f, zN - 0.34f);
+            CustomModel("DN_FloorPlant", "dn_floor_plant", plant, 40f);
+            var arm = new Vector3(HP(0.6f, 0f, 0f).x, 0f, HP(0f, 0f, 6.2f).z);
+            CustomModel("DN_Armchair", "dn_armchair", arm, 143f);
+            var side = new Vector3(xW + 0.3f, 0f, zS + 0.32f);
+            var sideT = CustomModel("DN_SideTable", "dn_side_table", side, 20f);
+            CustomModel("DN_Slippers", "dn_slippers", arm + new Vector3(0.32f, 0f, -0.42f), 150f, false);
+
+            // 南牆：電視櫃（原本的）＋上面的家庭照；電視櫃東邊一座矮書櫃（相簿、課本、收音機、獎盃、黃金葛）。
+            var books = new Vector3(HP(2.85f, 0f, 0f).x, 0f, zS);
+            CustomModel("DN_Bookcase", "dn_bookcase", books, 0f);
+
+            // 北牆：廚房門東邊的矮櫃（熱水壺、茶葉罐、信件盤、藥箱、糖果罐），月曆就掛在它上方；門框旁的牆上是量身高的鉛筆線。
+            var console = new Vector3(HP(2.95f, 0f, 0f).x, 0f, zN);
+            CustomModel("DN_Console", "dn_console", console, 180f);
+            CustomModel("DN_FoldingChair", "dn_folding_chair", new Vector3(HP(3.78f, 0f, 0f).x, 0f, zN), 180f, false);
+            var ink = Mat("DN_PencilMark", Mode.Dual, new Color(0.22f, 0.2f, 0.2f), new Color(0.3f, 0.3f, 0.3f), null, null, 0.3f, 0.3f, 0f);
+            float markX = dN1 + 0.27f;
+            foreach (var (y, label) in new[] { (0.98f, "1989"), (1.1f, "1991"), (1.22f, "1993"), (1.33f, "1995"), (1.43f, "1997") })
+            {
+                var mk = Box("DN_HeightMark", new Vector3(markX, y, zN - 0.006f), new Vector3(0.12f, 0.006f, 0.003f), ink, false);
+                WallText(mk, label, Quaternion.identity, new Vector3(0.1f, 0.008f, -0.004f), 0.0065f, new Color(0.12f, 0.1f, 0.1f));
+            }
+
+            // 東牆：門北邊掛一張獎狀；靠北的角落是書桌（女兒的功課、媽媽的帳本和算盤），椅子拉出來一點，上面是軟木板。
+            var desk = new Vector3(xE - 0.01f, 0f, HP(0f, 0f, 9.15f).z);
+            var deskT = CustomModel("DN_Desk", "dn_desk", desk, -90f);
+            var deskChair = desk + new Vector3(-0.78f, 0f, -0.12f);
+            CustomModel("DN_DeskChair", "dn_chair", deskChair, 78f);
+            CustomModel("DN_Corkboard", "dn_corkboard", desk, -90f, false);
+            CustomModel("DN_Award", "dn_award", new Vector3(xE, 0f, HP(0f, 0f, 7.75f).z), -90f, false);
+
+            // 吊燈（天花圓盤＋布燈罩）。
+            CustomModel("DN_Pendant", "dn_pendant", new Vector3(table.x, H, table.z), 0f, false);
 
             // ---------- C 生活配置 ----------
             CustomModel("DN_TableDressing", "dn_table_dressing", table + Vector3.up * (0.76f * f), 90f, false);
@@ -131,20 +172,37 @@ namespace Shepherd.Exploration.Lantern
             }
 
             // ---------- D 光影 ----------
-            // 暖色吊燈（燈罩下緣約在 2.45 m）、壁燈；原本那顆冷色的燈泡和燈罩藏起來。
+            // 暖色吊燈（燈罩下緣約在 2.45 m）、壁燈、書桌檯燈、茶几小燈；原本那顆冷色的燈泡和燈罩藏起來。
             V2DiningPendantLight = AddLight("DN_PendantLight", LightType.Point, new Vector3(table.x, H - 0.95f, table.z), new Color(1f, 0.78f, 0.55f), 2.4f, 6.5f, false, LightShadows.Soft);
             V2DiningPendantLight.shadowStrength = 0.75f;
             var down = AddLight("DN_PendantDown", LightType.Spot, new Vector3(table.x, H - 1.0f, table.z), new Color(1f, 0.8f, 0.58f), 3.2f, 4f, false, LightShadows.Soft, 95f, Vector3.down);
             down.innerSpotAngle = 50f;
             foreach (var z in new[] { sb.z - 1.05f, sb.z + 1.05f })
                 AddLight("DN_SconceLight", LightType.Point, new Vector3(xW + 0.18f, 1.72f, z), new Color(1f, 0.76f, 0.5f), 0.7f, 2.4f, false, LightShadows.None);
+            var deskBulb = FindChild(deskT, "LampBulb");
+            if (deskBulb != null) AddLight("DN_DeskLampLight", LightType.Point, deskBulb.position + Vector3.down * 0.05f, new Color(1f, 0.82f, 0.6f), 0.9f, 2.2f, false, LightShadows.None);
+            var sideBulb = FindChild(sideT, "LampBulb");
+            if (sideBulb != null) AddLight("DN_SideLampLight", LightType.Point, sideBulb.position, new Color(1f, 0.74f, 0.48f), 0.8f, 2.4f, false, LightShadows.None);
             foreach (var t in Into.GetComponentsInChildren<Transform>(true))
                 if (t.name == "V2DiningLightBulb" || t.name == "V2DiningLightShade") { var r = t.GetComponent<Renderer>(); if (r != null) r.enabled = false; }
             // 接觸陰影：家具底下一圈很淡的影子（讓家具「坐」在地上）。
-            Blob(table, new Vector2(1.0f, 1.7f), 90f, 0.32f);
-            foreach (var c in new[] { table + new Vector3(-0.66f, 0f, -0.36f), table + new Vector3(-0.66f, 0f, 0.36f), table + new Vector3(0.66f, 0f, -0.36f), pushed })
+            Blob(table, new Vector2(1.0f, 2.0f), 90f, 0.32f);
+            foreach (var c in new[] { chairW1, chairW2, chairE1, pushed, deskChair })
                 Blob(c, new Vector2(0.56f, 0.56f), 0f, 0.28f);
             Blob(sb + new Vector3(0.24f, 0f, 0f), new Vector2(0.62f, 1.55f), 0f, 0.34f);
+            Blob(arm, new Vector2(0.75f, 0.75f), 143f, 0.3f);
+            Blob(side, new Vector2(0.55f, 0.55f), 0f, 0.26f);
+            Blob(plant, new Vector2(0.5f, 0.5f), 0f, 0.3f);
+            Blob(books + new Vector3(0f, 0f, 0.18f), new Vector2(1.15f, 0.42f), 0f, 0.3f);
+            Blob(console + new Vector3(0f, 0f, -0.22f), new Vector2(1.05f, 0.48f), 0f, 0.3f);
+            Blob(desk + new Vector3(-0.28f, 0f, 0f), new Vector2(0.6f, 1.15f), 0f, 0.3f);
+        }
+
+        private static Transform FindChild(Transform root, string name)
+        {
+            if (root == null) return null;
+            foreach (var t in root.GetComponentsInChildren<Transform>(true)) if (t.name == name) return t;
+            return null;
         }
 
         /// <summary>接觸陰影：貼在地上的柔邊深色面（不影響碰撞與謎題）。</summary>

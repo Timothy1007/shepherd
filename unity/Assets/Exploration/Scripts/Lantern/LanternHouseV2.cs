@@ -634,7 +634,7 @@ namespace Shepherd.Exploration.Lantern
             CustomModel("V2Fan", "v2_standing_fan", HP(3.9f, 0f, 5.55f), -150f, false);
             CustomModel("V2DiningClock", "v2_wall_clock", HP(0f, 0f, 7.5f) + new Vector3(ext, 0f, 0f), 90f, false);
             var paperM = Mat("V2_DiningPaper", Mode.Dual, new Color(0.93f, 0.9f, 0.82f), new Color(0.6f, 0.6f, 0.6f), null, null, 0.2f, 0.2f, 0.004f);
-            var cal = Box("V2DiningCalendar", HP(3.3f, 0f, V2Main) + new Vector3(0f, 1.6f, -intw), new Vector3(0.36f, 0.5f, 0.015f), paperM, false);
+            var cal = Box("V2DiningCalendar", HP(3.3f, 0f, V2Main) + new Vector3(0f, 1.6f, -(ext + 0.01f)), new Vector3(0.36f, 0.5f, 0.015f), paperM, false);
             WallText(cal, "十 月\n\n19\n\n星期日", Quaternion.identity, new Vector3(0f, 0f, -0.012f), 0.012f, new Color(0.55f, 0.1f, 0.08f));
             var famPhoto = Box("V2DiningPhoto", HP(1.4f, 0f, 5f) + new Vector3(0f, 1.7f, intw + 0.01f), new Vector3(0.5f, 0.38f, 0.02f), frame, false);
             Box("V2DiningPhotoImg", famPhoto.position + new Vector3(0f, 0f, 0.012f), new Vector3(0.42f, 0.3f, 0.005f), photoM, false);
@@ -1129,7 +1129,10 @@ namespace Shepherd.Exploration.Lantern
             P("走廊→餐廳 門洞", 4.6f, 6.45f, -1f, 0f, 0.85f, true);
             P("餐廳入口", 4.1f, 6.45f, -1f, 0f, 0.85f);
             P("餐廳・桌子東側", 3.4f, 7.5f, 0f, 1f, 0.85f);
-            P("餐廳・碗櫃前", 0.85f, 7.5f, 0f, 1f, 0.85f);
+            P("餐廳・碗櫃前", 0.85f, 7.8f, 0f, 1f, 0.85f);
+            P("餐廳・書桌與餐桌之間", 3.3f, 8.9f, 0f, 1f, 0.85f);
+            P("餐廳・矮櫃前", 2.3f, 9.2f, 1f, 0f, 0.85f);
+            P("餐廳・扶手椅與餐桌之間", 1.2f, 6.6f, 0f, 1f, 0.85f);
             P("餐廳・往廚房", 1.65f, 9.4f, 0f, 1f, 0.85f);
             P("餐廳→廚房 門洞", 1.65f, 10.0f, 0f, 1f, 0.85f, true);
             P("廚房入口", 1.65f, 10.6f, 0f, 1f, 0.85f);

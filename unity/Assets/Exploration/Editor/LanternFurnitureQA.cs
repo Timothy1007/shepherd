@@ -237,6 +237,11 @@ namespace Shepherd.Exploration.Editor
                     ("02_other_side", HP(0.9f, 0.05f, 5.6f), HP(3.4f, 0.9f, 9.2f)),
                     ("03_from_kitchen_door", HP(1.65f, 0.05f, 9.55f), HP(2.6f, 0.9f, 5.5f)),
                     ("04_corner_northeast", HP(4.0f, 0.05f, 9.3f), HP(1.5f, 0.8f, 6.0f)),
+                    // 第二版：站在餐廳裡（門口進來一步）往四個方向看。
+                    ("20_look_north", HP(3.5f, 0.05f, 6.5f), HP(2.9f, 1.15f, 10f)),
+                    ("21_look_east", HP(2.6f, 0.05f, 8.9f), HP(4.6f, 1.15f, 8.0f)),
+                    ("22_look_south", HP(3.0f, 0.05f, 8.9f), HP(2.0f, 1.0f, 5.0f)),
+                    ("23_look_west", HP(3.6f, 0.05f, 7.3f), HP(0f, 1.05f, 7.6f)),
                 };
                 var closes = new (string tag, Vector3 cam, Vector3 look)[]
                 {
@@ -245,6 +250,10 @@ namespace Shepherd.Exploration.Editor
                     ("12_close_chair", HP(0.95f, 0.95f, 6.35f), HP(1.7f, 0.5f, 7.2f)),
                     ("13_close_door_trim", HP(3.2f, 1.4f, 8.7f), HP(4.6f, 1.0f, 7.0f)),
                     ("14_close_pendant", HP(3.0f, 1.65f, 8.5f), HP(2.2f, 2.4f, 7.5f)),
+                    ("15_close_console_calendar", HP(2.5f, 1.4f, 8.5f), HP(2.75f, 1.15f, 10f)),
+                    ("16_close_desk", HP(3.1f, 1.5f, 8.4f), HP(4.5f, 0.95f, 9.2f)),
+                    ("17_close_reading_corner", HP(1.7f, 1.35f, 7.1f), HP(0.45f, 0.55f, 5.6f)),
+                    ("18_close_bookcase", HP(2.4f, 1.3f, 6.6f), HP(2.85f, 0.7f, 5.0f)),
                 };
                 // 褪色態（平常玩家看到的）。
                 qa.Rig.SetOn(false);
@@ -261,7 +270,7 @@ namespace Shepherd.Exploration.Editor
                 // 走動測試：門口 → 桌子東側 → 往廚房的門 → 碗櫃前 → 桌子南邊 → 門口（玩家用走的，不是瞬移）。
                 if (after)
                 {
-                    var route = new (string name, float x, float z)[] { ("桌子東側", 3.7f, 7.5f), ("桌子東北角", 3.7f, 9.3f), ("往廚房的門", 1.65f, 9.6f), ("碗櫃前", 0.85f, 7.5f), ("桌子南邊", 1.7f, 5.8f), ("門口", 4.1f, 6.45f) };
+                    var route = DiningRoute;
                     qa.Player.Teleport(HP(4.1f, 0.05f, 6.45f), 0f, 0f);
                     Frames(qa, 2);
                     log.AppendLine("## 走動測試");
@@ -289,6 +298,13 @@ namespace Shepherd.Exploration.Editor
                 Object.DestroyImmediate(rt);
             }
         }
+
+        /// <summary>餐廳走動路線（HP 座標）：門口 → 桌子東側 → 書桌與矮櫃之間 → 廚房門 → 碗櫃前 → 扶手椅旁 → 電視前 → 門口。</summary>
+        public static readonly (string name, float x, float z)[] DiningRoute =
+        {
+            ("桌子東側", 3.6f, 7.2f), ("書桌前", 3.35f, 9.15f), ("矮櫃前", 2.3f, 9.15f), ("往廚房的門", 1.65f, 9.6f),
+            ("碗櫃前", 0.95f, 7.8f), ("扶手椅旁", 1.15f, 6.5f), ("電視前", 2.0f, 5.9f), ("門口", 4.1f, 6.45f),
+        };
 
         private static bool Walk(LanternPrototypeQA qa, Vector3 target, int maxFrames, out float secs)
         {
