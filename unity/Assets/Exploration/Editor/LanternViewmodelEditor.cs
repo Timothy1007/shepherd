@@ -118,6 +118,43 @@ namespace Shepherd.Exploration.Editor
             }
         }
 
+        /// <summary>正式遊戲的餐廳、廚房是不是確認過的 B 版（截圖＋記錄）。</summary>
+        public static void CaptureRoomsFromCommandLine()
+        {
+            string dir = null;
+            var args = System.Environment.GetCommandLineArgs();
+            for (int i = 0; i < args.Length - 1; i++) if (args[i] == "-captureDir") dir = args[i + 1];
+            dir = dir ?? Path.GetFullPath(Path.Combine(Application.dataPath, "../Temp/FormalRooms"));
+            Directory.CreateDirectory(dir);
+            EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+            var log = new StringBuilder();
+            var rt = new RenderTexture(1600, 900, 24, RenderTextureFormat.ARGB32) { antiAliasing = 8 };
+            var qa = new GameObject("LanternPrototypeQA").AddComponent<LanternPrototypeQA>();
+            try
+            {
+                qa.Setup(false);
+                log.AppendLine("餐廳 B：" + qa.World.DiningLayoutIsB + "，光照引導：" + qa.World.DiningFocusLightsOn + "，廚房 B：" + qa.World.KitchenLayoutIsB);
+                qa.GoTo("V2Dining");
+                var st = qa.World.V2DiningStruggle;
+                if (st != null && st.Door != null && !st.Door.IsOpen) st.Door.Toggle();
+                qa.Player.Teleport(LanternDiningLayoutSwitch.EntrancePoint, -90f, 0f);
+                qa.Rig.SetOn(false);
+                Frames(qa, 30);
+                Shot(qa, rt, Path.Combine(dir, "formal_dining.png"));
+                qa.GoTo("V2Kitchen");
+                qa.Player.Teleport(LanternKitchenLayoutSwitch.EntrancePoint, 0f, 0f);
+                Frames(qa, 30);
+                Shot(qa, rt, Path.Combine(dir, "formal_kitchen.png"));
+                log.AppendLine("ok");
+            }
+            finally
+            {
+                qa.Shutdown();
+                Object.DestroyImmediate(rt);
+                File.WriteAllText(Path.Combine(dir, "formal_rooms.md"), log.ToString(), new UTF8Encoding(false));
+            }
+        }
+
         private static void Log(StringBuilder log, LanternPrototypeQA qa, string what)
         {
             var vc = qa.Rig.ViewCamera;

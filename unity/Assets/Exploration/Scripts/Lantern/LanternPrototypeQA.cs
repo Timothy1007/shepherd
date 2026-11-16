@@ -15,6 +15,8 @@ namespace Shepherd.Exploration.Lantern
     public sealed class LanternPrototypeQA : MonoBehaviour
     {
         public static readonly float[] Fovs = { 55f, 62f, 70f };
+        /// <summary>true＝餐廳、廚房用使用者確認過的 B 版（正式預設）。</summary>
+        public static bool UseConfirmedLayouts = true;
         // 正式移動參數＝移動手感 QA 的「A｜慢速探索」（2026-11-16 使用者試玩後採用）。
         // 舊值：步行 1.9／快走 3.0／加減速同為 7／時間式晃動／腳步聲 0.8 m。
         public const float WalkSpeed = 1.5f;
@@ -153,6 +155,14 @@ namespace Shepherd.Exploration.Lantern
             LanternReveal.Clear();
 
             World = LanternGraybox.Build(transform);
+            // 使用者試玩確認過的版本成為正式預設：餐廳 B（空間層次＋光照引導，48b6ecc）、廚房 B（改造＋回饋修正，db8a785）。
+            // 原本的 A 只在餐廳／廚房的 A／B 對照 QA 場景裡切換得到。
+            if (UseConfirmedLayouts)
+            {
+                World.SetDiningFocusLights(true);
+                World.SetDiningLayout(true);
+                World.SetKitchenLayout(true);
+            }
             // 實際遊玩從新版房子（v2）門外開始；測試仍從舊房子玄關開始。
             var spawn = World.Marks[play && World.Marks.ContainsKey("V2Street") ? "V2Street" : "HouseEntry"];
             Player = FirstPersonController.Create(transform, spawn.position, spawn.eulerAngles.y);
