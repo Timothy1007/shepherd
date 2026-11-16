@@ -113,16 +113,23 @@ namespace Shepherd.Exploration.Editor
             var armRoot = new GameObject("ArmLeft").transform;
             armRoot.SetParent(vm, false);
             var leftModel = ViewPart("SQA_ArmLeft", armRoot);
-            if (leftModel != null) leftModel.transform.localScale = Vector3.one * 1.12f;   // 第一人稱的手通常比真人略大一點，才讀得清楚
+            // 手和提燈必須同一個比例：握拳的空間是照提把粗細算的，比例不同就會穿模或握不住。
             var rightRoot = new GameObject("ArmRight").transform;
             rightRoot.SetParent(vm, false);
             var rightModel = ViewPart("SQA_ArmRight", rightRoot);
-            if (rightModel != null) rightModel.transform.localScale = Vector3.one * 1.12f;
+
             qa.RightArm = rightRoot;
+            foreach (var (n, isLeft) in new[] { ("SQA_ForearmLeft", true), ("SQA_ForearmRight", false) })
+            {
+                var fr = new GameObject(isLeft ? "ForearmLeft" : "ForearmRight").transform;
+                fr.SetParent(vm, false);
+                ViewPart(n, fr);
+                if (isLeft) qa.ForearmLeft = fr; else qa.ForearmRight = fr;
+            }
             var pivot = new GameObject("LanternPivot").transform;
             pivot.SetParent(vm, false);
             var lantern = ViewPart("SQA_Lantern", pivot);
-            if (lantern != null) lantern.transform.localScale = Vector3.one * 0.85f;   // 第一人稱距離下稍微縮小，不要擋住半個畫面
+
             var lightGo = new GameObject("LanternLight");
             lightGo.transform.SetParent(lantern != null ? lantern.transform : pivot, false);
             lightGo.transform.localPosition = new Vector3(0f, -0.258f, 0f);   // 火焰的位置

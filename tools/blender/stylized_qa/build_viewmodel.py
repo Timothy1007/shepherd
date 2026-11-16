@@ -61,6 +61,9 @@ def bar(A, a, b, w, h, mat, up=(0, 1, 0), bevel=0.0015):
     A._finish(r['verts'], mat, M, bevel)
 
 
+BAIL_W, BAIL_H = 0.015, 0.012   # 提把斷面（高×深）：比最早的 11×9 mm 粗，又剛好放進握拳的空間
+
+
 def build_lantern(col):
     A = Asset("SQA_Lantern")
     PH = -120.0  # 六角形：讓一個面正對 -Y（前方）
@@ -113,10 +116,11 @@ def build_lantern(col):
         A.cyl(0.017, 0.014, (sx * 0.084, 0, 0.207), "Bronze", rot=(0, 90, 0), segs=8, bevel=0.002)
         A.cyl(0.008, 0.007, (sx * 0.093, 0, 0.207), "Gold", rot=(0, 90, 0), segs=8)
     # 提把：一段一段的直桿拱起來（頂端是手握的地方）
-    pts = [(-0.09, 0, 0.207), (-0.094, 0, 0.29), (-0.074, 0, 0.356), (-0.048, 0, 0.378), (0.048, 0, 0.378), (0.074, 0, 0.356),
-           (0.094, 0, 0.29), (0.09, 0, 0.207)]
+    # 頂端的平直段加寬到 ±6.2 cm：整個拳頭（含拇指）都握在平直段上，不會碰到往下彎的那兩段。
+    pts = [(-0.09, 0, 0.207), (-0.097, 0, 0.29), (-0.086, 0, 0.352), (-0.062, 0, 0.378), (0.062, 0, 0.378), (0.086, 0, 0.352),
+           (0.097, 0, 0.29), (0.09, 0, 0.207)]
     for i in range(len(pts) - 1):
-        bar(A, pts[i], pts[i + 1], 0.016, 0.013, "Bronze")   # 提把加粗（使用者回饋：原本太細）
+        bar(A, pts[i], pts[i + 1], BAIL_W, BAIL_H, "Bronze")   # 提把加粗（使用者回饋：原本太細）
     ob = A.build(col)
     # 原點移到提把頂端中央（手握的位置）
     me = ob.data
@@ -136,13 +140,15 @@ FINGERS = [
     ("index",  (0.0265, -0.004, 0.000), 0.93, 0.0190, 0.0170, 3.0),
     ("middle", (0.0075,  0.000, 0.002), 1.00, 0.0195, 0.0175, 0.5),
     ("ring",   (-0.0115, -0.004, 0.000), 0.96, 0.0185, 0.0165, -2.0),
-    ("little", (-0.0290, -0.014, -0.004), 0.79, 0.0160, 0.0145, -5.0),
+    ("little", (-0.0290, -0.009, -0.003), 0.84, 0.0160, 0.0145, -5.0),
 ]
 PHALANX = (0.047, 0.028, 0.021)   # 中指：近節、中節、遠節
 
 POSES = {
     # 每根手指 (MCP, PIP, DIP) 彎曲角度
-    "grip":    {"index": (52, 92, 52), "middle": (56, 95, 55), "ring": (58, 96, 55), "little": (60, 95, 52)},
+    # 握提把：每根手指的角度是用程式搜尋出來的——手指中心線離提把中心至少「提把斷面半對角線＋手指厚度一半＋0.8 mm」，
+    # 在這個條件下繞得越緊越好（不穿模、看起來真的握住）。
+    "grip":    {"index": (42, 94, 32), "middle": (52, 96, 36), "ring": (44, 96, 36), "little": (32, 86, 46)},
     "relaxed": {"index": (30, 48, 24), "middle": (36, 56, 28), "ring": (42, 62, 30), "little": (48, 66, 32)},
 }
 
@@ -214,6 +220,9 @@ def circumcenter_yz(a, b, c):
     return ux, uy
 
 
+WRIST_BEND = None   # 前臂改成獨立物件（執行時轉向），不在模型裡彎
+
+
 def build_arm(col, side="left", pose="grip"):
     """
     第一人稱的手與前臂。s＝+1 左手（拇指在 +X）、-1 右手。
@@ -247,12 +256,12 @@ def build_arm(col, side="left", pose="grip"):
     M = (I1 + I2) / 2
     if pose == "grip":
         # 握拳：拇指從下面繞上來，指尖壓在食指中節的外側
-        tip = M + Vector((0.009 * s, 0.006, -0.012))
+        tip = M + Vector((0.004 * s, 0.004, -0.013))
     else:
         tip = I0 + Vector((0.016 * s, 0.026, -0.022))
     cmc = Vector((0.030 * s, -0.082, -0.010))
-    mcpT = Vector((0.050 * s, -0.050, -0.020))
-    ip = (mcpT + tip) / 2 + Vector((0.012 * s, 0.004, -0.008))
+    mcpT = Vector((0.046 * s, -0.050, -0.022))
+    ip = (mcpT + tip) / 2 + Vector((0.006 * s, 0.002, -0.010))
     def tube(pts, ws, hs, mat):
         rings = []
         for k, p in enumerate(pts):
@@ -268,13 +277,8 @@ def build_arm(col, side="left", pose="grip"):
         u = (0, math.sin(math.radians(tilt)), 1)
         A.loft([((0, y + 0.005, -0.004), (0, -1, 0), u, 0.0625, 0.0425), ((0, y - 0.005, -0.004), (0, -1, 0), u, 0.0625, 0.0425)],
                "Strap", n=12, expo=2.3)
-    # 前臂：手套袖口 → 米白色袖子（鋸齒袖口），往後慢慢變粗
-    A.loft([((0, -0.098, -0.004), (0, -1, 0), up, 0.06, 0.041), ((0, -0.13, -0.006), (0, -1, 0), up, 0.066, 0.05)], "Glove", n=12, expo=2.3)
-    vs = A.loft([((0, -0.118, -0.006), (0, -1, -0.04), up, 0.08, 0.066), ((0, -0.18, -0.009), (0, -1, -0.04), up, 0.086, 0.074),
-                 ((0, -0.24, -0.012), (0, -1, -0.04), up, 0.092, 0.08), ((0, -0.30, -0.015), (0, -1, -0.04), up, 0.097, 0.085)],
-                "Sleeve", n=12, expo=2.2)
-    for i in range(12):
-        vs[i].co.y += 0.011 if i % 2 == 0 else -0.002
+    # 手套袖口（短短一截，前臂的袖子會蓋住它；前臂是另一個物件，執行時自己轉向畫面左下角）
+    A.loft([((0, -0.098, -0.004), (0, -1, 0), up, 0.06, 0.041), ((0, -0.116, -0.005), (0, -1, 0), up, 0.063, 0.045)], "Glove", n=12, expo=2.3)
     # 原點：握把中心（中指 MCP、PIP、DIP 三點的外接圓圓心）
     (m0, _, _), (m1, _, _), (m2, _, _), _ = chains["middle"]
     cy, cz = circumcenter_yz(m0, m1, m2)
@@ -293,6 +297,35 @@ def build_arm(col, side="left", pose="grip"):
     return ob
 
 
+WRIST_PIVOT = Vector((0.0, -0.100, -0.004))   # 手腕的轉軸（手的座標，平移到握把中心之前）
+
+
+def build_forearm(col, side="left"):
+    """
+    前臂（米白色袖子）：和手分開，原點在手腕。Unity 裡讓手保持掌心朝下握著提把，
+    前臂另外朝畫面左下角（右手是右下角）伸出去——不管低頭抬頭，前臂都從畫面邊緣進來，不會擋在提燈旁邊。
+    """
+    s = 1 if side == "left" else -1
+    F = Asset("SQA_Forearm" + side.capitalize())
+    F.smooth = True
+    up = (0, 0, 1)
+    vs = F.loft([((0, -0.108, -0.005), (0, -1, -0.03), up, 0.084, 0.07), ((0, -0.17, -0.007), (0, -1, -0.03), up, 0.088, 0.076),
+                 ((0, -0.25, -0.01), (0, -1, -0.03), up, 0.094, 0.082), ((0, -0.36, -0.013), (0, -1, -0.03), up, 0.1, 0.088),
+                 ((0, -0.48, -0.016), (0, -1, -0.03), up, 0.104, 0.092)], "Sleeve", n=12, expo=2.2)
+    for i in range(12):
+        vs[i].co.y += 0.012 if i % 2 == 0 else -0.002   # 鋸齒袖口
+    bmesh.ops.translate(F.bm, verts=F.bm.verts, vec=-WRIST_PIVOT)
+    return F.build(col)
+
+
+def build_forearm_left(col):
+    return build_forearm(col, "left")
+
+
+def build_forearm_right(col):
+    return build_forearm(col, "right")
+
+
 def build_arm_left(col):
     return build_arm(col, "left", "grip")
 
@@ -307,7 +340,7 @@ def run_viewmodel():
     for o in list(sc.collection.all_objects):
         bpy.data.objects.remove(o, do_unlink=True)
     report = []
-    for fn, res in [(build_lantern, 1024), (build_arm_left, 1024), (build_arm_right, 1024)]:
+    for fn, res in [(build_lantern, 1024), (build_arm_left, 1024), (build_arm_right, 1024), (build_forearm_left, 512), (build_forearm_right, 512)]:
         ob = fn(sc.collection)
         uv_unwrap(ob)
         bake(ob, res)
@@ -322,4 +355,5 @@ def run_viewmodel():
     return report
 
 
-print("\n".join(run_viewmodel()))
+if globals().get("SQA_VM_LIBRARY") is not True:   # 調整握拳角度時只借用函式、不烘焙
+    print("\n".join(run_viewmodel()))
