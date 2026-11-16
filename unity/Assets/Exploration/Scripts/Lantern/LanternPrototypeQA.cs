@@ -269,6 +269,62 @@ namespace Shepherd.Exploration.Lantern
             SetHouseScale(s[(i + 1 + s.Length) % s.Length]);
         }
 
+        // ---------------- 服飾店布局 QA（Shift+F2）：現況／A／B、成人／孩子視角 ----------------
+
+        public const float AdultEyeHeight = 1.62f;
+        /// <summary>服飾店測試模式（只在提燈原型裡，沒有獨立入口）。</summary>
+        public bool ShopQA { get; private set; }
+        /// <summary>孩子記憶視角（只改攝影機高度）。</summary>
+        public bool ChildView;
+        /// <summary>孩子視角的眼睛高度（QA 參數，不是正式數值；U／I 調整）。預設 1.12 m≈七歲、身高約 122 cm 的眼高。</summary>
+        public float ChildEyeHeight = 1.12f;
+        /// <summary>比較用的固定觀察點（平面座標 x、z 與朝向）。</summary>
+        public static readonly (string name, float x, float z, float yaw)[] ShopViews =
+        {
+            ("入口（店門內側）", 5.1f, 0.55f, -18f),
+            ("櫃台前", 4.95f, 2.45f, -55f),
+            ("工作區（縫紉機旁）", 2.55f, 1.25f, -125f),
+            ("衣架後方（照片那面牆）", 1.05f, 2.45f, -95f),
+            ("住宅入口（往店裡看）", 5.07f, 4.55f, 200f),
+        };
+
+        public void SetShopQA(bool on)
+        {
+            ShopQA = on;
+            if (on) { GoToShopView(0); }
+            else { ChildView = false; World.SetShopLayout(0); }
+        }
+
+        public void GoToShopView(int i)
+        {
+            if (i < 0 || i >= ShopViews.Length) return;
+            var v = ShopViews[i];
+            Actions.DropHeld(false);
+            Player.Teleport(LanternGraybox.V2Origin + new Vector3(v.x * LanternGraybox.V2Scale, 0.05f, v.z * LanternGraybox.V2Scale), v.yaw, 8f);
+        }
+
+        private GUIStyle shopLabel, shopHint;
+        private void OnGUI()
+        {
+            if (!ShopQA || !Ready) return;
+            if (shopLabel == null)
+            {
+                shopLabel = new GUIStyle(GUI.skin.label) { fontSize = 17, font = LanternFonts.UI };
+                shopLabel.normal.textColor = new Color(1f, 0.97f, 0.9f);
+                shopHint = new GUIStyle(shopLabel) { fontSize = 13 };
+                shopHint.normal.textColor = new Color(1f, 1f, 1f, 0.82f);
+            }
+            float w = Screen.width;
+            GUI.color = new Color(0f, 0f, 0f, 0.55f);
+            GUI.DrawTexture(new Rect(w - 470, 6, 464, 118), Texture2D.whiteTexture);
+            GUI.color = Color.white;
+            GUI.Label(new Rect(w - 462, 10, 450, 24), "服飾店布局測試：" + LanternGraybox.ShopLayoutNames[World.ShopLayout], shopLabel);
+            GUI.Label(new Rect(w - 462, 36, 450, 20), "視角：" + (ChildView ? "孩子（眼高 " + ChildEyeHeight.ToString("0.00") + " m，只降低攝影機）" : "成人（眼高 1.62 m）"), shopHint);
+            GUI.Label(new Rect(w - 462, 56, 450, 20), "J 切換 現況／A／B・K 成人／孩子・U／I 孩子眼高 −／＋", shopHint);
+            GUI.Label(new Rect(w - 462, 76, 450, 20), "1 入口・2 櫃台前・3 工作區・4 衣架後方・5 住宅入口", shopHint);
+            GUI.Label(new Rect(w - 462, 96, 450, 20), "Shift+F2 離開（回到現況、成人視角）", shopHint);
+        }
+
         public void GoTo(string mark)
         {
             Transform t;
@@ -389,6 +445,8 @@ namespace Shepherd.Exploration.Lantern
             Actions.Suspended = Inspecting != null || V2.InputCaptured;
             Rig.Focus = FocusHeld;
             Rig.HideHands = Inspecting != null;
+            // 孩子記憶視角：只降低第一人稱攝影機（感知視角），碰撞體、移動、互動能力都不變（設計總綱 §3.4、§9）。
+            Player.EyeHeightValue = ChildView ? ChildEyeHeight : AdultEyeHeight;
             Player.WalkSpeedValue = WalkSpeedNow * Mathf.Lerp(1f, 0.6f, Rig.FocusBlend);
             Player.RunSpeedValue = BriskSpeedNow * Mathf.Lerp(1f, 0.6f, Rig.FocusBlend);
             Player.Step(dt, inp, true);
@@ -487,7 +545,16 @@ namespace Shepherd.Exploration.Lantern
             if (!Ready || !Application.isPlaying) return;
             if (Input.GetKeyDown(KeyCode.F)) ToggleLantern();
             if (Input.GetKeyDown(KeyCode.F1)) StartV2();
-            if (Input.GetKeyDown(KeyCode.F2)) GoTo("V2Shop");
+            bool shift = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
+            if (Input.GetKeyDown(KeyCode.F2)) { if (shift) SetShopQA(!ShopQA); else GoTo("V2Shop"); }
+            if (ShopQA)
+            {
+                if (Input.GetKeyDown(KeyCode.J)) World.SetShopLayout((World.ShopLayout + 1) % 3);
+                if (Input.GetKeyDown(KeyCode.K)) ChildView = !ChildView;
+                if (Input.GetKeyDown(KeyCode.U)) ChildEyeHeight = Mathf.Clamp(ChildEyeHeight - 0.05f, 0.85f, 1.4f);
+                if (Input.GetKeyDown(KeyCode.I)) ChildEyeHeight = Mathf.Clamp(ChildEyeHeight + 0.05f, 0.85f, 1.4f);
+                for (int k = 0; k < ShopViews.Length; k++) if (Input.GetKeyDown(KeyCode.Alpha1 + k) || Input.GetKeyDown(KeyCode.Keypad1 + k)) GoToShopView(k);
+            }
             if (Input.GetKeyDown(KeyCode.F3)) GoTo("HouseEntry");
             if (Input.GetKeyDown(KeyCode.F4)) GoTo("Spawn");
             if (Input.GetKeyDown(KeyCode.F6) && !RenderStyleQA) GoTo("ArenaStart");

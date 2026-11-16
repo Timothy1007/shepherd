@@ -802,6 +802,9 @@ namespace Shepherd.Exploration.Lantern
             var shop = new Bounds();
             shop.SetMinMax(HP(0f, 0f, 0f) + new Vector3(0f, -0.3f, 0f), HP(V2Width, 0f, 5f) + new Vector3(0f, V2Ground * 1.165f - 0.1f, 0f));
             V2ShopRoom = shop;
+            // 布局 QA：A／B 專屬的物件（預設隱藏；正式遊戲維持現況）。
+            BuildShopLayoutPieces();
+            SetShopLayoutPiecesHidden();
         }
 
         /// <summary>貼在紙板上的字（灰盒：TextMesh；之後換成正式貼圖）。rot＝字面朝向（字的正面朝 -Z）。</summary>

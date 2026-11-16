@@ -1477,5 +1477,92 @@ namespace Shepherd.Exploration.Tests
             WalkTo(qa, HP(6.02f, 9.45f), 900);
             Assert.Greater(qa.Player.transform.position.y, 2.8f, "走得上樓梯（高度 " + qa.Player.transform.position.y.ToString("0.00") + "）");
         }
-    }
+
+        // ---------------- 服飾店布局 QA（現況／A／B；正式預設維持現況） ----------------
+
+        [TestCase(1)]
+        [TestCase(2)]
+        public void ShopLayout_S1S2S4_StillWork_AndTheShopRepairs(int layout)
+        {
+            var qa = NewQa();
+            var w = qa.World;
+            var v2 = qa.V2;
+            Assert.AreEqual(0, w.ShopLayout, "正式遊戲預設是現況");
+            w.SetShopLayout(layout);
+            var center = w.V2ShopRoom.center;
+            qa.Rig.SetOn(true);
+            var lever = w.V2PowerLever;
+            StandAt(qa, lever.GetComponent<Collider>().bounds.center, center, 0.7f);
+            StringAssert.Contains("按住 E", qa.PromptText, LanternGraybox.ShopLayoutNames[layout] + "：S1 電箱可以互動");
+            Act(qa, 70, new LanternActionInput { Interact = true });
+            Act(qa, 1, LanternActionInput.None);
+            Assert.IsTrue(v2.Powered, "S1 有電了");
+            StandAt(qa, w.V2CoatTag.position, center, 1.4f);
+            qa.FocusHeld = true;
+            Act(qa, 75, LanternActionInput.None);
+            qa.FocusHeld = false;
+            Assert.IsTrue(v2.TagRead, "S2 聚光看清吊牌（" + v2.TagFocus.ToString("F2") + "）");
+            StandAt(qa, w.V2ThreadSpool.position, w.Marks["V2Yard"].position, 0.9f);
+            Act(qa, 1, new LanternActionInput { Interact = true });
+            Act(qa, 1, LanternActionInput.None);
+            Assert.IsTrue(v2.HasThread, "拿到紅線");
+            StandAt(qa, w.V2SewingMachine.GetComponent<Collider>().bounds.center, center, 1.0f);
+            StringAssert.Contains("穿針", qa.PromptText, "S4 縫紉機可以互動");
+            Act(qa, 1, new LanternActionInput { Interact = true });
+            Act(qa, 1, LanternActionInput.None);
+            int frames = 0; bool pressed = false;
+            while (v2.Tap.Active && frames++ < 600)
+            {
+                bool press = !pressed && v2.Tap.InZone;
+                qa.Step(Dt, ExploreInput.None, new LanternActionInput { Interact = press });
+                pressed = press;
+            }
+            Assert.IsTrue(v2.Sewn, "S4 穿好針");
+            Assert.IsTrue(v2.ShopRepaired, "店面修好");
+            var echo = v2.ShopEcho;
+            Aim(qa, echo.transform.position);
+            Act(qa, 1, LanternActionInput.None);
+            Assert.IsTrue(echo.Playing, "影子殘影的牆沒有被家具擋住");
+        }
+
+        [TestCase(1)]
+        [TestCase(2)]
+        public void ShopLayout_RoutesWalkable_ClearanceOk_ChildViewOnlyMovesTheCamera_AndCurrentRestores(int layout)
+        {
+            var qa = NewQa();
+            var w = qa.World;
+            Transform Find(string n) => w.V2Root.GetComponentsInChildren<Transform>(true).First(t => t.name == n);
+            var counter = Find("V2Counter");
+            var counter0 = counter.position;
+            w.SetShopLayout(layout);
+            Assert.Greater(Vector3.Distance(counter0, counter.position), 0.5f, "櫃台換了位置（實質差異）");
+            var o = LanternGraybox.V2Origin; float S = LanternGraybox.V2Scale;
+            Vector3 HP(float x, float z) => o + new Vector3(x * S, 0.05f, z * S);
+            var route = layout == 1
+                ? new[] { ("店門內側", 5.1f, 0.6f), ("櫃台前（接待）", 4.8f, 1.9f), ("櫃台後端", 4.8f, 3.6f), ("店主側往工作區", 3.3f, 3.75f), ("裁剪桌北側", 2.3f, 3.75f),
+                          ("外套前", 1.0f, 3.5f), ("左牆衣架旁", 1.15f, 2.3f), ("往窗邊", 2.1f, 1.6f), ("縫紉機旁（窗下）", 2.1f, 1.1f), ("回到外套前", 1.0f, 3.5f), ("電箱前", 1.85f, 4.25f), ("往住宅的門前", 5.07f, 4.3f) }
+                : new[] { ("店門內側", 5.1f, 0.6f), ("成衣架右側", 5.0f, 2.0f), ("櫃台前", 4.4f, 2.7f), ("櫃台右端", 4.1f, 3.4f), ("店主區", 3.9f, 4.15f), ("櫃台後", 2.4f, 4.1f),
+                          ("電箱前", 1.85f, 4.2f), ("外套前", 1.0f, 3.5f), ("衣架後方", 1.0f, 2.5f), ("兩座衣架之間", 1.0f, 1.5f), ("往窗邊", 1.95f, 1.5f), ("縫紉機旁（窗下）", 2.1f, 1.1f),
+                          ("工作角東側", 3.3f, 1.3f), ("繞過中景衣架", 3.3f, 2.4f), ("回到通道", 4.7f, 2.4f), ("往住宅的門前", 5.07f, 4.3f) };
+            qa.Player.Teleport(HP(route[0].Item2, route[0].Item3), 0f, 0f);
+            qa.Step(Dt, ExploreInput.None);
+            foreach (var (name, x, z) in route)
+                Assert.IsTrue(WalkTo(qa, HP(x, z), 700), LanternGraybox.ShopLayoutNames[layout] + "：走得到「" + name + "」（卡在 " + qa.Player.transform.position + "）");
+            Physics.SyncTransforms();
+            var res = LanternClearance.Measure(w.V2Root, w.V2ClearanceRoute());
+            Assert.IsEmpty(res.Where(r => !r.Ok).ToList(), "動線淨寬不足：\n" + LanternClearance.Report(res));
+
+            // 孩子視角：只降低攝影機，碰撞體高度與移動不變。
+            float h = qa.Player.Body.height;
+            qa.ChildView = true;
+            qa.Step(Dt, ExploreInput.None);
+            Assert.AreEqual(qa.ChildEyeHeight, qa.Player.EyeHeightValue, 1e-4f, "孩子視角的眼高");
+            Assert.AreEqual(h, qa.Player.Body.height, 1e-4f, "碰撞體沒有縮小（不是變成孩子）");
+            Assert.AreEqual(1.5f, qa.Player.WalkSpeedValue, 1e-3f, "移動速度不變");
+            qa.ChildView = false;
+
+            w.SetShopLayout(0);
+            Assert.AreEqual(0f, Vector3.Distance(counter0, counter.position), 1e-4f, "切回現況：完全復原");
+            Assert.IsTrue(w.V2Root.GetComponentsInChildren<Transform>(true).Where(t => t.name.StartsWith("ShopA_") || t.name.StartsWith("ShopB_")).All(t => !t.gameObject.activeInHierarchy), "A／B 專屬的物件收起來");
+        }    }
 }
