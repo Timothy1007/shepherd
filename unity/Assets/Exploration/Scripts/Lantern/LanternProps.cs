@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 namespace Shepherd.Exploration.Lantern
 {
@@ -47,6 +47,8 @@ namespace Shepherd.Exploration.Lantern
         public float Progress { get; private set; }
         public bool Done { get; private set; }
         public float AnchorRadius = 1.5f;
+        /// <summary>手要伸到的高度（世界 y）；NegativeInfinity＝不檢查。小孩搆不到時要墊東西（例如 S1 電箱的拉桿）。</summary>
+        public float ReachY = float.NegativeInfinity;
 
         /// <summary>QA／測試用：直接完成。</summary>
         public void ForceDone()

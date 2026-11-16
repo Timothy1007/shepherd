@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 namespace Shepherd.Exploration
 {
@@ -27,7 +27,7 @@ namespace Shepherd.Exploration
         public float WalkSpeedValue = WalkSpeed;
         /// <summary>奔跑速度（m/s）。</summary>
         public float RunSpeedValue = RunSpeed;
-        /// <summary>眼高（m）；碰撞身高與半徑不變（不縮小玩家）。</summary>
+        /// <summary>眼高（m）。身體大小另外用 TrySetBody 設定（提燈原型的記憶年齡）；其他場景不變。</summary>
         public float EyeHeightValue = EyeHeight;
         /// <summary>滑鼠靈敏度倍率。</summary>
         public float LookScale = 1f;
@@ -81,6 +81,34 @@ namespace Shepherd.Exploration
             fp.cc = c;
             fp.Teleport(position, yaw);
             return fp;
+        }
+
+        /// <summary>
+        /// 改變身體大小（碰撞膠囊的高度、半徑、可以直接跨上去的高度）。腳底位置不變。
+        /// 變大時先檢查新的膠囊會不會卡進牆或家具；會卡住就不改、回傳 false（下一格再試）。
+        /// </summary>
+        public bool TrySetBody(float height, float radius, float stepOffset)
+        {
+            var c = Body;
+            radius = Mathf.Min(radius, height * 0.5f - 0.01f);
+            stepOffset = Mathf.Clamp(stepOffset, 0f, height - 0.05f);
+            bool same = Mathf.Abs(c.height - height) < 1e-4f && Mathf.Abs(c.radius - radius) < 1e-4f;
+            if (!same && (height > c.height + 1e-4f || radius > c.radius + 1e-4f))
+            {
+                var p = transform.position;
+                var bottom = p + Vector3.up * (radius + 0.06f);
+                var top = p + Vector3.up * Mathf.Max(radius + 0.06f, height - radius);
+                foreach (var hit in Physics.OverlapCapsule(bottom, top, radius - 0.02f, ~0, QueryTriggerInteraction.Ignore))
+                    if (hit != c && !hit.transform.IsChildOf(transform)) return false;
+            }
+            if (!same)
+            {
+                c.height = height;
+                c.radius = radius;
+                c.center = new Vector3(0f, height * 0.5f, 0f);
+            }
+            c.stepOffset = stepOffset;
+            return true;
         }
 
         /// <summary>移動到指定位置與朝向（停用 CharacterController 期間設定位置，避免被碰撞拉回）。</summary>

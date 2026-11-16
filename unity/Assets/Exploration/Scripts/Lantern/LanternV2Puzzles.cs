@@ -57,7 +57,12 @@ namespace Shepherd.Exploration.Lantern
     /// <summary>
     /// 新房子一樓第一批謎題（設計見 docs/level/CASE01_GROUND_FLOOR_ESCAPE_ROOM_V0_1.md）：
     /// S1 電箱、S2 外套吊牌（聚光）、Y1 側院的紅線、S4 縫紉機穿針（點按判定）、秘密（衣架後的照片）。
-    /// 店面修好（S2＋S4；第二批再加 S3 訂單簿）→ 修復時刻：真實擴散、暖燈常亮、牆上的影子殘影、筆記更新。
+    /// 2026-11-16 使用者決定：
+    ///   ・開燈和縫紉機拆開：腳踏縫紉機不用電，拿到線就能縫；有電時縫紉機的小燈會亮，穿針比較容易（不是必要條件）。
+    ///   ・任務清單不排順序（恢復供電、看清吊牌、找到線、把外套縫好）。
+    ///   ・縫紉：先把提燈放在桌上 → 幼年爬上凳子／青春期、成人拉開凳子坐下 → 穿針；幼年判定最難。
+    ///   ・店面完成不再讓整間房永久恢復真實（之後大部分時間都是褪色態，只有提燈照到的地方是記憶中的樣子）；
+    ///     完成時刻＝影子殘影、筆記更新。
     /// 所有文字暫定。
     /// </summary>
     public sealed class LanternV2Puzzles
@@ -71,6 +76,16 @@ namespace Shepherd.Exploration.Lantern
         public readonly List<string> Notebook = new List<string>();
         public readonly LanternTapJudge Tap = new LanternTapJudge();
         public LanternEcho ShopEcho { get; private set; }
+        /// <summary>提燈放在縫紉機桌上。</summary>
+        public bool LanternPlaced { get; private set; }
+        /// <summary>坐在（幼年：爬上）縫紉機前的凳子上。</summary>
+        public bool Seated { get; private set; }
+        /// <summary>目前的記憶年齡（0＝幼年、1＝青春期、2＝成人）；由玩家那一側每格設定。</summary>
+        public int SewAge = 2;
+        /// <summary>坐下／站起來的那一格要求玩家那一側移動位置（坐下＝座位、站起來＝凳子旁邊）。</summary>
+        public bool SeatMoveRequested { get; private set; }
+        public void ConsumeSeatMove() => SeatMoveRequested = false;
+        private bool lanternAwayWarned;
         public int RepairMoments { get; private set; }
 
         private readonly LanternGraybox world;
@@ -90,6 +105,8 @@ namespace Shepherd.Exploration.Lantern
         public void Rebind()
         {
             Powered = TagRead = HasThread = Sewn = ShopRepaired = false;
+            LanternPlaced = Seated = SeatMoveRequested = lanternAwayWarned = false;
+            rig.PlacedAt = null;
             TagFocus = 0f;
             Notebook.Clear();
             Notebook.Add("她的外套，我又改了一次。");
@@ -98,7 +115,7 @@ namespace Shepherd.Exploration.Lantern
             {
                 var u = world.V2SewingMachine.gameObject.GetComponent<LanternUsable>() ?? world.V2SewingMachine.gameObject.AddComponent<LanternUsable>();
                 u.Label = "縫紉機";
-                u.PromptFn = () => Sewn ? "（縫紉機停了下來）" : !Powered ? "E 踩踏板（沒有電，燈也不亮）" : !HasThread ? "E 檢查縫紉機（少了線）" : "E 穿針";
+                u.PromptFn = SewingPrompt;
                 u.OnUse = UseSewing;
                 if (!world.Usables.Contains(u)) world.Usables.Add(u);
             }
@@ -120,18 +137,103 @@ namespace Shepherd.Exploration.Lantern
             }
             if (ShopEcho != null) { world.Usables.Remove(ShopEcho.Replay); Object.DestroyImmediate(ShopEcho.gameObject); }
             ShopEcho = null;
+            BindShopInteractables();
+        }
+
+        /// <summary>改衣店的互動物件建好之後（套用正式布局後）接上：放在桌上的提燈可以拿回來。</summary>
+        public void BindShopInteractables()
+        {
+            if (world.V2PlacedLanternUse != null) world.V2PlacedLanternUse.OnUse = PickUpLantern;
+            if (world.V2PlacedLantern != null) world.V2PlacedLantern.gameObject.SetActive(LanternPlaced);
+        }
+
+        /// <summary>任務清單（不排順序）。</summary>
+        public IEnumerable<(string task, bool done)> ShopTasks
+        {
+            get
+            {
+                yield return ("讓店裡有電", Powered);
+                yield return ("看清那件外套的吊牌", TagRead);
+                yield return ("找到縫紉機用的線", HasThread);
+                yield return ("用縫紉機把外套改好", Sewn);
+            }
+        }
+
+        private bool StoolAtMachine => world.V2StoolMovable == null ||
+            Vector2.Distance(new Vector2(world.V2StoolMovable.transform.position.x, world.V2StoolMovable.transform.position.z), new Vector2(world.V2SeatSpot.x, world.V2SeatSpot.z)) < 0.9f;
+
+        private string SewingPrompt()
+        {
+            if (Sewn) return "（縫紉機停了下來）";
+            if (Seated) return "";
+            if (!HasThread) return "E 檢查縫紉機（少了線）";
+            if (!LanternPlaced) return "E 把提燈放在縫紉機桌上";
+            if (!StoolAtMachine) return "（凳子不在縫紉機前面）";
+            return SewAge == 0 ? "E 爬上凳子" : "E 拉開凳子坐下";
+        }
+
+        private void PlaceLantern()
+        {
+            LanternPlaced = true;
+            lanternAwayWarned = false;
+            rig.PlacedAt = world.V2SewLanternSpot + Vector3.up * 0.12f;
+            if (world.V2PlacedLantern != null) world.V2PlacedLantern.gameObject.SetActive(true);
+            audio?.Play(LanternAudio.Placed, 0.5f);
+            flow.ShowToast("（把提燈放在桌上，兩隻手空了出來）", 2.5f);
+        }
+
+        public void PickUpLantern()
+        {
+            if (!LanternPlaced || Seated) return;
+            LanternPlaced = false;
+            rig.PlacedAt = null;
+            if (world.V2PlacedLantern != null) world.V2PlacedLantern.gameObject.SetActive(false);
+            audio?.Play(LanternAudio.Grab, 0.5f);
+        }
+
+        private void SitDown()
+        {
+            Seated = true;
+            SeatMoveRequested = true;
+            var s = world.V2StoolMovable;
+            if (s != null)
+            {
+                s.transform.SetPositionAndRotation(s.HomePosition, s.HomeRotation);   // 把凳子拉正
+                s.Box.enabled = false;
+            }
+            // 穿針難度：幼年最難（判定窄、指針快、要多穿一次），成人最容易；有電（縫紉機的小燈亮著）再寬一點。
+            float zone = SewAge == 0 ? 0.10f : SewAge == 1 ? 0.13f : 0.17f;
+            Tap.ZoneWidth = zone + (Powered ? 0.03f : 0f);
+            Tap.Speed = SewAge == 0 ? 1.2f : SewAge == 1 ? 1.0f : 0.85f;
+            Tap.Need = SewAge == 0 ? 4 : 3;
+            Tap.Begin();
+            tapWas = true;   // 開始那一下不算一次點按。
+            string feel = SewAge == 0 ? "（腳只搆得到踏板的邊，要用整個身體去踩……指針進到亮的那一段時，按 E 穿針）"
+                        : SewAge == 1 ? "（腳剛好踩得到踏板。指針進到亮的那一段時，按 E 穿針）"
+                        : "（熟悉的節奏。指針進到亮的那一段時，按 E 穿針）";
+            flow.ShowToast(Powered ? feel : feel + "\n（沒有電，縫紉機的小燈不亮，看不太清楚針眼）", 4f);
+        }
+
+        /// <summary>站起來（縫好了、或中途離開）：凳子恢復碰撞，提燈拿回手上。</summary>
+        public void StandUp()
+        {
+            if (!Seated) return;
+            Seated = false;
+            SeatMoveRequested = true;
+            Tap.Cancel();
+            if (world.V2StoolMovable != null) world.V2StoolMovable.Box.enabled = true;
+            if (LanternPlaced) { LanternPlaced = false; rig.PlacedAt = null; if (world.V2PlacedLantern != null) world.V2PlacedLantern.gameObject.SetActive(false); }
         }
 
         private void Note(string line) { if (!Notebook.Contains(line)) Notebook.Add(line); }
 
         private void UseSewing()
         {
-            if (Sewn) return;
-            if (!Powered) { flow.ShowToast("（踏板踩不動。櫃台後面好像有電箱）", 3f); return; }
+            if (Sewn || Seated) return;
             if (!HasThread) { Note("縫紉機沒有線。"); flow.ShowToast("（縫紉機上沒有線……）", 3f); return; }
-            Tap.Begin();
-            tapWas = true; // 開始那一下不算一次點按。
-            flow.ShowToast("（指針進到亮的那一段時，按 E 穿針）", 3f);
+            if (!LanternPlaced) { PlaceLantern(); return; }
+            if (!StoolAtMachine) { flow.ShowToast("（凳子被搬走了。得先把它搬回縫紉機前面）", 3f); return; }
+            SitDown();
         }
 
         /// <summary>每個影格。tapInput＝玩家這一格按著 E（或左鍵）。</summary>
@@ -143,8 +245,8 @@ namespace Shepherd.Exploration.Lantern
             {
                 Powered = true;
                 world.V2Powered = true;
-                Note("電來了。燈亮了，照出來的卻是一間廢墟。");
-                flow.ShowToast("（電來了，燈穩了下來。但這間店還沒有好起來）", 3.5f);
+                Note("電來了。燈不再閃了，可是光是冷的，店裡還是灰的。");
+                flow.ShowToast("（電來了，燈穩了下來。光是冷的，店裡還是灰的）", 3.5f);
             }
             // S2 外套吊牌：聚光照著它。
             if (!TagRead && world.V2CoatTag != null && cam != null)
@@ -166,21 +268,30 @@ namespace Shepherd.Exploration.Lantern
             // S4 穿針（點按判定）。
             bool tap = tapInput && !tapWas;
             tapWas = tapInput;
-            if (Tap.Active && cam != null && world.V2SewingMachine != null && Vector3.Distance(cam.transform.position, world.V2SewingMachine.position) > 3.2f)
-                Tap.Cancel(); // 走開就放棄穿針。
+            if (world.V2SewingLamp != null) world.V2SewingLamp.enabled = Powered;
+            if (Seated && !Tap.Active) StandUp();   // 縫好了、或穿針被取消
+            if (LanternPlaced && !Seated && !lanternAwayWarned && cam != null && Vector3.Distance(cam.transform.position, world.V2SewLanternSpot) > 4.5f)
+            {
+                lanternAwayWarned = true;
+                flow.ShowToast("（提燈還放在縫紉機的桌上）", 3f);
+            }
             if (Tap.Active)
             {
                 if (Tap.Step(dt, tap))
                 {
                     Sewn = true;
                     Note("縫紉機自己動了起來，在布上縫出一筆——像是一個名字的開頭。");
-                    flow.ShowToast("（縫紉機動了起來……縫出了一筆）", 3.5f);
+                    flow.ShowToast(SewAge == 0 ? "（腳都踩痠了。縫紉機終於動了起來……縫出了一筆）" : "（縫紉機動了起來……縫出了一筆）", 3.5f);
                     audio?.Play(LanternAudio.RestoreDone, 0.8f);
                 }
-                else if (tap) audio?.Play(Tap.LastWasHit ? LanternAudio.Toggle : LanternAudio.Drop, 0.5f);
+                else if (tap)
+                {
+                    audio?.Play(Tap.LastWasHit ? LanternAudio.Toggle : LanternAudio.Drop, 0.5f);
+                    if (!Tap.LastWasHit && SewAge == 0 && Tap.Misses % 2 == 1) flow.ShowToast("（踏板好重，踩空了一下）", 1.8f);
+                }
             }
-            // 店面修好 → 修復時刻。
-            if (!ShopRepaired && TagRead && Sewn) RepairShop();
+            // 店面的事都做完了（不排順序）→ 完成時刻。
+            if (!ShopRepaired && Powered && TagRead && Sewn) RepairShop();
             if (ShopEcho != null)
             {
                 if (ShopEcho.Armed)
@@ -206,9 +317,9 @@ namespace Shepherd.Exploration.Lantern
         }
 
         /// <summary>店面還差幾件事（筆記用，不寫答案）。</summary>
-        public int ShopRemaining => (TagRead ? 0 : 1) + (Sewn ? 0 : 1);
+        public int ShopRemaining => (Powered ? 0 : 1) + (TagRead ? 0 : 1) + (Sewn ? 0 : 1);
 
-        public bool InputCaptured => Tap.Active;
+        public bool InputCaptured => Tap.Active || Seated;
 
         /// <summary>截圖與除錯用：直接設定進度（下一格 Step 會照常觸發修復時刻）。</summary>
         public void DebugForce(bool power, bool tag, bool thread, bool sewn)
@@ -223,15 +334,13 @@ namespace Shepherd.Exploration.Lantern
         {
             ShopRepaired = true;
             RepairMoments++;
-            var seed = world.V2SewingMachine != null ? world.V2SewingMachine.position + Vector3.up : world.V2ShopRoom.center;
-            LanternReveal.AddRoom(world.V2ShopRoom, seed);
-            foreach (var l in world.V2ShopLamps) if (l != null) world.V2SafeLamps.Add(l);
+            // 不再讓整間店永久恢復真實（使用者 2026-11-16）：店裡維持褪色，只有提燈照到的地方是記憶中的樣子。
             var safe = world.V2ShopRoom;
             safe.Expand(new Vector3(-0.3f, 0f, -0.3f));
             world.SafeRooms.Add(safe);
             audio?.Play(LanternAudio.RestoreDone, 1f);
-            Note("店變回了原本的樣子。牆上，有兩個人的影子。");
-            flow.ShowToast("（店變回了原本的樣子……鏡子旁邊的牆上，亮了起來）", 4.5f);
+            Note("外套改好了。吊牌上那一行行尺寸，和布上縫出的那一筆對上了。牆上，有兩個人的影子。");
+            flow.ShowToast("（外套改好了……鏡子旁邊的牆上，有影子在動）", 4.5f);
             armedTime = 0f; reminded = false;
             ShopEcho = LanternEcho.Create(world.V2Root, world.V2ShopEchoAt, world.V2ShopEchoRot, new[]
             {

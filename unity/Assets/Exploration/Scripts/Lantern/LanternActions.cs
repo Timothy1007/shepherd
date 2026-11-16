@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using Shepherd.Battle.UI.Arena;
 using UnityEngine;
 
@@ -57,6 +57,11 @@ namespace Shepherd.Exploration.Lantern
         public float ThrowCharge { get; private set; }
         public LanternTetherable Held { get; private set; }
         public LanternRestorable Restoring { get; private set; }
+        /// <summary>玩家的手最高能伸到哪裡（世界 y）；null＝不限制。記憶年齡的身體大小會影響（設計總綱 §11）。</summary>
+        public System.Func<float> ReachTop;
+        /// <summary>這件東西現在搆得到嗎（只看高度）。</summary>
+        public bool CanReach(LanternRestorable r) => r == null || ReachTop == null || float.IsNegativeInfinity(r.ReachY) || ReachTop() >= r.ReachY;
+        public const string TooHighPrompt = "（太高了，手搆不到。要是有東西可以墊腳……）";
         public Component Aimed { get; private set; }
         public int ShotsFired { get; private set; }
         public int Impacts { get; private set; }
@@ -382,6 +387,7 @@ namespace Shepherd.Exploration.Lantern
                 if (Vector3.Angle(cam.transform.forward, d) < 45f && SurfaceDistance(Restoring) < InteractReach + 1.5f) target = Restoring;
             }
             if (target == null && inp.Interact) target = aimed as LanternRestorable;
+            if (target != null && !CanReach(target)) target = null;   // 太高：搆不到
             Restoring = target;
             bool casting = target != null;
             if (casting)
@@ -423,7 +429,7 @@ namespace Shepherd.Exploration.Lantern
                 Prompt = "E 抓起" + tether.Label;
                 if (eDown) Grab(tether);
             }
-            else if (rest != null) Prompt = "按住 E " + (rest == world.FuseBox ? "推回" : "復原") + rest.Label;
+            else if (rest != null) Prompt = !CanReach(rest) ? TooHighPrompt : "按住 E " + (rest == world.FuseBox ? "推回" : "復原") + rest.Label;
             else if (toggle != null)
             {
                 Prompt = toggle.Prompt;

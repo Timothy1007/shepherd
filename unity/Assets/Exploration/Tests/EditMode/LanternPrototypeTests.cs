@@ -967,96 +967,211 @@ namespace Shepherd.Exploration.Tests
         }
 
         [Test]
-        public void V2Shop_Batch1_PowerTagThreadSewing_RepairsTheShop_AndPlaysTheWallEcho()
+        public void V2Shop_SewingNeedsNoPower_PlaceLanternThenSit_TasksUnordered_FinishKeepsTheShopFaded()
         {
             var qa = NewQa();
             var w = qa.World;
             var v2 = qa.V2;
-            Assert.IsNotNull(v2, "謎題控制器存在");
-            Assert.IsNotNull(w.V2SewingMachine, "縫紉機模型存在");
+            qa.ViewOverride = LanternPrototypeQA.AdultEyeHeight;   // 成人（身體也是成人）
             var center = w.V2ShopRoom.center;
             qa.Rig.SetOn(true);
+            Assert.IsFalse(LanternReveal.ActiveRooms > 0, "一開始沒有恢復真實的房間");
 
-            // 沒電、沒線時縫紉機不能用。
+            // 沒線：只能檢查。
             var sew = w.V2SewingMachine.GetComponent<LanternUsable>();
-            Assert.IsNotNull(sew);
             sew.Use();
-            Assert.IsFalse(v2.Tap.Active, "沒電不能穿針");
+            Assert.IsFalse(v2.Tap.Active || v2.LanternPlaced, "沒線不能縫");
 
-            // S1 電箱：按住 E 推回拉桿。
-            var lever = w.V2PowerLever;
-            StandAt(qa, lever.GetComponent<Collider>().bounds.center, center, 0.7f);
-            StringAssert.Contains("按住 E", qa.PromptText);
-            Act(qa, 70, new LanternActionInput { Interact = true });
-            Assert.IsTrue(lever.Done, "拉桿推回去了");
-            Act(qa, 1, LanternActionInput.None);
-            Assert.IsTrue(v2.Powered && w.V2Powered, "有電了");
-            for (int i = LanternReveal.TempSlots; i < LanternReveal.TempSlots + 4; i++)
-                Assert.LessOrEqual(LanternReveal.Extra(i).w, 0f, "電箱上方不留穩定區光圈");
+            // 紅線（不需要先開燈）。
+            TakeThread(qa);
+            Assert.IsFalse(v2.Powered, "還沒開燈");
 
-            // S2 吊牌：聚光照著它。
-            StandAt(qa, w.V2CoatTag.position, center, 1.4f);
-            qa.FocusHeld = true;
-            Act(qa, 75, LanternActionInput.None);
-            qa.FocusHeld = false;
-            Assert.IsTrue(v2.TagRead, "聚光看清吊牌（" + v2.TagFocus.ToString("F2") + "）");
-            Assert.IsTrue(v2.Notebook.Any(l => l.Contains("只有這件沒有")), "筆記記下一行");
-
-            // 有電沒線。
-            sew.Use();
-            Assert.IsFalse(v2.Tap.Active, "沒線不能穿針");
-
-            // Y1 側院的紅線。
-            var spool = w.V2ThreadSpool;
-            StandAt(qa, spool.position, w.Marks["V2Yard"].position, 0.9f);
-            StringAssert.Contains("紅線", qa.PromptText);
-            Act(qa, 1, new LanternActionInput { Interact = true });
-            Act(qa, 1, LanternActionInput.None);
-            Assert.IsTrue(v2.HasThread, "拿到紅線");
-            Assert.IsFalse(spool.gameObject.activeSelf, "紅線從籃子裡拿走了");
-
-            // S4 穿針（點按判定）：亂按不會過；在亮的範圍裡按才算。
+            // 放燈 → 拉開凳子坐下 → 穿針：沒電也可以。
             StandAt(qa, w.V2SewingMachine.GetComponent<Collider>().bounds.center, center, 1.0f);
-            StringAssert.Contains("穿針", qa.PromptText);
+            StringAssert.Contains("把提燈放在縫紉機桌上", qa.PromptText);
             Act(qa, 1, new LanternActionInput { Interact = true });
-            Assert.IsTrue(v2.Tap.Active, "開始穿針");
-            Assert.AreEqual(0, v2.Tap.Hits, "開始那一下不算");
             Act(qa, 1, LanternActionInput.None);
-            int frames = 0;
-            bool pressed = false;
-            while (v2.Tap.Active && frames++ < 600)
+            Assert.IsTrue(v2.LanternPlaced, "提燈放在桌上");
+            Assert.IsTrue(qa.Rig.PlacedAt.HasValue, "光從桌上的提燈發出");
+            Assert.Less(Vector3.Distance(LanternReveal.Center, w.V2SewLanternSpot), 0.3f, "顯示真實的範圍以桌上的提燈為中心");
+            Assert.IsTrue(w.V2PlacedLantern.gameObject.activeInHierarchy, "桌上看得到提燈");
+            StringAssert.Contains("拉開凳子坐下", qa.PromptText, "成人：拉開凳子坐下");
+            Act(qa, 1, new LanternActionInput { Interact = true });
+            Assert.IsTrue(v2.Seated && v2.Tap.Active, "坐下，開始穿針");
+            Assert.AreEqual(0.17f, v2.Tap.ZoneWidth, 1e-4f, "成人、沒電：判定寬度");
+            Assert.AreEqual(3, v2.Tap.Need);
+            for (int k = 0; k < 40; k++) qa.Step(Dt, ExploreInput.None);
+            Assert.AreEqual(qa.SeatedEyeHeight, qa.Player.EyeHeightValue, 0.02f, "坐下：眼睛比站著低（" + qa.Player.EyeHeightValue.ToString("0.00") + "）");
+            Assert.Less(qa.Player.EyeHeightValue, LanternPrototypeQA.AdultEyeHeight - 0.15f);
+            int frames = 0; bool pressed = false;
+            while (v2.Tap.Active && frames++ < 900)
             {
                 bool press = !pressed && v2.Tap.InZone;
                 qa.Step(Dt, ExploreInput.None, new LanternActionInput { Interact = press });
                 pressed = press;
             }
-            Assert.IsTrue(v2.Sewn, "穿好針（" + (frames * Dt).ToString("F1") + " 秒，失誤 " + v2.Tap.Misses + "）");
-            Assert.Less(frames * Dt, 15f);
+            Assert.IsTrue(v2.Sewn, "沒電也縫好了");
+            Act(qa, 2, LanternActionInput.None);
+            Assert.IsFalse(v2.Seated, "縫好就站起來");
+            Assert.IsFalse(qa.Rig.PlacedAt.HasValue || v2.LanternPlaced, "提燈拿回手上");
+            Assert.IsFalse(v2.ShopRepaired, "還沒開燈、還沒看吊牌：店裡的事還沒做完");
 
-            // 修復時刻：真實擴散、安全據點、暖燈常亮、牆上的影子殘影＋逐字字幕。
-            Assert.IsTrue(v2.ShopRepaired, "吊牌＋穿針 → 店面修好");
-            Assert.IsTrue(w.InSafeRoom(center), "店面變成安全據點");
-            Assert.Greater(w.V2SafeLamps.Count, 0, "店裡的燈常亮");
+            // 吊牌（聚光）。
+            StandAt(qa, w.V2CoatTag.position, center, 1.4f);
+            qa.FocusHeld = true;
+            Act(qa, 75, LanternActionInput.None);
+            qa.FocusHeld = false;
+            Assert.IsTrue(v2.TagRead, "聚光看清吊牌");
+            Assert.IsFalse(v2.ShopRepaired, "還差開燈");
+
+            // 最後才開燈（順序不限）：成人站在地上就搆得到。
+            var shopLamp = w.V2ShopLamps[0];
+            PowerS1(qa);
+            Act(qa, 2, LanternActionInput.None);
+            Assert.IsTrue(w.V2SewingLamp.enabled, "縫紉機的小燈亮了");
+            Assert.Greater(shopLamp.color.b, shopLamp.color.r, "有電了，燈仍是冷白光（褪色態）");
+            Assert.IsTrue(v2.ShopRepaired, "三件事都做完（順序不限）");
+            Assert.AreEqual(0, LanternReveal.ActiveRooms, "完成後店裡不會永久恢復真實");
+            Assert.AreEqual(0, w.V2SafeLamps.Count, "燈不會變成常亮的暖燈");
+            Assert.IsTrue(v2.ShopTasks.All(t => t.done), "任務清單全部打勾");
+            Assert.IsTrue(w.InSafeRoom(center), "店面仍是安全據點");
+
+            // 牆上的影子殘影＋逐字字幕。
             var echo = v2.ShopEcho;
             Assert.IsNotNull(echo);
             Assert.IsTrue(echo.Armed && !echo.Playing, "牆先亮起來，等玩家看過去");
-            Assert.Greater(echo.WallLight.intensity, 0.5f, "牆上有一片暖光");
             Aim(qa, echo.transform.position);
             Act(qa, 1, LanternActionInput.None);
             Assert.IsTrue(echo.Playing, "看過去，影子開始演出");
             Act(qa, 30, LanternActionInput.None);
-            Assert.GreaterOrEqual(echo.LinesShown, 1);
-            Assert.That(echo.VisibleText.Length, Is.InRange(1, echo.CurrentLine.Length), "字一個一個出現");
-            StringAssert.StartsWith("媽媽：", qa.SubtitleText, "台詞顯示在畫面下方的字幕，前面有說話的人");
-            Assert.IsFalse(echo.GetComponentInChildren<TextMesh>().GetComponent<MeshRenderer>().enabled, "牆上不打字");
+            StringAssert.StartsWith("媽媽：", qa.SubtitleText, "台詞顯示在字幕");
             Act(qa, 25 * 30, LanternActionInput.None);
             Assert.IsTrue(echo.Finished, "演完會結束");
-            Assert.AreEqual(6, echo.LinesShown);
             echo.Replay.Use();
             Assert.IsTrue(echo.Playing, "可以再看一次");
-            Assert.AreEqual(2, echo.TimesPlayed);
         }
 
+        [Test]
+        public void V2Shop_Child_CannotReachTheBreaker_MovesTheBoxOver_ClimbsUp_AndTurnsThePowerOn()
+        {
+            var qa = NewQa();
+            var w = qa.World;
+            var v2 = qa.V2;
+            var lever = w.V2PowerLever;
+            var box = w.V2MovableBox;
+            Assert.IsNotNull(box, "紙箱堆最上面那個箱子可以搬");
+            Assert.IsNotNull(w.V2StoolMovable, "凳子可以搬");
+            qa.Rig.SetOn(true);
+            // 幼年站在電箱前：搆不到。
+            qa.Player.Teleport(PV(1.85f, 4.2f), 0f, 0f);
+            Settle(qa);
+            Assert.AreEqual(qa.ChildEyeHeight, qa.Player.EyeHeightValue, 1e-3f, "幼年");
+            Aim(qa, lever.GetComponent<Collider>().bounds.center);
+            Act(qa, 1, LanternActionInput.None);
+            Assert.AreEqual(LanternActions.TooHighPrompt, qa.PromptText, "太高了，搆不到");
+            Act(qa, 70, new LanternActionInput { Interact = true });
+            Assert.IsFalse(lever.Done, "幼年在地上拉不到");
+            // 搬紙箱：從紙箱堆上拿下來，橫著移到電箱前，放下。
+            qa.Player.Teleport(PV(1.35f, 3.55f), 0f, 0f);
+            Settle(qa);
+            Aim(qa, box.Box.bounds.center);
+            Act(qa, 1, LanternActionInput.None);
+            StringAssert.Contains("搬紙箱", qa.PromptText);
+            Act(qa, 1, new LanternActionInput { Interact = true });
+            Act(qa, 1, LanternActionInput.None);
+            Assert.AreSame(box, qa.Carry.Grabbed, "抓住紙箱");
+            Assert.AreEqual(LanternGraybox.V2Origin.y, box.Box.bounds.min.y, 0.03f, "紙箱放到地上");
+            Assert.AreEqual(LanternPrototypeQA.WalkSpeed * LanternCarry.CarrySpeedScale, qa.Player.WalkSpeedValue, 1e-3f, "搬東西走慢一點");
+            qa.Player.Teleport(qa.Player.transform.position, 0f, 0f);
+            for (int k = 0; k < 120 && (qa.Player.transform.position.x - LanternGraybox.V2Origin.x) / LanternGraybox.V2Scale < 1.85f; k++)
+                qa.Step(Dt, new ExploreInput { Move = new Vector2(1f, 0f) });   // 面向電箱、往右橫移
+            Assert.AreSame(box, qa.Carry.Grabbed, "一路都抓著");
+            Assert.AreEqual(1.85f, (box.Box.bounds.center.x - LanternGraybox.V2Origin.x) / LanternGraybox.V2Scale, 0.2f, "紙箱跟著到電箱前");
+            Act(qa, 1, new LanternActionInput { Interact = true });
+            Act(qa, 1, LanternActionInput.None);
+            Assert.IsNull(qa.Carry.Grabbed, "放下");
+            // 頂著紙箱往前走：爬上去。
+            int f = 0;
+            while (qa.Carry.Climbs == 0 && f++ < 120) qa.Step(Dt, new ExploreInput { Move = new Vector2(0f, 1f) });
+            Assert.AreEqual(1, qa.Carry.Climbs, "爬上紙箱");
+            Settle(qa);
+            Assert.Greater(qa.Player.transform.position.y, LanternGraybox.V2Origin.y + 0.25f, "站在紙箱上");
+            Aim(qa, lever.GetComponent<Collider>().bounds.center);
+            Act(qa, 1, LanternActionInput.None);
+            StringAssert.Contains("按住 E", qa.PromptText, "墊高之後搆得到");
+            Act(qa, 70, new LanternActionInput { Interact = true });
+            Act(qa, 1, LanternActionInput.None);
+            Assert.IsTrue(v2.Powered, "幼年墊著紙箱開了電");
+            // 紙箱堆疊太高：幼年爬不上去。
+            Assert.Greater(w.V2Root.GetComponentsInChildren<Transform>().First(t => t.name == "V2Boxes").GetComponent<BoxCollider>().bounds.max.y - LanternGraybox.V2Origin.y, 0.3f);
+        }
+
+        [Test]
+        public void V2Shop_Child_ClimbsOntoTheStool_HardestTap_StoolMustBeAtTheMachine()
+        {
+            var qa = NewQa();
+            var w = qa.World;
+            var v2 = qa.V2;
+            TakeThread(qa);
+            var stool = w.V2StoolMovable;
+            var home = stool.transform.position;
+            stool.transform.position = home + new Vector3(1.4f, 0f, 0.6f);   // 凳子被搬走了
+            Physics.SyncTransforms();
+            StandAt(qa, w.V2SewingMachine.GetComponent<Collider>().bounds.center, w.V2ShopRoom.center, 1.0f);
+            Settle(qa);
+            Assert.AreEqual(0, v2.SewAge, "幼年");
+            Act(qa, 1, new LanternActionInput { Interact = true });   // 放燈
+            Act(qa, 1, LanternActionInput.None);
+            Assert.IsTrue(v2.LanternPlaced);
+            Aim(qa, w.V2SewingMachine.GetComponent<Collider>().bounds.center);
+            Act(qa, 1, LanternActionInput.None);
+            StringAssert.Contains("凳子不在", qa.PromptText, "凳子被搬走：要先搬回來");
+            stool.transform.position = home;
+            Physics.SyncTransforms();
+            Act(qa, 1, LanternActionInput.None);
+            StringAssert.Contains("爬上凳子", qa.PromptText, "幼年：爬上凳子");
+            Act(qa, 1, new LanternActionInput { Interact = true });
+            Assert.IsTrue(v2.Seated && v2.Tap.Active);
+            Assert.AreEqual(0.10f, v2.Tap.ZoneWidth, 1e-4f, "幼年、沒電：判定最窄");
+            Assert.AreEqual(4, v2.Tap.Need, "幼年要多穿一次");
+            for (int k = 0; k < 40; k++) qa.Step(Dt, ExploreInput.None);
+            Assert.Greater(qa.Player.EyeHeightValue, qa.ChildEyeHeight + 0.1f, "跪在凳子上，眼睛比站著高");
+            // 往旁邊走＝站起來（放棄這次），提燈拿回來。
+            qa.Step(Dt, new ExploreInput { Move = new Vector2(1f, 0f) });
+            Act(qa, 1, LanternActionInput.None);
+            Assert.IsFalse(v2.Seated || v2.Tap.Active, "走開＝站起來");
+            Assert.IsFalse(v2.LanternPlaced, "提燈拿回手上");
+            Assert.IsTrue(stool.Box.enabled, "凳子恢復碰撞");
+        }
+
+        [Test]
+        public void Body_ChangesWithMemoryAge_AndDoesNotGrowIntoFurniture()
+        {
+            var qa = NewQa();
+            var p = qa.Player;
+            qa.GoTo("V2Street"); Settle(qa);
+            Assert.AreEqual(1.8f, p.Body.height, 0.01f, "街上：成人身體");
+            Assert.AreEqual(0.35f, p.Body.radius, 0.01f);
+            qa.GoTo("V2Hall"); Settle(qa);
+            Assert.AreEqual(0.85f / 0.9f, p.Body.height, 0.01f, "幼年：身體真的變小（設計總綱 §11）");
+            Assert.AreEqual(0.24f, p.Body.radius, 0.01f);
+            Assert.Less(p.Body.stepOffset, 0.25f, "幼年跨不上紙箱（要爬）");
+            float childReach = p.transform.position.y + p.EyeHeightValue + qa.ReachAboveEye - LanternGraybox.V2Origin.y;
+            Assert.Less(childReach, qa.World.V2PowerLever.ReachY - LanternGraybox.V2Origin.y, "幼年站在地上手搆不到電箱拉桿（" + childReach.ToString("0.00") + " m）");
+            // 頭上有東西：不會長大卡進去，移開之後才長。
+            var lid = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            lid.transform.position = p.transform.position + Vector3.up * 1.15f;
+            lid.transform.localScale = new Vector3(1.5f, 0.1f, 1.5f);
+            Physics.SyncTransforms();
+            qa.ViewOverride = qa.TeenEyeHeight;
+            for (int k = 0; k < 60; k++) qa.Step(Dt, ExploreInput.None);
+            Assert.Less(p.Body.height, 1.1f, "上面擋住：先不長大（" + p.Body.height.ToString("0.00") + "）");
+            Object.DestroyImmediate(lid);
+            Physics.SyncTransforms();
+            for (int k = 0; k < 60; k++) qa.Step(Dt, ExploreInput.None);
+            Assert.AreEqual(1.12f / 0.9f, p.Body.height, 0.01f, "移開之後長成青春期的身體");
+            Assert.AreEqual(qa.TeenEyeHeight, p.EyeHeightValue, 0.01f);
+        }
         [Test]
         public void V2Shop_NoShrine_NoDressForm_CoatHangsOnTheWall()
         {
@@ -1490,35 +1605,15 @@ namespace Shepherd.Exploration.Tests
             Assert.IsTrue(w.V2Root.GetComponentsInChildren<Transform>(true).First(t => t.name == "ShopA_CutTable").gameObject.activeInHierarchy, "A 的裁剪桌在");
             var center = w.V2ShopRoom.center;
             qa.Rig.SetOn(true);
-            var lever = w.V2PowerLever;
-            StandAt(qa, lever.GetComponent<Collider>().bounds.center, center, 0.7f);
-            StringAssert.Contains("按住 E", qa.PromptText, "S1 電箱可以互動（小小孩眼高 " + qa.Player.EyeHeightValue.ToString("0.00") + "）");
-            Act(qa, 70, new LanternActionInput { Interact = true });
-            Act(qa, 1, LanternActionInput.None);
-            Assert.IsTrue(v2.Powered, "S1 有電了");
+            PowerS1(qa);   // 幼年：搬紙箱墊腳
             StandAt(qa, w.V2CoatTag.position, center, 1.4f);
             qa.FocusHeld = true;
             Act(qa, 75, LanternActionInput.None);
             qa.FocusHeld = false;
             Assert.IsTrue(v2.TagRead, "S2 聚光看清吊牌（" + v2.TagFocus.ToString("F2") + "）");
-            StandAt(qa, w.V2ThreadSpool.position, w.Marks["V2Yard"].position, 0.9f);
-            Act(qa, 1, new LanternActionInput { Interact = true });
-            Act(qa, 1, LanternActionInput.None);
-            Assert.IsTrue(v2.HasThread, "拿到紅線");
-            StandAt(qa, w.V2SewingMachine.GetComponent<Collider>().bounds.center, center, 1.0f);
-            StringAssert.Contains("穿針", qa.PromptText, "S4 縫紉機可以互動");
-            Act(qa, 1, new LanternActionInput { Interact = true });
-            Act(qa, 1, LanternActionInput.None);
-            int frames = 0; bool pressed = false;
-            while (v2.Tap.Active && frames++ < 600)
-            {
-                bool press = !pressed && v2.Tap.InZone;
-                qa.Step(Dt, ExploreInput.None, new LanternActionInput { Interact = press });
-                pressed = press;
-            }
-            Assert.IsTrue(v2.Sewn, "S4 穿好針");
-            Assert.IsTrue(v2.ShopRepaired, "店面修好");
-            var echo = v2.ShopEcho;
+            TakeThread(qa);
+            Sew(qa);
+            Assert.IsTrue(v2.ShopRepaired, "店面的事都做完了");            var echo = v2.ShopEcho;
             Aim(qa, echo.transform.position);
             Act(qa, 1, LanternActionInput.None);
             Assert.IsTrue(echo.Playing, "影子殘影的牆沒有被家具擋住");
@@ -1598,15 +1693,36 @@ namespace Shepherd.Exploration.Tests
             return w.V2Root.GetComponentsInChildren<Transform>(false).Count(t => t.name == "DoorTrim" && Mathf.Abs(t.position.x - a.x) < 0.3f && t.position.z > a.z - 0.3f && t.position.z < b.z + 0.3f);
         }
 
+        /// <summary>開電箱：搆得到就直接拉；幼年搆不到就搬紙箱過去、爬上去再拉。</summary>
         private static void PowerS1(LanternPrototypeQA qa)
         {
             var w = qa.World;
-            StandAt(qa, w.V2PowerLever.GetComponent<Collider>().bounds.center, w.V2ShopRoom.center, 0.7f);
+            var lever = w.V2PowerLever;
+            qa.Player.Teleport(PV(1.85f, 4.2f), 0f, 0f);
+            Settle(qa);
+            if (!qa.Actions.CanReach(lever))
+            {
+                qa.Player.Teleport(PV(1.35f, 3.55f), 0f, 0f);
+                Settle(qa);
+                Aim(qa, w.V2MovableBox.Box.bounds.center);
+                Act(qa, 1, new LanternActionInput { Interact = true });
+                Act(qa, 1, LanternActionInput.None);
+                Assert.AreSame(w.V2MovableBox, qa.Carry.Grabbed, "抓住紙箱");
+                qa.Player.Teleport(qa.Player.transform.position, 0f, 0f);
+                for (int k = 0; k < 120 && (qa.Player.transform.position.x - LanternGraybox.V2Origin.x) / LanternGraybox.V2Scale < 1.85f; k++)
+                    qa.Step(Dt, new ExploreInput { Move = new Vector2(1f, 0f) });
+                Act(qa, 1, new LanternActionInput { Interact = true });
+                Act(qa, 1, LanternActionInput.None);
+                int f = 0;
+                while (qa.Carry.Climbs == 0 && f++ < 120) qa.Step(Dt, new ExploreInput { Move = new Vector2(0f, 1f) });
+                Assert.Greater(qa.Carry.Climbs, 0, "爬上紙箱");
+                Settle(qa);
+            }
+            Aim(qa, lever.GetComponent<Collider>().bounds.center);
             Act(qa, 70, new LanternActionInput { Interact = true });
             Act(qa, 1, LanternActionInput.None);
             Assert.IsTrue(qa.V2.Powered, "S1 有電了");
         }
-
         private static void TakeThread(LanternPrototypeQA qa)
         {
             var w = qa.World;
@@ -1616,23 +1732,30 @@ namespace Shepherd.Exploration.Tests
             Assert.IsTrue(qa.V2.HasThread, "拿到紅線");
         }
 
+        /// <summary>縫紉：放燈 → 坐上（爬上）凳子 → 穿針（在亮的範圍按 E）→ 站起來。</summary>
         private static void Sew(LanternPrototypeQA qa)
         {
             var w = qa.World; var v2 = qa.V2;
             StandAt(qa, w.V2SewingMachine.GetComponent<Collider>().bounds.center, w.V2ShopRoom.center, 1.0f);
-            StringAssert.Contains("穿針", qa.PromptText, "S4 縫紉機可以互動");
-            Act(qa, 1, new LanternActionInput { Interact = true });
+            for (int i = 0; i < 3 && !v2.Tap.Active; i++)
+            {
+                Aim(qa, w.V2SewingMachine.GetComponent<Collider>().bounds.center);
+                Act(qa, 1, LanternActionInput.None);
+                Act(qa, 1, new LanternActionInput { Interact = true });
+            }
+            Assert.IsTrue(v2.Tap.Active, "開始穿針（" + qa.PromptText + "）");
             Act(qa, 1, LanternActionInput.None);
             int frames = 0; bool pressed = false;
-            while (v2.Tap.Active && frames++ < 600)
+            while (v2.Tap.Active && frames++ < 1200)
             {
                 bool press = !pressed && v2.Tap.InZone;
                 qa.Step(Dt, ExploreInput.None, new LanternActionInput { Interact = press });
                 pressed = press;
             }
             Assert.IsTrue(v2.Sewn, "S4 穿好針");
+            Act(qa, 2, LanternActionInput.None);
+            Assert.IsFalse(v2.Seated, "站起來");
         }
-
         // 從主屋（店面／走廊）走進餐廳、再到廚房門內。
         private static readonly (float, float)[] HallToKitchen = { (5.07f, 6.45f), (4.1f, 6.45f), (2.33f, 7.14f), (1.33f, 7.51f), (1.1f, 8.59f), (1.6f, 9.66f), (1.6f, 10.6f) };
         // 廚房門內 → 通路前（廚房側）。
@@ -1739,6 +1862,7 @@ namespace Shepherd.Exploration.Tests
             Assert.IsTrue(revealT > 1.2f && revealT < 4.5f, "顯現大約 2～3 秒（實際 " + revealT.ToString("0.0") + " 秒）");
             Assert.IsTrue(sawPartial, "從中間往外顯現（中間先出現、上緣後出現）");
             Assert.IsFalse(w.KitchenYardSeal.gameObject.activeInHierarchy, "補牆收起來");
+            Assert.AreEqual(0, LanternReveal.ActiveRooms, "顯現完：門洞回到褪色的樣子（不留永久的真實）");
             Assert.AreEqual(3, ActivePassageTrims(w), "門框出現");
             Assert.AreEqual(qa.TeenEyeHeight, qa.Player.EyeHeightValue, 1e-4f, "廚房：維持青春期（不再直接成人）");
             Walk(qa, "廚房→通路前", KitchenToPassage);

@@ -773,6 +773,8 @@ namespace Shepherd.Exploration.Lantern
             lr.Seconds = 1.1f;
             lr.AnchorRadius = 0f; // 電箱修好的效果是燈穩下來，不在上面留一圈穩定區（試玩回饋：不自然的光圈）
             lr.Init(lever.position + Vector3.down * 0.08f, Quaternion.Euler(70f, 0f, 0f), lever.position, Quaternion.identity);
+            // 手要伸到拉桿握把（約 1.37 m）：幼年站在地上搆不到，要搬箱子或凳子墊腳（使用者 2026-11-16）。
+            lr.ReachY = lr.FixedPosition.y - 0.08f;
             Restorables.Add(lr);
             V2PowerLever = lr;
             // S2 外套吊牌：袖口那張紙吊牌（聚光才看得清楚）。

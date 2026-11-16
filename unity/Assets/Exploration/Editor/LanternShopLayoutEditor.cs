@@ -164,6 +164,62 @@ namespace Shepherd.Exploration.Editor
                 Object.DestroyImmediate(rt);
             }
         }
+        /// <summary>改衣店互動截圖：幼年在電箱前（搆不到）、站在紙箱上、縫紉機（放燈＋坐上凳子）、沒電／有電的店。</summary>
+        public static void CaptureShopInteractFromCommandLine()
+        {
+            string dir = Arg("-captureDir", Path.GetFullPath(Path.Combine(Application.dataPath, "../Temp/ShopInteract")));
+            Directory.CreateDirectory(dir);
+            EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+            var rt = new RenderTexture(1600, 900, 24, RenderTextureFormat.ARGB32) { antiAliasing = 8 };
+            var qa = new GameObject("LanternPrototypeQA").AddComponent<LanternPrototypeQA>();
+            try
+            {
+                qa.Setup(false);
+                var w = qa.World;
+                var o = LanternGraybox.V2Origin; float S = LanternGraybox.V2Scale;
+                Vector3 P(float x, float z) => o + new Vector3(x * S, 0.05f, z * S);
+                void Run(int n) { for (int k = 0; k < n; k++) qa.Step(1f / 30f, ExploreInput.None); }
+                void Look(Vector3 at)
+                {
+                    var d = at - qa.Player.EyePosition;
+                    qa.Player.Teleport(qa.Player.transform.position, Mathf.Atan2(d.x, d.z) * Mathf.Rad2Deg, -Mathf.Atan2(d.y, new Vector2(d.x, d.z).magnitude) * Mathf.Rad2Deg);
+                }
+                void Snap(string name) { qa.Rig.Snap(); qa.Post.Apply(); Shot(qa, rt, Path.Combine(dir, name + ".png")); }
+                var lever = w.V2PowerLever.GetComponent<Collider>().bounds.center;
+                // 1. 沒電的店（入口、提燈關著）
+                qa.Rig.SetOn(false);
+                qa.GoToShopView(0); Run(30); Snap("shop_unpowered");
+                // 2. 幼年站在電箱前：搆不到
+                qa.Rig.SetOn(true);
+                qa.Player.Teleport(P(1.85f, 3.7f), 0f, 0f); Run(40); Look(lever); Run(2); Snap("child_breaker_floor");
+                // 3. 紙箱搬到電箱前、站上去
+                var box = w.V2MovableBox;
+                box.transform.position = new Vector3(P(1.85f, 4.1f).x, o.y + box.BottomOffset, P(1.85f, 4.1f).z);
+                Physics.SyncTransforms();
+                qa.Player.Teleport(P(1.85f, 3.55f), 0f, 0f); Run(10); Look(box.Box.bounds.center); Run(2); Snap("child_box_in_front");
+                qa.Player.Teleport(new Vector3(box.Box.bounds.center.x, box.TopY + 0.02f, box.Box.bounds.center.z - 0.05f), 0f, 0f); Run(20); Look(lever); Run(2); Snap("child_on_box");
+                qa.V2.DebugForce(true, false, false, false);
+                // 4. 有電的店（入口、提燈關著）
+                qa.Rig.SetOn(false);
+                qa.GoToShopView(0); Run(30); Snap("shop_powered");
+                // 5. 縫紉機：幼年放燈、爬上凳子
+                qa.Rig.SetOn(true);
+                qa.V2.DebugForce(false, false, true, false);
+                var sew = w.V2SewingMachine.GetComponent<LanternUsable>();
+                qa.Player.Teleport(w.V2SeatSpot + Quaternion.Euler(0f, w.V2SeatYaw, 0f) * Vector3.back * 0.6f, w.V2SeatYaw, 10f); Run(10);
+                sew.Use(); Run(20); Snap("sew_lantern_placed");
+                sew.Use(); Run(45); Snap("sew_child_seated");
+                qa.V2.StandUp(); Run(5);
+                // 6. 成人坐下
+                qa.ViewOverride = LanternPrototypeQA.AdultEyeHeight; Run(40);
+                sew.Use(); Run(5); sew.Use(); Run(45); Snap("sew_adult_seated");
+            }
+            finally
+            {
+                qa.Shutdown();
+                Object.DestroyImmediate(rt);
+            }
+        }
         /// <summary>從目前的眼睛位置看不看得到某個物件：在畫面內，且至少一個取樣點沒有被碰撞體擋住。</summary>
         public static bool Visible(LanternPrototypeQA qa, string objName)
         {

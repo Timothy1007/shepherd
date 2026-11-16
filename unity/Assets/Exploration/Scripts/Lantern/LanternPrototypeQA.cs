@@ -158,6 +158,7 @@ namespace Shepherd.Exploration.Lantern
             // 使用者試玩確認過的版本成為正式預設：餐廳 B（空間層次＋光照引導，48b6ecc）、廚房 B（改造＋回饋修正，db8a785）。
             // 原本的 A 只在餐廳／廚房的 A／B 對照 QA 場景裡切換得到。
             ApplyConfirmedLayouts();
+            World.BuildShopInteractables();
             // 實際遊玩從新版房子（v2）門外開始；測試仍從舊房子玄關開始。
             var spawn = World.Marks[play && World.Marks.ContainsKey("V2Street") ? "V2Street" : "HouseEntry"];
             Player = FirstPersonController.Create(transform, spawn.position, spawn.eulerAngles.y);
@@ -198,6 +199,9 @@ namespace Shepherd.Exploration.Lantern
             Combat.OnMemory = s => Flow.ShowToast(s, 4.5f);
             Flow.ResetState();
             V2 = new LanternV2Puzzles(World, Rig, Cam, Flow, Audio);
+            Carry = new LanternCarry(Player, World, Flow, Audio);
+            World.GrabRequested = m => Carry.Toggle(m);
+            Actions.ReachTop = () => Player.transform.position.y + Player.EyeHeightValue + ReachAboveEye;
             Hold = new LanternHold();
             Sandbox = new LanternSandboxRun(World, Player, Hold, Actions, Flow, Audio);
             Market = new LanternMarketRun(World, Player, Sandbox, Flow, Audio, GoTo);
@@ -229,8 +233,10 @@ namespace Shepherd.Exploration.Lantern
         public void StartV2()
         {
             Actions.DropHeld(false);
+            Carry.Release();
             World.BuildHouseV2();
             ApplyConfirmedLayouts();
+            World.BuildShopInteractables();
             ResetMemoryAge();
             V2.Rebind();
             Market.Bind();
@@ -355,6 +361,35 @@ namespace Shepherd.Exploration.Lantern
             return Age == MemoryAge.Child ? ChildEyeHeight : Age == MemoryAge.Teen ? TeenEyeHeight : AdultEyeHeight;
         }
 
+        // ---------------- 身體大小（設計總綱 §11：身體真的會隨記憶年齡改變） ----------------
+        // 身高＝站立眼高 ÷ 0.9（成人 1.62 → 1.80 m、青春期 1.12 → 約 1.24 m、幼年 0.85 → 約 0.94 m）；
+        // 半徑 0.24～0.35 m、直接跨上去的高度 0.15～0.35 m 跟著身高走。長大前先確認不會卡進家具，卡住就晚一點再長。
+        // 手能伸到眼睛上方 0.22×身高＋0.2 m（幼年約 1.26 m、成人約 2.2 m）。
+        public static float BodyHeightForEye(float eye) => eye / 0.9f;
+        public static float BodyRadiusForHeight(float h) => Mathf.Lerp(0.24f, 0.35f, Mathf.InverseLerp(0.85f / 0.9f, 1.8f, h));
+        public static float StepOffsetForHeight(float h) => Mathf.Clamp(h * 0.19f, 0.15f, 0.35f);
+        public float ReachAboveEye => 0.22f * Player.Body.height + 0.2f;
+        /// <summary>目前身體（站姿）的眼高；坐下時攝影機另外算。</summary>
+        public float StandingEyeHeight => eyeNow;
+        private float camEyeNow = AdultEyeHeight;
+
+        /// <summary>坐在縫紉機凳子上時的眼高（幼年是跪在凳子上，眼睛比站著高；成人坐下比站著低）。</summary>
+        public float SeatedEyeHeight
+        {
+            get
+            {
+                float seat = World.V2StoolMovable != null ? World.V2StoolMovable.TopY - LanternGraybox.V2Origin.y : 0.53f;
+                float t = Mathf.InverseLerp(ChildEyeHeight, AdultEyeHeight, eyeNow);
+                return seat + Mathf.Lerp(0.55f, 0.78f, t);
+            }
+        }
+
+        private bool ApplyBody(float eye)
+        {
+            float h = BodyHeightForEye(eye);
+            return Player.TrySetBody(h, BodyRadiusForHeight(h), StepOffsetForHeight(h));
+        }
+
         private void UpdateEyeHeight(float dt)
         {
             var feet = Player.transform.position;
@@ -362,9 +397,16 @@ namespace Shepherd.Exploration.Lantern
             lastEyeFeet = feet;
             UpdateMemoryAge(feet, jumped);
             TargetEyeHeight = ViewOverride ?? MemoryEyeHeightAt(feet);
-            eyeNow = jumped ? TargetEyeHeight : Mathf.MoveTowards(eyeNow, TargetEyeHeight, dt * 1.3f);   // 穿過記憶門：約半秒的過渡
-            Player.EyeHeightValue = eyeNow;
+            float next = jumped ? TargetEyeHeight : Mathf.MoveTowards(eyeNow, TargetEyeHeight, dt * 1.3f);   // 穿過記憶門：約半秒的過渡
+            if (V2 != null && V2.Seated) next = eyeNow;                 // 坐著的時候不改身體
+            else if (!ApplyBody(next)) next = eyeNow;                   // 空間不夠長大：先維持
+            eyeNow = next;
+            float camTarget = V2 != null && V2.Seated ? SeatedEyeHeight : eyeNow;
+            camEyeNow = jumped ? camTarget : Mathf.MoveTowards(camEyeNow, camTarget, dt * (V2 != null && V2.Seated ? 1.6f : 2.6f));
+            if (!(V2 != null && V2.Seated) && Mathf.Abs(camEyeNow - eyeNow) > 0.35f) camEyeNow = eyeNow;   // 站起來時不要拖太久
+            Player.EyeHeightValue = camEyeNow;
             Rig.RadiusScale = LanternScaleForEye(eyeNow);
+            if (V2 != null) V2.SewAge = eyeNow <= ChildEyeHeight + 0.05f ? 0 : eyeNow <= TeenEyeHeight + 0.05f ? 1 : 2;
         }
 
         /// <summary>測試模式 K：自動 → 強制成人 → 強制小小孩 → 自動。</summary>
@@ -522,8 +564,10 @@ namespace Shepherd.Exploration.Lantern
             Rig.SetOn(true);
             Rig.SetRadius(1);
             SetHouseScale(World.HouseScale);
+            Carry.Release();
             World.BuildHouseV2();
             ApplyConfirmedLayouts();
+            World.BuildShopInteractables();
             ResetMemoryAge();
             V2.Rebind();
             Market.Bind();
@@ -547,12 +591,24 @@ namespace Shepherd.Exploration.Lantern
             else { inspectInteractWas = act.Interact; inspectPrimaryWas = act.Primary; }
             Actions.Suspended = Inspecting != null || V2.InputCaptured;
             Rig.Focus = FocusHeld;
-            Rig.HideHands = Inspecting != null;
-            // 記憶視角：依所在的記憶房間決定第一人稱攝影機高度（只改攝影機；碰撞體、移動、互動能力不變，設計總綱 §3.4、§9）。
+            Rig.HideHands = Inspecting != null || V2.LanternPlaced;   // 提燈放在桌上：手上沒有燈（之後換縫紉的手部動作）
+            // 記憶年齡：眼高、身體大小、提燈光圈跟著記憶進度（設計總綱 §10、§11）。
             UpdateEyeHeight(dt);
-            Player.WalkSpeedValue = WalkSpeedNow * Mathf.Lerp(1f, 0.6f, Rig.FocusBlend);
-            Player.RunSpeedValue = BriskSpeedNow * Mathf.Lerp(1f, 0.6f, Rig.FocusBlend);
+            // 坐在縫紉機前：不能走；往任何方向走＝站起來（放棄這次穿針）。
+            if (V2.Seated)
+            {
+                if (inp.Move.sqrMagnitude > 0.25f) V2.StandUp();
+                inp.Move = Vector2.zero;
+            }
+            // 搬東西時：按 E 放下（不管對著哪裡）。
+            bool eDownCarry = act.Interact && !carryEWas;
+            carryEWas = act.Interact;
+            if (Carry.Grabbed != null && eDownCarry && Inspecting == null) { Carry.Release(); act.Interact = false; }
+            float carrySlow = Carry.Grabbed != null ? LanternCarry.CarrySpeedScale : 1f;
+            Player.WalkSpeedValue = WalkSpeedNow * Mathf.Lerp(1f, 0.6f, Rig.FocusBlend) * carrySlow;
+            Player.RunSpeedValue = BriskSpeedNow * Mathf.Lerp(1f, 0.6f, Rig.FocusBlend) * carrySlow;
             Player.Step(dt, inp, true);
+            Carry.Step(dt, inp.Move);
             var feet = Player.transform.position;
             stepDistance += Vector3.Distance(new Vector3(feet.x, 0f, feet.z), new Vector3(lastFeet.x, 0f, lastFeet.z));
             lastFeet = feet;
@@ -582,6 +638,15 @@ namespace Shepherd.Exploration.Lantern
             bool primaryDown = act.Primary && !v2PrimaryWas;
             v2PrimaryWas = act.Primary;
             V2.Step(dt, Inspecting == null && (act.Interact || act.Primary), primaryDown);
+            if (V2.SeatMoveRequested)
+            {
+                V2.ConsumeSeatMove();
+                var seat = World.V2SeatSpot;
+                var back = Quaternion.Euler(0f, World.V2SeatYaw, 0f) * Vector3.back;
+                if (V2.Seated) Player.Teleport(seat + Vector3.up * 0.02f, World.V2SeatYaw, 28f);            // 爬上／坐上凳子，低頭看針
+                else Player.Teleport(seat + back * 0.6f + Vector3.up * 0.02f, World.V2SeatYaw, 0f);         // 站起來，退到凳子後面
+                lastEyeFeet = Player.transform.position;
+            }
             Combat.Step(dt);
             Flow.Step(dt);
             if (dt > 0f && simChanged) Physics.Simulate(dt);
@@ -607,7 +672,10 @@ namespace Shepherd.Exploration.Lantern
             bool indoor = World.InV2House(p);
             float dayWant = LanternGraybox.V2Day && (indoor || World.InV2Street(p) || World.InAbilitySpace(p)) ? 1f : 0f;
             DayLevel = dt > 0f ? Mathf.MoveTowards(DayLevel, dayWant, dt * 2f) : dayWant;
-            var day = indoor ? DayIndoorAmbient : DayStreetAmbient;
+            // 褪色態的改衣店：沒電時比較暗（不是全黑），有電之後慢慢亮起來（使用者 2026-11-16：開燈＝看得見，但還是灰的）。
+            bool shopDark = World.V2ShopRoom.size.sqrMagnitude > 0f && World.V2ShopRoom.Contains(p + Vector3.up) && !World.V2Powered;
+            ShopDim = dt > 0f ? Mathf.MoveTowards(ShopDim, shopDark ? 1f : 0f, dt * 1.2f) : (shopDark ? 1f : 0f);
+            var day = indoor ? DayIndoorAmbient * Mathf.Lerp(1f, UnpoweredShopAmbient, ShopDim) : DayStreetAmbient;
             RenderSettings.ambientLight = Color.Lerp(night, day, DayLevel);
             if (World.Moon != null) World.Moon.intensity = Mathf.Lerp(0.55f, 0f, DayLevel);
             if (World.V2Sun != null) World.V2Sun.intensity = 1.9f * DayLevel;
@@ -616,6 +684,10 @@ namespace Shepherd.Exploration.Lantern
         }
 
         public static readonly Color DayIndoorAmbient = new Color(0.58f, 0.56f, 0.53f);
+        /// <summary>沒電的改衣店：室內反射光的倍率。</summary>
+        public const float UnpoweredShopAmbient = 0.5f;
+        /// <summary>0＝一般、1＝沒電的改衣店（平順過渡）。</summary>
+        public float ShopDim { get; private set; }
         public static readonly Color DayStreetAmbient = new Color(0.74f, 0.75f, 0.8f);
         public static readonly Color DaySky = new Color(0.62f, 0.76f, 0.92f);
         /// <summary>白天的程度（0＝夜晚、1＝白天；新房子與街上是白天）。</summary>
@@ -918,7 +990,9 @@ namespace Shepherd.Exploration.Lantern
             return t;
         }
 
-        public string PromptText => Actions != null ? Actions.Prompt : "";
+        public string PromptText => Carry != null && !string.IsNullOrEmpty(Carry.Prompt) ? Carry.Prompt : Actions != null ? Actions.Prompt : "";
+        public LanternCarry Carry { get; private set; }
+        private bool carryEWas;
 
         private void UpdateUi()
         {
@@ -1012,7 +1086,8 @@ namespace Shepherd.Exploration.Lantern
                 sbClues.Append("── 母親的筆記（暫定）──\n");
                 if (SecretsFound > 0) sbClues.Append("記憶碎片 ").Append(SecretsFound).Append("\n");
                 foreach (var line in V2.Notebook) sbClues.Append("・").Append(line).Append('\n');
-                sbClues.Append(V2.ShopRepaired ? "✓ 店面" : "□ 店面（還有 " + V2.ShopRemaining + " 件事沒弄清楚）").Append('\n');
+                sbClues.Append("店裡的事（沒有先後順序）：\n");
+                foreach (var (task, done) in V2.ShopTasks) sbClues.Append(done ? "  ✓ " : "  □ ").Append(task).Append('\n');
             }
             else if (Flow.Current == LanternFlow.Phase.Explore && NotebookOpen)
             {

@@ -110,6 +110,8 @@ namespace Shepherd.Exploration.Lantern
             foreach (var (r, m) in kitchenYardSwapped) if (r != null) r.sharedMaterial = m;
             kitchenYardSwapped.Clear();
             if (KitchenYardSeal != null) KitchenYardSeal.gameObject.SetActive(false);
+            // 顯現完就收回那一小塊「真實」：門洞和門框回到褪色的樣子（使用者 2026-11-16：房間不會永久恢復真實）。
+            if (kitchenYardRoom >= 0) { LanternReveal.RemoveRoom(kitchenYardRoom); kitchenYardRoom = -1; }
             Physics.SyncTransforms();
         }
 

@@ -22,6 +22,8 @@ namespace Shepherd.Exploration.Lantern
         public static readonly Vector3 FocusShape = new Vector3(5.2f, 0.3f, 0.3f);
         /// <summary>側面每公尺變寬的倍率：平常 0.05、聚光 0.13（5 m 外約 1.1 m 寬的錐形）。</summary>
         public const float NormalSpread = 0.05f, FocusSpread = 0.13f;
+        /// <summary>放著的提燈：圓形光圈的倍率。</summary>
+        public const float PlacedShape = 1.2f;
         /// <summary>聚光（舉高提燈）：0～1 平滑過渡。</summary>
         public float FocusBlend { get; private set; }
         public bool Focus;
@@ -66,6 +68,12 @@ namespace Shepherd.Exploration.Lantern
 
         /// <summary>光圈大小的倍率（記憶視角：幼年、青春期的光比較小；成人＝1）。光、顯示真實的範圍、光源照射距離一起縮放。</summary>
         public float RadiusScale = 1f;
+        /// <summary>
+        /// 提燈放在某個地方（例如縫紉機桌上）：光與「顯示真實的範圍」改從那裡發出（圓的，不再跟著視線往前偏），
+        /// 手上的提燈收起來、不能聚光。null＝拿在手上。
+        /// </summary>
+        public Vector3? PlacedAt;
+        private bool placedWas;
         public float TargetRadius => On ? Radii[RadiusIndex] * RadiusScale : 0f;
 
         public static LanternRig Build(Camera cam, FirstPersonController player)
@@ -348,13 +356,13 @@ namespace Shepherd.Exploration.Lantern
             if (Device != null) Device.localRotation = Quaternion.Euler(-recoil * 14f, 0f, 0f);
 
             // 聚光：把燈舉高、往前；光變成細長光束。
-            FocusBlend = Mathf.MoveTowards(FocusBlend, Focus && On ? 1f : 0f, dt * 4f);
+            FocusBlend = Mathf.MoveTowards(FocusBlend, Focus && On && PlacedAt == null ? 1f : 0f, dt * 4f);
             float fb = Mathf.SmoothStep(0f, 1f, FocusBlend);
             // 平常畫面乾淨（使用者同意的做法）：提燈收在畫面左下角外面，只看得到它的光；
             // 聚光、開關提燈的時候舉進畫面。右手和穩定器只在做事（射擊、抓、復原、按 E）的時候伸出來。
             toggleShow = Mathf.Max(0f, toggleShow - dt);
             deviceShow = Mathf.Max(0f, deviceShow - dt);
-            bool wantLantern = !HideHands && On && (Focus || toggleShow > 0f);
+            bool wantLantern = !HideHands && On && PlacedAt == null && (Focus || toggleShow > 0f);
             LanternShown = Mathf.MoveTowards(LanternShown, wantLantern ? 1f : 0f, dt * (wantLantern ? 3.5f : 2f));
             DeviceShown = Mathf.MoveTowards(DeviceShown, !HideHands && deviceShow > 0f ? 1f : 0f, dt * (deviceShow > 0f ? 5f : 2.2f));
             float ls = Mathf.SmoothStep(0f, 1f, LanternShown), ds = Mathf.SmoothStep(0f, 1f, DeviceShown);
@@ -369,7 +377,7 @@ namespace Shepherd.Exploration.Lantern
             Light.enabled = CurrentRadius > 0.01f;
             Light.intensity = 0.9f * breathe * Mathf.Clamp01(k) * Mathf.Lerp(1f, 0.35f, fb);
             Light.range = Mathf.Max(0.5f, CurrentRadius * 2f);
-            Beam.enabled = Light.enabled;
+            Beam.enabled = Light.enabled && PlacedAt == null;
             Beam.intensity = Mathf.Lerp(0.7f, 2.6f, fb) * breathe * Mathf.Clamp01(k);
             Beam.range = CurrentRadius * Mathf.Lerp(NormalShape.x, FocusShape.x, fb) * 1.25f;
             Beam.spotAngle = Mathf.Lerp(95f, 30f, fb);
@@ -380,6 +388,21 @@ namespace Shepherd.Exploration.Lantern
             if (Model != null) Model.Tick(Camera.transform, player, dt, time, LanternShown, FocusBlend, Mathf.Clamp01(k) * breathe);
 
             // 光和顯示真實的範圍固定從「提燈原本在的位置」算起（提燈收起來時光還是在那裡）。
+            // 提燈放下時，手（與手上的提燈模型）整個不畫（低頭時才不會看到空手還維持提燈的姿勢）。
+            if (PlacedAt.HasValue != placedWas)
+            {
+                placedWas = PlacedAt.HasValue;
+                foreach (var r in ViewRenderers) if (r != null) r.enabled = !placedWas;
+            }
+            if (PlacedAt.HasValue)
+            {
+                // 放著的提燈：往四周均勻照（半徑約等於手持時往前照的一半）。
+                Light.transform.position = PlacedAt.Value;
+                RevealCenter = PlacedAt.Value;
+                LanternReveal.SetSphere(RevealCenter, CurrentRadius);
+                LanternReveal.SetShape(Camera.transform.forward, Vector3.one * PlacedShape, 0f);
+                return;
+            }
             var lampAt = Camera.transform.TransformPoint(Vector3.Lerp(new Vector3(-0.25f, -0.27f, 0.6f), new Vector3(-0.21f, -0.21f, 0.64f), fb));
             Light.transform.position = lampAt;
             RevealCenter = lampAt + Camera.transform.forward * RevealForward;

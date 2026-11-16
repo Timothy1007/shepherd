@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using Shepherd.Battle.UI.Arena;
 using UnityEngine;
 using Mode = Shepherd.Exploration.Lantern.LanternReveal.Mode;
@@ -675,13 +675,22 @@ namespace Shepherd.Exploration.Lantern
                 }
                 bool house = HouseRoot != null && l.transform.IsChildOf(HouseRoot);
                 if (l.type == LightType.Spot || house) { l.intensity = b; continue; }
-                // 新房子：修好的房間常亮暖燈；有電時燈穩定（不再閃）。
-                if (V2SafeLamps.Contains(l)) { l.intensity = b * 1.5f; l.color = WarmLamp; continue; }
-                if (V2Powered && V2Root != null && l.transform.IsChildOf(V2Root)) { l.intensity = b * 1.15f; l.color = Color.Lerp(baseColor[l], WarmLamp, 0.35f); continue; }
+                // 新房子（褪色態，使用者 2026-11-16）：
+                //   沒電＝店裡的燈（與櫃台小燈）昏暗、一直閃；其他房間的燈照常閃。
+                //   有電＝燈穩定、比較亮，但仍是冷白光（不變暖、店裡還是灰的），偶爾像日光燈一樣抖一下。
                 float sd = i * 13.7f;
+                if (V2SafeLamps.Contains(l)) { l.intensity = b * 1.5f; l.color = WarmLamp; continue; }
+                if (V2Powered && V2Root != null && l.transform.IsChildOf(V2Root))
+                {
+                    float stutter = Mathf.PerlinNoise(time * 0.9f, sd + 11f) > 0.88f ? Mathf.Lerp(0.55f, 1f, Mathf.PerlinNoise(time * 14f, sd)) : 1f;
+                    l.intensity = b * 1.8f * stutter;
+                    l.color = baseColor[l];
+                    continue;
+                }
                 float n = Mathf.PerlinNoise(time * 3.1f, sd);
                 float drop = Mathf.PerlinNoise(time * 0.7f, sd + 5f) > 0.78f ? 0.25f : 1f;
-                l.intensity = b * Mathf.Lerp(0.7f, 1.1f, n) * drop;
+                bool shopCircuit = V2ShopLamps.Contains(l) || l.name == "V2CounterLight";
+                l.intensity = b * (shopCircuit ? Mathf.Lerp(0.3f, 0.65f, n) : Mathf.Lerp(0.7f, 1.1f, n)) * drop;
             }
             if (hBulb != null)
             {
