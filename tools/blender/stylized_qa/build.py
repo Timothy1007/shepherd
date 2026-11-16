@@ -109,13 +109,13 @@ class Asset:
                                   radius2=r1 if r2 is None else r2, depth=depth)
         return self._finish(r['verts'], mat, self.mat(loc, rot), bevel)
 
-    def lathe(self, prof, loc, mat, rot=(0, 0, 0), segs=16, mats=None):
-        """prof＝[(半徑, 高度), ...] 由下到上；繞 Z 軸旋轉。mats＝每一段的材質（可選）。"""
+    def lathe(self, prof, loc, mat, rot=(0, 0, 0), segs=16, mats=None, phase=0.0):
+        """prof＝[(半徑, 高度), ...] 由下到上；繞 Z 軸旋轉。mats＝每一段的材質（可選）。phase＝第一個頂點的角度（度）。"""
         rings = []
         for (rad, z) in prof:
             ring = []
             for i in range(segs):
-                a = 2 * math.pi * i / segs
+                a = 2 * math.pi * i / segs + math.radians(phase)
                 ring.append(self.bm.verts.new((math.cos(a) * rad, math.sin(a) * rad, z)))
             rings.append(ring)
         allv = [v for ring in rings for v in ring]
@@ -655,5 +655,6 @@ def run():
     return report
 
 
-REPORT = run()
-print("\n".join(REPORT))
+if globals().get("SQA_LIBRARY_ONLY") is not True:   # build_viewmodel.py 只借用上面的工具函式
+    REPORT = run()
+    print("\n".join(REPORT))

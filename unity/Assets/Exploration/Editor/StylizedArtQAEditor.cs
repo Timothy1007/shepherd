@@ -31,6 +31,12 @@ namespace Shepherd.Exploration.Editor
                 { "ClothCream", (0f, 0.2f, new Color(0.80f, 0.74f, 0.92f), true) },
                 { "ClothRose", (0f, 0.2f, new Color(0.80f, 0.70f, 0.90f), true) },
                 { "ClothCharcoal", (0f, 0.2f, new Color(0.80f, 0.74f, 0.96f), true) },
+                { "Bronze", (0.7f, 0.28f, new Color(0.82f, 0.72f, 0.86f), false) },
+                { "BronzeDark", (0.4f, 0.22f, new Color(0.80f, 0.72f, 0.90f), false) },
+                { "Skin", (0f, 0.2f, new Color(0.98f, 0.74f, 0.78f), false) },
+                { "Glove", (0.15f, 0.12f, new Color(0.80f, 0.74f, 0.96f), false) },
+                { "Sleeve", (0f, 0.2f, new Color(0.84f, 0.76f, 0.90f), false) },
+                { "Strap", (0.25f, 0.15f, new Color(0.82f, 0.72f, 0.86f), false) },
             };
 
         /// <summary>Blender（Z 朝上、右手）→ Unity：FBX 匯出時已套用軸向，Unity 匯入再鏡射 X。</summary>
@@ -100,6 +106,45 @@ namespace Shepherd.Exploration.Editor
             skyR.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             skyR.receiveShadows = false;
             qa.WindowBackdrop = skyR;
+
+            // 第一人稱：左手（Blender 模型）握著提燈的提把；執行時整組掛到相機下，由 StylizedArtQA 控制擺動。
+            var vm = new GameObject("Viewmodel").transform;
+            vm.SetParent(root.transform, false);
+            var armRoot = new GameObject("ArmLeft").transform;
+            armRoot.SetParent(vm, false);
+            ViewPart("SQA_ArmLeft", armRoot);
+            var pivot = new GameObject("LanternPivot").transform;
+            pivot.SetParent(vm, false);
+            var lantern = ViewPart("SQA_Lantern", pivot);
+            if (lantern != null) lantern.transform.localScale = Vector3.one * 0.85f;   // 第一人稱距離下稍微縮小，不要擋住半個畫面
+            var lightGo = new GameObject("LanternLight");
+            lightGo.transform.SetParent(lantern != null ? lantern.transform : pivot, false);
+            lightGo.transform.localPosition = new Vector3(0f, -0.258f, 0f);   // 火焰的位置
+            var ll = lightGo.AddComponent<Light>();
+            ll.type = LightType.Point;
+            ll.color = new Color(1f, 0.8f, 0.55f);
+            ll.range = 3.2f;
+            ll.intensity = 1.5f;
+            ll.shadows = LightShadows.Soft;
+            ll.shadowNearPlane = 0.1f;
+            ll.shadowStrength = 0.7f;   // 提燈投出的影子不要全黑（插畫的暗面也有顏色）
+            // 只照手和提燈的補光（和正式 LanternRig 一樣的做法），讓夜裡手與燈的輪廓讀得出來。
+            foreach (var t in vm.GetComponentsInChildren<Transform>(true)) t.gameObject.layer = Shepherd.Exploration.Lantern.LanternRig.ViewLayer;
+            var fillGo = new GameObject("ViewmodelFill");
+            fillGo.transform.SetParent(vm, false);
+            fillGo.transform.localPosition = new Vector3(0.05f, 0.25f, 0.2f);
+            var fill = fillGo.AddComponent<Light>();
+            fill.type = LightType.Point;
+            fill.range = 1.6f;
+            fill.intensity = 0.6f;
+            fill.color = new Color(1f, 0.82f, 0.62f);
+            fill.cullingMask = 1 << Shepherd.Exploration.Lantern.LanternRig.ViewLayer;
+            fill.shadows = LightShadows.None;
+            qa.Viewmodel = vm;
+            qa.Arm = armRoot;
+            qa.LanternPivot = pivot;
+            qa.LanternRenderer = lantern != null ? lantern.GetComponentInChildren<MeshRenderer>() : null;
+            qa.LanternLight = ll;
             qa.OrbitFloor = FloorCopy(stage, root.transform);
 
             // 碰撞：房間用 MeshCollider，家具用外框盒，開放的兩邊加隱形牆。
@@ -176,6 +221,26 @@ namespace Shepherd.Exploration.Editor
             AssetDatabase.Refresh();
         }
 
+        /// <summary>第一人稱的零件：不投影（提燈的光從裡面照出來，外殼投影會把光擋住）。</summary>
+        private static GameObject ViewPart(string model, Transform parent)
+        {
+            var src = AssetDatabase.LoadAssetAtPath<GameObject>(Root + "/Models/" + model + ".fbx");
+            if (src == null) { Debug.LogError("找不到模型 " + model); return null; }
+            var go = (GameObject)PrefabUtility.InstantiatePrefab(src, parent);
+            go.name = model;
+            go.transform.localPosition = Vector3.zero;
+            go.transform.localRotation = Quaternion.identity;
+            foreach (var r in go.GetComponentsInChildren<MeshRenderer>())
+            {
+                var mats = r.sharedMaterials;
+                for (int i = 0; i < mats.Length; i++) mats[i] = MaterialFor(model, mats[i] != null ? mats[i].name : "Bronze");
+                r.sharedMaterials = mats;
+                r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                r.receiveShadows = false;
+            }
+            return go;
+        }
+
         private static void ConfigureImports()
         {
             foreach (var guid in AssetDatabase.FindAssets("t:Model", new[] { Root + "/Models" }))
@@ -208,6 +273,24 @@ namespace Shepherd.Exploration.Editor
             Directory.CreateDirectory(Root + "/Materials");
             string path = Root + "/Materials/" + model + "_" + slot + ".mat";
             var m = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (slot == "LanternGlass" || slot == "Flame")
+            {
+                // 玻璃：半透明發光；火焰：不透明、更亮，畫在玻璃之前。
+                var glow = Shader.Find("Shepherd/StyleQAGlow");
+                if (m == null) { m = new Material(glow); AssetDatabase.CreateAsset(m, path); }
+                m.shader = glow;
+                m.SetTexture("_BaseMap", AssetDatabase.LoadAssetAtPath<Texture2D>(Root + "/Textures/" + model + "_Paint.png"));
+                bool flameSlot = slot == "Flame";
+                m.SetColor("_Color", flameSlot ? new Color(1f, 0.95f, 0.82f) : new Color(1f, 0.8f, 0.52f));
+                m.SetFloat("_Intensity", flameSlot ? 2.2f : 1.4f);
+                m.SetFloat("_Alpha", flameSlot ? 1f : 0.7f);
+                m.SetFloat("_SrcBlend", flameSlot ? (float)UnityEngine.Rendering.BlendMode.One : (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
+                m.SetFloat("_DstBlend", flameSlot ? (float)UnityEngine.Rendering.BlendMode.Zero : (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+                m.SetFloat("_ZWriteOn", flameSlot ? 1f : 0f);
+                m.renderQueue = flameSlot ? 2450 : 3000;
+                EditorUtility.SetDirty(m);
+                return m;
+            }
             var shader = Shader.Find("Shepherd/PainterlyLit");
             if (m == null) { m = new Material(shader); AssetDatabase.CreateAsset(m, path); }
             m.shader = shader;
@@ -339,6 +422,46 @@ namespace Shepherd.Exploration.Editor
                     }
                     qa.ApplyMaterials(StylizedArtQA.MaterialMode.Painterly);
                 }
+                // 第一人稱：左手提燈（暖光／夜晚、放下／舉高、近距離）
+                var vmShots = new (string tag, StylizedArtQA.Lighting l, bool raised, int view)[]
+                {
+                    ("vm_warm_lowered", StylizedArtQA.Lighting.Warm, false, 4),
+                    ("vm_night_lowered", StylizedArtQA.Lighting.Night, false, 4),
+                    ("vm_night_raised", StylizedArtQA.Lighting.Night, true, 4),
+                    ("vm_night_close", StylizedArtQA.Lighting.Night, true, 5),
+                    ("vm_warm_raised", StylizedArtQA.Lighting.Warm, true, 5),
+                };
+                foreach (var s in vmShots)
+                {
+                    qa.ApplyLighting(s.l);
+                    qa.SetLantern(true, s.raised);
+                    qa.GoToView(s.view);
+                    Shot(qa, rt, Path.Combine(dir, s.tag + ".png"));
+                }
+                // 外觀：另一台相機從前方、側面看手和提燈（證明是立體模型，不是貼在鏡頭上的圖）
+                foreach (var l in new[] { StylizedArtQA.Lighting.Warm, StylizedArtQA.Lighting.Night })
+                {
+                    qa.ApplyLighting(l);
+                    qa.SetLantern(true, false);
+                    qa.GoToView(4);
+                    var c = qa.Cam.transform;
+                    var target = qa.LanternPivot.position - Vector3.up * 0.16f;
+                    foreach (var (n, off) in new[] { ("front", c.forward * 0.55f + c.right * 0.05f), ("side", c.right * -0.5f + c.forward * 0.2f) })
+                    {
+                        var go = new GameObject("ShowcaseCam");
+                        var sc = go.AddComponent<Camera>();
+                        sc.fieldOfView = 40f; sc.nearClipPlane = 0.02f; sc.clearFlags = CameraClearFlags.SolidColor; sc.backgroundColor = qa.Cam.backgroundColor;
+                        go.transform.position = target + off + Vector3.up * 0.05f;
+                        go.transform.rotation = Quaternion.LookRotation(target - go.transform.position, Vector3.up);
+                        var prev = sc.targetTexture; sc.targetTexture = rt; sc.Render(); sc.Render(); sc.targetTexture = prev;
+                        SaveRT(rt, Path.Combine(dir, "vm_outside_" + n + "_" + l.ToString().ToLower() + ".png"));
+                        Object.DestroyImmediate(go);
+                    }
+                }
+                qa.SetLantern(true, false);
+                foreach (var mf in qa.Viewmodel.GetComponentsInChildren<MeshFilter>())
+                    log.AppendLine("- 第一人稱 " + mf.name + "：" + mf.sharedMesh.vertexCount + " 頂點、" + (mf.sharedMesh.triangles.Length / 3) + " 三角形、子網格 " + mf.sharedMesh.subMeshCount);
+
                 log.AppendLine();
                 log.AppendLine("截圖 " + timing.Count + " 張（暖／冷 × 6 個觀察點），平均每張含存檔 " + (timing.Count > 0 ? (System.Linq.Enumerable.Average(timing)).ToString("0") : "-") + " ms");
                 log.AppendLine("ok");
@@ -363,6 +486,11 @@ namespace Shepherd.Exploration.Editor
             cam.Render();
             cam.Render();
             cam.targetTexture = prev;
+            SaveRT(rt, path);
+        }
+
+        private static void SaveRT(RenderTexture rt, string path)
+        {
             var active = RenderTexture.active;
             RenderTexture.active = rt;
             var tex = new Texture2D(rt.width, rt.height, TextureFormat.RGB24, false);

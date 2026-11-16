@@ -16,10 +16,10 @@ namespace Shepherd.Exploration.StyleQA
     /// </summary>
     public sealed class StylizedArtQA : MonoBehaviour
     {
-        public enum Lighting { Warm, Cool }
+        public enum Lighting { Warm, Cool, Night }
         public enum MaterialMode { Painterly, UrpLit, Graybox }
 
-        public static readonly string[] LightingNames = { "暖光（午後窗光＋檯燈）", "冷光（陰天藍光）" };
+        public static readonly string[] LightingNames = { "暖光（午後窗光＋檯燈）", "冷光（陰天藍光）", "夜晚（只有提燈）" };
         public static readonly string[] MaterialNames = { "手繪風格 shader", "URP Lit（同一張貼圖）", "灰盒對照" };
         public static readonly string[] ViewNames = { "正面", "側面", "背面", "45 度", "第一人稱・正常距離", "第一人稱・近距離" };
 
@@ -30,8 +30,15 @@ namespace Shepherd.Exploration.StyleQA
         public Transform[] Views;         // 6 個觀察點（位置＝相機位置；forward＝看的方向）
         public Material WireMaterial;
         public Transform Spawn;
-        public Renderer WindowBackdrop;
-        public Renderer OrbitFloor;       // 只有地板的複本：環繞視角時牆改成只投影，地板仍要看得到   // 窗外的亮面（不受光、不投影），隨光線切換顏色
+        public Renderer WindowBackdrop;   // 窗外的亮面（不受光、不投影），隨光線切換顏色
+        public Renderer OrbitFloor;       // 只有地板的複本：環繞視角時牆改成只投影，地板仍要看得到
+
+        [Header("第一人稱：左手提燈（Blender 模型）")]
+        public Transform Viewmodel;       // 掛在相機下
+        public Transform Arm;             // 左手＋前臂
+        public Transform LanternPivot;    // 手握的位置（提燈從這裡垂下、擺動）
+        public Renderer LanternRenderer;
+        public Light LanternLight;
 
         public Lighting LightMode { get; private set; }
         public MaterialMode MatMode { get; private set; }
@@ -51,6 +58,16 @@ namespace Shepherd.Exploration.StyleQA
         private readonly LegacyExploreInput input = new LegacyExploreInput();
         private bool cursorUi;
         private GUIStyle label, hint, button;
+
+        // 第一人稱提燈的狀態
+        public bool ViewmodelVisible { get; private set; } = true;
+        public bool LanternRaised { get; private set; }
+        public bool LanternOn { get; private set; } = true;
+        private float raise, lightK = 1f, lastYaw, lastPitch, swayPhase;
+        private Vector2 swing, swingVel;
+        // 手（握把）在鏡頭座標的位置：平常提在左邊、燈身大約在畫面左下三分之一；舉高時往中間、往上。
+        public static readonly Vector3 HandLowered = new Vector3(-0.25f, -0.03f, 0.62f);
+        public static readonly Vector3 HandRaised = new Vector3(-0.17f, 0.07f, 0.6f);
 
         private void Start()
         {
@@ -84,10 +101,18 @@ namespace Shepherd.Exploration.StyleQA
             data.renderShadows = true;
 #endif
             CollectMaterials();
+            if (Viewmodel != null)
+            {
+                Viewmodel.SetParent(Cam.transform, false);
+                Viewmodel.localPosition = Vector3.zero;
+                Viewmodel.localRotation = Quaternion.identity;
+            }
+            lastYaw = Player.Yaw; lastPitch = Player.Pitch;
             ApplyLighting(Lighting.Warm);
             ApplyMaterials(MaterialMode.Painterly);
             SetWireframe(false);
             SyncCamera();
+            SettleViewmodel();
             Ready = true;
         }
 
@@ -125,9 +150,16 @@ namespace Shepherd.Exploration.StyleQA
         {
             LightMode = l;
             bool warm = l == Lighting.Warm;
+            bool night = l == Lighting.Night;
             RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Trilight;
             RenderSettings.fog = false;
-            if (warm)
+            if (night)
+            {
+                RenderSettings.ambientSkyColor = new Color(0.12f, 0.13f, 0.19f);
+                RenderSettings.ambientEquatorColor = new Color(0.08f, 0.085f, 0.12f);
+                RenderSettings.ambientGroundColor = new Color(0.04f, 0.04f, 0.055f);
+            }
+            else if (warm)
             {
                 RenderSettings.ambientSkyColor = new Color(0.40f, 0.36f, 0.42f);
                 RenderSettings.ambientEquatorColor = new Color(0.31f, 0.26f, 0.25f);
@@ -146,6 +178,7 @@ namespace Shepherd.Exploration.StyleQA
                 // 窗戶在 -Z 那面牆：光往 +Z 照進房間。
                 Sun.transform.rotation = warm ? Quaternion.Euler(36f, 22f, 0f) : Quaternion.Euler(52f, -12f, 0f);
                 Sun.shadows = LightShadows.Soft;
+                Sun.enabled = !night;
             }
             if (Lamp != null)
             {
@@ -155,10 +188,10 @@ namespace Shepherd.Exploration.StyleQA
             if (WindowBackdrop != null)
             {
                 var mpb = new MaterialPropertyBlock();
-                mpb.SetColor("_BaseColor", warm ? new Color(1.0f, 0.88f, 0.70f) : new Color(0.62f, 0.70f, 0.82f));
+                mpb.SetColor("_BaseColor", night ? new Color(0.07f, 0.09f, 0.14f) : warm ? new Color(1.0f, 0.88f, 0.70f) : new Color(0.62f, 0.70f, 0.82f));
                 WindowBackdrop.SetPropertyBlock(mpb);
             }
-            if (Cam != null) Cam.backgroundColor = warm ? new Color(0.10f, 0.08f, 0.08f) : new Color(0.07f, 0.08f, 0.10f);
+            if (Cam != null) Cam.backgroundColor = night ? new Color(0.02f, 0.02f, 0.03f) : warm ? new Color(0.10f, 0.08f, 0.08f) : new Color(0.07f, 0.08f, 0.10f);
         }
 
         public void ApplyMaterials(MaterialMode mode)
@@ -256,6 +289,7 @@ namespace Shepherd.Exploration.StyleQA
             ViewIndex = i;
             var t = Views[i];
             SetWallsVisible(i >= 4);
+            if (Viewmodel != null) Viewmodel.gameObject.SetActive(ViewmodelVisible && i >= 4);
             if (i < 4)
             {
                 // 環繞視角：只移動相機（有些位置在牆外），一走動就回到玩家身上。
@@ -267,6 +301,67 @@ namespace Shepherd.Exploration.StyleQA
             float pitch = -Mathf.Asin(Mathf.Clamp(fwd.y, -1f, 1f)) * Mathf.Rad2Deg;
             Player.Teleport(t.position - Vector3.up * Player.EyeHeightValue, yaw, pitch);
             SyncCamera();
+            SettleViewmodel();
+        }
+
+        public void SetViewmodelVisible(bool on)
+        {
+            ViewmodelVisible = on;
+            if (Viewmodel != null) Viewmodel.gameObject.SetActive(on && !(ViewIndex >= 0 && ViewIndex < 4));
+        }
+
+        public void SetLantern(bool on, bool raised) { LanternOn = on; LanternRaised = raised; }
+
+        /// <summary>立即套用提燈狀態、不擺動（傳送與截圖用）。</summary>
+        public void SettleViewmodel()
+        {
+            if (Player == null) return;
+            lastYaw = Player.Yaw; lastPitch = Player.Pitch;
+            swing = swingVel = Vector2.zero;
+            raise = LanternRaised ? 1f : 0f;
+            lightK = LanternOn ? 1f : 0f;
+            TickViewmodel(0f, 0f);
+        }
+
+        /// <summary>
+        /// 左手提燈：手跟著鏡頭（走路時輕微上下），提燈從握把垂下、永遠朝下（重力），
+        /// 轉頭時往反方向甩、走路時前後晃，用阻尼彈簧回正（和正式的 LanternRig 同一套手感）。
+        /// </summary>
+        public void TickViewmodel(float dt, float time)
+        {
+            if (Viewmodel == null || Arm == null || LanternPivot == null || Player == null) return;
+            if (dt <= 0f) dt = 1f / 60f;
+            raise = Mathf.MoveTowards(raise, LanternRaised ? 1f : 0f, dt * 3.5f);
+            float r = Mathf.SmoothStep(0f, 1f, raise);
+            float speed = Player.LastHorizontalSpeed;
+            swayPhase += speed * dt / 0.7f * Mathf.PI;
+            float walk = Mathf.Clamp01(speed / 1.2f);
+            var bob = new Vector3(Mathf.Sin(swayPhase) * 0.004f, -Mathf.Abs(Mathf.Sin(swayPhase)) * 0.008f, 0f) * walk;
+            Arm.localPosition = Vector3.Lerp(HandLowered, HandRaised, r) + bob;
+            // 前臂從畫面左下角斜斜伸進來（往下、往左、往後），手背朝外上方。
+            Arm.localRotation = Quaternion.Euler(Mathf.Lerp(-52f, -40f, r), Mathf.Lerp(38f, 30f, r), Mathf.Lerp(18f, 10f, r)) * Quaternion.Euler(0f, 180f, 0f);
+            LanternPivot.position = Arm.position;
+            float dYaw = Mathf.DeltaAngle(lastYaw, Player.Yaw), dPitch = Player.Pitch - lastPitch;
+            lastYaw = Player.Yaw; lastPitch = Player.Pitch;
+            var push = new Vector2(dPitch * 0.9f + Mathf.Sin(swayPhase) * 4f * walk, -dYaw * 1.2f);
+            swingVel += (Vector2.ClampMagnitude(push, 22f) - swing) * 60f * dt - swingVel * 8f * dt;
+            swing = Vector2.ClampMagnitude(swing + swingVel * dt, 28f);
+            // 提燈只跟鏡頭的水平方向（Yaw），不跟低頭抬頭——永遠垂直往下掛；星形紋那一面朝向玩家。
+            LanternPivot.rotation = Quaternion.Euler(swing.x, Player.Yaw + 180f, swing.y);
+            float breathe = 1f + Mathf.Sin(time * 2.3f) * 0.03f + (Mathf.PerlinNoise(time * 1.7f, 0.3f) - 0.5f) * 0.05f;
+            lightK = Mathf.MoveTowards(lightK, LanternOn ? 1f : 0f, dt * 4f);
+            if (LanternLight != null)
+            {
+                LanternLight.enabled = lightK > 0.01f;
+                LanternLight.intensity = 1.25f * lightK * breathe * Mathf.Lerp(1f, 1.15f, r);
+            }
+            if (LanternRenderer != null)
+            {
+                var mpb = new MaterialPropertyBlock();
+                LanternRenderer.GetPropertyBlock(mpb);
+                mpb.SetFloat("_Intensity", Mathf.Lerp(0.18f, 1.5f, lightK) * breathe);
+                LanternRenderer.SetPropertyBlock(mpb);
+            }
         }
 
         public void SetWallsVisible(bool on)
@@ -291,17 +386,21 @@ namespace Shepherd.Exploration.StyleQA
             cursor.UiNeedsCursor = cursorUi;
             cursor.ReportPointer(Input.mousePosition);
             cursor.Tick(Input.GetKeyDown(KeyCode.Escape), Input.GetMouseButtonDown(0), Input.GetMouseButton(0));
-            if (Input.GetKeyDown(KeyCode.T)) ApplyLighting(LightMode == Lighting.Warm ? Lighting.Cool : Lighting.Warm);
+            if (Input.GetKeyDown(KeyCode.T)) ApplyLighting((Lighting)(((int)LightMode + 1) % 3));
             if (Input.GetKeyDown(KeyCode.M)) ApplyMaterials((MaterialMode)(((int)MatMode + 1) % 3));
             if (Input.GetKeyDown(KeyCode.G)) SetWireframe(!Wireframe);
             if (Input.GetKeyDown(KeyCode.U)) LabelsVisible = !LabelsVisible;
             for (int k = 0; k < 6; k++) if (Input.GetKeyDown(KeyCode.Alpha1 + k) || Input.GetKeyDown(KeyCode.Keypad1 + k)) GoToView(k);
             var inp = input.Read();
             bool moving = inp.Move.sqrMagnitude > 0.01f;
-            if (moving && ViewIndex >= 0 && ViewIndex < 4) { SetWallsVisible(true); ViewIndex = -1; }
+            if (moving && ViewIndex >= 0 && ViewIndex < 4) { SetWallsVisible(true); ViewIndex = -1; if (Viewmodel != null) Viewmodel.gameObject.SetActive(ViewmodelVisible); }
+            if (Input.GetKeyDown(KeyCode.F)) LanternRaised = !LanternRaised;
+            if (Input.GetKeyDown(KeyCode.L)) LanternOn = !LanternOn;
+            if (Input.GetKeyDown(KeyCode.H)) SetViewmodelVisible(!ViewmodelVisible);
             bool orbit = ViewIndex >= 0 && ViewIndex < 4;
             Player.Step(Time.deltaTime, orbit ? ExploreInput.None : inp, cursor.LookActive && !orbit);
             if (!orbit) SyncCamera();
+            TickViewmodel(Time.deltaTime, Time.time);
         }
 
         private void OnApplicationFocus(bool focus) => cursor.OnFocus(focus);
@@ -320,18 +419,19 @@ namespace Shepherd.Exploration.StyleQA
             }
             if (!LabelsVisible) { GUI.Label(new Rect(10, 8, 200, 22), "U 顯示標籤", hint); return; }
             GUI.color = new Color(0f, 0f, 0f, 0.5f);
-            GUI.DrawTexture(new Rect(6, 6, 470, 178), Texture2D.whiteTexture);
+            GUI.DrawTexture(new Rect(6, 6, 470, 198), Texture2D.whiteTexture);
             GUI.color = Color.white;
             GUI.Label(new Rect(14, 10, 460, 24), "正式美術風格 QA（縫紉工作區）", label);
             GUI.Label(new Rect(14, 34, 460, 20), "材質：" + MaterialNames[(int)MatMode] + "　光線：" + LightingNames[(int)LightMode], hint);
             GUI.Label(new Rect(14, 52, 460, 20), "線框：" + (Wireframe ? "開" : "關") + "　觀察點：" + (ViewIndex >= 0 ? ViewNames[ViewIndex] : "自由走動"), hint);
-            if (GUI.Button(new Rect(14, 76, 110, 26), "T 光線", button)) ApplyLighting(LightMode == Lighting.Warm ? Lighting.Cool : Lighting.Warm);
+            if (GUI.Button(new Rect(14, 76, 110, 26), "T 光線", button)) ApplyLighting((Lighting)(((int)LightMode + 1) % 3));
             if (GUI.Button(new Rect(130, 76, 110, 26), "M 材質", button)) ApplyMaterials((MaterialMode)(((int)MatMode + 1) % 3));
             if (GUI.Button(new Rect(246, 76, 110, 26), "G 線框", button)) SetWireframe(!Wireframe);
             for (int k = 0; k < 6; k++)
                 if (GUI.Button(new Rect(14 + k * 76, 108, 72, 26), (k + 1) + " " + ViewNames[k].Replace("第一人稱・", ""), button)) GoToView(k);
             GUI.Label(new Rect(14, 140, 460, 20), "WASD 走・Shift 快走・Esc 放開滑鼠・按住 Alt 點按鈕・U 隱藏", hint);
-            GUI.Label(new Rect(14, 158, 460, 20), "這是 Unity 實機畫面（真正的 3D 模型＋即時光影）", hint);
+            GUI.Label(new Rect(14, 158, 460, 20), "提燈：F 舉高／放下・L 開關・H 隱藏手（" + (LanternOn ? "亮" : "熄") + (LanternRaised ? "、舉高" : "") + "）", hint);
+            GUI.Label(new Rect(14, 176, 460, 20), "這是 Unity 實機畫面（真正的 3D 模型＋即時光影）", hint);
         }
     }
 }
