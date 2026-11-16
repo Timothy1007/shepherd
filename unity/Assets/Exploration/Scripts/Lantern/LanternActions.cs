@@ -209,6 +209,12 @@ namespace Shepherd.Exploration.Lantern
         public const float InteractReach = 2.2f, TetherReach = 4.0f;
 
         public static float ReachOf(Component c) => c is LanternTetherable ? TetherReach : InteractReach;
+        /// <summary>提燈放下時沒有光束可以牽引：要走到旁邊用手拿（和一般互動一樣近）。</summary>
+        private float ReachNow(Component c) => c is LanternTetherable && !HandsOnly ? TetherReach : InteractReach;
+        /// <summary>提燈放在別處（例如縫紉機桌上）：改用手抱著搬，沒有光束（使用者 2026-11-17）。</summary>
+        public bool HandsOnly => rig != null && rig.PlacedAt.HasValue;
+        /// <summary>牽引或復原的光束現在有沒有畫出來。</summary>
+        public bool BeamVisible => beam != null && beam.enabled;
 
         /// <summary>眼睛到物件最近表面的距離（大東西像門、櫃子，量到最近的那一面）。</summary>
         private float SurfaceDistance(Component c)
@@ -326,7 +332,7 @@ namespace Shepherd.Exploration.Lantern
                 if (pDown && Energy < ShotCost(0f)) Audio?.Play(LanternAudio.Toggle, 0.5f);
 
                 // E 情境互動。
-                var aimed = FindAimedOf(Interactables(), InteractTypes, 7f, Reach, ReachOf);
+                var aimed = FindAimedOf(Interactables(), InteractTypes, 7f, Reach, ReachNow);
                 Aimed = aimed;
                 active = StepInteract(dt, inp, eDown, aimed);
                 // 做事的時候右手才伸出來：蓄力、抓著東西、復原中、對著東西按 E。
@@ -428,7 +434,7 @@ namespace Shepherd.Exploration.Lantern
             var us = aimed as LanternUsable;
             if (tether != null)
             {
-                Prompt = "E 抓起" + tether.Label;
+                Prompt = (HandsOnly ? "E 用手拿起" : "E 抓起") + tether.Label;
                 if (eDown) Grab(tether);
             }
             else if (rest != null) Prompt = !CanReach(rest) ? TooHighPrompt : rest.TapToUse ? (rest.AutoRun ? "" : "E " + rest.Label) : "按住 E " + (rest == world.FuseBox ? "推回" : "復原") + rest.Label;
@@ -551,8 +557,13 @@ namespace Shepherd.Exploration.Lantern
             if (inp.Primary) ThrowCharge = Mathf.Min(1f, ThrowCharge + dt / ChargeSeconds);
             if (pUp) { Throw(ThrowCharge); ThrowCharge = 0f; return false; }
             var rb = Held.Body;
-            var target = cam.transform.position + cam.transform.forward * holdDistance + Vector3.down * 0.2f + Vector3.up * Mathf.Sin(time * 2.2f) * 0.03f;
-            target.y = Mathf.Max(target.y, cam.transform.position.y - 0.55f);
+            bool hands = HandsOnly;
+            // 用手抱著：貼近身體、低一點、不晃；用提燈牽引：在前面浮著、輕輕晃。
+            var flat = cam.transform.forward; flat.y = 0f; flat = flat.sqrMagnitude > 1e-4f ? flat.normalized : cam.transform.forward;
+            var target = hands
+                ? cam.transform.position + flat * 0.7f + Vector3.down * 0.45f
+                : cam.transform.position + cam.transform.forward * holdDistance + Vector3.down * 0.2f + Vector3.up * Mathf.Sin(time * 2.2f) * 0.03f;
+            target.y = Mathf.Max(target.y, cam.transform.position.y - (hands ? 0.6f : 0.55f));
             HoldPoint = target;
             var desired = Vector3.ClampMagnitude((target - rb.position) * 9f, 9f);
             rb.velocity = Vector3.Lerp(rb.velocity, desired, 1f - Mathf.Exp(-10f * dt));
@@ -560,11 +571,15 @@ namespace Shepherd.Exploration.Lantern
             var upright = Quaternion.Euler(0f, rb.rotation.eulerAngles.y, 0f);
             rb.MoveRotation(Quaternion.Slerp(rb.rotation, upright, 1f - Mathf.Exp(-3f * dt)));
             if (Vector3.Distance(rb.position, target) > 3.5f) { DropHeld(false); return false; }
-            DrawBeam(Center(Held), new Color(0.5f, 0.85f, 1f, 0.85f));
-            holdLight.transform.position = Center(Held);
-            holdLight.color = new Color(0.6f, 0.9f, 1f);
-            holdLight.intensity = 0.6f;
-            Prompt = ThrowCharge > 0f ? "蓄力中… 放開左鍵丟出" : "左鍵 丟出（按住蓄力）｜E 放下";
+            if (hands) { beam.enabled = false; holdLight.intensity = 0f; }
+            else
+            {
+                DrawBeam(Center(Held), new Color(0.5f, 0.85f, 1f, 0.85f));
+                holdLight.transform.position = Center(Held);
+                holdLight.color = new Color(0.6f, 0.9f, 1f);
+                holdLight.intensity = 0.6f;
+            }
+            Prompt = hands ? "用手抱著（提燈放在別處）｜E 放下" : ThrowCharge > 0f ? "蓄力中… 放開左鍵丟出" : "左鍵 丟出（按住蓄力）｜E 放下";
             foreach (var s in world.Spots) if (s != null && !s.Solved && s.Expected == Held && !string.IsNullOrEmpty(s.Hint)) Prompt += "｜好像該放回" + s.Hint + "（會發光）";
             return true;
         }

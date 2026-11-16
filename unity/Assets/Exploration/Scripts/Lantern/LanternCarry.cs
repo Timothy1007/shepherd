@@ -55,7 +55,7 @@ namespace Shepherd.Exploration.Lantern
             LanternMovable best = null; float bestD = 9f;
             foreach (var m in world.Movables)
             {
-                if (m == null || m.Box == null || !m.Box.enabled || !m.gameObject.activeInHierarchy || m.Grabbed) continue;
+                if (m == null || !m.Climbable || m.Box == null || !m.Box.enabled || !m.gameObject.activeInHierarchy || m.Grabbed) continue;
                 var c = m.Box.ClosestPoint(feet + Vector3.up * 0.1f);
                 var d = c - feet; d.y = 0f;
                 if (d.magnitude > player.Body.radius + 0.15f) continue;

@@ -17,6 +17,8 @@ namespace Shepherd.Exploration.Lantern
         public Vector3 HomePosition;
         public Quaternion HomeRotation;
         public LanternTetherable Tether;
+        /// <summary>能不能爬上去站著。凳子不行：只有縫紉時（拿到線、放好提燈之後）才坐上去（使用者 2026-11-17）。</summary>
+        public bool Climbable = true;
         /// <summary>正被牽引著。</summary>
         public bool Grabbed => Tether != null && Tether.Held;
         /// <summary>頂面比根物件高多少（建立時量好；碰撞關掉時也能用）。</summary>
@@ -86,6 +88,7 @@ namespace Shepherd.Exploration.Lantern
                     var b = rs[0].bounds; foreach (var r in rs) b.Encapsulate(r.bounds);
                     foreach (var c in stool.GetComponents<BoxCollider>()) Object.DestroyImmediate(c);
                     V2StoolMovable = MakeMovable(stool, "凳子", b);
+                    V2StoolMovable.Climbable = false;
                 }
                 // ---- 縫紉機：桌上放提燈的位置、凳子的座位、小燈 ----
                 if (V2SewingMachine != null)
@@ -110,8 +113,8 @@ namespace Shepherd.Exploration.Lantern
                     V2SewingLamp = go.AddComponent<Light>();
                     V2SewingLamp.type = LightType.Point;
                     V2SewingLamp.color = new Color(0.92f, 0.94f, 1f);   // 褪色態：冷白
-                    V2SewingLamp.range = 1.3f;
-                    V2SewingLamp.intensity = 1.1f;
+                    V2SewingLamp.range = 1.0f;
+                    V2SewingLamp.intensity = 0.35f;   // 微微亮就好（使用者 2026-11-17）
                     V2SewingLamp.shadows = LightShadows.None;
                     V2SewingLamp.enabled = false;
                     V2PlacedLantern = BuildPlacedLantern(V2SewLanternSpot);

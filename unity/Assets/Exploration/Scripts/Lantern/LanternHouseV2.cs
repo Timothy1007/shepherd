@@ -682,8 +682,8 @@ namespace Shepherd.Exploration.Lantern
             }
             // 店面櫃台上一盞會閃的暖色小燈泡：進門第一眼會走過去的地方（地標）。
             var counterBulb = Mat("V2_CounterBulb", Mode.Dual, new Color(1f, 0.85f, 0.6f), new Color(1f, 0.85f, 0.6f), null, null, 0.8f, 0.8f, 0f);
-            counterBulb.SetColor("_EmissionColor", new Color(3f, 2f, 1.1f));
-            counterBulb.SetColor("_AnomalyEmission", new Color(3f, 2f, 1.1f));
+            counterBulb.SetColor("_EmissionColor", new Color(1.5f, 1.0f, 0.55f));   // 燈泡本身也調暗一點（使用者 2026-11-17）
+            counterBulb.SetColor("_AnomalyEmission", new Color(1.5f, 1.0f, 0.55f));
             var cb = V2(2.0f, 0f, 4.1f) + Vector3.up * (0.99f * FurnitureScale + 0.18f);
             Cyl("V2CounterLampBase", cb + Vector3.down * 0.14f, new Vector3(0.12f, 0.02f, 0.12f), hDark);
             Cyl("V2CounterLampStem", cb + Vector3.down * 0.07f, new Vector3(0.02f, 0.06f, 0.02f), hDark);
@@ -1013,12 +1013,25 @@ namespace Shepherd.Exploration.Lantern
             if (dot > 0 && int.TryParse(key.Substring(dot + 1), out _)) key = key.Substring(0, dot);
             Material m;
             if (customMatCache.TryGetValue(key, out m) && m != null) return m;
-            // 美術風格 QA 的手繪材質（PainterlyLit）：記憶中＝手繪貼圖原色；褪色態＝同一張貼圖降飽和、偏冷。
+            // 美術風格 QA 的手繪材質（PainterlyLit）：保留卡通的色塊明暗，換成「提燈版」shader（使用者 2026-11-17：要看卡通渲染放進場景的效果）。
+            //   提燈照到＝記憶中的手繪顏色；照不到＝褪色（同樣的色塊明暗，降飽和、偏冷）。找不到 shader 才退回一般的雙狀態材質。
             if (src != null && src.HasProperty("_MidTint") && src.HasProperty("_BaseMap") && src.GetTexture("_BaseMap") != null)
             {
-                var paint = src.GetTexture("_BaseMap");
-                m = Mat("LC_" + key, Mode.Dual, Color.white, new Color(0.74f, 0.78f, 0.84f), paint, paint, 0.25f, 0.3f, 0.004f);
-                if (m.HasProperty("_AnomalySat")) m.SetFloat("_AnomalySat", 0.18f);
+                var toon = Shader.Find("Shepherd/PainterlyReveal");
+                if (toon != null)
+                {
+                    m = new Material(toon) { name = "LC_" + key + "_Toon" };
+                    m.CopyPropertiesFromMaterial(src);
+                    m.shader = toon;
+                    m.SetFloat("_FadedSat", 0.18f); m.SetColor("_FadedTint", new Color(0.80f, 0.84f, 0.92f)); m.SetFloat("_FadedLevel", 0.85f);
+                    m.SetColor("_EdgeColor", new Color(1.5f, 0.95f, 0.42f)); m.SetFloat("_EdgeWidth", 0.35f); m.SetFloat("_Mode", 0f);
+                }
+                else
+                {
+                    var paint = src.GetTexture("_BaseMap");
+                    m = Mat("LC_" + key, Mode.Dual, Color.white, new Color(0.74f, 0.78f, 0.84f), paint, paint, 0.25f, 0.3f, 0.004f);
+                    if (m.HasProperty("_AnomalySat")) m.SetFloat("_AnomalySat", 0.18f);
+                }
                 customMatCache[key] = m;
                 return m;
             }

@@ -683,7 +683,8 @@ namespace Shepherd.Exploration.Lantern
                 if (V2Powered && V2Root != null && l.transform.IsChildOf(V2Root))
                 {
                     float stutter = Mathf.PerlinNoise(time * 0.9f, sd + 11f) > 0.88f ? Mathf.Lerp(0.55f, 1f, Mathf.PerlinNoise(time * 14f, sd)) : 1f;
-                    l.intensity = b * 1.8f * stutter;
+                    // 櫃台的小燈：有電之後只是微微亮著（使用者 2026-11-17）。
+                    l.intensity = l.name == "V2CounterLight" ? b * 0.45f : b * 1.8f * stutter;
                     l.color = baseColor[l];
                     continue;
                 }

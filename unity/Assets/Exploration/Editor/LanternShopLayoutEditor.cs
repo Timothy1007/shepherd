@@ -215,6 +215,12 @@ namespace Shepherd.Exploration.Editor
                 sew.Use(); Run(20); Snap("sew_lantern_placed");
                 sew.Use(); Run(45); Snap("sew_child_seated");
                 qa.V2.StandUp(); Run(5);
+                // 5b. 櫃台上面（成人、提燈開著）
+                qa.V2.StandUp(); Run(20);
+                qa.ViewOverride = LanternPrototypeQA.AdultEyeHeight;
+                qa.Player.Teleport(P(4.85f, 1.9f), -90f, 0f); Run(40);
+                Look(w.V2Root.GetComponentsInChildren<Transform>().First(x => x.name == "V2Counter").GetComponent<Collider>().bounds.center + Vector3.up * 0.45f); Run(5); Snap("counter_top");
+                qa.ViewOverride = null; Run(5);
                 // 6. 成人坐下
                 qa.ViewOverride = LanternPrototypeQA.AdultEyeHeight; Run(40);
                 sew.Use(); Run(5); sew.Use(); Run(45); Snap("sew_adult_seated");

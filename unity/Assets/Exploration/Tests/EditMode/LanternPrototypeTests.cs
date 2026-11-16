@@ -1206,6 +1206,52 @@ namespace Shepherd.Exploration.Tests
         }
 
         [Test]
+        public void LanternOnTheTable_YouCarryByHand_NoBeam_AndMustWalkClose()
+        {
+            var qa = NewQa();
+            var w = qa.World;
+            var v2 = qa.V2;
+            TakeThread(qa);
+            StandAt(qa, w.V2SewingMachine.GetComponent<Collider>().bounds.center, w.V2ShopRoom.center, 1.0f);
+            Act(qa, 1, new LanternActionInput { Interact = true });
+            Act(qa, 1, LanternActionInput.None);
+            Assert.IsTrue(v2.LanternPlaced && qa.Actions.HandsOnly, "提燈放在桌上：只能用手");
+            var box = w.V2MovableBox;
+            // 站在 3 m 外：提燈不在手上，抓不到。
+            qa.Player.Teleport(PV(1.35f, 2.4f), 0f, 0f); Settle(qa);
+            Aim(qa, box.Box.bounds.center); Act(qa, 1, LanternActionInput.None);
+            StringAssert.DoesNotContain("拿起紙箱", qa.PromptText, "太遠：要走過去用手拿");
+            // 走到旁邊：用手拿起，沒有光束。
+            qa.Player.Teleport(PV(1.35f, 3.7f), 0f, 0f); Settle(qa);
+            Aim(qa, box.Box.bounds.center); Act(qa, 1, LanternActionInput.None);
+            StringAssert.Contains("用手拿起紙箱", qa.PromptText);
+            Act(qa, 1, new LanternActionInput { Interact = true });
+            for (int k = 0; k < 20; k++) qa.Step(Dt, ExploreInput.None);
+            Assert.AreSame(box.Tether, qa.Actions.Held, "用手抱著");
+            Assert.IsFalse(qa.Actions.BeamVisible, "沒有從桌上的提燈拉出來的光束");
+            var d = box.Box.bounds.center - qa.Cam.transform.position; d.y = 0f;
+            Assert.Less(d.magnitude, 1.0f, "抱在身前");
+            Act(qa, 1, new LanternActionInput { Interact = true });
+            Act(qa, 1, LanternActionInput.None);
+            Assert.IsNull(qa.Actions.Held, "放下");
+        }
+
+        [Test]
+        public void Stool_CannotBeStoodOn_OnlySatOnToSew()
+        {
+            var qa = NewQa();
+            var w = qa.World;
+            var stool = w.V2StoolMovable;
+            Assert.IsFalse(stool.Climbable, "凳子不能爬上去站");
+            var seat = stool.transform.position;
+            qa.Player.Teleport(new Vector3(seat.x, LanternGraybox.V2Origin.y + 0.05f, seat.z + 0.75f), 180f, 0f);
+            Settle(qa);
+            for (int k = 0; k < 60; k++) qa.Step(Dt, new ExploreInput { Move = new Vector2(0f, 1f) });
+            Assert.AreEqual(0, qa.Carry.Climbs, "頂著凳子走也不會爬上去");
+            Assert.Less(qa.Player.transform.position.y, LanternGraybox.V2Origin.y + 0.1f, "還在地上");
+        }
+
+        [Test]
         public void Lantern_PullsBackAndDims_WhenYourFaceIsNearAWall()
         {
             var qa = NewQa();
