@@ -15,12 +15,18 @@ namespace Shepherd.Exploration.Lantern
     public sealed class LanternPrototypeQA : MonoBehaviour
     {
         public static readonly float[] Fovs = { 55f, 62f, 70f };
-        public const float WalkSpeed = 1.9f;
-        public const float BriskSpeed = 3.0f;
+        // 正式移動參數＝移動手感 QA 的「A｜慢速探索」（2026-11-16 使用者試玩後採用）。
+        // 舊值：步行 1.9／快走 3.0／加減速同為 7／時間式晃動／腳步聲 0.8 m。
+        public const float WalkSpeed = 1.5f;
+        public const float BriskSpeed = 2.4f;
+        /// <summary>加速：約 0.45 秒到步行速度。</summary>
+        public const float MoveAcceleration = WalkSpeed / 0.45f;
+        /// <summary>減速（另外設定）：放開方向鍵後約 0.2～0.3 秒停住。</summary>
+        public const float MoveDeceleration = 8f;
         /// <summary>目前使用的步行／快走速度（預設＝上面的正式常數）。只有移動手感 QA 會改它。</summary>
         public float WalkSpeedNow = WalkSpeed, BriskSpeedNow = BriskSpeed;
-        /// <summary>腳步聲間隔（公尺）；正式預設 0.8。移動手感 QA 會和步伐晃動對齊。</summary>
-        public float StepLength = 0.8f;
+        /// <summary>腳步聲間隔（公尺），和步伐式晃動（一步 0.7 m）對齊。</summary>
+        public float StepLength = 0.7f;
 
         public LanternGraybox World { get; private set; }
         public LanternRig Rig { get; private set; }
@@ -153,7 +159,9 @@ namespace Shepherd.Exploration.Lantern
             Player.WalkSpeedValue = WalkSpeedNow;
             Player.RunSpeedValue = BriskSpeedNow;
             Player.EyeHeightValue = 1.62f;
-            Player.Acceleration = 7f;
+            Player.Acceleration = MoveAcceleration;
+            Player.Deceleration = MoveDeceleration;
+            Player.SmoothSpeedOnly = true;   // 只平滑速度大小，方向跟著鏡頭（轉頭不側滑）
 
             var camGo = new GameObject("LanternCamera");
             camGo.transform.SetParent(transform, false);
@@ -171,6 +179,7 @@ namespace Shepherd.Exploration.Lantern
             Style.Set(true);
 
             Rig = LanternRig.Build(Cam, Player);
+            Rig.GaitBob = true;              // 步伐式晃動（一步 0.7 m；B 鍵仍可關）
             Audio = LanternAudio.Build(camGo.transform);
             Actions = new LanternActions(Cam, Rig, World);
             Actions.Audio = Audio;

@@ -4,8 +4,8 @@ namespace Shepherd.Exploration.Lantern
 {
     /// <summary>
     /// 第一人稱移動手感 QA（只存在於獨立場景 Assets/Exploration/Scenes/LanternMovementQA.unity）。
-    /// F6：A → B → C 循環；0：現行正式參數（對照用）；B：鏡頭晃動開／關（沿用提燈 QA 原本的按鍵）；按住 Alt 點按鈕；U 隱藏標籤。
-    /// 正式遊戲的移動參數不變（WalkSpeed 1.9／BriskSpeed 3.0／加減速 7／原本的晃動）。
+    /// F6：A → B → C 循環；0：舊版參數（對照用）；B：鏡頭晃動開／關（沿用提燈 QA 原本的按鍵）；按住 Alt 點按鈕；U 隱藏標籤。
+    /// 2026-11-16 使用者試玩後採用 A 為正式參數（見 LanternPrototypeQA.WalkSpeed 等常數）；舊版＝1.9／3.0／加減速 7／時間式晃動。
     ///
     /// 漂浮感的原因（依原本的程式）：
     ///   1. 加速與減速是同一個值（7 m/s²）：放開方向鍵後還會滑 0.26～0.64 m 才停，像在冰上。
@@ -28,14 +28,16 @@ namespace Shepherd.Exploration.Lantern
             Make("A｜慢速探索", 1.5f, 2.4f),
             Make("B｜平衡探索", 1.9f, 3.0f),
             Make("C｜較快探索", 2.4f, 3.8f),
-            new Preset { Name = "現行正式參數（對照）", Walk = LanternPrototypeQA.WalkSpeed, Brisk = LanternPrototypeQA.BriskSpeed, Accel = 7f, Decel = 0f, Gait = false },
+            new Preset { Name = "舊版參數（對照）", Walk = 1.9f, Brisk = 3.0f, Accel = 7f, Decel = 0f, Gait = false },
         };
+        /// <summary>正式遊戲採用的預設（A）。</summary>
+        public const int FormalIndex = 0;
 
         private static Preset Make(string n, float walk, float brisk) =>
             new Preset { Name = n, Walk = walk, Brisk = brisk, Accel = walk / 0.45f, Decel = Mathf.Max(walk / 0.2f, brisk / 0.3f), Gait = true };
 
         public LanternPrototypeQA Qa { get; private set; }
-        public int Index { get; private set; } = 1;
+        public int Index { get; private set; } = FormalIndex;
         public Preset Current => Presets[Index];
         public bool LabelsVisible = true;
         private bool entered;
@@ -61,7 +63,7 @@ namespace Shepherd.Exploration.Lantern
         private void OnDestroy()
         {
             if (Qa == null) return;
-            Apply(3);                    // 還原成現行正式參數
+            Apply(FormalIndex);          // 還原成正式參數（A）
             Qa.RenderStyleQA = false; Qa.CursorUiOpen = false;
         }
 
@@ -155,7 +157,7 @@ namespace Shepherd.Exploration.Lantern
             GUI.Label(new Rect(w - 476, 34, 462, 22), "步行 " + p.Walk.ToString("0.0") + " m/s・快走（Shift）" + p.Brisk.ToString("0.0") + " m/s・晃動 " + (Qa.Rig.HeadBob ? (p.Gait ? "步伐式" : "原本") : "關"), hintStyle);
             GUI.Label(new Rect(w - 476, 54, 462, 22), "目前速度 " + Qa.Player.LastHorizontalSpeed.ToString("0.00") + " m/s・起步 " + (LastStartTime < 0f ? "—" : LastStartTime.ToString("0.00") + " 秒") + "・停止滑行 " + (LastStopDistance < 0f ? "—" : LastStopDistance.ToString("0.00") + " m"), hintStyle);
             var prev = GUI.backgroundColor;
-            string[] labels = { "A", "B", "C", "現行" };
+            string[] labels = { "A", "B", "C", "舊版" };
             for (int i = 0; i < 4; i++)
             {
                 GUI.backgroundColor = i == Index ? new Color(1f, 0.75f, 0.4f) : prev;
@@ -164,7 +166,7 @@ namespace Shepherd.Exploration.Lantern
             GUI.backgroundColor = Qa.Rig.HeadBob ? new Color(0.7f, 0.85f, 1f) : prev;
             if (GUI.Button(new Rect(w - 476, 80, 130, 30), Qa.Rig.HeadBob ? "晃動：開" : "晃動：關", buttonStyle)) Qa.ToggleHeadBob();
             GUI.backgroundColor = prev;
-            GUI.Label(new Rect(w - 476, 116, 462, 22), "F6 切換 A／B／C・0 現行・B 晃動開關・按住 Alt 點按鈕・U 隱藏", hintStyle);
+            GUI.Label(new Rect(w - 476, 116, 462, 22), "F6 切換 A／B／C・0 舊版・B 晃動開關・按住 Alt 點按鈕・U 隱藏", hintStyle);
             GUI.Label(new Rect(w - 476, 134, 462, 20), "路線：走廊 → 餐廳門 → 餐桌旁 → 廚房門 → 廚房 → 回走廊 → 樓梯", hintStyle);
         }
     }

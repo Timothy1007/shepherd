@@ -1526,16 +1526,19 @@ namespace Shepherd.Exploration.Tests
         // ---------------- 移動手感 QA（A／B／C 預設；正式參數不變） ----------------
 
         [Test]
-        public void Movement_FormalDefaults_AreUnchanged_WithoutTheQa()
+        public void Movement_FormalDefaults_ArePresetA_WithoutTheQa()
         {
             var qa = NewQa();
-            Assert.AreEqual(LanternPrototypeQA.WalkSpeed, qa.Player.WalkSpeedValue, 1e-4f, "正式步行速度不變（1.9）");
-            Assert.AreEqual(LanternPrototypeQA.BriskSpeed, qa.Player.RunSpeedValue, 1e-4f, "正式快走速度不變（3.0）");
-            Assert.AreEqual(7f, qa.Player.Acceleration, 1e-4f, "正式加減速不變（7）");
-            Assert.AreEqual(0f, qa.Player.Deceleration, 1e-4f, "正式沒有另外的減速");
-            Assert.IsFalse(qa.Player.SmoothSpeedOnly, "正式維持原本的速度平滑方式");
-            Assert.IsFalse(qa.Rig.GaitBob, "正式維持原本的鏡頭晃動");
-            Assert.AreEqual(0.8f, qa.StepLength, 1e-4f, "正式腳步聲間隔不變");
+            var a = LanternMovementFeelSwitch.Presets[LanternMovementFeelSwitch.FormalIndex];
+            Assert.AreEqual(1.5f, qa.Player.WalkSpeedValue, 1e-4f, "正式步行＝A 的 1.5");
+            Assert.AreEqual(2.4f, qa.Player.RunSpeedValue, 1e-4f, "正式快走＝A 的 2.4");
+            Assert.AreEqual(a.Walk, LanternPrototypeQA.WalkSpeed, 1e-4f);
+            Assert.AreEqual(a.Brisk, LanternPrototypeQA.BriskSpeed, 1e-4f);
+            Assert.AreEqual(a.Accel, qa.Player.Acceleration, 1e-3f, "正式加速＝A");
+            Assert.AreEqual(a.Decel, qa.Player.Deceleration, 1e-3f, "正式減速＝A");
+            Assert.IsTrue(qa.Player.SmoothSpeedOnly, "轉頭不側滑");
+            Assert.IsTrue(qa.Rig.GaitBob, "步伐式晃動");
+            Assert.AreEqual(0.7f, qa.StepLength, 1e-4f, "腳步聲每 0.7 m");
         }
 
         [Test]
@@ -1583,8 +1586,11 @@ namespace Shepherd.Exploration.Tests
             var fwd = Quaternion.Euler(0f, p.Yaw, 0f) * Vector3.forward;
             Assert.Less(Mathf.Abs(Vector3.Dot(moved, Quaternion.Euler(0f, 90f, 0f) * fwd)), 0.03f, "B：轉頭後沒有側滑");
             sw.Apply(3);
-            Assert.AreEqual(7f, p.Acceleration, 1e-4f, "選回「現行」就是正式參數");
+            Assert.AreEqual(7f, p.Acceleration, 1e-4f, "「舊版」對照＝原本的 7");
             Assert.IsFalse(qa.Rig.GaitBob);
+            sw.Apply(LanternMovementFeelSwitch.FormalIndex);
+            Assert.AreEqual(LanternPrototypeQA.MoveAcceleration, p.Acceleration, 1e-3f, "選回 A＝正式參數");
+            Assert.IsTrue(qa.Rig.GaitBob);
         }
 
         [Test]

@@ -197,9 +197,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0259f984eb479be4181874412f2520d1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  WalkSpeedNow: 1.9
-  BriskSpeedNow: 3
-  StepLength: 0.8
+  WalkSpeedNow: 1.5
+  BriskSpeedNow: 2.4
+  StepLength: 0.7
   FocusHeld: 0
   CursorUiOpen: 0
   RenderStyleQA: 0
