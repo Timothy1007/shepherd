@@ -82,7 +82,7 @@ namespace Shepherd.Exploration.Editor
                 qa.Rig.SetOn(false);
                 qa.Rig.HideHands = true;
                 var labels = new StringBuilder();
-                for (int layout = 0; layout < 3; layout++)
+                for (int layout = 0; layout < LanternGraybox.ShopLayoutNames.Length; layout++)
                 {
                     qa.World.SetShopLayout(layout);
                     log.AppendLine("## " + LanternGraybox.ShopLayoutNames[layout]);
@@ -93,7 +93,7 @@ namespace Shepherd.Exploration.Editor
                     {
                         foreach (bool child in new[] { false, true })
                         {
-                            qa.ChildView = child;
+                            qa.ViewOverride = child ? qa.ChildEyeHeight : LanternPrototypeQA.AdultEyeHeight;
                             qa.GoToShopView(v);
                             for (int k = 0; k < 4; k++) qa.Step(1f / 30f, ExploreInput.None);
                             qa.Rig.Snap();
@@ -103,10 +103,10 @@ namespace Shepherd.Exploration.Editor
                             log.AppendLine("| " + LanternPrototypeQA.ShopViews[v].name + " | " + (child ? "孩子" : "成人") + " | " + string.Join(" | ", cells) + " |");
                         }
                     }
-                    qa.ChildView = false;
+                    qa.ViewOverride = null;
                     log.AppendLine();
                 }
-                qa.World.SetShopLayout(0);
+                qa.World.SetShopLayout(1);
                 File.WriteAllText(Path.Combine(dir, "labels.txt"), labels.ToString(), new UTF8Encoding(false));
                 log.AppendLine("ok");
             }
@@ -190,14 +190,14 @@ namespace Shepherd.Exploration.Editor
                     var t = qa.World.V2Root.GetComponentsInChildren<Transform>(true).FirstOrDefault(x => x.name == tg.obj && x.gameObject.activeInHierarchy);
                     if (t != null) L(tg.label, t.position, tg.label.StartsWith("S") || tg.label.Contains("照片") ? "puzzle" : "furniture");
                 }
-                foreach (var n in new[] { "ShopA_CutTable", "ShopA_Fitting", "ShopB_RackFront", "ShopB_RackMid", "ShopB_Fitting", "V2FabricShelf", "V2ClothesRack", "V2ButtonCabinet" })
+                foreach (var n in new[] { "ShopA_CutTable", "ShopA_Fitting", "V2FabricShelf", "V2ClothesRack", "V2ButtonCabinet" })
                 {
                     var t = qa.World.V2Root.GetComponentsInChildren<Transform>(true).FirstOrDefault(x => x.name == n && x.gameObject.activeInHierarchy);
                     if (t == null) continue;
                     var rs = t.GetComponentsInChildren<Renderer>();
                     var c = t.position;
                     if (rs.Length > 0) { var b = rs[0].bounds; foreach (var r in rs) b.Encapsulate(r.bounds); c = b.center; }
-                    string text = n.Contains("CutTable") ? "裁剪桌" : n.Contains("Fitting") ? "試衣間" : n == "ShopB_RackFront" ? "成衣架（前景）" : n == "ShopB_RackMid" ? "待改衣架（中景）"
+                    string text = n.Contains("CutTable") ? "裁剪桌" : n.Contains("Fitting") ? "試衣間"
                         : n == "V2FabricShelf" ? "布料架" : n == "V2ClothesRack" ? "左牆衣架" : "鈕扣櫃";
                     L(text, c, "furniture");
                 }

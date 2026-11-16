@@ -1478,22 +1478,21 @@ namespace Shepherd.Exploration.Tests
             Assert.Greater(qa.Player.transform.position.y, 2.8f, "走得上樓梯（高度 " + qa.Player.transform.position.y.ToString("0.00") + "）");
         }
 
-        // ---------------- 服飾店布局 QA（現況／A／B；正式預設維持現況） ----------------
+        // ---------------- 服飾店：A｜生活機能優先＝正式（2026-11-16 採用） ----------------
 
-        [TestCase(1)]
-        [TestCase(2)]
-        public void ShopLayout_S1S2S4_StillWork_AndTheShopRepairs(int layout)
+        [Test]
+        public void ShopA_IsFormal_S1S2S4_StillWork_AndTheShopRepairs()
         {
             var qa = NewQa();
             var w = qa.World;
             var v2 = qa.V2;
-            Assert.AreEqual(0, w.ShopLayout, "正式遊戲預設是現況");
-            w.SetShopLayout(layout);
+            Assert.AreEqual(1, w.ShopLayout, "正式遊戲是 A");
+            Assert.IsTrue(w.V2Root.GetComponentsInChildren<Transform>(true).First(t => t.name == "ShopA_CutTable").gameObject.activeInHierarchy, "A 的裁剪桌在");
             var center = w.V2ShopRoom.center;
             qa.Rig.SetOn(true);
             var lever = w.V2PowerLever;
             StandAt(qa, lever.GetComponent<Collider>().bounds.center, center, 0.7f);
-            StringAssert.Contains("按住 E", qa.PromptText, LanternGraybox.ShopLayoutNames[layout] + "：S1 電箱可以互動");
+            StringAssert.Contains("按住 E", qa.PromptText, "S1 電箱可以互動（小小孩眼高 " + qa.Player.EyeHeightValue.ToString("0.00") + "）");
             Act(qa, 70, new LanternActionInput { Interact = true });
             Act(qa, 1, LanternActionInput.None);
             Assert.IsTrue(v2.Powered, "S1 有電了");
@@ -1525,44 +1524,77 @@ namespace Shepherd.Exploration.Tests
             Assert.IsTrue(echo.Playing, "影子殘影的牆沒有被家具擋住");
         }
 
-        [TestCase(1)]
-        [TestCase(2)]
-        public void ShopLayout_RoutesWalkable_ClearanceOk_ChildViewOnlyMovesTheCamera_AndCurrentRestores(int layout)
+        [Test]
+        public void ShopA_RoutesWalkable_ClearanceOk_AndOriginalLayoutStillRestores()
         {
             var qa = NewQa();
             var w = qa.World;
             Transform Find(string n) => w.V2Root.GetComponentsInChildren<Transform>(true).First(t => t.name == n);
             var counter = Find("V2Counter");
-            var counter0 = counter.position;
-            w.SetShopLayout(layout);
-            Assert.Greater(Vector3.Distance(counter0, counter.position), 0.5f, "櫃台換了位置（實質差異）");
+            var counterA = counter.position;
             var o = LanternGraybox.V2Origin; float S = LanternGraybox.V2Scale;
             Vector3 HP(float x, float z) => o + new Vector3(x * S, 0.05f, z * S);
-            var route = layout == 1
-                ? new[] { ("店門內側", 5.1f, 0.6f), ("櫃台前（接待）", 4.8f, 1.9f), ("櫃台後端", 4.8f, 3.6f), ("店主側往工作區", 3.3f, 3.75f), ("裁剪桌北側", 2.3f, 3.75f),
-                          ("外套前", 1.0f, 3.5f), ("左牆衣架旁", 1.15f, 2.3f), ("往窗邊", 2.1f, 1.6f), ("縫紉機旁（窗下）", 2.1f, 1.1f), ("回到外套前", 1.0f, 3.5f), ("電箱前", 1.85f, 4.25f), ("往住宅的門前", 5.07f, 4.3f) }
-                : new[] { ("店門內側", 5.1f, 0.6f), ("成衣架右側", 5.0f, 2.0f), ("櫃台前", 4.4f, 2.7f), ("櫃台右端", 4.1f, 3.4f), ("店主區", 3.9f, 4.15f), ("櫃台後", 2.4f, 4.1f),
-                          ("電箱前", 1.85f, 4.2f), ("外套前", 1.0f, 3.5f), ("衣架後方", 1.0f, 2.5f), ("兩座衣架之間", 1.0f, 1.5f), ("往窗邊", 1.95f, 1.5f), ("縫紉機旁（窗下）", 2.1f, 1.1f),
-                          ("工作角東側", 3.3f, 1.3f), ("繞過中景衣架", 3.3f, 2.4f), ("回到通道", 4.7f, 2.4f), ("往住宅的門前", 5.07f, 4.3f) };
+            var route = new[] { ("店門內側", 5.1f, 0.6f), ("櫃台前（接待）", 4.8f, 1.9f), ("櫃台後端", 4.8f, 3.6f), ("店主側往工作區", 3.3f, 3.75f), ("裁剪桌北側", 2.3f, 3.75f),
+                ("外套前", 1.0f, 3.5f), ("左牆衣架旁", 1.15f, 2.3f), ("往窗邊", 2.1f, 1.6f), ("縫紉機旁（窗下）", 2.1f, 1.1f), ("回到外套前", 1.0f, 3.5f), ("電箱前", 1.85f, 4.25f), ("往住宅的門前", 5.07f, 4.3f) };
             qa.Player.Teleport(HP(route[0].Item2, route[0].Item3), 0f, 0f);
             qa.Step(Dt, ExploreInput.None);
             foreach (var (name, x, z) in route)
-                Assert.IsTrue(WalkTo(qa, HP(x, z), 700), LanternGraybox.ShopLayoutNames[layout] + "：走得到「" + name + "」（卡在 " + qa.Player.transform.position + "）");
+                Assert.IsTrue(WalkTo(qa, HP(x, z), 700), "A：走得到「" + name + "」（卡在 " + qa.Player.transform.position + "）");
             Physics.SyncTransforms();
             var res = LanternClearance.Measure(w.V2Root, w.V2ClearanceRoute());
             Assert.IsEmpty(res.Where(r => !r.Ok).ToList(), "動線淨寬不足：\n" + LanternClearance.Report(res));
 
-            // 孩子視角：只降低攝影機，碰撞體高度與移動不變。
-            float h = qa.Player.Body.height;
-            qa.ChildView = true;
-            qa.Step(Dt, ExploreInput.None);
-            Assert.AreEqual(qa.ChildEyeHeight, qa.Player.EyeHeightValue, 1e-4f, "孩子視角的眼高");
-            Assert.AreEqual(h, qa.Player.Body.height, 1e-4f, "碰撞體沒有縮小（不是變成孩子）");
-            Assert.AreEqual(1.5f, qa.Player.WalkSpeedValue, 1e-3f, "移動速度不變");
-            qa.ChildView = false;
-
             w.SetShopLayout(0);
-            Assert.AreEqual(0f, Vector3.Distance(counter0, counter.position), 1e-4f, "切回現況：完全復原");
-            Assert.IsTrue(w.V2Root.GetComponentsInChildren<Transform>(true).Where(t => t.name.StartsWith("ShopA_") || t.name.StartsWith("ShopB_")).All(t => !t.gameObject.activeInHierarchy), "A／B 專屬的物件收起來");
-        }    }
+            Assert.Greater(Vector3.Distance(counterA, counter.position), 0.5f, "原本的擺法：櫃台在別的位置");
+            Assert.IsTrue(w.V2Root.GetComponentsInChildren<Transform>(true).Where(t => t.name.StartsWith("ShopA_")).All(t => !t.gameObject.activeInHierarchy), "A 專屬的物件收起來");
+            w.SetShopLayout(1);
+            Assert.AreEqual(0f, Vector3.Distance(counterA, counter.position), 1e-4f, "再套回 A：完全一樣");
+        }
+
+        // ---------------- 記憶視角的眼高（店面／走廊／側院＝小小孩、餐廳＝初中、廚房＝成人） ----------------
+
+        [Test]
+        public void MemoryEyeHeight_FollowsTheMemoryRooms_OnlyTheCameraChanges()
+        {
+            var qa = NewQa();
+            var w = qa.World;
+            float body = qa.Player.Body.height;
+            float At(string mark)
+            {
+                qa.Player.Teleport(w.Marks[mark].position, 0f, 0f);
+                for (int k = 0; k < 3; k++) qa.Step(Dt, ExploreInput.None);
+                return qa.Player.EyeHeightValue;
+            }
+            Assert.AreEqual(0.85f, qa.ChildEyeHeight, 1e-4f, "小小孩眼高（使用者試玩選的 0.85 m）");
+            Assert.AreEqual(1.12f, qa.TeenEyeHeight, 1e-4f, "初中眼高");
+            Assert.AreEqual(LanternPrototypeQA.AdultEyeHeight, At("V2Street"), 1e-4f, "門外的街道：成人");
+            Assert.AreEqual(qa.ChildEyeHeight, At("V2Shop"), 1e-4f, "店面：小小孩");
+            Assert.AreEqual(qa.ChildEyeHeight, At("V2Hall"), 1e-4f, "走廊（普通的門）：還是小小孩");
+            Assert.AreEqual(qa.ChildEyeHeight, At("V2Yard"), 1e-4f, "側院（側門是普通的門）：還是小小孩");
+            Assert.AreEqual(qa.TeenEyeHeight, At("V2Dining"), 1e-4f, "餐廳（拉鋸的記憶門之後）：初中");
+            Assert.AreEqual(LanternPrototypeQA.AdultEyeHeight, At("V2Kitchen"), 1e-4f, "廚房：成人");
+            Assert.AreEqual(body, qa.Player.Body.height, 1e-4f, "碰撞體沒有縮小（不是變成孩子）");
+            Assert.AreEqual(LanternPrototypeQA.WalkSpeed, qa.Player.WalkSpeedValue, 1e-3f, "移動速度不變");
+
+            // 走過記憶門（不是傳送）：眼高平順過渡，不是一下子跳過去。
+            At("V2Hall");
+            var feet = qa.Player.transform.position;
+            qa.ViewOverride = qa.TeenEyeHeight;
+            qa.Step(Dt, ExploreInput.None);
+            float mid = qa.Player.EyeHeightValue;
+            Assert.Greater(mid, qa.ChildEyeHeight + 1e-3f, "開始長高");
+            Assert.Less(mid, qa.TeenEyeHeight - 1e-3f, "還在過渡中");
+            for (int k = 0; k < 60; k++) qa.Step(Dt, ExploreInput.None);
+            Assert.AreEqual(qa.TeenEyeHeight, qa.Player.EyeHeightValue, 1e-4f, "約半秒後到位");
+
+            // 測試模式 K：自動 → 成人 → 小小孩 → 自動。
+            qa.ViewOverride = null;
+            qa.CycleViewOverride(); Assert.AreEqual(LanternPrototypeQA.AdultEyeHeight, qa.ViewOverride.Value, 1e-4f);
+            qa.CycleViewOverride(); Assert.AreEqual(qa.ChildEyeHeight, qa.ViewOverride.Value, 1e-4f);
+            qa.CycleViewOverride(); Assert.IsNull(qa.ViewOverride);
+
+            qa.MemoryHeights = false;
+            Assert.AreEqual(LanternPrototypeQA.AdultEyeHeight, At("V2Shop"), 1e-4f, "關掉記憶眼高＝成人");
+        }
+    }
 }

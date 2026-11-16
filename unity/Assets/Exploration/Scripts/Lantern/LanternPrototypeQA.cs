@@ -162,6 +162,7 @@ namespace Shepherd.Exploration.Lantern
                 World.SetDiningFocusLights(true);
                 World.SetDiningLayout(true);
                 World.SetKitchenLayout(true);
+                World.SetShopLayout(1);   // 服飾店 A（生活機能優先，2026-11-16 試玩採用）
             }
             // 實際遊玩從新版房子（v2）門外開始；測試仍從舊房子玄關開始。
             var spawn = World.Marks[play && World.Marks.ContainsKey("V2Street") ? "V2Street" : "HouseEntry"];
@@ -269,15 +270,59 @@ namespace Shepherd.Exploration.Lantern
             SetHouseScale(s[(i + 1 + s.Length) % s.Length]);
         }
 
-        // ---------------- 服飾店布局 QA（Shift+F2）：現況／A／B、成人／孩子視角 ----------------
-
+        // ---------------- 記憶視角的眼高（2026-11-16 使用者試玩決定） ----------------
+        // 進到第十七號門裡：店面、走廊、側院＝艾琳很小的時候（約 0.85 m）；
+        // 推開餐廳那扇拉鋸的門（記憶門）進到餐廳＝上了初中（約 1.12 m）；進到廚房＝成年（1.62 m）。
+        // 走廊門、側門、後門都是普通的門，穿過去不會改變身高。門外的街道與其他測試場地＝成人。
         public const float AdultEyeHeight = 1.62f;
+        /// <summary>小小孩的眼高（店面／走廊／側院）。U／I 在測試模式可以調。</summary>
+        public float ChildEyeHeight = 0.85f;
+        /// <summary>初中時期的眼高（餐廳）。</summary>
+        public float TeenEyeHeight = 1.12f;
+        /// <summary>false＝永遠成人眼高（有些測試與工具用）。</summary>
+        public bool MemoryHeights = true;
+        /// <summary>測試模式 K 的強制視角：null＝自動（依房間）。</summary>
+        public float? ViewOverride;
+        /// <summary>目前依房間應該用的眼高。</summary>
+        public float TargetEyeHeight { get; private set; } = AdultEyeHeight;
+        private float eyeNow = AdultEyeHeight;
+        private Vector3 lastEyeFeet;
+
+        /// <summary>依玩家腳下的位置決定記憶眼高。</summary>
+        public float MemoryEyeHeightAt(Vector3 feet)
+        {
+            if (!MemoryHeights || World == null) return AdultEyeHeight;
+            var p = feet + Vector3.up;
+            if (World.V2KitchenRoom.size.sqrMagnitude > 0f && World.V2KitchenRoom.Contains(p)) return AdultEyeHeight;
+            if (World.V2DiningRoom.size.sqrMagnitude > 0f && World.V2DiningRoom.Contains(p)) return TeenEyeHeight;
+            var d = feet - LanternGraybox.V2Origin;
+            float x = d.x / LanternGraybox.V2Scale, z = d.z / LanternGraybox.V2Scale;
+            bool inHouse = x > -0.1f && x < LanternGraybox.V2Width + 0.1f && z > 0.05f && z < LanternGraybox.V2Depth + 0.1f
+                && d.y > -1f && d.y < LanternGraybox.V2Ground * LanternGraybox.V2Scale;   // 只算一樓
+            return inHouse ? ChildEyeHeight : AdultEyeHeight;
+        }
+
+        private void UpdateEyeHeight(float dt)
+        {
+            var feet = Player.transform.position;
+            TargetEyeHeight = ViewOverride ?? MemoryEyeHeightAt(feet);
+            bool jumped = (feet - lastEyeFeet).sqrMagnitude > 1.5f * 1.5f;   // 傳送：直接到位
+            lastEyeFeet = feet;
+            eyeNow = jumped ? TargetEyeHeight : Mathf.MoveTowards(eyeNow, TargetEyeHeight, dt * 1.3f);   // 穿過記憶門：約半秒的過渡
+            Player.EyeHeightValue = eyeNow;
+        }
+
+        /// <summary>測試模式 K：自動 → 強制成人 → 強制小小孩 → 自動。</summary>
+        public void CycleViewOverride()
+        {
+            if (ViewOverride == null) ViewOverride = AdultEyeHeight;
+            else if (Mathf.Approximately(ViewOverride.Value, AdultEyeHeight)) ViewOverride = ChildEyeHeight;
+            else ViewOverride = null;
+        }
+
+        // ---------------- 服飾店 QA（Shift+F2）：觀察點、強制視角 ----------------
         /// <summary>服飾店測試模式（只在提燈原型裡，沒有獨立入口）。</summary>
         public bool ShopQA { get; private set; }
-        /// <summary>孩子記憶視角（只改攝影機高度）。</summary>
-        public bool ChildView;
-        /// <summary>孩子視角的眼睛高度（QA 參數，不是正式數值；U／I 調整）。預設 1.12 m≈七歲、身高約 122 cm 的眼高。</summary>
-        public float ChildEyeHeight = 1.12f;
         /// <summary>比較用的固定觀察點（平面座標 x、z 與朝向）。</summary>
         public static readonly (string name, float x, float z, float yaw)[] ShopViews =
         {
@@ -292,7 +337,7 @@ namespace Shepherd.Exploration.Lantern
         {
             ShopQA = on;
             if (on) { GoToShopView(0); }
-            else { ChildView = false; World.SetShopLayout(0); }
+            else ViewOverride = null;
         }
 
         public void GoToShopView(int i)
@@ -318,9 +363,10 @@ namespace Shepherd.Exploration.Lantern
             GUI.color = new Color(0f, 0f, 0f, 0.55f);
             GUI.DrawTexture(new Rect(w - 470, 6, 464, 118), Texture2D.whiteTexture);
             GUI.color = Color.white;
-            GUI.Label(new Rect(w - 462, 10, 450, 24), "服飾店布局測試：" + LanternGraybox.ShopLayoutNames[World.ShopLayout], shopLabel);
-            GUI.Label(new Rect(w - 462, 36, 450, 20), "視角：" + (ChildView ? "孩子（眼高 " + ChildEyeHeight.ToString("0.00") + " m，只降低攝影機）" : "成人（眼高 1.62 m）"), shopHint);
-            GUI.Label(new Rect(w - 462, 56, 450, 20), "J 切換 現況／A／B・K 成人／孩子・U／I 孩子眼高 −／＋", shopHint);
+            string mode = ViewOverride == null ? "自動（依記憶房間）" : Mathf.Approximately(ViewOverride.Value, AdultEyeHeight) ? "強制成人" : "強制小小孩";
+            GUI.Label(new Rect(w - 462, 10, 450, 24), "服飾店測試（A 正式）：視角 " + mode, shopLabel);
+            GUI.Label(new Rect(w - 462, 36, 450, 20), "目前眼高 " + Player.EyeHeightValue.ToString("0.00") + " m（小小孩 " + ChildEyeHeight.ToString("0.00") + "／初中 " + TeenEyeHeight.ToString("0.00") + "／成人 1.62）", shopHint);
+            GUI.Label(new Rect(w - 462, 56, 450, 20), "K 自動／成人／小小孩・U／I 小小孩眼高 −／＋ 0.05", shopHint);
             GUI.Label(new Rect(w - 462, 76, 450, 20), "1 入口・2 櫃台前・3 工作區・4 衣架後方・5 住宅入口", shopHint);
             GUI.Label(new Rect(w - 462, 96, 450, 20), "Shift+F2 離開（回到現況、成人視角）", shopHint);
         }
@@ -445,8 +491,8 @@ namespace Shepherd.Exploration.Lantern
             Actions.Suspended = Inspecting != null || V2.InputCaptured;
             Rig.Focus = FocusHeld;
             Rig.HideHands = Inspecting != null;
-            // 孩子記憶視角：只降低第一人稱攝影機（感知視角），碰撞體、移動、互動能力都不變（設計總綱 §3.4、§9）。
-            Player.EyeHeightValue = ChildView ? ChildEyeHeight : AdultEyeHeight;
+            // 記憶視角：依所在的記憶房間決定第一人稱攝影機高度（只改攝影機；碰撞體、移動、互動能力不變，設計總綱 §3.4、§9）。
+            UpdateEyeHeight(dt);
             Player.WalkSpeedValue = WalkSpeedNow * Mathf.Lerp(1f, 0.6f, Rig.FocusBlend);
             Player.RunSpeedValue = BriskSpeedNow * Mathf.Lerp(1f, 0.6f, Rig.FocusBlend);
             Player.Step(dt, inp, true);
@@ -549,10 +595,9 @@ namespace Shepherd.Exploration.Lantern
             if (Input.GetKeyDown(KeyCode.F2)) { if (shift) SetShopQA(!ShopQA); else GoTo("V2Shop"); }
             if (ShopQA)
             {
-                if (Input.GetKeyDown(KeyCode.J)) World.SetShopLayout((World.ShopLayout + 1) % 3);
-                if (Input.GetKeyDown(KeyCode.K)) ChildView = !ChildView;
-                if (Input.GetKeyDown(KeyCode.U)) ChildEyeHeight = Mathf.Clamp(ChildEyeHeight - 0.05f, 0.85f, 1.4f);
-                if (Input.GetKeyDown(KeyCode.I)) ChildEyeHeight = Mathf.Clamp(ChildEyeHeight + 0.05f, 0.85f, 1.4f);
+                if (Input.GetKeyDown(KeyCode.K)) CycleViewOverride();
+                if (Input.GetKeyDown(KeyCode.U)) ChildEyeHeight = Mathf.Clamp(ChildEyeHeight - 0.05f, 0.6f, 1.4f);
+                if (Input.GetKeyDown(KeyCode.I)) ChildEyeHeight = Mathf.Clamp(ChildEyeHeight + 0.05f, 0.6f, 1.4f);
                 for (int k = 0; k < ShopViews.Length; k++) if (Input.GetKeyDown(KeyCode.Alpha1 + k) || Input.GetKeyDown(KeyCode.Keypad1 + k)) GoToShopView(k);
             }
             if (Input.GetKeyDown(KeyCode.F3)) GoTo("HouseEntry");
