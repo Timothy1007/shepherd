@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using System.Text;
 using Shepherd.Exploration.Lantern;
 using UnityEditor;
@@ -12,7 +12,7 @@ namespace Shepherd.Exploration.Editor
     {
         public const string ScenePath = "Assets/Exploration/Scenes/LanternPrototypeQA.unity";
 
-        [MenuItem("Shepherd/Prototype/提燈手感 QA")]
+        [MenuItem("Shepherd/提燈原型（正式遊戲）")]
         public static void Launch()
         {
             if (!File.Exists(ScenePath)) BuildScene();
@@ -20,7 +20,6 @@ namespace Shepherd.Exploration.Editor
             EditorApplication.isPlaying = true;
         }
 
-        [MenuItem("Shepherd/Prototype/提燈手感 QA 重建場景")]
         public static void BuildScene()
         {
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
@@ -40,7 +39,6 @@ namespace Shepherd.Exploration.Editor
             Capture(dir);
         }
 
-        [MenuItem("Shepherd/Prototype/提燈手感 QA 對照截圖")]
         public static void CaptureFromMenu()
         {
             string dir = Path.GetFullPath(Path.Combine(Application.dataPath, "../Temp/LanternPrototypeCapture"));

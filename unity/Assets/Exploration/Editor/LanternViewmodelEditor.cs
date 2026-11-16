@@ -16,7 +16,6 @@ namespace Shepherd.Exploration.Editor
     {
         public const string PrefabAsset = "Assets/Exploration/Lantern/Resources/Models/Custom/LanternViewmodel.prefab";
 
-        [MenuItem("Shepherd/Prototype/重建正式提燈第一人稱模型（LanternViewmodel）")]
         public static void BuildPrefab()
         {
             var root = new GameObject("LanternViewmodel");
@@ -137,12 +136,12 @@ namespace Shepherd.Exploration.Editor
                 qa.GoTo("V2Dining");
                 var st = qa.World.V2DiningStruggle;
                 if (st != null && st.Door != null && !st.Door.IsOpen) st.Door.Toggle();
-                qa.Player.Teleport(LanternDiningLayoutSwitch.EntrancePoint, -90f, 0f);
+                qa.Player.Teleport(LanternGraybox.V2Origin + new Vector3(0.125f + 5.3f, 0.05f, 6.56f + 1.83f), -90f, 0f);   // 餐廳門內側、面向西
                 qa.Rig.SetOn(false);
                 Frames(qa, 30);
                 Shot(qa, rt, Path.Combine(dir, "formal_dining.png"));
                 qa.GoTo("V2Kitchen");
-                qa.Player.Teleport(LanternKitchenLayoutSwitch.EntrancePoint, 0f, 0f);
+                qa.Player.Teleport(LanternGraybox.V2Origin + new Vector3(0.125f + 2.0f, 0.05f, 13.125f + 0.55f), 0f, 0f);   // 廚房門內
                 Frames(qa, 30);
                 Shot(qa, rt, Path.Combine(dir, "formal_kitchen.png"));
                 log.AppendLine("ok");

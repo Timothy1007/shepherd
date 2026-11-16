@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -18,7 +18,6 @@ namespace Shepherd.Exploration.Editor
     {
         private const float Step = 1f / 30f;
 
-        [MenuItem("Shepherd/Case01/一樓格局 A／B 截圖與路線實測")]
         public static void CaptureFromMenu()
         {
             string dir = Path.GetFullPath(Path.Combine(Application.dataPath, "../Temp/Case01FloorplanCapture"));

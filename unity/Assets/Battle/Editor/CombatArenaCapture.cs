@@ -19,7 +19,6 @@ namespace Shepherd.Battle.Editor
     {
         private const float Step = 1f / 30f;
 
-        [MenuItem("Shepherd/Combat Lab 3D/截圖檢查（1920×1080）")]
         public static void CaptureFromMenu()
         {
             string dir = Path.GetFullPath(Path.Combine(Application.dataPath, "../Temp/CombatLab3DCapture"));

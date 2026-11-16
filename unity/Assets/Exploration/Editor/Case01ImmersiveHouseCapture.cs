@@ -17,7 +17,6 @@ namespace Shepherd.Exploration.Editor
     {
         public const string ScenePath = "Assets/Exploration/Scenes/Case01ImmersiveHouseQA.unity";
 
-        [MenuItem("Shepherd/Case01/沉浸式住宅探索 QA")]
         public static void Launch()
         {
             if (EditorApplication.isPlaying) return;
@@ -27,7 +26,6 @@ namespace Shepherd.Exploration.Editor
             EditorApplication.isPlaying = true;
         }
 
-        [MenuItem("Shepherd/Case01/沉浸式住宅 QA 重建場景")]
         public static void BuildScene()
         {
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
@@ -43,7 +41,6 @@ namespace Shepherd.Exploration.Editor
             Debug.Log("[Case01ImmersiveHouseCapture] 場景建立：" + ScenePath);
         }
 
-        [MenuItem("Shepherd/Case01/沉浸式住宅 QA 實機截圖")]
         public static void CaptureFromMenu()
         {
             string dir = Path.GetFullPath(Path.Combine(Application.dataPath, "../Temp/Case01ImmersiveHouseCapture"));

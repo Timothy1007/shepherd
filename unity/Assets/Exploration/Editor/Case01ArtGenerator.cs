@@ -21,7 +21,6 @@ namespace Shepherd.Exploration.Editor
         public const string ResDir = Root + "/Resources";
         public const string ShaderName = "Shepherd/Case01/Triplanar";
 
-        [MenuItem("Shepherd/Case01/重建美術素材")]
         public static void Generate()
         {
             Directory.CreateDirectory(TexDir);

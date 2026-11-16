@@ -14,7 +14,6 @@ namespace Shepherd.Exploration.Editor
     /// </summary>
     public static class Case01SpatialCapture
     {
-        [MenuItem("Shepherd/Case01/Phase 1.6 空間結構灰盒 QA")]
         public static void Launch()
         {
             if (EditorApplication.isPlaying) return;
@@ -24,7 +23,6 @@ namespace Shepherd.Exploration.Editor
             EditorApplication.isPlaying = true;
         }
 
-        [MenuItem("Shepherd/Case01/Phase 1.6 灰盒截圖與視線量測")]
         public static void CaptureFromMenu()
         {
             string dir = Path.GetFullPath(Path.Combine(Application.dataPath, "../Temp/Case01SpatialCapture"));

@@ -14,7 +14,6 @@ namespace Shepherd.Exploration.Editor
     /// </summary>
     public static class Case01NarrativeCapture
     {
-        [MenuItem("Shepherd/Case01/空間敘事 v0.4 截圖")]
         public static void CaptureFromMenu()
         {
             string dir = Path.GetFullPath(Path.Combine(Application.dataPath, "../Temp/Case01NarrativeCapture"));

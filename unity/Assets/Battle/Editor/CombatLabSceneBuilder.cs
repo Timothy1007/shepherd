@@ -14,7 +14,6 @@ namespace Shepherd.Battle.Editor
     {
         public const string ScenePath = "Assets/Battle/Scenes/CombatLab.unity";
 
-        [MenuItem("Shepherd/Combat Lab/重新產生 CombatLab 場景")]
         public static void BuildFromMenu()
         {
             if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
@@ -22,7 +21,6 @@ namespace Shepherd.Battle.Editor
             EditorSceneManager.OpenScene(ScenePath);
         }
 
-        [MenuItem("Shepherd/Combat Lab/開啟 CombatLab 場景")]
         public static void Open()
         {
             if (!File.Exists(ScenePath)) Build();

@@ -53,7 +53,6 @@ namespace Shepherd.Exploration.Editor
         public const string ScenePath = "Assets/Exploration/Scenes/Case01HouseRebuildQA.unity";
         public const string MatFolder = "Assets/Exploration/Case01Rebuild/Materials";
 
-        [MenuItem("Shepherd/Case01/全屋重製 QA")]
         public static void Launch()
         {
             if (EditorApplication.isPlaying) return;
@@ -63,11 +62,9 @@ namespace Shepherd.Exploration.Editor
             EditorApplication.isPlaying = true;
         }
 
-        [MenuItem("Shepherd/Case01/全屋重製 QA 重建場景")]
         public static void Rebuild() { BuildScene(false); }
 
         /// <summary>實驗：只烘焙環境光＋環境光遮蔽（目前預設不用：CPU 烘焙在這個專案有 UV 重疊的黑斑，燈也必須保持即時才能開關）。</summary>
-        [MenuItem("Shepherd/Case01/全屋重製 QA 重建場景（實驗：烘焙環境光）")]
         public static void BuildAndBake() { BuildScene(true); }
 
         public static void BuildFromCommandLine()
@@ -196,7 +193,6 @@ namespace Shepherd.Exploration.Editor
             Capture(Case01HouseCapture.Arg("-captureDir") ?? Path.GetFullPath(Path.Combine(Application.dataPath, "../Temp/Case01HouseRebuildCapture")));
         }
 
-        [MenuItem("Shepherd/Case01/全屋重製 QA 對照截圖")]
         public static void CaptureFromMenu()
         {
             string dir = Path.GetFullPath(Path.Combine(Application.dataPath, "../Temp/Case01HouseRebuildCapture"));

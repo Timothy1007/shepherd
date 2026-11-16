@@ -15,7 +15,6 @@ namespace Shepherd.Exploration.Editor
     /// </summary>
     public static class Case01ImmersionCapture
     {
-        [MenuItem("Shepherd/Case01/Phase 1.8 沉浸式住宅與失序空間 QA")]
         public static void Launch()
         {
             if (EditorApplication.isPlaying) return;
@@ -25,7 +24,6 @@ namespace Shepherd.Exploration.Editor
             EditorApplication.isPlaying = true;
         }
 
-        [MenuItem("Shepherd/Case01/Phase 1.8 新舊同角度截圖")]
         public static void CaptureFromMenu()
         {
             string dir = Path.GetFullPath(Path.Combine(Application.dataPath, "../Temp/Case01ImmersionCapture"));

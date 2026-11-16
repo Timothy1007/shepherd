@@ -42,7 +42,7 @@ namespace Shepherd.Exploration.Editor
         /// <summary>Blender（Z 朝上、右手）→ Unity：FBX 匯出時已套用軸向，Unity 匯入再鏡射 X。</summary>
         public static Vector3 B(float x, float y, float z) => new Vector3(-x, z, -y);
 
-        [MenuItem("Shepherd/Prototype/正式美術風格 QA（縫紉工作區）")]
+        [MenuItem("Shepherd/美術風格 QA（之後整體美術優化用）")]
         public static void Launch()
         {
             if (!File.Exists(ScenePath)) BuildScene();
@@ -50,7 +50,6 @@ namespace Shepherd.Exploration.Editor
             EditorApplication.isPlaying = true;
         }
 
-        [MenuItem("Shepherd/Prototype/正式美術風格 QA 重建場景")]
         public static void BuildScene()
         {
             ConfigureImports();

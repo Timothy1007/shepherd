@@ -15,7 +15,6 @@ namespace Shepherd.Exploration.Editor
     /// </summary>
     public static class Case01ScaleCapture
     {
-        [MenuItem("Shepherd/Case01/Phase 1.7 住宅尺度與探索重構 QA")]
         public static void Launch()
         {
             if (EditorApplication.isPlaying) return;
@@ -25,7 +24,6 @@ namespace Shepherd.Exploration.Editor
             EditorApplication.isPlaying = true;
         }
 
-        [MenuItem("Shepherd/Case01/Phase 1.7 截圖與尺度量測")]
         public static void CaptureFromMenu()
         {
             string dir = Path.GetFullPath(Path.Combine(Application.dataPath, "../Temp/Case01ScaleCapture"));

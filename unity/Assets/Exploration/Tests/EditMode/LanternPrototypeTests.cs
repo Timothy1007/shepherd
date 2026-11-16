@@ -1338,114 +1338,25 @@ namespace Shepherd.Exploration.Tests
             Assert.AreSame(st.Door, qa.Actions.Aimed, "推開之後就是普通的門（E 開關）");
         }
 
-        // ---------------- 三種渲染即時切換 QA ----------------
-
-        private LanternRenderStyleSwitch NewStyleQa(out LanternPrototypeQA qa)
-        {
-            LanternGraybox.DiningArtExperiment = 3;
-            qa = NewQa();
-            var sw = root.AddComponent<LanternRenderStyleSwitch>();
-            sw.Bind(qa);
-            sw.EnterDining();
-            for (int i = 0; i < 10; i++) { qa.Step(Dt, ExploreInput.None); sw.ApplyFrame(); }
-            return sw;
-        }
+        // ---------------- 正式預設：餐廳 B（空間層次）、廚房 B（改造）——使用者確認後同步，A／B 對照入口已移除 ----------------
 
         [Test]
-        public void RenderStyle_EachModeChangesShaderLightsAndPost_WithoutMovingThePlayer()
-        {
-            try
-            {
-                var sw = NewStyleQa(out var qa);
-                Assert.IsTrue(qa.RenderStyleQA, "F6 讓給渲染切換");
-                Assert.IsTrue(qa.World.V2DiningRoom.Contains(qa.Player.transform.position + Vector3.up), "QA 從餐廳開始");
-                var pos = qa.Player.transform.position; float yaw = qa.Player.Yaw;
-                var pendant = qa.World.V2Root.GetComponentsInChildren<Light>(true).First(l => l.name == "DN_PendantLight");
-                var bounce = qa.World.V2Root.GetComponentsInChildren<Light>(true).First(l => l.name.StartsWith("DN_E2_"));
-                var seen = new System.Collections.Generic.List<(float sty, float paint, float pend, float bounce)>();
-                foreach (var s in new[] { LanternRenderStyleSwitch.Style.A, LanternRenderStyleSwitch.Style.B, LanternRenderStyleSwitch.Style.C })
-                {
-                    sw.Apply(s);
-                    qa.Step(Dt, ExploreInput.None); sw.ApplyFrame();
-                    seen.Add((Shader.GetGlobalFloat(LanternRenderStyleSwitch.StylizeId), Shader.GetGlobalFloat(LanternRenderStyleSwitch.PaintId), pendant.intensity, bounce.intensity));
-                }
-                Assert.AreEqual(0f, seen[0].sty, 1e-4f, "A：自然 PBR（關掉手繪光照）");
-                Assert.AreEqual(0f, seen[0].paint, 1e-4f, "A：沒有繪畫材質層");
-                Assert.AreEqual(1f, seen[1].paint, 1e-4f, "B：繪畫材質層全開");
-                Assert.AreEqual(1f, seen[2].sty, 1e-4f, "C：手繪光階全開");
-                Assert.Greater(seen[2].pend, seen[0].pend * 1.2f, "C：主燈加強");
-                Assert.Less(seen[2].bounce, seen[0].bounce * 0.5f, "C：補光減弱、暗部更深");
-                Assert.AreEqual(0f, Vector3.Distance(pos, qa.Player.transform.position), 1e-3f, "切換不會移動玩家");
-                Assert.AreEqual(yaw, qa.Player.Yaw, 1e-3f, "切換不會改變朝向");
-                sw.Cycle();
-                Assert.AreEqual(LanternRenderStyleSwitch.Style.A, sw.Current, "F6 循環：C → A");
-            }
-            finally { LanternGraybox.DiningArtExperiment = 0; }
-        }
-
-        [Test]
-        public void RenderStyle_LanternStillRevealsLocally_InEveryMode_AndRestoreUndoesEverything()
-        {
-            try
-            {
-                var sw = NewStyleQa(out var qa);
-                float baseSty = 1f;   // 提燈 QA 預設把手繪光照打開
-                qa.Rig.SetOn(true);
-                foreach (var s in new[] { LanternRenderStyleSwitch.Style.A, LanternRenderStyleSwitch.Style.B, LanternRenderStyleSwitch.Style.C })
-                {
-                    sw.Apply(s);
-                    for (int i = 0; i < 20; i++) { qa.Step(Dt, ExploreInput.None); sw.ApplyFrame(); }
-                    var ahead = qa.Rig.RevealCenter;
-                    Assert.Greater(LanternReveal.Radius, 0f, s + "：提燈開著");
-                    Assert.IsTrue(LanternReveal.IsReal(ahead), s + "：光內是記憶態");
-                    Assert.IsFalse(LanternReveal.IsReal(ahead + qa.Cam.transform.forward * 3.5f), s + "：光外仍是褪色態（不是全屋切換）");
-                }
-                var pendant = qa.World.V2Root.GetComponentsInChildren<Light>(true).First(l => l.name == "DN_PendantLight");
-                sw.Apply(LanternRenderStyleSwitch.Style.A);
-                float baseIntensity = pendant.intensity;
-                sw.Apply(LanternRenderStyleSwitch.Style.C);
-                sw.Restore();
-                Assert.AreEqual(baseIntensity, pendant.intensity, 1e-4f, "還原後燈光回到原本的強度");
-                Assert.AreEqual(baseSty, Shader.GetGlobalFloat(LanternRenderStyleSwitch.StylizeId), 1e-4f, "還原後手繪光照參數回到原值");
-                Assert.AreEqual(0f, Shader.GetGlobalFloat(LanternRenderStyleSwitch.PaintId), 1e-4f, "還原後繪畫材質層關閉");
-                Assert.IsFalse(qa.RenderStyleQA, "還原後 F6 回到原本的用途");
-            }
-            finally { LanternGraybox.DiningArtExperiment = 0; }
-        }
-
-        // ---------------- 餐廳空間構圖 QA（A 現況／B 構圖改造） ----------------
-
-        [Test]
-        public void DiningLayout_SwitchingToBAndBack_MovesOnlyTheListedPieces_AndKeepsRoutesOpen()
+        public void DiningLayout_FormalIsB_RoutesStayOpen_AndAStillRestores()
         {
             var qa = NewQa();
             var w = qa.World;
-            var sw = root.AddComponent<LanternDiningLayoutSwitch>();
-            sw.Bind(qa);
-            Assert.IsFalse(w.DiningLayoutIsB, "正式遊戲預設是 A");
+            Assert.IsTrue(w.DiningLayoutIsB, "正式遊戲預設是餐廳 B");
             Transform Find(string n) => w.V2Root.GetComponentsInChildren<Transform>(true).First(t => t.name == n);
-            var books = Find("DN_Bookcase"); var table = Find("DN_Table"); var portiere = Find("DN_LayoutB_Portiere");
+            var books = Find("DN_Bookcase"); var portiere = Find("DN_LayoutB_Portiere");
             var focus = w.V2Root.GetComponentsInChildren<Light>(true).Where(l => l.name.StartsWith("DN_Focus_")).ToList();
-            var booksA = books.position; var tableA = table.position;
-            Assert.IsFalse(portiere.gameObject.activeSelf, "A 沒有門簾");
-            Assert.IsTrue(focus.All(l => !l.enabled), "A 沒有引導燈");
-
-            qa.Player.Teleport(LanternDiningLayoutSwitch.EntrancePoint, -90f, 0f);
-            qa.Step(Dt, ExploreInput.None);
-            var pos = qa.Player.transform.position;
-            sw.SetB(true);
-            Assert.IsTrue(w.DiningLayoutIsB);
-            Assert.Greater(Vector3.Distance(booksA, books.position), 0.5f, "B：書櫃轉過來當矮隔間");
-            Assert.AreEqual(0f, Vector3.Distance(tableA, table.position), 1e-4f, "B：餐桌不動");
             Assert.IsTrue(portiere.gameObject.activeSelf, "B：有門簾");
-            Assert.IsTrue(focus.All(l => l.enabled), "B：光照引導預設開");
-            sw.SetFocus(false);
-            Assert.IsTrue(focus.All(l => !l.enabled), "B：光照引導可以關（只改擺設）");
-            Assert.AreEqual(0f, Vector3.Distance(pos, qa.Player.transform.position), 1e-4f, "切換不會移動玩家");
+            Assert.IsTrue(focus.All(l => l.enabled), "B：光照引導打開");
 
             // B 的動線：門口繞一圈回到門口，每一點都走得到；淨寬全部合格。
             var o = LanternGraybox.V2Origin; float S = LanternGraybox.V2Scale;
             Vector3 HP(float x, float z) => o + new Vector3(x * S, 0.05f, z * S);
+            var st = w.V2DiningStruggle;
+            if (st != null && st.Door != null && !st.Door.IsOpen) st.Door.Toggle();
             qa.Player.Teleport(HP(4.1f, 6.45f), -90f, 0f);
             qa.Step(Dt, ExploreInput.None);
             foreach (var (name, x, z) in new[] { ("起居區中間", 3.02f, 6.28f), ("橫樑開口西側", 1.33f, 7.51f), ("壁爐前走道", 1.10f, 8.59f), ("往廚房的門", 1.52f, 9.66f),
@@ -1455,40 +1366,27 @@ namespace Shepherd.Exploration.Tests
             var res = LanternClearance.Measure(w.V2Root, w.V2ClearanceRoute());
             Assert.IsEmpty(res.Where(r => !r.Ok).ToList(), "B：動線淨寬不足：\n" + LanternClearance.Report(res));
 
-            sw.SetB(false);
-            Assert.AreEqual(0f, Vector3.Distance(booksA, books.position), 1e-4f, "回到 A：書櫃回原位");
-            Assert.IsFalse(portiere.gameObject.activeSelf, "回到 A：門簾收起");
+            // 程式裡仍保留 A（之後要對照時可以切回）
+            var booksB = books.position;
+            w.SetDiningLayout(false);
+            Assert.Greater(Vector3.Distance(booksB, books.position), 0.5f, "切回 A：書櫃回原位");
+            Assert.IsFalse(portiere.gameObject.activeSelf, "切回 A：門簾收起");
         }
 
-        // ---------------- 廚房空間改造 QA（A 現況／B 改造） ----------------
-
         [Test]
-        public void KitchenLayout_B_KeepsDoorsAndPuzzlePieces_GroupsForDualState_AndRoutesStayOpen()
+        public void KitchenLayout_FormalIsB_KeepsPuzzlePieces_GroupsForDualState_AndRoutesStayOpen()
         {
             var qa = NewQa();
             var w = qa.World;
-            var sw = root.AddComponent<LanternKitchenLayoutSwitch>();
-            sw.Bind(qa);
-            Assert.IsFalse(w.KitchenLayoutIsB, "正式遊戲預設是 A");
+            Assert.IsTrue(w.KitchenLayoutIsB, "正式遊戲預設是廚房 B");
             Transform Find(string n) => w.V2Root.GetComponentsInChildren<Transform>(true).First(t => t.name == n);
             var fridge = Find("V2FridgeModel"); var tall = Find("V2TallCabinet"); var tin = Find("V2CookieTin"); var sink = Find("V2SinkUnit");
             var counterA = Find("V2Counter2"); var structB = Find("KT_B_Structure"); var lifeB = Find("KT_B_Life");
-            var fridgeA = fridge.position; var tallA = tall.position; var tinA = tin.position; var sinkA = sink.position;
-            Assert.IsTrue(counterA.gameObject.activeSelf && !structB.gameObject.activeSelf, "A：舊流理台在、B 的結構不在");
-
-            qa.Player.Teleport(LanternKitchenLayoutSwitch.EntrancePoint, 0f, 0f);
-            qa.Step(Dt, ExploreInput.None);
-            var pos = qa.Player.transform.position;
-            sw.SetB(true);
-            Assert.IsTrue(w.KitchenLayoutIsB);
             Assert.IsFalse(counterA.gameObject.activeSelf, "B：灰盒流理台換掉");
             Assert.IsTrue(structB.gameObject.activeSelf && lifeB.gameObject.activeSelf, "B：斜天花板、爐灶凹槽、生活細節都在");
-            Assert.AreEqual(0f, Vector3.Distance(fridgeA, fridge.position), 1e-4f, "K1 冰箱位置不變");
-            Assert.AreEqual(0f, Vector3.Distance(tallA, tall.position), 1e-4f, "K2 高櫃位置與碰撞不變");
-            Assert.AreEqual(0f, Vector3.Distance(tinA, tin.position), 1e-4f, "K2 餅乾鐵盒位置不變");
             var sinkB = sink.GetComponentsInChildren<Renderer>().Select(r => r.bounds).Aggregate((a, c) => { a.Encapsulate(c); return a; });
             var kRoom = w.V2KitchenRoom;
-            Assert.Less(sinkB.min.x - kRoom.min.x, 0.05f, "B：水槽移到西牆（切菜區旁），背貼牆");
+            Assert.Less(sinkB.min.x - kRoom.min.x, 0.05f, "B：水槽在西牆（切菜區旁），背貼牆");
             var prep = Find("KT_CounterN_Top").GetComponent<Renderer>().bounds;
             Assert.Less(Mathf.Abs(prep.min.z - sinkB.max.z), 0.1f, "B：水槽緊接著備料台面");
             Assert.IsFalse(Find("V2KitchenStool").gameObject.activeSelf, "B：窗邊的凳子拿掉");
@@ -1496,18 +1394,14 @@ namespace Shepherd.Exploration.Tests
             var micro = Find("V2Microwave").GetComponentsInChildren<Renderer>().Select(r => r.bounds).Aggregate((a, c) => { a.Encapsulate(c); return a; });
             var backTop = Find("KT_CounterBack_Top").GetComponent<Renderer>().bounds;
             Assert.AreEqual(backTop.max.y, micro.min.y, 0.02f, "B：微波爐放在檯面上（不穿模、不懸空）");
-            Assert.IsTrue(micro.min.x >= backTop.min.x - 0.02f && micro.max.x <= backTop.max.x + 0.02f && micro.max.z <= backTop.max.z + 0.02f && micro.min.z >= backTop.min.z - 0.05f, "B：微波爐整台都在後窗下那段檯面範圍內");
-            Assert.AreEqual(0f, Vector3.Distance(pos, qa.Player.transform.position), 1e-4f, "切換不會移動玩家");
-            // 斜天花板：靠主屋高、靠後牆低，平均約 2.85 m；後窗與後門頂部都在天花板下面。
             var ceil = Find("KT_SlopedCeiling").GetComponent<Renderer>().bounds;
             Assert.AreEqual(2.85f, ceil.center.y, 0.06f, "天花板平均高度約 2.85 m");
-            // 雙狀態預留：生活細節可以單獨關掉，敘事物件不受影響。
-            sw.SetLife(false);
+            // 雙狀態預留：生活細節可以單獨關掉，K1／K2 永遠在。
+            w.SetKitchenGroupVisible(LanternGraybox.KitchenGroup.Life, false);
             Assert.IsFalse(lifeB.gameObject.activeSelf, "生活細節那組可以關掉（之後的褪色態）");
             Assert.IsTrue(fridge.gameObject.activeSelf && tall.gameObject.activeSelf && tin.gameObject.activeSelf, "K1／K2 永遠在");
-            sw.SetLife(true);
+            w.SetKitchenGroupVisible(LanternGraybox.KitchenGroup.Life, true);
 
-            // B 的動線：廚房門內繞一圈（爐灶、流理台、水槽、K2、後門、窗邊、K1），每一點都走得到；淨寬全部合格。
             var o = LanternGraybox.V2Origin; float S = LanternGraybox.V2Scale;
             Vector3 HP(float x, float z) => o + new Vector3(x * S, 0.05f, z * S);
             qa.Player.Teleport(HP(1.635f, 10.558f), 0f, 0f);
@@ -1518,65 +1412,42 @@ namespace Shepherd.Exploration.Tests
             Physics.SyncTransforms();
             var res = LanternClearance.Measure(w.V2Root, w.V2ClearanceRoute());
             Assert.IsEmpty(res.Where(r => !r.Ok).ToList(), "B：動線淨寬不足：\n" + LanternClearance.Report(res));
-
-            sw.SetB(false);
-            Assert.IsTrue(counterA.gameObject.activeSelf && !structB.gameObject.activeSelf, "回到 A：完全復原");
         }
 
-        // ---------------- 移動手感 QA（A／B／C 預設；正式參數不變） ----------------
+        // ---------------- 正式移動手感（試玩後採用的 A：步行 1.5／快走 2.4）——對照入口已移除 ----------------
 
         [Test]
-        public void Movement_FormalDefaults_ArePresetA_WithoutTheQa()
+        public void Movement_FormalValues_StartQuickly_StopWithoutSliding_TurnWithoutSkid()
         {
             var qa = NewQa();
-            var a = LanternMovementFeelSwitch.Presets[LanternMovementFeelSwitch.FormalIndex];
-            Assert.AreEqual(1.5f, qa.Player.WalkSpeedValue, 1e-4f, "正式步行＝A 的 1.5");
-            Assert.AreEqual(2.4f, qa.Player.RunSpeedValue, 1e-4f, "正式快走＝A 的 2.4");
-            Assert.AreEqual(a.Walk, LanternPrototypeQA.WalkSpeed, 1e-4f);
-            Assert.AreEqual(a.Brisk, LanternPrototypeQA.BriskSpeed, 1e-4f);
-            Assert.AreEqual(a.Accel, qa.Player.Acceleration, 1e-3f, "正式加速＝A");
-            Assert.AreEqual(a.Decel, qa.Player.Deceleration, 1e-3f, "正式減速＝A");
-            Assert.IsTrue(qa.Player.SmoothSpeedOnly, "轉頭不側滑");
+            var p = qa.Player;
+            Assert.AreEqual(1.5f, p.WalkSpeedValue, 1e-4f, "正式步行 1.5 m/s");
+            Assert.AreEqual(2.4f, p.RunSpeedValue, 1e-4f, "正式快走 2.4 m/s");
+            Assert.AreEqual(1.5f / 0.45f, p.Acceleration, 1e-3f, "加速：約 0.45 秒到速");
+            Assert.AreEqual(8f, p.Deceleration, 1e-3f, "減速另外設定");
+            Assert.IsTrue(p.SmoothSpeedOnly, "轉頭不側滑");
             Assert.IsTrue(qa.Rig.GaitBob, "步伐式晃動");
             Assert.AreEqual(0.7f, qa.StepLength, 1e-4f, "腳步聲每 0.7 m");
-        }
-
-        [Test]
-        public void Movement_Presets_ReachSpeedQuickly_StopWithoutSliding_AndTurnWithoutSkid()
-        {
-            var qa = NewQa();
-            var sw = root.AddComponent<LanternMovementFeelSwitch>();
-            sw.Bind(qa);
             var o = LanternGraybox.V2Origin; float S = LanternGraybox.V2Scale;
-            var hall = o + new Vector3(5.07f * S, 0.05f, 5.4f * S);
-            var p = qa.Player;
-            for (int i = 0; i < 3; i++)
+            p.Teleport(o + new Vector3(5.07f * S, 0.05f, 5.4f * S), 0f, 0f);
+            for (int k = 0; k < 3; k++) qa.Step(Dt, ExploreInput.None);
+            float t = 0f, reach = -1f;
+            for (int k = 0; k < 30; k++)
             {
-                sw.Apply(i);
-                var pr = sw.Current;
-                p.Teleport(hall, 0f, 0f);
-                for (int k = 0; k < 3; k++) qa.Step(Dt, ExploreInput.None);
-                float t = 0f, reach = -1f;
-                for (int k = 0; k < 30; k++)
-                {
-                    qa.Step(Dt, new ExploreInput { Move = new Vector2(0f, 1f) });
-                    t += Dt;
-                    if (reach < 0f && p.LastHorizontalSpeed >= pr.Walk * 0.95f) reach = t;
-                }
-                Assert.AreEqual(pr.Walk, p.LastHorizontalSpeed, pr.Walk * 0.04f, pr.Name + "：穩定步行速度");
-                Assert.Greater(reach, 0.2f, pr.Name + "：不是瞬間到速");
-                Assert.Less(reach, 0.6f, pr.Name + "：起步不拖泥帶水");
-                var a = p.transform.position;
-                for (int k = 0; k < 30 && (k == 0 || p.LastHorizontalSpeed > 0.02f); k++) qa.Step(Dt, ExploreInput.None);
-                var slide = p.transform.position - a; slide.y = 0f;
-                Assert.Less(slide.magnitude, 0.3f, pr.Name + "：放開方向鍵後很快停住（滑行 " + slide.magnitude.ToString("0.00") + " m）");
-                // 滑鼠轉向：同一格就生效（沒有輸入延遲）。
-                float yaw0 = p.Yaw;
-                qa.Step(Dt, new ExploreInput { Look = new Vector2(5f, 0f) });
-                Assert.AreEqual(Mathf.Repeat(yaw0 + 5f * FirstPersonController.LookSensitivity * p.LookScale, 360f), p.Yaw, 0.01f, pr.Name + "：轉向即時");
+                qa.Step(Dt, new ExploreInput { Move = new Vector2(0f, 1f) });
+                t += Dt;
+                if (reach < 0f && p.LastHorizontalSpeed >= 1.5f * 0.95f) reach = t;
             }
+            Assert.AreEqual(1.5f, p.LastHorizontalSpeed, 0.06f, "穩定步行速度");
+            Assert.IsTrue(reach > 0.2f && reach < 0.6f, "起步不是瞬間、也不拖泥帶水（" + reach + " 秒）");
+            var a = p.transform.position;
+            for (int k = 0; k < 30 && (k == 0 || p.LastHorizontalSpeed > 0.02f); k++) qa.Step(Dt, ExploreInput.None);
+            var slide = p.transform.position - a; slide.y = 0f;
+            Assert.Less(slide.magnitude, 0.3f, "放開方向鍵後很快停住（滑行 " + slide.magnitude.ToString("0.00") + " m）");
+            float yaw0 = p.Yaw;
+            qa.Step(Dt, new ExploreInput { Look = new Vector2(5f, 0f) });
+            Assert.AreEqual(Mathf.Repeat(yaw0 + 5f * FirstPersonController.LookSensitivity * p.LookScale, 360f), p.Yaw, 0.01f, "轉向即時");
             // 走路時轉 90°：轉完之後就沿著鏡頭方向走（不側滑）。
-            sw.Apply(1);
             p.Teleport(o + new Vector3(0.125f + 4.6f, 0.05f, 6.56f + 1.2f), -90f, 0f);
             for (int k = 0; k < 20; k++) qa.Step(Dt, new ExploreInput { Move = new Vector2(0f, 1f) });
             for (int k = 0; k < 6; k++) qa.Step(Dt, new ExploreInput { Move = new Vector2(0f, 1f), Look = new Vector2(15f / (FirstPersonController.LookSensitivity * p.LookScale), 0f) });
@@ -1584,37 +1455,27 @@ namespace Shepherd.Exploration.Tests
             for (int k = 0; k < 10; k++) qa.Step(Dt, new ExploreInput { Move = new Vector2(0f, 1f) });
             var moved = p.transform.position - b; moved.y = 0f;
             var fwd = Quaternion.Euler(0f, p.Yaw, 0f) * Vector3.forward;
-            Assert.Less(Mathf.Abs(Vector3.Dot(moved, Quaternion.Euler(0f, 90f, 0f) * fwd)), 0.03f, "B：轉頭後沒有側滑");
-            sw.Apply(3);
-            Assert.AreEqual(7f, p.Acceleration, 1e-4f, "「舊版」對照＝原本的 7");
-            Assert.IsFalse(qa.Rig.GaitBob);
-            sw.Apply(LanternMovementFeelSwitch.FormalIndex);
-            Assert.AreEqual(LanternPrototypeQA.MoveAcceleration, p.Acceleration, 1e-3f, "選回 A＝正式參數");
-            Assert.IsTrue(qa.Rig.GaitBob);
+            Assert.Less(Mathf.Abs(Vector3.Dot(moved, Quaternion.Euler(0f, 90f, 0f) * fwd)), 0.03f, "轉頭後沒有側滑");
         }
 
         [Test]
-        public void Movement_EveryPreset_StillWalksThroughDoorways_AndUpTheStairs()
+        public void Movement_Formal_WalksThroughDoorways_AndUpTheStairs()
         {
             var qa = NewQa();
-            var sw = root.AddComponent<LanternMovementFeelSwitch>();
-            sw.Bind(qa);
-            sw.EnterAtStart();
+            var w = qa.World;
+            var st = w.V2DiningStruggle;
+            if (st != null && st.Door != null && !st.Door.IsOpen) st.Door.Toggle();
+            foreach (var d in w.V2Doors) if (d != null && d.Label == "廚房的門" && !d.IsOpen) d.Toggle();
             var o = LanternGraybox.V2Origin; float S = LanternGraybox.V2Scale;
             Vector3 HP(float x, float z) => o + new Vector3(x * S, 0.05f, z * S);
-            for (int i = 0; i < 3; i++)
-            {
-                sw.Apply(i);
-                qa.Player.Teleport(HP(5.07f, 5.5f), 0f, 0f);
-                qa.Step(Dt, ExploreInput.None);
-                foreach (var (x, z) in new[] { (5.07f, 6.45f), (4.1f, 6.45f), (2.33f, 7.14f), (1.33f, 7.51f), (1.1f, 8.59f), (1.6f, 9.66f), (1.6f, 10.6f), (1.6f, 9.66f), (1.33f, 7.51f), (4.1f, 6.45f), (5.07f, 6.45f) })
-                    Assert.IsTrue(WalkTo(qa, HP(x, z), 600), sw.Current.Name + "：走得到 (" + x + ", " + z + ")（卡在 " + qa.Player.transform.position + "）");
-                // 樓梯：從走廊上到平台。
-                qa.Player.Teleport(HP(6.02f, 5.3f), 0f, 0f);
-                qa.Step(Dt, ExploreInput.None);
-                WalkTo(qa, HP(6.02f, 9.45f), 900);
-                Assert.Greater(qa.Player.transform.position.y, 2.8f, sw.Current.Name + "：走得上樓梯（高度 " + qa.Player.transform.position.y.ToString("0.00") + "）");
-            }
+            qa.Player.Teleport(HP(5.07f, 5.5f), 0f, 0f);
+            qa.Step(Dt, ExploreInput.None);
+            foreach (var (x, z) in new[] { (5.07f, 6.45f), (4.1f, 6.45f), (2.33f, 7.14f), (1.33f, 7.51f), (1.1f, 8.59f), (1.6f, 9.66f), (1.6f, 10.6f), (1.6f, 9.66f), (1.33f, 7.51f), (4.1f, 6.45f), (5.07f, 6.45f) })
+                Assert.IsTrue(WalkTo(qa, HP(x, z), 600), "走得到 (" + x + ", " + z + ")（卡在 " + qa.Player.transform.position + "）");
+            qa.Player.Teleport(HP(6.02f, 5.3f), 0f, 0f);
+            qa.Step(Dt, ExploreInput.None);
+            WalkTo(qa, HP(6.02f, 9.45f), 900);
+            Assert.Greater(qa.Player.transform.position.y, 2.8f, "走得上樓梯（高度 " + qa.Player.transform.position.y.ToString("0.00") + "）");
         }
     }
 }

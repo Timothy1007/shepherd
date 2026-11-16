@@ -545,7 +545,7 @@ namespace Shepherd.Exploration.Lantern
         public bool CursorUiOpen;
 
         /// <summary>
-        /// 三種渲染切換 QA（LanternRenderStyleSwitch）正在使用：F6 讓給渲染切換（平常是傳送到戰鬥場），
+        /// 舊的 QA 切換器使用過（已移除；保留旗標給之後的 QA）：F6 讓給渲染切換（平常是傳送到戰鬥場），
         /// F11 的整體風格開關也停用（避免兩套風格設定互相覆蓋）。只在獨立 QA 場景裡為 true。
         /// </summary>
         public bool RenderStyleQA;

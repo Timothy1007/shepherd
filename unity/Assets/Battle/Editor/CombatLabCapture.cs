@@ -16,7 +16,6 @@ namespace Shepherd.Battle.Editor
     /// </summary>
     public static class CombatLabCapture
     {
-        [MenuItem("Shepherd/Combat Lab/截圖檢查（1920×1080、1280×720）")]
         public static void CaptureFromMenu()
         {
             string dir = Path.GetFullPath(Path.Combine(Application.dataPath, "../Temp/CombatLabCapture"));

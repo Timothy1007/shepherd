@@ -14,14 +14,12 @@ namespace Shepherd.Exploration.Editor
     {
         public const string ScenePath = "Assets/Exploration/Scenes/Case01HouseInteriorQA.unity";
 
-        [MenuItem("Shepherd/Case01/開啟室內 QA 場景")]
         public static void Open()
         {
             if (!File.Exists(ScenePath)) Build();
             if (EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) EditorSceneManager.OpenScene(ScenePath);
         }
 
-        [MenuItem("Shepherd/Case01/重新產生室內 QA 場景")]
         public static void BuildFromMenu()
         {
             if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
@@ -32,7 +30,6 @@ namespace Shepherd.Exploration.Editor
         public const string CombatScenePath = "Assets/Exploration/Scenes/Case01CombatDemoQA.unity";
 
         /// <summary>戰鬥 Demo UI QA：只有 Case01 首戰的兩敵戰鬥＋新版戰鬥 HUD（不從房屋開頭玩）。</summary>
-        [MenuItem("Shepherd/Case01/戰鬥 Demo UI QA")]
         public static void LaunchCombatDemo()
         {
             if (EditorApplication.isPlaying) return;
@@ -54,31 +51,24 @@ namespace Shepherd.Exploration.Editor
             Debug.Log("[Case01CombatDemoQA] 已產生場景 " + CombatScenePath);
         }
 
-        [MenuItem("Shepherd/Case01/美術 QA（H0～H3／失序體形成）")]
         public static void LaunchArtQa() { Launch("art"); }
 
         /// <summary>核校正 v0.3（關係校正）實驗 QA：直接從戰後核前開始；遊戲中 F5 可切回 v0.2 比較。</summary>
-        [MenuItem("Shepherd/Case01/核校正 v0.3 QA")]
         public static void LaunchCoreV03() { Launch("v03"); }
 
         /// <summary>空間敘事 v0.4 QA：逐句預覽自語、H0～H3、失序門、記憶殘響（不需重新破關）。</summary>
-        [MenuItem("Shepherd/Case01/空間敘事 v0.4 QA")]
         public static void LaunchNarrativeV04() { Launch("v04"); }
 
         /// <summary>一樓反向樓梯 v0.4 QA：只為 A/B 動線測試（封住玄關↔餐廳、樓梯反向上行）；F9 切回原版比較。不影響正式 QA。</summary>
-        [MenuItem("Shepherd/Case01/一樓反向樓梯 v0.4 QA")]
         public static void LaunchFloorplanV04() { Launch("floor"); }
 
         /// <summary>客廳美術標準間 QA（v0.6）：方案 A 客廳入口；F7 新／舊美術、F6 H0→H2→H3、F1 回入口。不影響其他 QA 與 Demo。</summary>
-        [MenuItem("Shepherd/Case01/客廳美術標準間 QA（v0.6）")]
         public static void LaunchLivingArt() { Launch("living"); }
 
         /// <summary>住宅 v0.5 A/B QA：一樓方案 A（預設）；F9 依序切到方案 B、原版、v0.4 B 比較。不影響正式 QA。</summary>
-        [MenuItem("Shepherd/Case01/住宅 v0.5 A／B QA（一樓格局）")]
         public static void LaunchResidentialV05() { Launch("res"); }
 
         /// <summary>Portal v0.5 QA：站在錯接的書房門前；F6 切門的狀態、F7 切 v0.4／v0.5 外觀、F8 降低閃爍。</summary>
-        [MenuItem("Shepherd/Case01/Portal v0.5 QA（彩色失序門）")]
         public static void LaunchPortalV05() { Launch("portal"); }
 
         /// <summary>開啟室內 QA 場景並以指定模式進入 Play（一次性參數，Awake 讀取後刪除）。</summary>

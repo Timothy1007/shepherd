@@ -17,7 +17,6 @@ namespace Shepherd.Exploration.Editor
     {
         public const string ScenePath = "Assets/Exploration/Scenes/Case01Phase19QA.unity";
 
-        [MenuItem("Shepherd/Case01/Phase 1.9 整體關卡與異域美術重構 QA")]
         public static void Launch()
         {
             if (EditorApplication.isPlaying) return;
@@ -28,7 +27,6 @@ namespace Shepherd.Exploration.Editor
         }
 
         /// <summary>建立獨立 QA 場景：只有一個 Case01ImmersionQA（phase19 = true），其他全部在 Play 時程序生成。</summary>
-        [MenuItem("Shepherd/Case01/Phase 1.9 重建 QA 場景")]
         public static void BuildScene()
         {
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
@@ -48,7 +46,6 @@ namespace Shepherd.Exploration.Editor
             Debug.Log("[Case01Phase19Capture] 場景建立：" + ScenePath);
         }
 
-        [MenuItem("Shepherd/Case01/Phase 1.9 截圖與量測")]
         public static void CaptureFromMenu()
         {
             string dir = Path.GetFullPath(Path.Combine(Application.dataPath, "../Temp/Case01Phase19Capture"));

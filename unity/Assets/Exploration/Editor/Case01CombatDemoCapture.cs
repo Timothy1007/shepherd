@@ -21,7 +21,6 @@ namespace Shepherd.Exploration.Editor
     {
         private const float Step = 1f / 30f;
 
-        [MenuItem("Shepherd/Case01/戰鬥 Demo UI 截圖（1920×1080、1280×720）")]
         public static void CaptureFromMenu()
         {
             string dir = Path.GetFullPath(Path.Combine(Application.dataPath, "../Temp/Case01CombatDemoCapture"));

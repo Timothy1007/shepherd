@@ -14,14 +14,12 @@ namespace Shepherd.Battle.Editor
     {
         public const string ScenePath = "Assets/Battle/Scenes/CombatLab3D.unity";
 
-        [MenuItem("Shepherd/Combat Lab 3D/開啟 CombatLab3D 場景")]
         public static void Open()
         {
             if (!File.Exists(ScenePath)) Build();
             if (EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) EditorSceneManager.OpenScene(ScenePath);
         }
 
-        [MenuItem("Shepherd/Combat Lab 3D/重新產生 CombatLab3D 場景")]
         public static void BuildFromMenu()
         {
             if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;

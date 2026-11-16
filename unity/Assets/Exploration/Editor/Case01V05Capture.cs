@@ -18,7 +18,6 @@ namespace Shepherd.Exploration.Editor
     {
         public const float Step = 1f / 30f;
 
-        [MenuItem("Shepherd/Case01/v0.5 截圖（失序體／Portal／住宅）")]
         public static void CaptureFromMenu()
         {
             string dir = Path.GetFullPath(Path.Combine(Application.dataPath, "../Temp/Case01V05Capture"));
