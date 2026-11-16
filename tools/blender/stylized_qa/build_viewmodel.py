@@ -21,6 +21,7 @@ PALETTE.update({
     "Skin":        ("#D19A74", "#8A4E44", 6.0, 0.04, 0.08),
     "Sleeve":      ("#E3D5BD", "#8F8079", 5.0, 0.06, 0.10),
     "Strap":       ("#5A3E2C", "#24171A", 10.0, 0.06, 0.12),
+    "Nail":        ("#E9C2A6", "#A8786A", 6.0, 0.03, 0.10),
 })
 
 
@@ -109,13 +110,13 @@ def build_lantern(col):
     A.lathe([(0.0, 0.278), (0.036, 0.279), (0.036, 0.285), (0.006, 0.305), (0.0, 0.307)], (0, 0, 0), "Bronze", segs=6, phase=PH)
     # 提把的轉軸（左右兩側的圓頭螺栓）
     for sx in (-1, 1):
-        A.cyl(0.013, 0.012, (sx * 0.084, 0, 0.207), "Bronze", rot=(0, 90, 0), segs=8, bevel=0.002)
-        A.cyl(0.006, 0.006, (sx * 0.092, 0, 0.207), "Gold", rot=(0, 90, 0), segs=8)
+        A.cyl(0.017, 0.014, (sx * 0.084, 0, 0.207), "Bronze", rot=(0, 90, 0), segs=8, bevel=0.002)
+        A.cyl(0.008, 0.007, (sx * 0.093, 0, 0.207), "Gold", rot=(0, 90, 0), segs=8)
     # 提把：一段一段的直桿拱起來（頂端是手握的地方）
     pts = [(-0.09, 0, 0.207), (-0.094, 0, 0.29), (-0.074, 0, 0.356), (-0.048, 0, 0.378), (0.048, 0, 0.378), (0.074, 0, 0.356),
            (0.094, 0, 0.29), (0.09, 0, 0.207)]
     for i in range(len(pts) - 1):
-        bar(A, pts[i], pts[i + 1], 0.011, 0.009, "Bronze")
+        bar(A, pts[i], pts[i + 1], 0.016, 0.013, "Bronze")   # 提把加粗（使用者回饋：原本太細）
     ob = A.build(col)
     # 原點移到提把頂端中央（手握的位置）
     me = ob.data
@@ -124,59 +125,180 @@ def build_lantern(col):
     return ob
 
 
-def finger(A, x, s, width, glove_to_tip=False):
-    """左手一根手指：從指根繞過提把（X 軸）往下、往回收。前兩節戴手套，最後一節露出皮膚（無指手套）。"""
-    K = Vector((x, -0.006, 0.036))
-    P1 = Vector((x, 0.026 * s, 0.027))
-    P2 = Vector((x, 0.031 * s, -0.005))
-    T = Vector((x, 0.009, -0.026))
-    up = (1, 0, 0)
-    def seg(a, b, t0, t1, w0, w1, mat):
-        A.loft([(a, b - a, up, t0, w0), (b, b - a, up, t1, w1)], mat, n=8, expo=2.2)
-    seg(K - (P1 - K).normalized() * 0.006, P1, 0.021, 0.019, width + 0.002, width, "Glove")
-    seg(P1, P2, 0.019, 0.017, width, width * 0.95, "Glove")
-    seg(P2 - (P2 - P1).normalized() * 0.002, T, 0.016, 0.013, width * 0.92, width * 0.82, "Glove" if glove_to_tip else "Skin")
+def _v(x, y, z):
+    return Vector((x, y, z))
+
+
+# 手的比例（成人男性，公尺）：近節 ≈ 中節＋遠節；長度 中指 > 無名指 > 食指 > 小指。
+# 手的座標：X＝指節連線（左手的拇指在 +X），Y＝手指伸直時的方向，Z＝手背朝上。
+FINGERS = [
+    # 名稱, 指根關節(MCP), 長度比例, 寬, 厚, 外展角(度，正＝往拇指側)
+    ("index",  (0.0265, -0.004, 0.000), 0.93, 0.0190, 0.0170, 3.0),
+    ("middle", (0.0075,  0.000, 0.002), 1.00, 0.0195, 0.0175, 0.5),
+    ("ring",   (-0.0115, -0.004, 0.000), 0.96, 0.0185, 0.0165, -2.0),
+    ("little", (-0.0290, -0.014, -0.004), 0.79, 0.0160, 0.0145, -5.0),
+]
+PHALANX = (0.047, 0.028, 0.021)   # 中指：近節、中節、遠節
+
+POSES = {
+    # 每根手指 (MCP, PIP, DIP) 彎曲角度
+    "grip":    {"index": (52, 92, 52), "middle": (56, 95, 55), "ring": (58, 96, 55), "little": (60, 95, 52)},
+    "relaxed": {"index": (30, 48, 24), "middle": (36, 56, 28), "ring": (42, 62, 30), "little": (48, 66, 32)},
+}
+
+
+def finger_chain(mcp, scale, yaw, angles):
+    """回傳 [(關節位置, 方向, 手背方向), ...]：MCP、PIP、DIP、指尖。"""
+    a = math.radians(yaw)
+    pts = []
+    p = Vector(mcp)
+    theta = 0.0
+    lengths = [PHALANX[0] * scale, PHALANX[1] * scale, PHALANX[2] * scale]
+    for k in range(3):
+        theta += math.radians(angles[k])
+        d = Vector((math.sin(a) * math.cos(theta), math.cos(a) * math.cos(theta), -math.sin(theta)))
+        up = Vector((math.sin(a) * math.sin(theta), math.cos(a) * math.sin(theta), math.cos(theta)))
+        pts.append((p.copy(), d, up))
+        p = p + d * lengths[k]
+    pts.append((p.copy(), pts[-1][1], pts[-1][2]))
+    return pts
+
+
+def build_finger(A, s, mcp, scale, w, h, yaw, angles, glove_frac=0.5):
+    """一根手指＝一條連續的管子（關節處稍微鼓起），指尖收圓；近節的前半段戴手套，之後露出皮膚，加指甲。"""
+    mcp = Vector((mcp[0] * s, mcp[1], mcp[2]))
+    ch = finger_chain(mcp, scale, yaw * s, angles)
+    (P0, d1, u1), (P1, d2, u2), (P2, d3, u3), (T, _, _) = ch
+    def lerp(a, b, f): return a + (b - a) * f
+    def avg(a, b): return (a + b).normalized()
+    Lp = (P1 - P0).length
+    skin = [
+        (lerp(P0, P1, glove_frac - 0.12), d1, u1, w * 0.97, h * 0.95),
+        (P1, avg(d1, d2), avg(u1, u2), w * 1.02, h * 1.0),
+        (lerp(P1, P2, 0.5), d2, u2, w * 0.93, h * 0.9),
+        (P2, avg(d2, d3), avg(u2, u3), w * 0.92, h * 0.88),
+        (lerp(P2, T, 0.55), d3, u3, w * 0.87, h * 0.83),
+        (lerp(P2, T, 0.86), d3, u3, w * 0.74, h * 0.7),
+        (T, d3, u3, w * 0.36, h * 0.32),
+    ]
+    A.loft(skin, "Skin", n=10, expo=2.3)
+    g = 1.07
+    glove = [
+        (P0 - d1 * 0.014, d1, u1, w * 1.06 * g, h * 1.15 * g),
+        (P0, d1, u1, w * 1.08 * g, h * 1.06 * g),
+        (lerp(P0, P1, glove_frac), d1, u1, w * 0.99 * g, h * 0.97 * g),
+    ]
+    A.loft(glove, "Glove", n=10, expo=2.3)
+    # 指甲：遠節手背側的一小片
+    c = lerp(P2, T, 0.58) + u3 * (h * 0.83 * 0.5 - 0.0004)
+    side = d3.cross(u3).normalized()
+    nail = []
+    for (x, y) in ((-0.5, -0.5), (0.5, -0.5), (0.5, 0.5), (-0.5, 0.5)):
+        nail.append(c + side * x * w * 0.55 + d3 * y * 0.011)
+    top = [A.bm.verts.new(p + u3 * 0.0012) for p in nail]
+    bot = [A.bm.verts.new(p) for p in nail]
+    idx = A.mi("Nail")
+    A.bm.faces.new(top).material_index = idx
+    A.bm.faces.new(list(reversed(bot))).material_index = idx
+    for i in range(4):
+        j = (i + 1) % 4
+        A.bm.faces.new((bot[i], bot[j], top[j], top[i])).material_index = idx
+    return ch
+
+
+def circumcenter_yz(a, b, c):
+    ax, ay = a.y, a.z; bx, by = b.y, b.z; cx, cy = c.y, c.z
+    d = 2 * (ax * (by - cy) + bx * (cy - ay) + cx * (ay - by))
+    ux = ((ax * ax + ay * ay) * (by - cy) + (bx * bx + by * by) * (cy - ay) + (cx * cx + cy * cy) * (ay - by)) / d
+    uy = ((ax * ax + ay * ay) * (cx - bx) + (bx * bx + by * by) * (ax - cx) + (cx * cx + cy * cy) * (bx - ax)) / d
+    return ux, uy
+
+
+def build_arm(col, side="left", pose="grip"):
+    """
+    第一人稱的手與前臂。s＝+1 左手（拇指在 +X）、-1 右手。
+    原點＝握住的提把（沿 X 軸）中心（grip 姿勢），或手心前方（relaxed 姿勢）。手指往 +Y、手背朝 +Z、前臂往 -Y。
+    平滑著色（手是有機的形體，用 shader 的三段明暗做出插畫的色塊；家具才用平面切面）。
+    """
+    s = 1 if side == "left" else -1
+    A = Asset("SQA_Arm" + side.capitalize())
+    A.smooth = True
+    chains = {}
+    for (name, mcp, sc, w, h, yaw) in FINGERS:
+        chains[name] = build_finger(A, s, mcp, sc, w, h, yaw, POSES[pose][name])
+    up = (0, 0, 1)
+    # 手背／手掌（戴手套）：指節那一端稍微拱起，往手腕收窄、變厚
+    A.loft([((0.000 * s, 0.006, -0.004), (0, -1, 0), up, 0.084, 0.026),
+            ((0.001 * s, -0.012, -0.004), (0, -1, 0), up, 0.088, 0.032),
+            ((0.002 * s, -0.048, -0.005), (0, -1, 0), up, 0.088, 0.036),
+            ((0.002 * s, -0.080, -0.006), (0, -1, 0), up, 0.075, 0.040),
+            ((0.000 * s, -0.100, -0.004), (0, -1, 0), up, 0.060, 0.040)], "Glove", n=14, expo=2.5)
+    # 指節上的皮革護套
+    A.loft([((-0.034 * s, -0.008, 0.012), (s, 0, 0), (0, 0.25, 1), 0.016, 0.006),
+            ((0.0, -0.004, 0.015), (s, 0, 0), (0, 0.25, 1), 0.018, 0.007),
+            ((0.034 * s, -0.008, 0.012), (s, 0, 0), (0, 0.25, 1), 0.016, 0.006)], "Strap", n=8, expo=2.2)
+    # 大魚際（拇指根部的肌肉）
+    A.loft([((0.026 * s, -0.092, -0.014), (0.25 * s, 1, -0.1), up, 0.028, 0.026),
+            ((0.036 * s, -0.062, -0.019), (0.2 * s, 1, -0.15), up, 0.032, 0.030),
+            ((0.034 * s, -0.034, -0.021), (0.0, 1, -0.2), up, 0.026, 0.024)], "Glove", n=10, expo=2.2)
+    # 拇指：從手腕旁邊長出來，掌骨（戴手套）→ 近節（手套）→ 遠節（皮膚）
+    ix = chains["index"]
+    (I0, _, _), (I1, _, _), (I2, di2, ui2), _ = ix
+    M = (I1 + I2) / 2
+    if pose == "grip":
+        # 握拳：拇指從下面繞上來，指尖壓在食指中節的外側
+        tip = M + Vector((0.009 * s, 0.006, -0.012))
+    else:
+        tip = I0 + Vector((0.016 * s, 0.026, -0.022))
+    cmc = Vector((0.030 * s, -0.082, -0.010))
+    mcpT = Vector((0.050 * s, -0.050, -0.020))
+    ip = (mcpT + tip) / 2 + Vector((0.012 * s, 0.004, -0.008))
+    def tube(pts, ws, hs, mat):
+        rings = []
+        for k, p in enumerate(pts):
+            a = pts[max(k - 1, 0)]; b = pts[min(k + 1, len(pts) - 1)]
+            t = (b - a)
+            rings.append((p, t, Vector((0, 0, 1)) if abs(t.normalized().z) < 0.9 else Vector((s, 0, 0)), ws[k], hs[k]))
+        A.loft(rings, mat, n=10, expo=2.3)
+    tube([cmc, mcpT, (mcpT + ip) / 2], [0.030, 0.026, 0.022], [0.026, 0.023, 0.020], "Glove")
+    tube([(mcpT + ip) / 2 * 0.6 + mcpT * 0.4, ip, (ip + tip) / 2, tip + (tip - ip).normalized() * 0.002],
+         [0.0205, 0.0205, 0.019, 0.010], [0.0185, 0.0185, 0.0165, 0.009], "Skin")
+    # 手腕：兩圈貼著的皮帶
+    for (y, tilt) in ((-0.094, 5), (-0.106, -4)):
+        u = (0, math.sin(math.radians(tilt)), 1)
+        A.loft([((0, y + 0.005, -0.004), (0, -1, 0), u, 0.0625, 0.0425), ((0, y - 0.005, -0.004), (0, -1, 0), u, 0.0625, 0.0425)],
+               "Strap", n=12, expo=2.3)
+    # 前臂：手套袖口 → 米白色袖子（鋸齒袖口），往後慢慢變粗
+    A.loft([((0, -0.098, -0.004), (0, -1, 0), up, 0.06, 0.041), ((0, -0.13, -0.006), (0, -1, 0), up, 0.066, 0.05)], "Glove", n=12, expo=2.3)
+    vs = A.loft([((0, -0.118, -0.006), (0, -1, -0.04), up, 0.08, 0.066), ((0, -0.18, -0.009), (0, -1, -0.04), up, 0.086, 0.074),
+                 ((0, -0.24, -0.012), (0, -1, -0.04), up, 0.092, 0.08), ((0, -0.30, -0.015), (0, -1, -0.04), up, 0.097, 0.085)],
+                "Sleeve", n=12, expo=2.2)
+    for i in range(12):
+        vs[i].co.y += 0.011 if i % 2 == 0 else -0.002
+    # 原點：握把中心（中指 MCP、PIP、DIP 三點的外接圓圓心）
+    (m0, _, _), (m1, _, _), (m2, _, _), _ = chains["middle"]
+    cy, cz = circumcenter_yz(m0, m1, m2)
+    r_center = sum(((p - Vector((p.x, cy, cz))).length for p in (m0, m1, m2))) / 3
+    if pose == "grip":
+        # 實際算過：手指和手掌圍出來的空間，最大內切圓在 (y 0, z -0.030)，半徑約 0.009 m，
+        # 剛好握住加粗後的提把（斷面 16×13 mm）。
+        cy, cz = 0.0, -0.030
+        r_center = 0.009 + 0.0175 / 2
+    else:
+        cy, cz = 0.02, -0.03
+    bmesh.ops.translate(A.bm, verts=A.bm.verts, vec=Vector((0, -cy, -cz)))
+    ob = A.build(col)
+    ob["grip_inner_radius"] = r_center - 0.0175 / 2
+    print("%s: grip center (%.4f, %.4f), finger-centre radius %.4f, inner radius %.4f" % (ob.name, cy, cz, r_center, r_center - 0.0175 / 2))
+    return ob
 
 
 def build_arm_left(col):
-    A = Asset("SQA_ArmLeft")
-    # 手指（左手、手心朝下：拇指在 +X）
-    finger(A, 0.0285, 0.95, 0.0205)
-    finger(A, 0.0095, 1.0, 0.021)
-    finger(A, -0.0095, 0.96, 0.0205)
-    finger(A, -0.0275, 0.82, 0.0185)
-    # 手背／手掌
-    up = (0, 0, 1)
-    A.loft([((0, -0.002, 0.031), (0, -1, 0), up, 0.088, 0.032), ((0, -0.045, 0.026), (0, -1, 0), up, 0.084, 0.044),
-            ((0, -0.088, 0.022), (0, -1, 0), up, 0.064, 0.044)], "Glove", n=8, expo=3.0)
-    A.cube((0.074, 0.05, 0.026), (0.004, -0.04, 0.004), "Glove", bevel=0.006)  # 手掌根
-    # 指節的護套（手套上的一條皮革）
-    A.cube((0.09, 0.016, 0.012), (0, -0.012, 0.047), "Strap", rot=(-14, 0, 0), bevel=0.003)
-    # 拇指：從手掌側繞到前面壓住食指
-    tp = [Vector((0.046, -0.058, 0.012)), Vector((0.056, -0.024, 0.002)), Vector((0.044, 0.006, -0.012)), Vector((0.026, 0.022, -0.017))]
-    A.loft([(tp[0], tp[1] - tp[0], (0, 0, 1), 0.026, 0.024), (tp[1], tp[2] - tp[0], (0, 0, 1), 0.022, 0.021)], "Glove", n=8, expo=2.2)
-    A.loft([(tp[1], tp[2] - tp[1], (0, 0, 1), 0.021, 0.02), (tp[2], tp[3] - tp[1], (0, 0, 1), 0.019, 0.019)], "Glove", n=8, expo=2.2)
-    A.loft([(tp[2], tp[3] - tp[2], (0, 0, 1), 0.018, 0.018), (tp[3], tp[3] - tp[2], (0, 0, 1), 0.015, 0.015)], "Skin", n=8, expo=2.2)
-    # 手腕：纏繞的皮帶兩圈
-    for (y, tilt) in ((-0.083, 6), (-0.097, -5)):
-        A.loft([((0, y + 0.006, 0.022), (0, -1, 0.0), (0, math.sin(math.radians(tilt)), 1), 0.07, 0.052),
-                ((0, y - 0.006, 0.022), (0, -1, 0.0), (0, math.sin(math.radians(tilt)), 1), 0.07, 0.052)], "Strap", n=8, expo=2.4)
-    # 前臂：手套的袖口＋米白色纏布袖子（下擺鋸齒）
-    A.loft([((0, -0.09, 0.022), (0, -1, 0), up, 0.062, 0.048), ((0, -0.13, 0.02), (0, -1, 0), up, 0.07, 0.056)], "Glove", n=8, expo=2.4)
-    vs = A.loft([((0, -0.112, 0.022), (0, -1, -0.05), up, 0.086, 0.07), ((0, -0.2, 0.012), (0, -1, -0.05), up, 0.094, 0.08),
-                 ((0, -0.3, 0.0), (0, -1, -0.05), up, 0.1, 0.086), ((0, -0.42, -0.014), (0, -1, -0.05), up, 0.104, 0.09)],
-                "Sleeve", n=10, expo=2.2)
-    for i in range(10):
-        v = vs[i]
-        v.co.y += 0.012 if i % 2 == 0 else -0.003
-    # 纏布：幾圈斜斜的布條
-    # （纏布條試過做成凸出的幾何，第一人稱透視下像鋸齒，先拿掉；之後改用貼圖畫布紋）
-    for (y, tilt, w) in ():
-        rr = 1.0 + (-y - 0.11) * 0.06
-        A.loft([((0, y + w / 2, 0.016 + y * 0.12), (0, -1, 0), (0, math.sin(math.radians(tilt)), 1), 0.093 * rr + 0.0025, 0.079 * rr + 0.0025),
-                ((0, y - w / 2, 0.014 + y * 0.12), (0, -1, 0), (0, math.sin(math.radians(tilt)), 1), 0.093 * rr + 0.0025, 0.079 * rr + 0.0025)],
-               "Sleeve", n=10, expo=2.2)
-    return A.build(col)
+    return build_arm(col, "left", "grip")
+
+
+def build_arm_right(col):
+    return build_arm(col, "right", "relaxed")
 
 
 def run_viewmodel():
@@ -185,7 +307,7 @@ def run_viewmodel():
     for o in list(sc.collection.all_objects):
         bpy.data.objects.remove(o, do_unlink=True)
     report = []
-    for fn, res in [(build_lantern, 1024), (build_arm_left, 1024)]:
+    for fn, res in [(build_lantern, 1024), (build_arm_left, 1024), (build_arm_right, 1024)]:
         ob = fn(sc.collection)
         uv_unwrap(ob)
         bake(ob, res)

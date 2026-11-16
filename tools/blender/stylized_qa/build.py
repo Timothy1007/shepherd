@@ -191,7 +191,7 @@ class Asset:
         self.bm.to_mesh(me)
         self.bm.free()
         for p in me.polygons:
-            p.use_smooth = False
+            p.use_smooth = getattr(self, "smooth", False)   # 手等有機形體用平滑著色
         ob = bpy.data.objects.new(self.name, me)
         collection.objects.link(ob)
         for m in self.mats:

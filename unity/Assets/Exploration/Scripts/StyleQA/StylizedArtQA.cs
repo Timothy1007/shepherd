@@ -36,6 +36,7 @@ namespace Shepherd.Exploration.StyleQA
         [Header("第一人稱：左手提燈（Blender 模型）")]
         public Transform Viewmodel;       // 掛在相機下
         public Transform Arm;             // 左手＋前臂
+        public Transform RightArm;        // 右手（放鬆的預備姿勢；之後要拿穩定器或其他東西）
         public Transform LanternPivot;    // 手握的位置（提燈從這裡垂下、擺動）
         public Renderer LanternRenderer;
         public Light LanternLight;
@@ -63,6 +64,7 @@ namespace Shepherd.Exploration.StyleQA
         public bool ViewmodelVisible { get; private set; } = true;
         public bool LanternRaised { get; private set; }
         public bool LanternOn { get; private set; } = true;
+        public bool RightHandVisible = true;
         private float raise, lightK = 1f, lastYaw, lastPitch, swayPhase;
         private Vector2 swing, swingVel;
         // 手（握把）在鏡頭座標的位置：平常提在左邊、燈身大約在畫面左下三分之一；舉高時往中間、往上。
@@ -341,6 +343,13 @@ namespace Shepherd.Exploration.StyleQA
             // 前臂從畫面左下角斜斜伸進來（往下、往左、往後），手背朝外上方。
             Arm.localRotation = Quaternion.Euler(Mathf.Lerp(-52f, -40f, r), Mathf.Lerp(38f, 30f, r), Mathf.Lerp(18f, 10f, r)) * Quaternion.Euler(0f, 180f, 0f);
             LanternPivot.position = Arm.position;
+            if (RightArm != null)
+            {
+                // 右手：在畫面右下角，手指微彎（左右對稱的姿勢），走路時和左手反相晃動。
+                RightArm.gameObject.SetActive(RightHandVisible);
+                RightArm.localPosition = new Vector3(0.25f, -0.2f, 0.5f) + new Vector3(-bob.x, bob.y * 0.8f, 0f);
+                RightArm.localRotation = Quaternion.Euler(-30f, -28f, -38f) * Quaternion.Euler(0f, 180f, 0f);
+            }
             float dYaw = Mathf.DeltaAngle(lastYaw, Player.Yaw), dPitch = Player.Pitch - lastPitch;
             lastYaw = Player.Yaw; lastPitch = Player.Pitch;
             var push = new Vector2(dPitch * 0.9f + Mathf.Sin(swayPhase) * 4f * walk, -dYaw * 1.2f);
@@ -397,6 +406,7 @@ namespace Shepherd.Exploration.StyleQA
             if (Input.GetKeyDown(KeyCode.F)) LanternRaised = !LanternRaised;
             if (Input.GetKeyDown(KeyCode.L)) LanternOn = !LanternOn;
             if (Input.GetKeyDown(KeyCode.H)) SetViewmodelVisible(!ViewmodelVisible);
+            if (Input.GetKeyDown(KeyCode.R)) RightHandVisible = !RightHandVisible;
             bool orbit = ViewIndex >= 0 && ViewIndex < 4;
             Player.Step(Time.deltaTime, orbit ? ExploreInput.None : inp, cursor.LookActive && !orbit);
             if (!orbit) SyncCamera();
@@ -430,7 +440,7 @@ namespace Shepherd.Exploration.StyleQA
             for (int k = 0; k < 6; k++)
                 if (GUI.Button(new Rect(14 + k * 76, 108, 72, 26), (k + 1) + " " + ViewNames[k].Replace("第一人稱・", ""), button)) GoToView(k);
             GUI.Label(new Rect(14, 140, 460, 20), "WASD 走・Shift 快走・Esc 放開滑鼠・按住 Alt 點按鈕・U 隱藏", hint);
-            GUI.Label(new Rect(14, 158, 460, 20), "提燈：F 舉高／放下・L 開關・H 隱藏手（" + (LanternOn ? "亮" : "熄") + (LanternRaised ? "、舉高" : "") + "）", hint);
+            GUI.Label(new Rect(14, 158, 460, 20), "提燈：F 舉高／放下・L 開關・H 隱藏雙手・R 右手（" + (LanternOn ? "亮" : "熄") + (LanternRaised ? "、舉高" : "") + "）", hint);
             GUI.Label(new Rect(14, 176, 460, 20), "這是 Unity 實機畫面（真正的 3D 模型＋即時光影）", hint);
         }
     }

@@ -112,7 +112,13 @@ namespace Shepherd.Exploration.Editor
             vm.SetParent(root.transform, false);
             var armRoot = new GameObject("ArmLeft").transform;
             armRoot.SetParent(vm, false);
-            ViewPart("SQA_ArmLeft", armRoot);
+            var leftModel = ViewPart("SQA_ArmLeft", armRoot);
+            if (leftModel != null) leftModel.transform.localScale = Vector3.one * 1.12f;   // 第一人稱的手通常比真人略大一點，才讀得清楚
+            var rightRoot = new GameObject("ArmRight").transform;
+            rightRoot.SetParent(vm, false);
+            var rightModel = ViewPart("SQA_ArmRight", rightRoot);
+            if (rightModel != null) rightModel.transform.localScale = Vector3.one * 1.12f;
+            qa.RightArm = rightRoot;
             var pivot = new GameObject("LanternPivot").transform;
             pivot.SetParent(vm, false);
             var lantern = ViewPart("SQA_Lantern", pivot);
