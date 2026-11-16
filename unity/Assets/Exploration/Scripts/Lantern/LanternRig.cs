@@ -73,6 +73,8 @@ namespace Shepherd.Exploration.Lantern
         /// 手上的提燈收起來、不能聚光。null＝拿在手上。
         /// </summary>
         public Vector3? PlacedAt;
+        /// <summary>1＝前面空曠；越小＝提燈越貼近牆（光會調暗）。</summary>
+        public float NearWall { get; private set; } = 1f;
         private bool placedWas;
         public float TargetRadius => On ? Radii[RadiusIndex] * RadiusScale : 0f;
 
@@ -309,7 +311,14 @@ namespace Shepherd.Exploration.Lantern
         public static readonly Vector3 LoweredDevice = new Vector3(0.3f, -0.62f, 0.32f);
         public static readonly Vector3 RaisedDevice = new Vector3(0.2f, -0.15f, 0.46f);
         /// <summary>做事的時候叫一下：右手伸出來，做完約一秒後收回去。</summary>
-        public void PokeDevice(float seconds = 1.1f) { deviceShow = Mathf.Max(deviceShow, seconds); }
+        public void PokeDevice(float seconds = 1.1f) { if (DeviceAllowed) deviceShow = Mathf.Max(deviceShow, seconds); }
+        /// <summary>
+        /// 右手的穩定器（槍）可以出現嗎。使用者 2026-11-16：一樓用不到，只有戰鬥時才拿出來；
+        /// 收起來時，牽引／復原的光束改從提燈發出。
+        /// </summary>
+        public bool DeviceAllowed = true;
+        /// <summary>光束的起點：拿著穩定器時從槍口，收起來時從提燈。</summary>
+        public Vector3 BeamOrigin => DeviceAllowed && Muzzle != null ? Muzzle.position : Light != null ? Light.transform.position : Camera.transform.position;
         public void CycleRadius() => RadiusIndex = (RadiusIndex + 1) % Radii.Length;
         public void SetRadius(int i) => RadiusIndex = Mathf.Clamp(i, 0, Radii.Length - 1);
 
@@ -364,7 +373,8 @@ namespace Shepherd.Exploration.Lantern
             deviceShow = Mathf.Max(0f, deviceShow - dt);
             bool wantLantern = !HideHands && On && PlacedAt == null && (Focus || toggleShow > 0f);
             LanternShown = Mathf.MoveTowards(LanternShown, wantLantern ? 1f : 0f, dt * (wantLantern ? 3.5f : 2f));
-            DeviceShown = Mathf.MoveTowards(DeviceShown, !HideHands && deviceShow > 0f ? 1f : 0f, dt * (deviceShow > 0f ? 5f : 2.2f));
+            if (!DeviceAllowed) deviceShow = 0f;
+            DeviceShown = Mathf.MoveTowards(DeviceShown, !HideHands && DeviceAllowed && deviceShow > 0f ? 1f : 0f, dt * (deviceShow > 0f ? 5f : 2.2f));
             float ls = Mathf.SmoothStep(0f, 1f, LanternShown), ds = Mathf.SmoothStep(0f, 1f, DeviceShown);
             var raised = Vector3.Lerp(new Vector3(-0.25f, -0.1f, 0.6f), new Vector3(-0.21f, -0.04f, 0.64f), fb);
             if (lanternArm != null) lanternArm.localPosition = Vector3.Lerp(LoweredLantern, raised, ls);
@@ -403,7 +413,20 @@ namespace Shepherd.Exploration.Lantern
                 LanternReveal.SetShape(Camera.transform.forward, Vector3.one * PlacedShape, 0f);
                 return;
             }
-            var lampAt = Camera.transform.TransformPoint(Vector3.Lerp(new Vector3(-0.25f, -0.27f, 0.6f), new Vector3(-0.21f, -0.21f, 0.64f), fb));
+            var lampLocal = Vector3.Lerp(new Vector3(-0.25f, -0.27f, 0.6f), new Vector3(-0.21f, -0.21f, 0.64f), fb);
+            // 貼著牆或箱子時（例如站在紙箱上、臉靠近電箱）：燈往身體這邊收，不要穿進牆裡；光也調暗，免得一整片白。
+            var eye = Camera.transform.position;
+            var lampDir = Camera.transform.TransformDirection(lampLocal);
+            float lampLen = lampDir.magnitude;
+            NearWall = 1f;
+            if (Physics.SphereCast(eye, 0.06f, lampDir / lampLen, out var wallHit, lampLen + 0.25f, ~(1 << ViewLayer), QueryTriggerInteraction.Ignore))
+            {
+                float keep = Mathf.Clamp(wallHit.distance - 0.12f, 0.15f, lampLen);
+                lampLocal *= keep / lampLen;
+                NearWall = Mathf.Clamp01((wallHit.distance - 0.1f) / (lampLen + 0.15f));
+            }
+            Light.intensity *= Mathf.Lerp(0.35f, 1f, NearWall);
+            var lampAt = Camera.transform.TransformPoint(lampLocal);
             Light.transform.position = lampAt;
             RevealCenter = lampAt + Camera.transform.forward * RevealForward;
             LanternReveal.SetSphere(RevealCenter, CurrentRadius);

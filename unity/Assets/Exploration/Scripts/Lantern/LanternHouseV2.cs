@@ -776,6 +776,8 @@ namespace Shepherd.Exploration.Lantern
             lr.Init(lever.position + Vector3.down * 0.08f, Quaternion.Euler(70f, 0f, 0f), lever.position, Quaternion.identity);
             // 手要伸到拉桿握把（約 1.37 m）：幼年站在地上搆不到，要搬箱子或凳子墊腳（使用者 2026-11-16）。
             lr.ReachY = lr.FixedPosition.y - 0.08f;
+            lr.TapToUse = true;                 // 拉下去就好：點一下 E（使用者 2026-11-16）
+            lr.Label = "拉下電箱的拉桿";
             Restorables.Add(lr);
             V2PowerLever = lr;
             // S2 外套吊牌：袖口那張紙吊牌（聚光才看得清楚）。

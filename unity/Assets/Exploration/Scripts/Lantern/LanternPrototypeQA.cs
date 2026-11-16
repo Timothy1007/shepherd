@@ -200,7 +200,6 @@ namespace Shepherd.Exploration.Lantern
             Flow.ResetState();
             V2 = new LanternV2Puzzles(World, Rig, Cam, Flow, Audio);
             Carry = new LanternCarry(Player, World, Flow, Audio);
-            World.GrabRequested = m => Carry.Toggle(m);
             Actions.ReachTop = () => Player.transform.position.y + Player.EyeHeightValue + ReachAboveEye;
             Hold = new LanternHold();
             Sandbox = new LanternSandboxRun(World, Player, Hold, Actions, Flow, Audio);
@@ -233,7 +232,6 @@ namespace Shepherd.Exploration.Lantern
         public void StartV2()
         {
             Actions.DropHeld(false);
-            Carry.Release();
             World.BuildHouseV2();
             ApplyConfirmedLayouts();
             World.BuildShopInteractables();
@@ -473,6 +471,8 @@ namespace Shepherd.Exploration.Lantern
             Transform t;
             if (!World.Marks.TryGetValue(mark, out t)) return;
             Actions.DropHeld(false);
+            if (V2 != null && V2.Seated) V2.StandUp();   // 傳送：放棄坐著
+            seatAnim = 1f;
             var f = t.forward;
             float yaw = Mathf.Atan2(f.x, f.z) * Mathf.Rad2Deg;
             float pitch = -Mathf.Asin(Mathf.Clamp(f.y, -1f, 1f)) * Mathf.Rad2Deg;
@@ -564,7 +564,6 @@ namespace Shepherd.Exploration.Lantern
             Rig.SetOn(true);
             Rig.SetRadius(1);
             SetHouseScale(World.HouseScale);
-            Carry.Release();
             World.BuildHouseV2();
             ApplyConfirmedLayouts();
             World.BuildShopInteractables();
@@ -594,20 +593,25 @@ namespace Shepherd.Exploration.Lantern
             Rig.HideHands = Inspecting != null || V2.LanternPlaced;   // 提燈放在桌上：手上沒有燈（之後換縫紉的手部動作）
             // 記憶年齡：眼高、身體大小、提燈光圈跟著記憶進度（設計總綱 §10、§11）。
             UpdateEyeHeight(dt);
+            // 右手的穩定器（槍）：一樓與門外的街道用不到，收起來（使用者 2026-11-16；只有戰鬥時才拿出來）。
+            var here = Player.transform.position;
+            Rig.DeviceAllowed = !(World.InV2House(here) || World.InV2Street(here));
+            // 坐上／離開縫紉機凳子的動作播放中：不能走、不能轉頭。
+            if (seatAnim < 1f)
+            {
+                StepSeatAnim(dt);
+                inp.Move = Vector2.zero;
+                inp.Look = Vector2.zero;
+            }
             // 坐在縫紉機前：不能走；往任何方向走＝站起來（放棄這次穿針）。
-            if (V2.Seated)
+            else if (V2.Seated)
             {
                 if (inp.Move.sqrMagnitude > 0.25f) V2.StandUp();
                 inp.Move = Vector2.zero;
             }
-            // 搬東西時：按 E 放下（不管對著哪裡）。
-            bool eDownCarry = act.Interact && !carryEWas;
-            carryEWas = act.Interact;
-            if (Carry.Grabbed != null && eDownCarry && Inspecting == null) { Carry.Release(); act.Interact = false; }
-            float carrySlow = Carry.Grabbed != null ? LanternCarry.CarrySpeedScale : 1f;
-            Player.WalkSpeedValue = WalkSpeedNow * Mathf.Lerp(1f, 0.6f, Rig.FocusBlend) * carrySlow;
-            Player.RunSpeedValue = BriskSpeedNow * Mathf.Lerp(1f, 0.6f, Rig.FocusBlend) * carrySlow;
-            Player.Step(dt, inp, true);
+            Player.WalkSpeedValue = WalkSpeedNow * Mathf.Lerp(1f, 0.6f, Rig.FocusBlend);
+            Player.RunSpeedValue = BriskSpeedNow * Mathf.Lerp(1f, 0.6f, Rig.FocusBlend);
+            if (seatAnim >= 1f) Player.Step(dt, inp, true);
             Carry.Step(dt, inp.Move);
             var feet = Player.transform.position;
             stepDistance += Vector3.Distance(new Vector3(feet.x, 0f, feet.z), new Vector3(lastFeet.x, 0f, lastFeet.z));
@@ -643,9 +647,9 @@ namespace Shepherd.Exploration.Lantern
                 V2.ConsumeSeatMove();
                 var seat = World.V2SeatSpot;
                 var back = Quaternion.Euler(0f, World.V2SeatYaw, 0f) * Vector3.back;
-                if (V2.Seated) Player.Teleport(seat + Vector3.up * 0.02f, World.V2SeatYaw, 28f);            // 爬上／坐上凳子，低頭看針
-                else Player.Teleport(seat + back * 0.6f + Vector3.up * 0.02f, World.V2SeatYaw, 0f);         // 站起來，退到凳子後面
-                lastEyeFeet = Player.transform.position;
+                // 幼年：爬上凳子（慢一點、有一個往上撐的弧度）；青春期、成人：拉開凳子坐下。播完才開始穿針。
+                if (V2.Seated) BeginSeatAnim(seat + Vector3.up * 0.02f, World.V2SeatYaw, 28f, V2.SewAge == 0 ? 1.1f : 0.75f, V2.SewAge == 0);
+                else BeginSeatAnim(seat + back * 0.6f + Vector3.up * 0.02f, World.V2SeatYaw, 0f, 0.5f, false);
             }
             Combat.Step(dt);
             Flow.Step(dt);
@@ -992,7 +996,37 @@ namespace Shepherd.Exploration.Lantern
 
         public string PromptText => Carry != null && !string.IsNullOrEmpty(Carry.Prompt) ? Carry.Prompt : Actions != null ? Actions.Prompt : "";
         public LanternCarry Carry { get; private set; }
-        private bool carryEWas;
+
+        // ---------------- 坐上／離開縫紉機凳子的動作 ----------------
+        // 灰盒階段：鏡頭從站的位置移到凳子上（幼年多一個往上撐、爬上去的弧度），眼高由坐姿平順過渡；之後換正式的手腳動作。
+        /// <summary>1＝沒有在播；0～1＝播放進度。</summary>
+        public float SeatAnimProgress => seatAnim;
+        private float seatAnim = 1f, seatAnimDur = 0.75f;
+        private Vector3 seatFrom, seatTo;
+        private float seatFromYaw, seatToYaw, seatFromPitch, seatToPitch;
+        private bool seatClimb;
+
+        private void BeginSeatAnim(Vector3 to, float yaw, float pitch, float seconds, bool climb)
+        {
+            seatFrom = Player.transform.position; seatTo = to;
+            seatFromYaw = Player.Yaw; seatToYaw = yaw;
+            seatFromPitch = Player.Pitch; seatToPitch = pitch;
+            seatAnimDur = seconds; seatClimb = climb;
+            seatAnim = 0f;
+        }
+
+        private void StepSeatAnim(float dt)
+        {
+            seatAnim = Mathf.Min(1f, seatAnim + dt / Mathf.Max(0.05f, seatAnimDur));
+            float k = Mathf.SmoothStep(0f, 1f, seatAnim);
+            var p = Vector3.Lerp(seatFrom, seatTo, k);
+            float yaw = Mathf.LerpAngle(seatFromYaw, seatToYaw, k);
+            float pitch = Mathf.Lerp(seatFromPitch, seatToPitch, k);
+            if (seatClimb) pitch -= Mathf.Sin(seatAnim * Mathf.PI) * 12f;   // 爬的時候先抬頭看凳面，再低頭看針
+            Player.Teleport(p, yaw, pitch);
+            lastEyeFeet = Player.transform.position;
+            if (seatAnim >= 1f && V2.Seated) V2.BeginSewing();
+        }
 
         private void UpdateUi()
         {

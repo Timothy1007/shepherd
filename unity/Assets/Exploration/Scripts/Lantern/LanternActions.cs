@@ -386,8 +386,10 @@ namespace Shepherd.Exploration.Lantern
                 // 站得近時，東西在歸位途中會移動，所以角度放寬；距離量到表面。
                 if (Vector3.Angle(cam.transform.forward, d) < 45f && SurfaceDistance(Restoring) < InteractReach + 1.5f) target = Restoring;
             }
+            // 點一下就完成的（電箱拉桿）：按下去那一格開始，之後自己跑完，不用按著、也沒有光束。
+            if (eDown && aimed is LanternRestorable tapR && tapR.TapToUse && !tapR.Done && CanReach(tapR)) { tapR.AutoRun = true; Audio?.Play(LanternAudio.Toggle, 0.6f); }
             if (target == null && inp.Interact) target = aimed as LanternRestorable;
-            if (target != null && !CanReach(target)) target = null;   // 太高：搆不到
+            if (target != null && (target.TapToUse || !CanReach(target))) target = null;   // 點一下的另外處理；太高：搆不到
             Restoring = target;
             bool casting = target != null;
             if (casting)
@@ -429,7 +431,7 @@ namespace Shepherd.Exploration.Lantern
                 Prompt = "E 抓起" + tether.Label;
                 if (eDown) Grab(tether);
             }
-            else if (rest != null) Prompt = !CanReach(rest) ? TooHighPrompt : "按住 E " + (rest == world.FuseBox ? "推回" : "復原") + rest.Label;
+            else if (rest != null) Prompt = !CanReach(rest) ? TooHighPrompt : rest.TapToUse ? (rest.AutoRun ? "" : "E " + rest.Label) : "按住 E " + (rest == world.FuseBox ? "推回" : "復原") + rest.Label;
             else if (toggle != null)
             {
                 Prompt = toggle.Prompt;
@@ -574,7 +576,7 @@ namespace Shepherd.Exploration.Lantern
             t.Held = true;
             t.Body.useGravity = false;
             Charge = 0f;
-            holdDistance = Mathf.Clamp(Vector3.Distance(cam.transform.position, Center(t)), 1.5f, 2.6f);
+            holdDistance = t.HoldDistance > 0f ? t.HoldDistance : Mathf.Clamp(Vector3.Distance(cam.transform.position, Center(t)), 1.5f, 2.6f);
         }
 
         public void DropHeld(bool keepVelocity)
@@ -696,7 +698,7 @@ namespace Shepherd.Exploration.Lantern
 
         private void DrawBeam(Vector3 to, Color c)
         {
-            var from = rig.Muzzle != null ? rig.Muzzle.position : cam.transform.position;
+            var from = rig.BeamOrigin;
             beam.enabled = true;
             beam.startColor = c;
             beam.endColor = new Color(c.r, c.g, c.b, c.a * 0.6f);

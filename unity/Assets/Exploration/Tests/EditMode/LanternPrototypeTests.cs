@@ -997,7 +997,12 @@ namespace Shepherd.Exploration.Tests
             Assert.IsTrue(w.V2PlacedLantern.gameObject.activeInHierarchy, "桌上看得到提燈");
             StringAssert.Contains("拉開凳子坐下", qa.PromptText, "成人：拉開凳子坐下");
             Act(qa, 1, new LanternActionInput { Interact = true });
-            Assert.IsTrue(v2.Seated && v2.Tap.Active, "坐下，開始穿針");
+            Assert.IsTrue(v2.Seated, "按下去：開始坐下");
+            Act(qa, 2, LanternActionInput.None);
+            Assert.IsFalse(v2.Tap.Active, "坐下的動作播完之前，不會開始判定");
+            Assert.Less(qa.SeatAnimProgress, 1f, "正在坐下");
+            for (int k = 0; k < 40 && !v2.Tap.Active; k++) qa.Step(Dt, ExploreInput.None);
+            Assert.IsTrue(v2.Tap.Active, "坐好了，開始穿針");
             Assert.AreEqual(0.17f, v2.Tap.ZoneWidth, 1e-4f, "成人、沒電：判定寬度");
             Assert.AreEqual(3, v2.Tap.Need);
             for (int k = 0; k < 40; k++) qa.Step(Dt, ExploreInput.None);
@@ -1013,6 +1018,7 @@ namespace Shepherd.Exploration.Tests
             Assert.IsTrue(v2.Sewn, "沒電也縫好了");
             Act(qa, 2, LanternActionInput.None);
             Assert.IsFalse(v2.Seated, "縫好就站起來");
+            for (int k = 0; k < 40 && qa.SeatAnimProgress < 1f; k++) qa.Step(Dt, ExploreInput.None);
             Assert.IsFalse(qa.Rig.PlacedAt.HasValue || v2.LanternPlaced, "提燈拿回手上");
             Assert.IsFalse(v2.ShopRepaired, "還沒開燈、還沒看吊牌：店裡的事還沒做完");
 
@@ -1051,61 +1057,65 @@ namespace Shepherd.Exploration.Tests
             Assert.IsTrue(echo.Playing, "可以再看一次");
         }
 
+        /// <summary>用牽引把紙箱從紙箱堆拿下來、移到電箱前放下（幼年）。</summary>
+        private static void TetherBoxToBreaker(LanternPrototypeQA qa)
+        {
+            var w = qa.World;
+            var box = w.V2MovableBox;
+            qa.Player.Teleport(PV(1.35f, 3.3f), 0f, 0f);
+            Settle(qa);
+            Aim(qa, box.Box.bounds.center);
+            Act(qa, 1, LanternActionInput.None);
+            StringAssert.Contains("抓起紙箱", qa.PromptText, "對著紙箱：E 抓起（牽引）");
+            Act(qa, 1, new LanternActionInput { Interact = true });
+            Act(qa, 1, LanternActionInput.None);
+            Assert.AreSame(box.Tether, qa.Actions.Held, "牽引抓起紙箱");
+            qa.Player.Teleport(qa.Player.transform.position, 0f, 0f);
+            for (int k = 0; k < 20; k++) qa.Step(Dt, ExploreInput.None);
+            for (int k = 0; k < 150 && (qa.Player.transform.position.x - LanternGraybox.V2Origin.x) / LanternGraybox.V2Scale < 1.85f; k++)
+                qa.Step(Dt, new ExploreInput { Move = new Vector2(1f, 0f) });   // 面向電箱、往右橫移
+            for (int k = 0; k < 20; k++) qa.Step(Dt, ExploreInput.None);
+            Assert.AreSame(box.Tether, qa.Actions.Held, "一路都牽著");
+            var held = box.Box.bounds.center - qa.Cam.transform.position; held.y = 0f;
+            Assert.Less(held.magnitude, 1.5f, "牽引時紙箱在身前不遠（" + held.magnitude.ToString("0.00") + " m）");
+            Act(qa, 1, new LanternActionInput { Interact = true });
+            Act(qa, 1, LanternActionInput.None);
+            Assert.IsNull(qa.Actions.Held, "E 放下");
+            for (int k = 0; k < 60; k++) qa.Step(Dt, ExploreInput.None);
+            Assert.AreEqual(LanternGraybox.V2Origin.y, box.Box.bounds.min.y, 0.04f, "紙箱落在地上（放在哪裡都可以）");
+        }
+
         [Test]
-        public void V2Shop_Child_CannotReachTheBreaker_MovesTheBoxOver_ClimbsUp_AndTurnsThePowerOn()
+        public void V2Shop_Child_CannotReachTheBreaker_TethersTheBoxOver_ClimbsUp_AndTapsThePowerOn()
         {
             var qa = NewQa();
             var w = qa.World;
             var v2 = qa.V2;
             var lever = w.V2PowerLever;
-            var box = w.V2MovableBox;
-            Assert.IsNotNull(box, "紙箱堆最上面那個箱子可以搬");
+            Assert.IsNotNull(w.V2MovableBox, "紙箱堆最上面那個箱子可以搬");
             Assert.IsNotNull(w.V2StoolMovable, "凳子可以搬");
+            Assert.IsTrue(w.Tetherables.Contains(w.V2MovableBox.Tether) && w.Tetherables.Contains(w.V2StoolMovable.Tether), "和其他箱子一樣用牽引");
             qa.Rig.SetOn(true);
-            // 幼年站在電箱前：搆不到。
             qa.Player.Teleport(PV(1.85f, 4.2f), 0f, 0f);
             Settle(qa);
-            Assert.AreEqual(qa.ChildEyeHeight, qa.Player.EyeHeightValue, 1e-3f, "幼年");
             Aim(qa, lever.GetComponent<Collider>().bounds.center);
             Act(qa, 1, LanternActionInput.None);
-            Assert.AreEqual(LanternActions.TooHighPrompt, qa.PromptText, "太高了，搆不到");
+            Assert.AreEqual(LanternActions.TooHighPrompt, qa.PromptText, "幼年：太高了，搆不到");
             Act(qa, 70, new LanternActionInput { Interact = true });
             Assert.IsFalse(lever.Done, "幼年在地上拉不到");
-            // 搬紙箱：從紙箱堆上拿下來，橫著移到電箱前，放下。
-            qa.Player.Teleport(PV(1.35f, 3.55f), 0f, 0f);
-            Settle(qa);
-            Aim(qa, box.Box.bounds.center);
-            Act(qa, 1, LanternActionInput.None);
-            StringAssert.Contains("搬紙箱", qa.PromptText);
-            Act(qa, 1, new LanternActionInput { Interact = true });
-            Act(qa, 1, LanternActionInput.None);
-            Assert.AreSame(box, qa.Carry.Grabbed, "抓住紙箱");
-            Assert.AreEqual(LanternGraybox.V2Origin.y, box.Box.bounds.min.y, 0.03f, "紙箱放到地上");
-            Assert.AreEqual(LanternPrototypeQA.WalkSpeed * LanternCarry.CarrySpeedScale, qa.Player.WalkSpeedValue, 1e-3f, "搬東西走慢一點");
-            qa.Player.Teleport(qa.Player.transform.position, 0f, 0f);
-            for (int k = 0; k < 120 && (qa.Player.transform.position.x - LanternGraybox.V2Origin.x) / LanternGraybox.V2Scale < 1.85f; k++)
-                qa.Step(Dt, new ExploreInput { Move = new Vector2(1f, 0f) });   // 面向電箱、往右橫移
-            Assert.AreSame(box, qa.Carry.Grabbed, "一路都抓著");
-            Assert.AreEqual(1.85f, (box.Box.bounds.center.x - LanternGraybox.V2Origin.x) / LanternGraybox.V2Scale, 0.2f, "紙箱跟著到電箱前");
-            Act(qa, 1, new LanternActionInput { Interact = true });
-            Act(qa, 1, LanternActionInput.None);
-            Assert.IsNull(qa.Carry.Grabbed, "放下");
-            // 頂著紙箱往前走：爬上去。
+            TetherBoxToBreaker(qa);
             int f = 0;
-            while (qa.Carry.Climbs == 0 && f++ < 120) qa.Step(Dt, new ExploreInput { Move = new Vector2(0f, 1f) });
-            Assert.AreEqual(1, qa.Carry.Climbs, "爬上紙箱");
+            while (qa.Carry.Climbs == 0 && f++ < 150) qa.Step(Dt, new ExploreInput { Move = new Vector2(0f, 1f) });
+            Assert.AreEqual(1, qa.Carry.Climbs, "頂著紙箱往前走：爬上去");
             Settle(qa);
             Assert.Greater(qa.Player.transform.position.y, LanternGraybox.V2Origin.y + 0.25f, "站在紙箱上");
             Aim(qa, lever.GetComponent<Collider>().bounds.center);
             Act(qa, 1, LanternActionInput.None);
-            StringAssert.Contains("按住 E", qa.PromptText, "墊高之後搆得到");
-            Act(qa, 70, new LanternActionInput { Interact = true });
-            Act(qa, 1, LanternActionInput.None);
-            Assert.IsTrue(v2.Powered, "幼年墊著紙箱開了電");
-            // 紙箱堆疊太高：幼年爬不上去。
-            Assert.Greater(w.V2Root.GetComponentsInChildren<Transform>().First(t => t.name == "V2Boxes").GetComponent<BoxCollider>().bounds.max.y - LanternGraybox.V2Origin.y, 0.3f);
+            StringAssert.Contains("E 拉下電箱的拉桿", qa.PromptText, "墊高之後搆得到；點一下就好");
+            Act(qa, 1, new LanternActionInput { Interact = true });
+            Act(qa, 50, LanternActionInput.None);
+            Assert.IsTrue(lever.Done && v2.Powered, "點一下 E，拉桿自己拉下去，有電了");
         }
-
         [Test]
         public void V2Shop_Child_ClimbsOntoTheStool_HardestTap_StoolMustBeAtTheMachine()
         {
@@ -1131,7 +1141,11 @@ namespace Shepherd.Exploration.Tests
             Act(qa, 1, LanternActionInput.None);
             StringAssert.Contains("爬上凳子", qa.PromptText, "幼年：爬上凳子");
             Act(qa, 1, new LanternActionInput { Interact = true });
-            Assert.IsTrue(v2.Seated && v2.Tap.Active);
+            Assert.IsTrue(v2.Seated && !v2.Tap.Active, "先爬上凳子，還沒開始判定");
+            int climbFrames = 0;
+            while (!v2.Tap.Active && climbFrames++ < 60) qa.Step(Dt, ExploreInput.None);
+            Assert.IsTrue(v2.Tap.Active, "爬好了才開始");
+            Assert.Greater(climbFrames * Dt, 0.9f, "幼年爬上去比較慢（" + (climbFrames * Dt).ToString("0.0") + " 秒）");
             Assert.AreEqual(0.10f, v2.Tap.ZoneWidth, 1e-4f, "幼年、沒電：判定最窄");
             Assert.AreEqual(4, v2.Tap.Need, "幼年要多穿一次");
             for (int k = 0; k < 40; k++) qa.Step(Dt, ExploreInput.None);
@@ -1144,6 +1158,68 @@ namespace Shepherd.Exploration.Tests
             Assert.IsTrue(stool.Box.enabled, "凳子恢復碰撞");
         }
 
+        [Test]
+        public void V2House_TheGunStaysAway_TetherBeamComesFromTheLantern()
+        {
+            var qa = NewQa();
+            qa.GoTo("V2Shop"); Settle(qa);
+            Assert.IsFalse(qa.Rig.DeviceAllowed, "一樓：右手的穩定器收起來");
+            qa.Rig.PokeDevice(2f);
+            for (int k = 0; k < 20; k++) qa.Step(Dt, ExploreInput.None);
+            Assert.AreEqual(0f, qa.Rig.DeviceShown, 1e-4f, "互動時也不會拿出來");
+            Assert.Less(Vector3.Distance(qa.Rig.BeamOrigin, qa.Rig.Light.transform.position), 1e-3f, "牽引的光束從提燈發出");
+            qa.GoTo("V2Street"); Settle(qa);
+            Assert.IsFalse(qa.Rig.DeviceAllowed, "門外的街道也不用");
+        }
+
+        [Test]
+        public void ShopMovables_CanBeDroppedAnywhere_AndPickedUpAgain()
+        {
+            var qa = NewQa();
+            var w = qa.World;
+            foreach (var m in new[] { w.V2StoolMovable, w.V2MovableBox })
+            {
+                qa.Player.Teleport(PV(3.2f, 1.6f), 0f, 0f);
+                Settle(qa);
+                m.Tether.Body.position = PV(3.2f, 2.6f) + Vector3.up * 0.3f;
+                m.transform.position = m.Tether.Body.position;
+                Physics.SyncTransforms();
+                for (int k = 0; k < 40; k++) qa.Step(Dt, ExploreInput.None);
+                Aim(qa, m.Box.bounds.center);
+                Act(qa, 1, new LanternActionInput { Interact = true });
+                Act(qa, 1, LanternActionInput.None);
+                Assert.AreSame(m.Tether, qa.Actions.Held, "抓起" + m.Label);
+                for (int k = 0; k < 40; k++) qa.Step(Dt, new ExploreInput { Move = new Vector2(-1f, 0f) });
+                Act(qa, 1, new LanternActionInput { Interact = true });
+                Act(qa, 1, LanternActionInput.None);
+                Assert.IsNull(qa.Actions.Held, "隨時可以放下" + m.Label);
+                for (int k = 0; k < 60; k++) qa.Step(Dt, ExploreInput.None);
+                Assert.AreEqual(LanternGraybox.V2Origin.y, m.Box.bounds.min.y, 0.05f, m.Label + "放在地上");
+                Assert.Less(Vector3.Angle(m.transform.up, Vector3.up), 2f, m.Label + "沒有翻倒");
+                Aim(qa, m.Box.bounds.center);
+                Act(qa, 1, new LanternActionInput { Interact = true });
+                Act(qa, 1, LanternActionInput.None);
+                Assert.AreSame(m.Tether, qa.Actions.Held, "放下之後可以再抓起來");
+                Act(qa, 1, new LanternActionInput { Interact = true });
+                Act(qa, 1, LanternActionInput.None);
+            }
+        }
+
+        [Test]
+        public void Lantern_PullsBackAndDims_WhenYourFaceIsNearAWall()
+        {
+            var qa = NewQa();
+            qa.Rig.SetOn(true);
+            qa.Player.Teleport(PV(3.0f, 4.75f), 0f, 0f);   // 臉貼著店後牆
+            for (int k = 0; k < 30; k++) qa.Step(Dt, ExploreInput.None);
+            Assert.Less(qa.Rig.NearWall, 0.7f, "前面就是牆");
+            var eye = qa.Cam.transform.position;
+            var toLamp = qa.Rig.Light.transform.position - eye;
+            Assert.IsFalse(Physics.Raycast(eye, toLamp.normalized, toLamp.magnitude, ~(1 << LanternRig.ViewLayer), QueryTriggerInteraction.Ignore), "提燈的光沒有穿進牆裡");
+            qa.Player.Teleport(PV(5.07f, 6.0f), 0f, 0f);   // 走廊，往前空曠
+            for (int k = 0; k < 30; k++) qa.Step(Dt, ExploreInput.None);
+            Assert.AreEqual(1f, qa.Rig.NearWall, 1e-3f, "前面空曠：正常亮度");
+        }
         [Test]
         public void Body_ChangesWithMemoryAge_AndDoesNotGrowIntoFurniture()
         {
@@ -1693,7 +1769,7 @@ namespace Shepherd.Exploration.Tests
             return w.V2Root.GetComponentsInChildren<Transform>(false).Count(t => t.name == "DoorTrim" && Mathf.Abs(t.position.x - a.x) < 0.3f && t.position.z > a.z - 0.3f && t.position.z < b.z + 0.3f);
         }
 
-        /// <summary>開電箱：搆得到就直接拉；幼年搆不到就搬紙箱過去、爬上去再拉。</summary>
+        /// <summary>開電箱：搆得到就直接拉（點一下 E）；幼年搆不到就用牽引把紙箱搬過去、爬上去再拉。</summary>
         private static void PowerS1(LanternPrototypeQA qa)
         {
             var w = qa.World;
@@ -1702,25 +1778,16 @@ namespace Shepherd.Exploration.Tests
             Settle(qa);
             if (!qa.Actions.CanReach(lever))
             {
-                qa.Player.Teleport(PV(1.35f, 3.55f), 0f, 0f);
-                Settle(qa);
-                Aim(qa, w.V2MovableBox.Box.bounds.center);
-                Act(qa, 1, new LanternActionInput { Interact = true });
-                Act(qa, 1, LanternActionInput.None);
-                Assert.AreSame(w.V2MovableBox, qa.Carry.Grabbed, "抓住紙箱");
-                qa.Player.Teleport(qa.Player.transform.position, 0f, 0f);
-                for (int k = 0; k < 120 && (qa.Player.transform.position.x - LanternGraybox.V2Origin.x) / LanternGraybox.V2Scale < 1.85f; k++)
-                    qa.Step(Dt, new ExploreInput { Move = new Vector2(1f, 0f) });
-                Act(qa, 1, new LanternActionInput { Interact = true });
-                Act(qa, 1, LanternActionInput.None);
+                TetherBoxToBreaker(qa);
                 int f = 0;
-                while (qa.Carry.Climbs == 0 && f++ < 120) qa.Step(Dt, new ExploreInput { Move = new Vector2(0f, 1f) });
+                while (qa.Carry.Climbs == 0 && f++ < 150) qa.Step(Dt, new ExploreInput { Move = new Vector2(0f, 1f) });
                 Assert.Greater(qa.Carry.Climbs, 0, "爬上紙箱");
                 Settle(qa);
             }
             Aim(qa, lever.GetComponent<Collider>().bounds.center);
-            Act(qa, 70, new LanternActionInput { Interact = true });
             Act(qa, 1, LanternActionInput.None);
+            Act(qa, 1, new LanternActionInput { Interact = true });
+            Act(qa, 50, LanternActionInput.None);
             Assert.IsTrue(qa.V2.Powered, "S1 有電了");
         }
         private static void TakeThread(LanternPrototypeQA qa)
@@ -1737,13 +1804,16 @@ namespace Shepherd.Exploration.Tests
         {
             var w = qa.World; var v2 = qa.V2;
             StandAt(qa, w.V2SewingMachine.GetComponent<Collider>().bounds.center, w.V2ShopRoom.center, 1.0f);
-            for (int i = 0; i < 3 && !v2.Tap.Active; i++)
+            for (int i = 0; i < 3 && !v2.Seated; i++)
             {
                 Aim(qa, w.V2SewingMachine.GetComponent<Collider>().bounds.center);
                 Act(qa, 1, LanternActionInput.None);
                 Act(qa, 1, new LanternActionInput { Interact = true });
             }
-            Assert.IsTrue(v2.Tap.Active, "開始穿針（" + qa.PromptText + "）");
+            Assert.IsTrue(v2.Seated, "坐上凳子（" + qa.PromptText + "）");
+            Assert.IsFalse(v2.Tap.Active, "還沒坐好，不會開始判定");
+            for (int k = 0; k < 60 && !v2.Tap.Active; k++) qa.Step(Dt, ExploreInput.None);
+            Assert.IsTrue(v2.Tap.Active, "坐好之後才開始穿針");
             Act(qa, 1, LanternActionInput.None);
             int frames = 0; bool pressed = false;
             while (v2.Tap.Active && frames++ < 1200)
@@ -1755,6 +1825,7 @@ namespace Shepherd.Exploration.Tests
             Assert.IsTrue(v2.Sewn, "S4 穿好針");
             Act(qa, 2, LanternActionInput.None);
             Assert.IsFalse(v2.Seated, "站起來");
+            for (int k = 0; k < 40 && qa.SeatAnimProgress < 1f; k++) qa.Step(Dt, ExploreInput.None);   // 等站起來的動作播完
         }
         // 從主屋（店面／走廊）走進餐廳、再到廚房門內。
         private static readonly (float, float)[] HallToKitchen = { (5.07f, 6.45f), (4.1f, 6.45f), (2.33f, 7.14f), (1.33f, 7.51f), (1.1f, 8.59f), (1.6f, 9.66f), (1.6f, 10.6f) };

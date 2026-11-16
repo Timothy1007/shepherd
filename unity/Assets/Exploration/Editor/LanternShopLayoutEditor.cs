@@ -193,6 +193,10 @@ namespace Shepherd.Exploration.Editor
                 // 2. 幼年站在電箱前：搆不到
                 qa.Rig.SetOn(true);
                 qa.Player.Teleport(P(1.85f, 3.7f), 0f, 0f); Run(40); Look(lever); Run(2); Snap("child_breaker_floor");
+                // 2b. 牽引紙箱（幼年，拉近在身前）
+                qa.Player.Teleport(P(1.35f, 3.3f), 0f, 0f); Run(10); Look(w.V2MovableBox.Box.bounds.center); Run(2);
+                qa.Actions.Grab(w.V2MovableBox.Tether); qa.Player.Teleport(qa.Player.transform.position, 0f, 8f); Run(40); Snap("child_tether_box");
+                qa.Actions.DropHeld(false); Run(40);
                 // 3. 紙箱搬到電箱前、站上去
                 var box = w.V2MovableBox;
                 box.transform.position = new Vector3(P(1.85f, 4.1f).x, o.y + box.BottomOffset, P(1.85f, 4.1f).z);

@@ -11,6 +11,8 @@ namespace Shepherd.Exploration.Lantern
         public bool Held { get; set; }
         /// <summary>被丟出後一小段時間內撞到練習靶會讓它暈眩。</summary>
         public float ThrownTimer { get; set; }
+        /// <summary>牽引時離眼睛多遠（0＝依抓起時的距離，1.5～2.6 m）。小東西（改衣店的紙箱、凳子）拉近一點比較好控制。</summary>
+        public float HoldDistance;
 
         /// <summary>原本的位置（掉出世界時回到這裡）。</summary>
         public Vector3 HomePosition;
@@ -49,6 +51,10 @@ namespace Shepherd.Exploration.Lantern
         public float AnchorRadius = 1.5f;
         /// <summary>手要伸到的高度（世界 y）；NegativeInfinity＝不檢查。小孩搆不到時要墊東西（例如 S1 電箱的拉桿）。</summary>
         public float ReachY = float.NegativeInfinity;
+        /// <summary>true＝點一下 E 就自己完成（例如電箱的拉桿：拉下去就好，不用一直按著）。</summary>
+        public bool TapToUse;
+        /// <summary>點一下之後正在自己完成。</summary>
+        public bool AutoRun { get; set; }
 
         /// <summary>QA／測試用：直接完成。</summary>
         public void ForceDone()
@@ -71,6 +77,7 @@ namespace Shepherd.Exploration.Lantern
         public bool Step(float dt, bool casting)
         {
             if (Done) return false;
+            if (AutoRun) casting = true;
             Progress = Mathf.Clamp01(Progress + (casting ? dt / Seconds : -dt / (Seconds * 1.6f)));
             Apply();
             if (Progress >= 1f)

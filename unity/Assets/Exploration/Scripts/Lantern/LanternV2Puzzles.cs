@@ -85,6 +85,8 @@ namespace Shepherd.Exploration.Lantern
         /// <summary>坐下／站起來的那一格要求玩家那一側移動位置（坐下＝座位、站起來＝凳子旁邊）。</summary>
         public bool SeatMoveRequested { get; private set; }
         public void ConsumeSeatMove() => SeatMoveRequested = false;
+        /// <summary>坐好了、穿針判定已經開始（坐上去的動作播完才開始）。</summary>
+        public bool SewingStarted { get; private set; }
         private bool lanternAwayWarned;
         public int RepairMoments { get; private set; }
 
@@ -105,7 +107,7 @@ namespace Shepherd.Exploration.Lantern
         public void Rebind()
         {
             Powered = TagRead = HasThread = Sewn = ShopRepaired = false;
-            LanternPlaced = Seated = SeatMoveRequested = lanternAwayWarned = false;
+            LanternPlaced = Seated = SeatMoveRequested = lanternAwayWarned = SewingStarted = false;
             rig.PlacedAt = null;
             TagFocus = 0f;
             Notebook.Clear();
@@ -194,13 +196,23 @@ namespace Shepherd.Exploration.Lantern
         private void SitDown()
         {
             Seated = true;
-            SeatMoveRequested = true;
+            SewingStarted = false;
+            SeatMoveRequested = true;   // 玩家那一側播「爬上／坐上凳子」的動作，播完才呼叫 BeginSewing
             var s = world.V2StoolMovable;
             if (s != null)
             {
+                var rb = s.Tether != null ? s.Tether.Body : null;
+                if (rb != null) { rb.velocity = Vector3.zero; rb.isKinematic = true; }
                 s.transform.SetPositionAndRotation(s.HomePosition, s.HomeRotation);   // 把凳子拉正
                 s.Box.enabled = false;
             }
+        }
+
+        /// <summary>坐好之後才開始穿針（使用者 2026-11-16：要先坐上去，才開始判定）。</summary>
+        public void BeginSewing()
+        {
+            if (!Seated || SewingStarted) return;
+            SewingStarted = true;
             // 穿針難度：幼年最難（判定窄、指針快、要多穿一次），成人最容易；有電（縫紉機的小燈亮著）再寬一點。
             float zone = SewAge == 0 ? 0.10f : SewAge == 1 ? 0.13f : 0.17f;
             Tap.ZoneWidth = zone + (Powered ? 0.03f : 0f);
@@ -221,7 +233,13 @@ namespace Shepherd.Exploration.Lantern
             Seated = false;
             SeatMoveRequested = true;
             Tap.Cancel();
-            if (world.V2StoolMovable != null) world.V2StoolMovable.Box.enabled = true;
+            SewingStarted = false;
+            if (world.V2StoolMovable != null)
+            {
+                world.V2StoolMovable.Box.enabled = true;
+                var rb = world.V2StoolMovable.Tether != null ? world.V2StoolMovable.Tether.Body : null;
+                if (rb != null) rb.isKinematic = false;
+            }
             if (LanternPlaced) { LanternPlaced = false; rig.PlacedAt = null; if (world.V2PlacedLantern != null) world.V2PlacedLantern.gameObject.SetActive(false); }
         }
 
@@ -269,7 +287,7 @@ namespace Shepherd.Exploration.Lantern
             bool tap = tapInput && !tapWas;
             tapWas = tapInput;
             if (world.V2SewingLamp != null) world.V2SewingLamp.enabled = Powered;
-            if (Seated && !Tap.Active) StandUp();   // 縫好了、或穿針被取消
+            if (Seated && SewingStarted && !Tap.Active) StandUp();   // 縫好了、或穿針被取消
             if (LanternPlaced && !Seated && !lanternAwayWarned && cam != null && Vector3.Distance(cam.transform.position, world.V2SewLanternSpot) > 4.5f)
             {
                 lanternAwayWarned = true;

@@ -7,6 +7,7 @@ namespace Shepherd.Exploration.Lantern
 {
     /// <summary>
     /// 可以搬動、站上去的東西（改衣店：紙箱堆最上面那個箱子、縫紉機的凳子）。
+    /// 搬動用和其他箱子一樣的「牽引」（E 抓起、E 放下、左鍵丟出；放在任何放得下的地方），站上去由 LanternCarry 處理。
     /// 不屬於任何一套美術（之後褪色版／恢復版是兩套場景，這些互動物件獨立存在，位置記在進度裡）。
     /// </summary>
     public sealed class LanternMovable : MonoBehaviour
@@ -15,14 +16,15 @@ namespace Shepherd.Exploration.Lantern
         public BoxCollider Box;
         public Vector3 HomePosition;
         public Quaternion HomeRotation;
-        public bool Grabbed { get; set; }
-        public LanternUsable Usable;
+        public LanternTetherable Tether;
+        /// <summary>正被牽引著。</summary>
+        public bool Grabbed => Tether != null && Tether.Held;
         /// <summary>頂面比根物件高多少（建立時量好；碰撞關掉時也能用）。</summary>
         public float TopOffset;
         /// <summary>底面比根物件低多少。</summary>
         public float BottomOffset;
         /// <summary>頂面的高度（世界 y）。</summary>
-        public float TopY => transform.position.y + TopOffset;
+        public float TopY => Box != null && Box.enabled && Box.gameObject.activeInHierarchy ? Box.bounds.max.y : transform.position.y + TopOffset;
         public float BottomY => transform.position.y - BottomOffset;
     }
 
@@ -47,8 +49,6 @@ namespace Shepherd.Exploration.Lantern
         /// <summary>放在桌上的提燈（灰盒）。</summary>
         public Transform V2PlacedLantern { get; private set; }
         public LanternUsable V2PlacedLanternUse { get; private set; }
-        /// <summary>按 E 要搬某件東西時呼叫（由玩家控制那一側處理）。</summary>
-        public System.Action<LanternMovable> GrabRequested;
         private int shopInteractRoot;
 
         public void BuildShopInteractables()
@@ -134,12 +134,15 @@ namespace Shepherd.Exploration.Lantern
             m.BottomOffset = root.position.y - worldBounds.min.y;
             m.HomePosition = root.position;
             m.HomeRotation = root.rotation;
-            var u = root.gameObject.AddComponent<LanternUsable>();
-            u.Label = label;
-            u.PromptFn = () => m.Grabbed ? "E 放下" + label : "E 搬" + label + "（頂著它往前走可以爬上去）";
-            u.OnUse = () => GrabRequested?.Invoke(m);
-            m.Usable = u;
-            Usables.Add(u);
+            // 牽引：和其他可以搬的箱子一樣（剛體；只轉水平方向，不會翻倒）。拉近一點比較好控制。
+            var rb = root.gameObject.AddComponent<Rigidbody>();
+            rb.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
+            var tt = root.gameObject.AddComponent<LanternTetherable>();
+            tt.Label = label;
+            tt.Init(label == "凳子" ? 2.5f : 3f);
+            tt.HoldDistance = 1.15f;
+            m.Tether = tt;
+            Tetherables.Add(tt);
             Movables.Add(m);
             return m;
         }
@@ -157,8 +160,54 @@ namespace Shepherd.Exploration.Lantern
             box.size = new Vector3(Mathf.Abs(size.x) / ls.x, Mathf.Abs(size.y) / ls.y, Mathf.Abs(size.z) / ls.z);
         }
 
-        /// <summary>放在桌上的提燈（灰盒：底座、玻璃罩、提把）。預設隱藏。</summary>
+        /// <summary>
+        /// 放在桌上的提燈：用手上那盞提燈的模型（LanternViewmodel 裡的 LanternPivot），底部貼齊桌面。找不到模型才用灰盒。預設隱藏。
+        /// </summary>
         private Transform BuildPlacedLantern(Vector3 at)
+        {
+            var prefab = Resources.Load<GameObject>(LanternViewmodel.PrefabPath);
+            if (prefab != null)
+            {
+                var inst = Object.Instantiate(prefab);
+                var pivot = inst.transform.Find("LanternPivot");
+                if (pivot != null)
+                {
+                    var root = new GameObject("V2PlacedLantern").transform;
+                    root.SetParent(V2Root, false);
+                    root.position = at;
+                    pivot.SetParent(root, true);
+                    pivot.localRotation = Quaternion.identity;
+                    pivot.localPosition = Vector3.zero;
+                    Object.DestroyImmediate(inst);
+                    var rs = pivot.GetComponentsInChildren<Renderer>(true);
+                    foreach (var t in pivot.GetComponentsInChildren<Transform>(true)) t.gameObject.layer = 0;
+                    foreach (var r in rs) { r.enabled = true; r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On; }
+                    if (rs.Length > 0)
+                    {
+                        var b = rs[0].bounds; foreach (var r in rs) b.Encapsulate(r.bounds);
+                        // 實際大小：提燈約 30 cm 高（第一人稱模型的比例可能不同，量一次再縮放）。
+                        float h = b.size.y;
+                        if (h > 0.01f) pivot.localScale *= 0.3f / h;
+                        b = rs[0].bounds; foreach (var r in rs) b.Encapsulate(r.bounds);
+                        pivot.position += new Vector3(at.x - b.center.x, at.y - b.min.y, at.z - b.center.z);
+                    }
+                    var col = root.gameObject.AddComponent<BoxCollider>();
+                    col.center = new Vector3(0f, 0.15f, 0f);
+                    col.size = new Vector3(0.2f, 0.3f, 0.2f);
+                    col.isTrigger = true;
+                    V2PlacedLanternUse = root.gameObject.AddComponent<LanternUsable>();
+                    V2PlacedLanternUse.Label = "提燈";
+                    V2PlacedLanternUse.PromptFn = () => "E 把提燈拿回來";
+                    Usables.Add(V2PlacedLanternUse);
+                    root.gameObject.SetActive(false);
+                    return root;
+                }
+                Object.DestroyImmediate(inst);
+            }
+            return BuildPlacedLanternGraybox(at);
+        }
+
+        private Transform BuildPlacedLanternGraybox(Vector3 at)
         {
             var root = new GameObject("V2PlacedLantern").transform;
             root.SetParent(V2Root, false);
