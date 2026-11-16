@@ -470,6 +470,56 @@ namespace Shepherd.Exploration.Editor
                     var sp = qa.Cam.WorldToViewportPoint(qa.LanternPivot.position);
                     log.AppendLine("- 視角 " + pitch.ToString("0") + "°：握把在畫面的位置 (" + sp.x.ToString("0.000") + ", " + sp.y.ToString("0.000") + ")");
                 }
+                // 舉燈姿勢搜尋：骨頭長度固定，只動「肩膀錨點」與「手肘往哪彎」，
+                // 條件：肩膀在畫面外、手肘夾角 60～115°、手臂不能比手腕還高；目標：畫面裡看得到的手臂最短、遮到提燈最少。
+                {
+                    qa.ApplyLighting(StylizedArtQA.Lighting.Warm);
+                    qa.Player.Teleport(feet, yawV, 8f);
+                    qa.SyncCamera();
+                    qa.SetLantern(true, true);
+                    qa.SettleViewmodel();
+                    var cam = qa.Cam;
+                    var W = qa.Arm.TransformPoint(StylizedArtQA.WristLeft);
+                    var lp = cam.WorldToViewportPoint(qa.LanternPivot.position);
+                    // 提燈在畫面上的範圍（握把以下約 0.45 畫面高、寬約 0.16）
+                    var lanternRect = new Rect(lp.x - 0.09f, lp.y - 0.47f, 0.18f, 0.47f);
+                    float best = float.MaxValue; Vector3 bestS = Vector3.zero, bestP = Vector3.zero; float bestAngle = 0f, bestFore = 0f, bestCover = 0f;
+                    // 手腕的自然方向：從拳頭（握把）往手腕延伸——前臂要接著這個方向，手腕才不會折。
+                    var wristDir = (W - qa.Arm.position).normalized;
+                    var poles = new[] { new Vector3(0f, -1f, 0.1f), new Vector3(-0.4f, -1f, 0f), new Vector3(0.2f, -1f, 0.2f), new Vector3(-0.2f, -1f, -0.3f), new Vector3(0f, -1f, 0.5f) };
+                    for (float sx = -0.34f; sx <= -0.02f; sx += 0.04f)
+                    for (float sy = -0.62f; sy <= -0.22f; sy += 0.04f)
+                    for (float sz = -0.06f; sz <= 0.5f; sz += 0.04f)
+                    foreach (var pd in poles)
+                    {
+                        var sLocal = new Vector3(sx, sy, sz);
+                        var S = cam.transform.TransformPoint(sLocal);
+                        var svp = cam.WorldToViewportPoint(S);
+                        if (svp.z > 0.02f && svp.x > -0.02f && svp.x < 1.02f && svp.y > -0.02f && svp.y < 1.02f) continue;   // 肩膀要在畫面外
+                        float dist = (W - S).magnitude;
+                        if (dist > StylizedArtQA.UpperArmLength + StylizedArtQA.ForearmLength - 0.01f) continue;
+                        var P = cam.transform.TransformPoint(sLocal + pd);
+                        var E = StylizedArtQA.SolveElbow(S, W, P, StylizedArtQA.UpperArmLength, StylizedArtQA.ForearmLength);
+                        float ang = Vector3.Angle(S - E, W - E);
+                        if (ang < 60f || ang > 115f) continue;
+                        if (cam.transform.InverseTransformPoint(E).y > cam.transform.InverseTransformPoint(W).y - 0.02f) continue;   // 手肘要比手腕低
+                        var evp = cam.WorldToViewportPoint(E);
+                        if (evp.z > 0.02f && evp.y > -0.10f && evp.x > -0.08f) continue;   // 手肘（含粗細）要在畫面外
+                        float fore = OnScreenLength(cam, W, E), up = OnScreenLength(cam, E, S);
+                        float cover = OnScreenLengthInside(cam, W, E, lanternRect);
+                        float bend = Vector3.Angle(E - W, wristDir) / 90f;   // 手腕彎折程度
+                        float score = fore * 0.5f + up * 3f + cover * 3f + bend;
+                        if (score < best) { best = score; bestS = sLocal; bestP = sLocal + pd; bestAngle = ang; bestFore = fore + up; bestCover = cover; }
+                    }
+                    if (best < float.MaxValue)
+                    {
+                        StylizedArtQA.ShoulderRaised = bestS;
+                        StylizedArtQA.ElbowPoleRaised = bestP;
+                        log.AppendLine("- 舉燈姿勢搜尋結果：肩膀錨點 " + bestS.ToString("F2") + "、手肘方向點 " + bestP.ToString("F2") + "，手肘 " + bestAngle.ToString("0")
+                            + "°，畫面裡的手臂 " + (bestFore * 100f).ToString("0") + "%，遮到提燈 " + (bestCover * 100f).ToString("0") + "%");
+                    }
+                    qa.SetLantern(true, false);
+                }
                 // 按 F 開燈：手從下面抬起來展示、停一下、再放回去（平視、暖光與夜晚各一次）
                 foreach (var l in new[] { StylizedArtQA.Lighting.Warm, StylizedArtQA.Lighting.Night })
                 {
@@ -583,13 +633,48 @@ namespace Shepherd.Exploration.Editor
         private static void LogElbow(StringBuilder log, StylizedArtQA qa, string what)
         {
             var cam = qa.Cam.transform;
-            var S = cam.TransformPoint(StylizedArtQA.Shoulder);
+            var S = cam.TransformPoint(qa.ShoulderNow);
             var W = qa.Arm.TransformPoint(StylizedArtQA.WristLeft);
             var E = qa.ElbowPosition;
             float angle = Vector3.Angle(S - E, W - E);
             var vp = qa.Cam.WorldToViewportPoint(qa.LanternPivot.position);
+            float fore = OnScreenLength(qa.Cam, W, E), up = OnScreenLength(qa.Cam, E, S);
             log.AppendLine("- " + what + "：手肘夾角 " + angle.ToString("0") + "°，握把在畫面 (" + vp.x.ToString("0.00") + ", " + vp.y.ToString("0.00") + ")"
-                + (vp.y < 0f ? "（在畫面下方外面）" : ""));
+                + (vp.y < 0f ? "（在畫面下方外面）" : "") + "；畫面裡看得到的前臂長度 " + (fore * 100f).ToString("0") + "%、上臂 " + (up * 100f).ToString("0") + "%（以畫面高度為 100%）");
+        }
+
+        /// <summary>線段投影到畫面後、落在指定矩形（畫面座標）裡的長度。</summary>
+        private static float OnScreenLengthInside(Camera cam, Vector3 a, Vector3 b, Rect r)
+        {
+            float aspect = cam.aspect, total = 0f;
+            const int N = 64;
+            Vector3 prev = cam.WorldToViewportPoint(a);
+            for (int i = 1; i <= N; i++)
+            {
+                var p = cam.WorldToViewportPoint(Vector3.Lerp(a, b, i / (float)N));
+                var mid = (prev + p) * 0.5f;
+                if (mid.z > 0f && r.Contains(new Vector2(mid.x, mid.y)))
+                    total += new Vector2((p.x - prev.x) * aspect, p.y - prev.y).magnitude;
+                prev = p;
+            }
+            return total;
+        }
+
+        /// <summary>線段投影到畫面後、落在畫面內的長度（以畫面高度為 1）。</summary>
+        private static float OnScreenLength(Camera cam, Vector3 a, Vector3 b)
+        {
+            float aspect = cam.aspect, total = 0f;
+            const int N = 64;
+            Vector3 prev = cam.WorldToViewportPoint(a);
+            for (int i = 1; i <= N; i++)
+            {
+                var p = cam.WorldToViewportPoint(Vector3.Lerp(a, b, i / (float)N));
+                var mid = (prev + p) * 0.5f;
+                if (mid.z > 0f && mid.x >= 0f && mid.x <= 1f && mid.y >= 0f && mid.y <= 1f)
+                    total += new Vector2((p.x - prev.x) * aspect, p.y - prev.y).magnitude;
+                prev = p;
+            }
+            return total;
         }
 
         private static void SaveRT(RenderTexture rt, string path)

@@ -81,10 +81,17 @@ namespace Shepherd.Exploration.StyleQA
         // 手（握把）在鏡頭座標的位置（公尺；x 右、y 上、z 前）：
         // 平常走路＝手垂在身側提著燈、手肘約彎 90°，手在畫面外；按 F＝手自然抬起來，整盞燈和光都在畫面左半邊。
         public static readonly Vector3 HandLowered = new Vector3(-0.24f, -0.34f, 0.46f);
-        public static readonly Vector3 HandRaised = new Vector3(-0.16f, -0.02f, 0.56f);
+        // 舉燈：拳頭靠近畫面左邊（約 22% 處、高度不變），前臂很快就出畫面——畫面裡只看到手、手腕、袖口和一小段前臂（照參考圖的構圖）。
+        public static readonly Vector3 HandRaised = new Vector3(-0.33f, -0.02f, 0.56f);
         // 兩節骨頭的 IK：肩膀（鏡頭座標）、手肘往外下方彎、上臂與前臂長度
-        public static readonly Vector3 Shoulder = new Vector3(-0.2f, -0.26f, 0.04f);
+        public static readonly Vector3 Shoulder = new Vector3(-0.2f, -0.26f, 0.04f);      // 平常提著
         public static readonly Vector3 ElbowPole = new Vector3(-0.6f, -0.6f, 0.0f);
+        // 舉燈時：手臂的錨點（肩膀）放到畫面下方外面、往前一點，手肘往下、貼近身體，
+        // 前臂從畫面底部斜斜往上接到手腕——手臂大部分在鏡頭外，畫面裡主要是提燈。骨頭長度不變。
+        public static Vector3 ShoulderRaised = new Vector3(-0.22f, -0.40f, 0.20f);
+        public static Vector3 ElbowPoleRaised = new Vector3(-0.30f, -1.0f, 0.15f);
+        /// <summary>目前（依抬手程度內插）的肩膀與手肘方向，鏡頭座標。</summary>
+        public Vector3 ShoulderNow { get; private set; }
         public const float UpperArmLength = 0.30f, ForearmLength = 0.29f;
         public const float ArmWidth = 0.85f;   // 袖子粗細的縮放（前臂、上臂）
         public const float ForearmMeshLength = 0.27f, UpperArmMeshLength = 0.30f;   // Blender 模型的長度
@@ -395,7 +402,10 @@ namespace Shepherd.Exploration.StyleQA
             // 整組跟著視角（一般第一人稱的做法）：抬頭低頭時手在畫面裡的位置差不多；手保持掌心朝下握著提把，
             // 拳頭隨提燈的左右擺動稍微側傾，提把永遠在拳心裡。
             // 手：舉起來時手背稍微朝外轉一點（自然的腕部角度），放下時掌心朝下。
-            var level = Player.ViewRotation * Quaternion.Euler(Mathf.Lerp(0f, -8f, r), Mathf.Lerp(0f, 10f, r), swing.y * 0.3f + Mathf.Lerp(0f, 6f, r));
+            // 舉起來時拳頭繞「提把」這條軸往前轉約 40°：手腕落到拳頭下方，前臂自然從下面接上來（手腕不會折）；
+            // 提把仍在拳心、提燈仍垂直往下掛（提燈另外算旋轉）。
+            var level = Player.ViewRotation * Quaternion.Euler(Mathf.Lerp(0f, -40f, r), Mathf.Lerp(0f, 8f, r), swing.y * 0.3f + Mathf.Lerp(0f, 4f, r));
+            var handLevel = Player.ViewRotation * Quaternion.Euler(0f, Mathf.Lerp(0f, 8f, r), swing.y * 0.3f + Mathf.Lerp(0f, 4f, r));
             Arm.rotation = level * Quaternion.Euler(0f, 180f, 0f);
             // 第一人稱常見的做法：手和提燈畫得比真實尺寸小一點（一起縮放，握拳和提把的貼合不變），
             // 拳頭放在畫面左下、整盞燈都看得到（照參考圖的構圖）。前臂只縮粗細、拉長，從畫面角落外面伸進來。
@@ -415,7 +425,7 @@ namespace Shepherd.Exploration.StyleQA
                 if (RightHandVisible) AimForearm(ForearmRight, RightArm, WristRight, new Vector3(0.42f, -0.8f, 0.2f));
             }
             // 提燈：垂直往下掛（不跟低頭抬頭），只繞「提把」這條軸前後擺——提把在拳心裡轉，不會穿出手指；星形紋那一面朝向玩家。
-            LanternPivot.rotation = level * Quaternion.AngleAxis(swing.x, Vector3.right) * Quaternion.Euler(0f, 180f, 0f);
+            LanternPivot.rotation = handLevel * Quaternion.AngleAxis(swing.x, Vector3.right) * Quaternion.Euler(0f, 180f, 0f);
             float breathe = 1f + Mathf.Sin(time * 2.3f) * 0.03f + (Mathf.PerlinNoise(time * 1.7f, 0.3f) - 0.5f) * 0.05f;
             lightK = Mathf.MoveTowards(lightK, LanternOn ? 1f : 0f, dt * 4f);
             if (LanternLight != null)
@@ -441,18 +451,12 @@ namespace Shepherd.Exploration.StyleQA
         {
             if (Cam == null || Arm == null) return;
             var cam = Cam.transform;
-            var S = cam.TransformPoint(Shoulder);
+            float r = Mathf.SmoothStep(0f, 1f, raise);
+            ShoulderNow = Vector3.Lerp(Shoulder, ShoulderRaised, r);
+            var S = cam.TransformPoint(ShoulderNow);
             var W = Arm.TransformPoint(WristLeft);
-            var P = cam.TransformPoint(ElbowPole);
-            float a = UpperArmLength, b = ForearmLength;
-            var sw = W - S;
-            float d = Mathf.Clamp(sw.magnitude, Mathf.Abs(a - b) + 0.001f, a + b - 0.001f);
-            var dir = sw.normalized;
-            float along = (a * a - b * b + d * d) / (2f * d);
-            float h = Mathf.Sqrt(Mathf.Max(0f, a * a - along * along));
-            var toPole = P - S;
-            var perp = (toPole - dir * Vector3.Dot(toPole, dir)).normalized;
-            var E = S + dir * along + perp * h;
+            var P = cam.TransformPoint(Vector3.Lerp(ElbowPole, ElbowPoleRaised, r));
+            var E = SolveElbow(S, W, P, UpperArmLength, ForearmLength);
             ElbowPosition = E;
             if (ForearmLeft != null)
             {
@@ -468,6 +472,19 @@ namespace Shepherd.Exploration.StyleQA
                 UpperArmLeft.rotation = Quaternion.LookRotation(es.normalized, cam.up);
                 UpperArmLeft.localScale = new Vector3(ArmWidth, ArmWidth, es.magnitude / UpperArmMeshLength);
             }
+        }
+
+        /// <summary>兩節骨頭 IK：肩膀 S、手腕 W、手肘往 P 那一側彎；a＝上臂、b＝前臂長度。</summary>
+        public static Vector3 SolveElbow(Vector3 S, Vector3 W, Vector3 P, float a, float b)
+        {
+            var sw = W - S;
+            float d = Mathf.Clamp(sw.magnitude, Mathf.Abs(a - b) + 0.001f, a + b - 0.001f);
+            var dir = sw.normalized;
+            float along = (a * a - b * b + d * d) / (2f * d);
+            float h = Mathf.Sqrt(Mathf.Max(0f, a * a - along * along));
+            var toPole = P - S;
+            var perp = (toPole - dir * Vector3.Dot(toPole, dir)).normalized;
+            return S + dir * along + perp * h;
         }
 
         /// <summary>前臂接在手腕上，朝鏡頭座標裡的一個點（畫面下角外面）伸過去（右手的預備姿勢用）。</summary>
