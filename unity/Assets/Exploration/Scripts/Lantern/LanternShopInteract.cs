@@ -78,6 +78,16 @@ namespace Shepherd.Exploration.Lantern
                 if (stack != null)
                 {
                     var parts = stack.GetComponentsInChildren<Renderer>(true).Where(r => r.name == "BoxB" || r.name == "BoxTape").ToList();
+                    // 正式美術：可以搬的紙箱是另一件模型（V2MovableBoxSrc），先擺到不能動的箱子正上方。
+                    var src = Child("V2MovableBoxSrc");
+                    if (parts.Count == 0 && src != null)
+                    {
+                        var lowerCol = stack.GetComponent<BoxCollider>();
+                        Physics.SyncTransforms();
+                        if (lowerCol != null) src.position = new Vector3(lowerCol.bounds.center.x, lowerCol.bounds.max.y + 0.01f, lowerCol.bounds.center.z);
+                        src.rotation = stack.rotation;
+                        parts = src.GetComponentsInChildren<Renderer>(true).ToList();
+                    }
                     if (parts.Count > 0)
                     {
                         var b = parts[0].bounds; foreach (var r in parts) b.Encapsulate(r.bounds);
@@ -86,6 +96,7 @@ namespace Shepherd.Exploration.Lantern
                         root.SetPositionAndRotation(new Vector3(b.center.x, b.min.y, b.center.z), stack.rotation);
                         root.localScale = Vector3.one;
                         foreach (var r in parts) r.transform.SetParent(root, true);
+                        if (src != null && src.GetComponentsInChildren<Renderer>(true).Length == 0) Object.DestroyImmediate(src.gameObject);
                         // 紙箱小一點（使用者 2026-11-17）：根物件在底面中央，縮放後底面不動；外框重新量。
                         root.localScale = Vector3.one * MovableBoxScale;
                         b = parts[0].bounds; foreach (var r in parts) b.Encapsulate(r.bounds);

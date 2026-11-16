@@ -1305,6 +1305,34 @@ namespace Shepherd.Exploration.Tests
         }
 
         [Test]
+        public void StylizedShop_UsesTheNewModels_EachThingSeparate_PuzzlePiecesKept()
+        {
+            var qa = NewQa();
+            var w = qa.World;
+            Assert.IsTrue(w.StylizedShopInUse, "改衣店用正式美術的模型");
+            var all = w.V2Root.GetComponentsInChildren<Transform>(true);
+            Transform Find(string n) => all.FirstOrDefault(t => t.name == n);
+            foreach (var (obj, model) in new[] { ("V2Counter", "v3_shop_counter"), ("V2ButtonCabinet", "v3_button_cabinet"), ("V2ClothesRack", "v3_clothes_rack"),
+                ("V2FabricShelf", "v3_fabric_shelf"), ("V2Register", "v3_cash_register"), ("V2HangingCoat", "v3_hanging_coat"), ("V2Stool", "v3_stool"), ("V2PowerBox", "v3_power_box") })
+            {
+                var t = Find(obj);
+                Assert.IsNotNull(t, obj);
+                Assert.IsTrue(t.GetComponentsInChildren<Transform>(true).Any(c => c.name == model), obj + " 換成 " + model);
+            }
+            // 拆開的東西是各自的物件
+            foreach (var n in new[] { "V2Iron", "V2ClothesRackGarments", "V2FabricShelfFabrics", "V2UmbrellasSet", "V2FabricBolts", "V2CoatPegboard", "V2WallShelfRadio",
+                "V2CounterButtonDisplay", "V2CounterLedger", "V2CounterReceiptBook", "V2CounterTeacup", "V2CounterBell", "V2CounterScissors", "V2CounterLampBase", "V2ShopWindowFrame" })
+                Assert.IsNotNull(Find(n), n + " 是獨立的物件");
+            Assert.AreEqual(3, all.Count(t => t.name == "V2CounterJar"), "櫃台上三個罐子");
+            Assert.IsTrue(Find("V2CounterButtonDisplay").parent.name == "V2CounterClutter", "櫃台上的東西跟著櫃台（布局 A 會一起移動）");
+            // 謎題要的東西還在
+            Assert.IsTrue(all.Any(t => t.name.Contains("CoatTag")), "外套的吊牌（S2）");
+            Assert.IsNotNull(w.V2MovableBox, "可以搬的紙箱");
+            Assert.AreEqual("V3_v3_floor_planks", Find("V2FloorShop").GetComponent<Renderer>().sharedMaterial.name, "手繪木地板");
+            Assert.IsNotNull(Find("V3ShopWallL"), "手繪灰泥牆");
+        }
+
+        [Test]
         public void ShopToonTest_SwapsTheShopToToon_AndBack()
         {
             var qa = NewQa();

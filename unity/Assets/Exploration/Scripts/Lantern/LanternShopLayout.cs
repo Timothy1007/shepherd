@@ -54,14 +54,38 @@ namespace Shepherd.Exploration.Lantern
             // ---------------- A：生活機能優先 ----------------
             // 進門左手邊就是接待櫃台（櫃台本身由 shopMoves 移過來）；櫃台後是店主的工作區：一張裁剪桌（量布、畫線、燙平）。
             var cutA = new GameObject("ShopA_CutTable").transform; cutA.SetParent(Into, false);
-            Fur("ShopA_CutTableTop", 2.3f, 2.85f, 0.86f, 1.6f, 0.05f, 0.85f, tableTop, true).SetParent(cutA, true);
-            foreach (var (dx, dz) in new[] { (-0.58f, -0.28f), (0.58f, -0.28f), (-0.58f, 0.28f), (0.58f, 0.28f) })
-                Fur("ShopA_CutTableLeg", 2.3f + dx, 2.85f + dz, 0f, 0.06f, 0.86f, 0.06f, hWood, false).SetParent(cutA, true);
-            Fur("ShopA_CutTableShelf", 2.3f, 2.85f, 0.18f, 1.5f, 0.03f, 0.75f, hWood, false).SetParent(cutA, true);   // 下層放布捲
-            Fur("ShopA_FabricRoll", 2.0f, 2.85f, 0.22f, 0.9f, 0.12f, 0.12f, curtain, false, 90f).SetParent(cutA, true);
+            Transform cutModel = StylizedShopInUse ? CustomModel("ShopA_CutTableModel", "v3_cut_table", HPv2(2.3f, 2.85f), 0f) : null;
+            if (cutModel != null)
+            {
+                // 正式美術：裁剪桌、下層的一捲布是兩件獨立的模型。
+                cutModel.SetParent(cutA, true);
+                var roll = CustomModel("ShopA_FabricRoll", "v3_fabric_roll", HPv2(2.05f, 2.85f) + Vector3.up * 0.195f * FurnitureScale, 0f, false);
+                if (roll != null) roll.SetParent(cutA, true);
+            }
+            else
+            {
+                Fur("ShopA_CutTableTop", 2.3f, 2.85f, 0.86f, 1.6f, 0.05f, 0.85f, tableTop, true).SetParent(cutA, true);
+                foreach (var (dx, dz) in new[] { (-0.58f, -0.28f), (0.58f, -0.28f), (-0.58f, 0.28f), (0.58f, 0.28f) })
+                    Fur("ShopA_CutTableLeg", 2.3f + dx, 2.85f + dz, 0f, 0.06f, 0.86f, 0.06f, hWood, false).SetParent(cutA, true);
+                Fur("ShopA_CutTableShelf", 2.3f, 2.85f, 0.18f, 1.5f, 0.03f, 0.75f, hWood, false).SetParent(cutA, true);   // 下層放布捲
+                Fur("ShopA_FabricRoll", 2.0f, 2.85f, 0.22f, 0.9f, 0.12f, 0.12f, curtain, false, 90f).SetParent(cutA, true);
+            }
             shopOnly[1].Add(cutA.gameObject);
             // 試衣間：右後角（原本布料架的位置，布料架移到後牆）；簾子半開，裡面一張小凳。
-            shopOnly[1].Add(FittingBooth("ShopA_Fitting", 5.62f, 6.5f, 3.42f, 4.38f, curtain).gameObject);
+            Transform booth = null;
+            if (StylizedShopInUse)
+            {
+                var bm = CustomModel("ShopA_FittingModel", "v3_fitting_booth", HPv2((5.62f + 6.5f) / 2f, (3.42f + 4.38f) / 2f), 0f);
+                if (bm != null)
+                {
+                    booth = new GameObject("ShopA_Fitting").transform; booth.SetParent(Into, false);
+                    bm.SetParent(booth, true);
+                    var st = CustomModel("ShopA_FittingStool", "v3_booth_stool", HPv2((5.62f + 6.5f) / 2f + 0.1f, 4.38f - 0.3f), 0f, false);
+                    if (st != null) st.SetParent(booth, true);
+                }
+            }
+            if (booth == null) booth = FittingBooth("ShopA_Fitting", 5.62f, 6.5f, 3.42f, 4.38f, curtain);
+            shopOnly[1].Add(booth.gameObject);
         }
 
         /// <summary>試衣間：靠牆的轉角，兩根柱子＋頂上的簾桿＋側板＋半開的布簾（布簾和側板有碰撞，人進不去）。</summary>
@@ -131,7 +155,7 @@ namespace Shepherd.Exploration.Lantern
                 "V2Register", "V2CounterClutter", "V2CounterLampBase", "V2CounterLampStem", "V2CounterBulb", "V2CounterLight");
             // 布料架：移到後牆（電箱右邊），右後角讓給試衣間。
             // 2026-11-17：再往右挪一點，電箱前空出約 0.77 m，紙箱、凳子塞得進去。
-            Place("V2FabricShelf", new Vector2(2.95f, 4.72f), 180f);
+            Place("V2FabricShelf", new Vector2(2.95f, 4.72f), 180f, "V2FabricShelfFabrics");
             // 紙箱：移到鈕扣抽屜櫃旁邊（電箱下方留出站的位置）。
             Place("V2Boxes", new Vector2(1.28f, 4.72f), 180f);   // 擺正（斜著放的外框會比箱子大），也往左一點
             // 鏡子：留在試衣間前（不動）。
