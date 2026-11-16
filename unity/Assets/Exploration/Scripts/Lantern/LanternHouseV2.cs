@@ -72,6 +72,7 @@ namespace Shepherd.Exploration.Lantern
                 V2Lights();
                 if (DiningSampleOn) V2DiningSample();
                 V2KitchenLayout();   // 廚房 B 方案的物件（預設 A；只有廚房 QA 場景會切到 B）
+                V2KitchenYardPassage();   // 廚房↔側院的通路：一開始是完整的牆（設計總綱 §10）
             }
             finally
             {

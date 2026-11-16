@@ -1551,50 +1551,257 @@ namespace Shepherd.Exploration.Tests
             Assert.AreEqual(0f, Vector3.Distance(counterA, counter.position), 1e-4f, "再套回 A：完全一樣");
         }
 
-        // ---------------- 記憶視角的眼高（店面／走廊／側院＝小小孩、餐廳＝初中、廚房＝成人） ----------------
+        // ---------------- 記憶年齡與廚房↔側院通路（設計總綱 §10） ----------------
+
+        private static Vector3 PV(float x, float z) => LanternGraybox.V2Origin + new Vector3(x * LanternGraybox.V2Scale, 0.05f, z * LanternGraybox.V2Scale);
+
+        private static void OpenAllV2Doors(LanternPrototypeQA qa)
+        {
+            var w = qa.World;
+            var st = w.V2DiningStruggle;
+            if (st != null && st.Door != null && !st.Door.IsOpen) st.Door.Toggle();
+            foreach (var d in w.V2Doors) if (d != null && !d.IsOpen) d.Toggle();
+            Physics.SyncTransforms();
+        }
+
+        private static void Walk(LanternPrototypeQA qa, string what, params (float x, float z)[] pts)
+        {
+            foreach (var (x, z) in pts)
+                Assert.IsTrue(WalkTo(qa, PV(x, z), 700), what + "：走得到 (" + x + ", " + z + ")（卡在 " + qa.Player.transform.position + "）");
+        }
+
+        /// <summary>走到目標，回傳過程中每格眼高的最大變化。</summary>
+        private static float WalkWatchingEye(LanternPrototypeQA qa, float x, float z, string what)
+        {
+            var p = qa.Player;
+            var target = PV(x, z);
+            float last = p.EyeHeightValue, maxStep = 0f;
+            for (int i = 0; i < 700; i++)
+            {
+                var d = target - p.transform.position; d.y = 0f;
+                if (d.magnitude < 0.35f) return maxStep;
+                float want = Mathf.Atan2(d.x, d.z) * Mathf.Rad2Deg;
+                float look = Mathf.Clamp(Mathf.DeltaAngle(p.Yaw, want), -20f, 20f) / (FirstPersonController.LookSensitivity * p.LookScale);
+                qa.Step(Dt, new ExploreInput { Move = new Vector2(0f, 1f), Look = new Vector2(look, 0f) });
+                maxStep = Mathf.Max(maxStep, Mathf.Abs(p.EyeHeightValue - last));
+                last = p.EyeHeightValue;
+            }
+            Assert.Fail(what + "：走不到（卡在 " + p.transform.position + "）");
+            return maxStep;
+        }
+
+        private static void Settle(LanternPrototypeQA qa) { for (int k = 0; k < 45; k++) qa.Step(Dt, ExploreInput.None); }
+
+        private static int ActivePassageTrims(LanternGraybox w)
+        {
+            var a = PV(LanternGraybox.V2ExtWidth, LanternGraybox.KitchenYardZ0); var b = PV(LanternGraybox.V2ExtWidth, LanternGraybox.KitchenYardZ1);
+            return w.V2Root.GetComponentsInChildren<Transform>(false).Count(t => t.name == "DoorTrim" && Mathf.Abs(t.position.x - a.x) < 0.3f && t.position.z > a.z - 0.3f && t.position.z < b.z + 0.3f);
+        }
+
+        private static void PowerS1(LanternPrototypeQA qa)
+        {
+            var w = qa.World;
+            StandAt(qa, w.V2PowerLever.GetComponent<Collider>().bounds.center, w.V2ShopRoom.center, 0.7f);
+            Act(qa, 70, new LanternActionInput { Interact = true });
+            Act(qa, 1, LanternActionInput.None);
+            Assert.IsTrue(qa.V2.Powered, "S1 有電了");
+        }
+
+        private static void TakeThread(LanternPrototypeQA qa)
+        {
+            var w = qa.World;
+            StandAt(qa, w.V2ThreadSpool.position, w.Marks["V2Yard"].position, 0.9f);
+            Act(qa, 1, new LanternActionInput { Interact = true });
+            Act(qa, 1, LanternActionInput.None);
+            Assert.IsTrue(qa.V2.HasThread, "拿到紅線");
+        }
+
+        private static void Sew(LanternPrototypeQA qa)
+        {
+            var w = qa.World; var v2 = qa.V2;
+            StandAt(qa, w.V2SewingMachine.GetComponent<Collider>().bounds.center, w.V2ShopRoom.center, 1.0f);
+            StringAssert.Contains("穿針", qa.PromptText, "S4 縫紉機可以互動");
+            Act(qa, 1, new LanternActionInput { Interact = true });
+            Act(qa, 1, LanternActionInput.None);
+            int frames = 0; bool pressed = false;
+            while (v2.Tap.Active && frames++ < 600)
+            {
+                bool press = !pressed && v2.Tap.InZone;
+                qa.Step(Dt, ExploreInput.None, new LanternActionInput { Interact = press });
+                pressed = press;
+            }
+            Assert.IsTrue(v2.Sewn, "S4 穿好針");
+        }
+
+        // 從主屋（店面／走廊）走進餐廳、再到廚房門內。
+        private static readonly (float, float)[] HallToKitchen = { (5.07f, 6.45f), (4.1f, 6.45f), (2.33f, 7.14f), (1.33f, 7.51f), (1.1f, 8.59f), (1.6f, 9.66f), (1.6f, 10.6f) };
+        // 廚房門內 → 通路前（廚房側）。
+        private static readonly (float, float)[] KitchenToPassage = { (1.865f, 11.635f), (1.865f, 13.173f), (3.404f, 13.788f) };
+        // 走廊 → 普通後門 → 側院。
+        private static readonly (float, float)[] HallToYard = { (5.1f, 9.4f), (5.1f, 10.6f), (5.25f, 11.2f) };
+        // 側院 → 普通後門 → 走廊 → 店面。
+        private static readonly (float, float)[] YardToShop = { (5.25f, 11.2f), (5.1f, 10.6f), (5.1f, 9.4f), (5.07f, 5.5f), (5.07f, 4.3f), (4.9f, 2.6f) };
 
         [Test]
-        public void MemoryEyeHeight_FollowsTheMemoryRooms_OnlyTheCameraChanges()
+        public void KitchenYardPassage_StartsAsASolidWall_FromBothSides_LanternCannotRevealIt()
         {
             var qa = NewQa();
             var w = qa.World;
-            float body = qa.Player.Body.height;
-            float At(string mark)
-            {
-                qa.Player.Teleport(w.Marks[mark].position, 0f, 0f);
-                for (int k = 0; k < 3; k++) qa.Step(Dt, ExploreInput.None);
-                return qa.Player.EyeHeightValue;
-            }
-            Assert.AreEqual(0.85f, qa.ChildEyeHeight, 1e-4f, "小小孩眼高（使用者試玩選的 0.85 m）");
-            Assert.AreEqual(1.12f, qa.TeenEyeHeight, 1e-4f, "初中眼高");
-            Assert.AreEqual(LanternPrototypeQA.AdultEyeHeight, At("V2Street"), 1e-4f, "門外的街道：成人");
-            Assert.AreEqual(qa.ChildEyeHeight, At("V2Shop"), 1e-4f, "店面：小小孩");
-            Assert.AreEqual(qa.ChildEyeHeight, At("V2Hall"), 1e-4f, "走廊（普通的門）：還是小小孩");
-            Assert.AreEqual(qa.ChildEyeHeight, At("V2Yard"), 1e-4f, "側院（側門是普通的門）：還是小小孩");
-            Assert.AreEqual(qa.TeenEyeHeight, At("V2Dining"), 1e-4f, "餐廳（拉鋸的記憶門之後）：初中");
-            Assert.AreEqual(LanternPrototypeQA.AdultEyeHeight, At("V2Kitchen"), 1e-4f, "廚房：成人");
-            Assert.AreEqual(body, qa.Player.Body.height, 1e-4f, "碰撞體沒有縮小（不是變成孩子）");
-            Assert.AreEqual(LanternPrototypeQA.WalkSpeed, qa.Player.WalkSpeedValue, 1e-3f, "移動速度不變");
+            Assert.AreEqual(LanternPrototypeQA.MemoryAge.Child, qa.Age);
+            Assert.IsFalse(w.KitchenYardOpen, "一開始通路不存在");
+            Assert.IsTrue(w.KitchenYardSeal.gameObject.activeInHierarchy, "補上的牆在");
+            Assert.AreEqual(0, ActivePassageTrims(w), "沒有門框（看起來是完整的牆）");
+            // 兩側都擋住：從廚房、從側院往門洞打射線，地面到門頂都打在補牆上。
+            var seal = w.KitchenYardSeal.GetComponentsInChildren<Collider>();
+            float zc = (LanternGraybox.KitchenYardZ0 + LanternGraybox.KitchenYardZ1) / 2f;
+            foreach (float zz in new[] { LanternGraybox.KitchenYardZ0 + 0.08f, zc, LanternGraybox.KitchenYardZ1 - 0.08f })
+                foreach (float y in new[] { 0.3f, 1.0f, 1.9f, 2.5f })
+                {
+                    var k = PV(3.4f, zz) + Vector3.up * y; var yd = PV(4.6f, zz) + Vector3.up * y;
+                    Assert.IsTrue(Physics.Raycast(k, Vector3.right, out var h1, 2f) && seal.Contains(h1.collider), "廚房側被擋住（z " + zz + "、高 " + y + "）");
+                    Assert.IsTrue(Physics.Raycast(yd, Vector3.left, out var h2, 2f) && seal.Contains(h2.collider), "側院側被擋住（z " + zz + "、高 " + y + "）");
+                }
+            // 補牆和同一面牆用同一種材質（兩個世界都存在），提燈照了也不會顯出門洞。
+            Assert.IsTrue(Physics.Raycast(PV(3.4f, 10.8f) + Vector3.up * 1.2f, Vector3.right, out var wall, 2f), "廚房東牆");
+            var sealR = w.KitchenYardSeal.GetComponentsInChildren<Renderer>().First(r => r.name == "Wall");
+            Assert.AreSame(wall.collider.GetComponent<Renderer>().sharedMaterial, sealR.sharedMaterial, "補牆和廚房東牆是同一種牆面");
+            // 幼年從側院走向那面牆：過不去。
+            OpenAllV2Doors(qa);
+            qa.Player.Teleport(PV(4.8f, 13.8f), -90f, 0f);
+            qa.Step(Dt, ExploreInput.None);
+            qa.Rig.SetOn(true);
+            Aim(qa, PV(4.0f, 13.8f) + Vector3.up * 1.2f);
+            Act(qa, 60, LanternActionInput.None);
+            Assert.IsTrue(w.KitchenYardSeal.gameObject.activeInHierarchy && !w.KitchenYardOpen, "提燈照著也還是牆");
+            Assert.IsFalse(WalkTo(qa, PV(3.4f, 13.8f), 200), "幼年不能從側院穿牆進廚房");
+            Assert.Greater((qa.Player.transform.position.x - LanternGraybox.V2Origin.x) / LanternGraybox.V2Scale, LanternGraybox.V2ExtWidth, "還在側院");
+            Assert.AreEqual(LanternPrototypeQA.MemoryAge.Child, qa.Age, "還是幼年");
+        }
 
-            // 走過記憶門（不是傳送）：眼高平順過渡，不是一下子跳過去。
-            At("V2Hall");
-            var feet = qa.Player.transform.position;
+        [Test]
+        public void RouteA_ChildTakesThreadViaHallDoor_Sews_ThenDiningTeen_KitchenOpensPassage_CrossingMakesAdult()
+        {
+            var qa = NewQa();
+            var w = qa.World;
+            OpenAllV2Doors(qa);
+            PowerS1(qa);
+            // 幼年：走廊 → 普通後門 → 側院取線（不會變成人）。
+            qa.Player.Teleport(PV(5.07f, 5.5f), 0f, 0f);
+            qa.Step(Dt, ExploreInput.None);
+            Walk(qa, "幼年：走廊→側院（普通後門）", HallToYard);
+            Settle(qa);
+            Assert.AreEqual(LanternPrototypeQA.MemoryAge.Child, qa.Age, "從走廊的門進側院：還是幼年");
+            Assert.AreEqual(qa.ChildEyeHeight, qa.Player.EyeHeightValue, 1e-4f, "側院：幼年眼高");
+            Assert.IsFalse(w.KitchenYardOpen, "通路還沒出現");
+            TakeThread(qa);
+            Walk(qa, "幼年：側院→店面", YardToShop);
+            Sew(qa);
+            Assert.AreEqual(LanternPrototypeQA.MemoryAge.Child, qa.Age);
+            // 進餐廳：青春期。回到走廊、側院（普通後門）都不倒退、也不提前成人。
+            qa.Player.Teleport(PV(5.07f, 4.3f), 0f, 0f);   // 從縫紉機旁回到店面往走廊的門前（店內動線另有測試）
+            qa.Step(Dt, ExploreInput.None);
+            Walk(qa, "店面→走廊", (5.07f, 5.5f));
+            Walk(qa, "走廊→餐廳", HallToKitchen[0], HallToKitchen[1], HallToKitchen[2]);
+            Settle(qa);
+            Assert.AreEqual(LanternPrototypeQA.MemoryAge.Teen, qa.Age, "進餐廳：青春期");
+            Assert.AreEqual(qa.TeenEyeHeight, qa.Player.EyeHeightValue, 1e-4f, "餐廳：青春期眼高");
+            Walk(qa, "餐廳→走廊", HallToKitchen[1], HallToKitchen[0], (5.07f, 7.5f));
+            Walk(qa, "走廊→側院", HallToYard);
+            Settle(qa);
+            Assert.AreEqual(qa.TeenEyeHeight, qa.Player.EyeHeightValue, 1e-4f, "從走廊回側院：維持青春期（不倒退、不提前成人）");
+            Assert.IsFalse(w.KitchenYardOpen, "還沒進過廚房：通路還沒出現");
+            Walk(qa, "側院→走廊", (5.1f, 10.6f), (5.1f, 9.4f), (5.07f, 6.45f));
+            // 進廚房：通路恢復，廚房維持青春期。
+            Walk(qa, "走廊→餐廳→廚房", HallToKitchen);
+            Settle(qa);
+            Assert.IsTrue(w.KitchenYardOpen, "進廚房後通路恢復");
+            Assert.IsFalse(w.KitchenYardSeal.gameObject.activeInHierarchy, "補牆收起來");
+            Assert.AreEqual(3, ActivePassageTrims(w), "門框出現");
+            Assert.AreEqual(qa.TeenEyeHeight, qa.Player.EyeHeightValue, 1e-4f, "廚房：維持青春期（不再直接成人）");
+            Walk(qa, "廚房→通路前", KitchenToPassage);
+            // 第一次從廚房穿過通路進側院：平順地恢復成人。
+            float maxStep = WalkWatchingEye(qa, 4.8f, 13.6f, "廚房→側院（新通路）");
+            Assert.AreEqual(LanternPrototypeQA.MemoryAge.Adult, qa.Age, "從廚房進側院：成人");
+            Assert.LessOrEqual(maxStep, 1.3f * Dt + 1e-4f, "眼高是平順過渡（每格最多 " + maxStep.ToString("0.000") + " m）");
+            Settle(qa);
+            Assert.AreEqual(LanternPrototypeQA.AdultEyeHeight, qa.Player.EyeHeightValue, 1e-4f, "成人眼高");
+            // 雙向：再走回廚房；成人之後到哪裡都不倒退。
+            Walk(qa, "側院→廚房（雙向）", (4.6f, 13.8f), (3.404f, 13.788f));
+            Settle(qa);
+            Assert.AreEqual(LanternPrototypeQA.AdultEyeHeight, qa.Player.EyeHeightValue, 1e-4f, "回到廚房：成人");
+            Walk(qa, "廚房→餐廳→走廊", (1.865f, 13.173f), (1.865f, 11.635f), (1.6f, 10.6f), (1.6f, 9.66f), (1.1f, 8.59f), (1.33f, 7.51f), (2.33f, 7.14f), (4.1f, 6.45f), (5.07f, 6.45f));
+            Settle(qa);
+            Assert.AreEqual(LanternPrototypeQA.AdultEyeHeight, qa.Player.EyeHeightValue, 1e-4f, "走廊：成人");
+            Walk(qa, "走廊→店面", (5.07f, 5.5f), (5.07f, 4.3f), (4.9f, 2.6f));
+            Settle(qa);
+            Assert.AreEqual(LanternPrototypeQA.AdultEyeHeight, qa.Player.EyeHeightValue, 1e-4f, "改衣店：成人");
+            Assert.IsTrue(w.KitchenYardOpen, "通路一直開著");
+        }
+
+        [Test]
+        public void RouteB_DiningFirst_KitchenPassageToYard_TakeThread_BackToShopAndSew()
+        {
+            var qa = NewQa();
+            var w = qa.World;
+            var v2 = qa.V2;
+            float body = qa.Player.Body.height;
+            OpenAllV2Doors(qa);
+            PowerS1(qa);
+            Assert.IsFalse(v2.HasThread);
+            qa.Player.Teleport(PV(5.07f, 5.5f), 0f, 0f);
+            qa.Step(Dt, ExploreInput.None);
+            Settle(qa);
+            Assert.AreEqual(qa.ChildEyeHeight, qa.Player.EyeHeightValue, 1e-4f, "走廊：幼年");
+            Walk(qa, "走廊→餐廳→廚房", HallToKitchen);
+            Settle(qa);
+            Assert.AreEqual(LanternPrototypeQA.MemoryAge.Teen, qa.Age);
+            Assert.IsTrue(w.KitchenYardOpen, "還沒拿線也能開通路（不互相鎖死）");
+            Walk(qa, "廚房→通路前", KitchenToPassage);
+            Walk(qa, "廚房→側院（新通路）", (4.8f, 13.6f));
+            Settle(qa);
+            Assert.AreEqual(LanternPrototypeQA.MemoryAge.Adult, qa.Age);
+            Assert.AreEqual(LanternPrototypeQA.AdultEyeHeight, qa.Player.EyeHeightValue, 1e-4f, "側院：成人");
+            TakeThread(qa);
+            Walk(qa, "側院→普通後門→店面", YardToShop);
+            Settle(qa);
+            Assert.AreEqual(LanternPrototypeQA.AdultEyeHeight, qa.Player.EyeHeightValue, 1e-4f, "回到改衣店：成人（不倒退）");
+            Sew(qa);
+            Assert.AreEqual(body, qa.Player.Body.height, 1e-4f, "碰撞體沒有變");
+            Assert.AreEqual(LanternPrototypeQA.WalkSpeed, qa.Player.WalkSpeedValue, 1e-3f, "移動速度不變");
+        }
+
+        [Test]
+        public void MemoryEyeHeight_StreetIsAdult_TestModeOverride_AndRebuildResetsToChild()
+        {
+            var qa = NewQa();
+            var w = qa.World;
+            Assert.AreEqual(0.85f, qa.ChildEyeHeight, 1e-4f, "幼年眼高 0.85 m");
+            Assert.AreEqual(1.12f, qa.TeenEyeHeight, 1e-4f, "青春期眼高 1.12 m");
+            qa.GoTo("V2Street"); Settle(qa);
+            Assert.AreEqual(LanternPrototypeQA.AdultEyeHeight, qa.Player.EyeHeightValue, 1e-4f, "門外的街道：成人");
+            qa.GoTo("V2Shop"); Settle(qa);
+            Assert.AreEqual(qa.ChildEyeHeight, qa.Player.EyeHeightValue, 1e-4f, "店面：幼年");
+            // 走進記憶門的過渡是平順的（測試模式強制視角也走同一套過渡）。
             qa.ViewOverride = qa.TeenEyeHeight;
             qa.Step(Dt, ExploreInput.None);
-            float mid = qa.Player.EyeHeightValue;
-            Assert.Greater(mid, qa.ChildEyeHeight + 1e-3f, "開始長高");
-            Assert.Less(mid, qa.TeenEyeHeight - 1e-3f, "還在過渡中");
-            for (int k = 0; k < 60; k++) qa.Step(Dt, ExploreInput.None);
-            Assert.AreEqual(qa.TeenEyeHeight, qa.Player.EyeHeightValue, 1e-4f, "約半秒後到位");
-
-            // 測試模式 K：自動 → 成人 → 小小孩 → 自動。
+            Assert.Greater(qa.Player.EyeHeightValue, qa.ChildEyeHeight + 1e-3f);
+            Assert.Less(qa.Player.EyeHeightValue, qa.TeenEyeHeight - 1e-3f, "還在過渡中");
             qa.ViewOverride = null;
             qa.CycleViewOverride(); Assert.AreEqual(LanternPrototypeQA.AdultEyeHeight, qa.ViewOverride.Value, 1e-4f);
             qa.CycleViewOverride(); Assert.AreEqual(qa.ChildEyeHeight, qa.ViewOverride.Value, 1e-4f);
             qa.CycleViewOverride(); Assert.IsNull(qa.ViewOverride);
-
+            // 重新開始：房子重建、回到幼年、通路重新封住，正式布局也還在。
+            qa.GoTo("V2Kitchen"); Settle(qa);
+            Assert.IsTrue(w.KitchenYardOpen);
+            qa.StartV2();
+            Settle(qa);
+            Assert.AreEqual(LanternPrototypeQA.MemoryAge.Child, qa.Age, "重新開始：幼年");
+            Assert.IsFalse(qa.World.KitchenYardOpen, "重新開始：通路封住");
+            Assert.AreEqual(1, qa.World.ShopLayout, "重建後仍是服飾店 A");
+            Assert.IsTrue(qa.World.DiningLayoutIsB && qa.World.KitchenLayoutIsB, "重建後仍是餐廳 B、廚房 B");
             qa.MemoryHeights = false;
-            Assert.AreEqual(LanternPrototypeQA.AdultEyeHeight, At("V2Shop"), 1e-4f, "關掉記憶眼高＝成人");
+            qa.GoTo("V2Shop"); Settle(qa);
+            Assert.AreEqual(LanternPrototypeQA.AdultEyeHeight, qa.Player.EyeHeightValue, 1e-4f, "關掉記憶眼高＝成人");
         }
     }
 }

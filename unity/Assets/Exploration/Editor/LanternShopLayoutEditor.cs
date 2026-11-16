@@ -119,6 +119,38 @@ namespace Shepherd.Exploration.Editor
             }
         }
 
+        /// <summary>廚房↔側院通路的截圖：封住／打開 × 廚房側／側院側（封住時開著提燈，確認照不出門洞）。</summary>
+        public static void CapturePassageFromCommandLine()
+        {
+            string dir = Arg("-captureDir", Path.GetFullPath(Path.Combine(Application.dataPath, "../Temp/KitchenYard")));
+            Directory.CreateDirectory(dir);
+            EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+            var rt = new RenderTexture(1600, 900, 24, RenderTextureFormat.ARGB32) { antiAliasing = 8 };
+            var qa = new GameObject("LanternPrototypeQA").AddComponent<LanternPrototypeQA>();
+            try
+            {
+                qa.Setup(false);
+                qa.Rig.HideHands = true;
+                qa.ViewOverride = LanternPrototypeQA.AdultEyeHeight;   // 截圖用成人高度，看得到整面牆
+                var o = LanternGraybox.V2Origin; float S = LanternGraybox.V2Scale;
+                foreach (bool open in new[] { false, true })
+                    foreach (var (side, x, yaw) in new[] { ("kitchen", 2.2f, 90f), ("yard", 5.9f, -90f) })
+                    {
+                        qa.Rig.SetOn(!open);
+                        qa.Player.Teleport(o + new Vector3(x * S, 0.05f, 13.8f * S), yaw, 6f);
+                        for (int k = 0; k < 4; k++) qa.Step(1f / 30f, ExploreInput.None);
+                        qa.World.SetKitchenYardPassage(open);   // 站進廚房會自動打開；截圖前再設定一次
+                        qa.Rig.Snap();
+                        qa.Post.Apply();
+                        Shot(qa, rt, Path.Combine(dir, "passage_" + (open ? "open" : "sealed") + "_" + side + ".png"));
+                    }
+            }
+            finally
+            {
+                qa.Shutdown();
+                Object.DestroyImmediate(rt);
+            }
+        }
         /// <summary>從目前的眼睛位置看不看得到某個物件：在畫面內，且至少一個取樣點沒有被碰撞體擋住。</summary>
         public static bool Visible(LanternPrototypeQA qa, string objName)
         {

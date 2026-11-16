@@ -157,13 +157,7 @@ namespace Shepherd.Exploration.Lantern
             World = LanternGraybox.Build(transform);
             // 使用者試玩確認過的版本成為正式預設：餐廳 B（空間層次＋光照引導，48b6ecc）、廚房 B（改造＋回饋修正，db8a785）。
             // 原本的 A 只在餐廳／廚房的 A／B 對照 QA 場景裡切換得到。
-            if (UseConfirmedLayouts)
-            {
-                World.SetDiningFocusLights(true);
-                World.SetDiningLayout(true);
-                World.SetKitchenLayout(true);
-                World.SetShopLayout(1);   // 服飾店 A（生活機能優先，2026-11-16 試玩採用）
-            }
+            ApplyConfirmedLayouts();
             // 實際遊玩從新版房子（v2）門外開始；測試仍從舊房子玄關開始。
             var spawn = World.Marks[play && World.Marks.ContainsKey("V2Street") ? "V2Street" : "HouseEntry"];
             Player = FirstPersonController.Create(transform, spawn.position, spawn.eulerAngles.y);
@@ -221,11 +215,23 @@ namespace Shepherd.Exploration.Lantern
             if (play && World.InV2Street(Player.transform.position)) { Rig.SetOn(false); ArrivalTimer = 4.5f; }
         }
 
+        /// <summary>正式布局（房子重建後也要再套一次）。</summary>
+        private void ApplyConfirmedLayouts()
+        {
+            if (!UseConfirmedLayouts) return;
+            World.SetDiningFocusLights(true);
+            World.SetDiningLayout(true);
+            World.SetKitchenLayout(true);
+            World.SetShopLayout(1);   // 服飾店 A（生活機能優先，2026-11-16 試玩採用）
+        }
+
         /// <summary>v2 開場：重建新版房子、回到門外、提燈放下。</summary>
         public void StartV2()
         {
             Actions.DropHeld(false);
             World.BuildHouseV2();
+            ApplyConfirmedLayouts();
+            ResetMemoryAge();
             V2.Rebind();
             Market.Bind();
             GoTo("V2Street");
@@ -270,10 +276,43 @@ namespace Shepherd.Exploration.Lantern
             SetHouseScale(s[(i + 1 + s.Length) % s.Length]);
         }
 
-        // ---------------- 記憶視角的眼高（2026-11-16 使用者試玩決定） ----------------
-        // 進到第十七號門裡：店面、走廊、側院＝艾琳很小的時候（約 0.85 m）；
-        // 推開餐廳那扇拉鋸的門（記憶門）進到餐廳＝上了初中（約 1.12 m）；進到廚房＝成年（1.62 m）。
-        // 走廊門、側門、後門都是普通的門，穿過去不會改變身高。門外的街道與其他測試場地＝成人。
+        // ---------------- 記憶視角的眼高（設計總綱 §10，2026-11-16） ----------------
+        // 眼高跟著「記憶進度」走，不是跟著房間：
+        //   幼年（0.85 m）：跨進第十七號門之後；店面、走廊、側院（從走廊的普通後門進去）都是幼年。
+        //   青春期（1.12 m）：第一次從走廊進到餐廳（或廚房）。之後回到走廊、店面、側院也不會變回幼年；廚房也維持青春期。
+        //   成人（1.62 m）：第一次從廚房穿過恢復的通路走進側院。之後到哪裡都是成人。
+        // 廚房↔側院的通路：青春期之後第一次進到廚房才恢復（之前兩側都是完整的牆）。
+        // 門外的街道與其他測試場地＝成人。只改攝影機；碰撞體、速度、提燈都不變。
+        public enum MemoryAge { Child, Teen, Adult }
+        /// <summary>目前的記憶年齡（只會往前，不會倒退）。</summary>
+        public MemoryAge Age { get; private set; }
+        private int lastArea;   // 0＝門洞或不明、1＝廚房、2＝側院、3＝主屋（店面、走廊、餐廳）
+
+        /// <summary>重新開始（房子重建）時回到幼年。</summary>
+        public void ResetMemoryAge() { Age = MemoryAge.Child; lastArea = 0; }
+
+        private int AreaAt(Vector3 feet)
+        {
+            if (World == null) return 0;
+            var p = feet + Vector3.up;
+            if (World.V2KitchenRoom.size.sqrMagnitude > 0f && World.V2KitchenRoom.Contains(p)) return 1;
+            if (World.InV2Yard(feet)) return 2;
+            var d = (feet - LanternGraybox.V2Origin) / LanternGraybox.V2Scale;
+            if (d.x > -0.1f && d.x < LanternGraybox.V2Width + 0.1f && d.z > 0.05f && d.z < LanternGraybox.V2Main - 0.15f) return 3;
+            return 0;
+        }
+
+        private void UpdateMemoryAge(Vector3 feet, bool jumped)
+        {
+            if (World == null) return;
+            int area = AreaAt(feet);
+            var p = feet + Vector3.up;
+            bool inDining = World.V2DiningRoom.size.sqrMagnitude > 0f && World.V2DiningRoom.Contains(p);
+            if (Age == MemoryAge.Child && (inDining || area == 1)) Age = MemoryAge.Teen;   // 走廊→餐廳：第一次成長
+            if (Age >= MemoryAge.Teen && area == 1 && !World.KitchenYardOpen) World.SetKitchenYardPassage(true);   // 進廚房：通路恢復
+            if (Age == MemoryAge.Teen && World.KitchenYardOpen && area == 2 && lastArea == 1 && !jumped) Age = MemoryAge.Adult;   // 廚房→側院：成人
+            if (jumped || area != 0) lastArea = area;
+        }
         public const float AdultEyeHeight = 1.62f;
         /// <summary>小小孩的眼高（店面／走廊／側院）。U／I 在測試模式可以調。</summary>
         public float ChildEyeHeight = 0.85f;
@@ -288,26 +327,25 @@ namespace Shepherd.Exploration.Lantern
         private float eyeNow = AdultEyeHeight;
         private Vector3 lastEyeFeet;
 
-        /// <summary>依玩家腳下的位置決定記憶眼高。</summary>
+        /// <summary>依玩家腳下的位置與目前的記憶年齡決定眼高。</summary>
         public float MemoryEyeHeightAt(Vector3 feet)
         {
             if (!MemoryHeights || World == null) return AdultEyeHeight;
-            var p = feet + Vector3.up;
-            if (World.V2KitchenRoom.size.sqrMagnitude > 0f && World.V2KitchenRoom.Contains(p)) return AdultEyeHeight;
-            if (World.V2DiningRoom.size.sqrMagnitude > 0f && World.V2DiningRoom.Contains(p)) return TeenEyeHeight;
             var d = feet - LanternGraybox.V2Origin;
             float x = d.x / LanternGraybox.V2Scale, z = d.z / LanternGraybox.V2Scale;
             bool inHouse = x > -0.1f && x < LanternGraybox.V2Width + 0.1f && z > 0.05f && z < LanternGraybox.V2Depth + 0.1f
                 && d.y > -1f && d.y < LanternGraybox.V2Ground * LanternGraybox.V2Scale;   // 只算一樓
-            return inHouse ? ChildEyeHeight : AdultEyeHeight;
+            if (!inHouse) return AdultEyeHeight;
+            return Age == MemoryAge.Child ? ChildEyeHeight : Age == MemoryAge.Teen ? TeenEyeHeight : AdultEyeHeight;
         }
 
         private void UpdateEyeHeight(float dt)
         {
             var feet = Player.transform.position;
-            TargetEyeHeight = ViewOverride ?? MemoryEyeHeightAt(feet);
             bool jumped = (feet - lastEyeFeet).sqrMagnitude > 1.5f * 1.5f;   // 傳送：直接到位
             lastEyeFeet = feet;
+            UpdateMemoryAge(feet, jumped);
+            TargetEyeHeight = ViewOverride ?? MemoryEyeHeightAt(feet);
             eyeNow = jumped ? TargetEyeHeight : Mathf.MoveTowards(eyeNow, TargetEyeHeight, dt * 1.3f);   // 穿過記憶門：約半秒的過渡
             Player.EyeHeightValue = eyeNow;
         }
@@ -365,7 +403,7 @@ namespace Shepherd.Exploration.Lantern
             GUI.color = Color.white;
             string mode = ViewOverride == null ? "自動（依記憶房間）" : Mathf.Approximately(ViewOverride.Value, AdultEyeHeight) ? "強制成人" : "強制小小孩";
             GUI.Label(new Rect(w - 462, 10, 450, 24), "服飾店測試（A 正式）：視角 " + mode, shopLabel);
-            GUI.Label(new Rect(w - 462, 36, 450, 20), "目前眼高 " + Player.EyeHeightValue.ToString("0.00") + " m（小小孩 " + ChildEyeHeight.ToString("0.00") + "／初中 " + TeenEyeHeight.ToString("0.00") + "／成人 1.62）", shopHint);
+            GUI.Label(new Rect(w - 462, 36, 450, 20), "記憶：" + (Age == MemoryAge.Child ? "幼年" : Age == MemoryAge.Teen ? "青春期" : "成人") + (World.KitchenYardOpen ? "・廚房側院通路已開" : "") + "　眼高 " + Player.EyeHeightValue.ToString("0.00") + " m（小小孩 " + ChildEyeHeight.ToString("0.00") + "／初中 " + TeenEyeHeight.ToString("0.00") + "／成人 1.62）", shopHint);
             GUI.Label(new Rect(w - 462, 56, 450, 20), "K 自動／成人／小小孩・U／I 小小孩眼高 −／＋ 0.05", shopHint);
             GUI.Label(new Rect(w - 462, 76, 450, 20), "1 入口・2 櫃台前・3 工作區・4 衣架後方・5 住宅入口", shopHint);
             GUI.Label(new Rect(w - 462, 96, 450, 20), "Shift+F2 離開（回到現況、成人視角）", shopHint);
@@ -468,6 +506,8 @@ namespace Shepherd.Exploration.Lantern
             Rig.SetRadius(1);
             SetHouseScale(World.HouseScale);
             World.BuildHouseV2();
+            ApplyConfirmedLayouts();
+            ResetMemoryAge();
             V2.Rebind();
             Market.Bind();
         }
