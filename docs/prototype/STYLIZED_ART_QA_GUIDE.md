@@ -217,3 +217,12 @@
   4. **低頭抬頭只跟 60%**：低頭時手留在身前，手臂不會變成直立的柱子；抬頭時手自然往畫面下方退。
 - 平常走路（手在畫面外）、F 的開關與展示動作、提燈晃動，都沒有改。
 - 截圖：`stylized_art_qa/raised_arm_v2_before_after.jpg`（同一個角度的修改前／後）。
+
+### 同步到正式遊戲（LanternRig）
+
+- 新增 `Scripts/Lantern/LanternViewmodel.cs`：定稿的左手提燈，包括兩節骨頭的 IK 手臂、鐘擺晃動、低頭抬頭只跟 60%、玻璃發光。
+- 模型 prefab：`Lantern/Resources/Models/Custom/LanternViewmodel.prefab`。由選單「Shepherd → Prototype → 重建正式提燈第一人稱模型」產生，引用 StyleQA 裡同一份模型和材質，之後美術優化時改一處就好。
+- `LanternRig`：有這個模型就用它，把灰盒提燈和舊手套模型藏起來，`Glass` 指到新模型的玻璃中心。
+- **行為沿用正式設計**：平常走路時手在畫面外；開關燈（`Toggle`）時抬手展示約 1.4 秒；按住聚光時舉起並往中間靠。提燈光的位置、真實顯示的範圍、聚光光束、右手穩定器都沒有改。
+- 正式版的手臂鏡頭維持和主鏡頭同為 62°（有測試保證：穩定器射擊的方向要和世界對齊），手的位置已針對 62° 重新校正。
+- 驗證：提燈原型的 EditMode 64 項、PlayMode 1 項全部通過；正式遊戲截圖 `stylized_art_qa/formal_lantern_viewmodel.jpg`。

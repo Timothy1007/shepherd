@@ -33,6 +33,8 @@ namespace Shepherd.Exploration.Lantern
         public Transform ViewRoot { get; private set; }
         public Transform Hand { get; private set; }
         public Transform LanternPivot { get; private set; }
+        /// <summary>Blender 做的左手提燈（美術風格 QA 定稿版）；Resources 裡沒有模型時為 null，用灰盒。</summary>
+        public LanternViewmodel Model { get; private set; }
         public Transform Glass { get; private set; }
         public Light Light { get; private set; }
         public Transform Body { get; private set; }
@@ -113,8 +115,11 @@ namespace Shepherd.Exploration.Lantern
             arm.localRotation = Quaternion.identity;
             var foreL = Part(PrimitiveType.Capsule, arm, new Vector3(-0.07f, -0.09f, -0.2f), new Vector3(0.085f, 0.21f, 0.085f), sleeve, new Vector3(62f, 18f, 0f), "Forearm", ViewRenderers, ViewLayer);
             Hand = Part(PrimitiveType.Sphere, arm, new Vector3(0f, -0.01f, 0.02f), new Vector3(0.075f, 0.065f, 0.09f), skin, null, "Hand", ViewRenderers, ViewLayer);
+            // 新版：Blender 做的左手＋提燈（掌心朝下握提把、IK 手臂）。有就用它，沒有才用舊的手套模型或灰盒。
+            Model = LanternViewmodel.TryBuild(ViewRoot, ViewLayer);
+            if (Model != null) { foreL.GetComponent<Renderer>().enabled = false; Hand.GetComponent<Renderer>().enabled = false; }
             // Blender 做的手套與大衣袖子（握著提燈的提把）；有模型就把灰盒的膠囊和圓球藏起來。
-            if (ArmModel("fp_arm_left", arm, new Vector3(0f, -0.03f, 0.02f), new Vector3(0f, 8f, 0f)))
+            else if (ArmModel("fp_arm_left", arm, new Vector3(0f, -0.03f, 0.02f), new Vector3(0f, 8f, 0f)))
             { foreL.GetComponent<Renderer>().enabled = false; Hand.GetComponent<Renderer>().enabled = false; }
 
             // 提燈：掛在手下方，以手為支點擺動。
@@ -133,6 +138,13 @@ namespace Shepherd.Exploration.Lantern
             }
             Part(PrimitiveType.Sphere, L, new Vector3(0f, -0.18f, 0f), new Vector3(0.03f, 0.045f, 0.03f), flame, null, "Light", ViewRenderers, ViewLayer);
             Part(PrimitiveType.Cylinder, L, new Vector3(0f, -0.245f, 0f), new Vector3(0.105f, 0.01f, 0.105f), brass, null, "Base", ViewRenderers, ViewLayer);
+            if (Model != null)
+            {
+                // 灰盒提燈藏起來（物件留著，擺動計算不受影響）；Glass 指到新模型的玻璃中心。
+                foreach (var rr in L.GetComponentsInChildren<Renderer>(true)) rr.enabled = false;
+                Glass = Model.Glass;
+                ViewRenderers.AddRange(Model.Renderers);
+            }
 
             var lg = new GameObject("LanternLight");
             lg.transform.SetParent(L, false);
@@ -362,6 +374,8 @@ namespace Shepherd.Exploration.Lantern
             Beam.innerSpotAngle = Beam.spotAngle * 0.45f;
             flame.SetColor("_EmissionColor", new Color(6f, 4.2f, 2.2f) * Mathf.Lerp(0.05f, 1f, Mathf.Clamp01(k)) * breathe);
             glassMat.SetColor("_EmissionColor", new Color(1.4f, 0.95f, 0.5f) * Mathf.Lerp(0.05f, 1f, Mathf.Clamp01(k)));
+            // 新版手與提燈：平常垂在畫面外，開關燈或聚光時舉起來（同一個 LanternShown／聚光程度）。
+            if (Model != null) Model.Tick(Camera.transform, player, dt, time, LanternShown, FocusBlend, Mathf.Clamp01(k) * breathe);
 
             // 光和顯示真實的範圍固定從「提燈原本在的位置」算起（提燈收起來時光還是在那裡）。
             var lampAt = Camera.transform.TransformPoint(Vector3.Lerp(new Vector3(-0.25f, -0.27f, 0.6f), new Vector3(-0.21f, -0.21f, 0.64f), fb));
