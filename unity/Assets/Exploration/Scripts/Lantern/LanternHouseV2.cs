@@ -724,7 +724,8 @@ namespace Shepherd.Exploration.Lantern
             CustomModel("V2Counter", "v2_shop_counter", HP(2.4f, 0f, 4.1f), 180f);
             CustomModel("V2ButtonCabinet", "v2_button_cabinet", HP(0.6f, 0f, 4.7f), 180f);
             CustomModel("V2ClothesRack", "v2_clothes_rack", HP(0.42f, 0f, 2.2f), 90f);
-            V2SewingMachine = CustomModel("V2SewingMachine", "v2_sewing_machine", HP(1.35f, 0f, 0.45f), 0f);
+            V2SewingMachine = UseStylizedSewingTable ? StylizedSewingTable() : null;
+            if (V2SewingMachine == null) V2SewingMachine = CustomModel("V2SewingMachine", "v2_sewing_machine", HP(1.35f, 0f, 0.45f), 0f);
             CustomModel("V2IroningBoard", "v2_ironing_board", HP(3.0f, 0f, 0.55f), 0f, false);
             // 那件外套：不穿在人台上，掛在左牆的木掛鉤上（客人的衣服都在衣架上，只有它單獨掛著）。
             var coat = CustomModel("V2HangingCoat", "v2_hanging_coat", HP(0f, 0f, 3.55f) + new Vector3(0.36f, 0f, 0f), 90f);
@@ -743,7 +744,7 @@ namespace Shepherd.Exploration.Lantern
             CustomModel("V2WallClock", "v2_wall_clock", HP(V2Width, 0f, 3.9f) + new Vector3(-wallIn, 0f, 0f), -90f, false);
             CustomModel("V2Boxes", "v2_boxes", HP(3.35f, 0f, 4.72f), 172f);
             CustomModel("V2Stool", "v2_stool", HP(1.35f, 0f, 1.05f), 20f);
-            if (V2SewingMachine != null)
+            if (V2SewingMachine != null && !StylizedSewingInUse)   // 新的縫紉機桌不放舊桌子的小東西（高度對不上）
             {
                 float tableTop = 0.74f * FurnitureScale;
                 CustomModel("V2SewingClutter", "v2_sewing_clutter", HP(1.35f, 0f, 0.45f) + new Vector3(0.12f, tableTop, 0.0f), 0f, false);
@@ -1010,6 +1011,15 @@ namespace Shepherd.Exploration.Lantern
             if (dot > 0 && int.TryParse(key.Substring(dot + 1), out _)) key = key.Substring(0, dot);
             Material m;
             if (customMatCache.TryGetValue(key, out m) && m != null) return m;
+            // 美術風格 QA 的手繪材質（PainterlyLit）：記憶中＝手繪貼圖原色；褪色態＝同一張貼圖降飽和、偏冷。
+            if (src != null && src.HasProperty("_MidTint") && src.HasProperty("_BaseMap") && src.GetTexture("_BaseMap") != null)
+            {
+                var paint = src.GetTexture("_BaseMap");
+                m = Mat("LC_" + key, Mode.Dual, Color.white, new Color(0.74f, 0.78f, 0.84f), paint, paint, 0.25f, 0.3f, 0.004f);
+                if (m.HasProperty("_AnomalySat")) m.SetFloat("_AnomalySat", 0.18f);
+                customMatCache[key] = m;
+                return m;
+            }
             (string tex, Color color, float smooth, float metal) d;
             if (!CustomMats.TryGetValue(key, out d))
             {
@@ -1042,6 +1052,38 @@ namespace Shepherd.Exploration.Lantern
         }
 
         /// <summary>放一件 Blender 建的模型（Resources/Models/Custom）：真實尺寸 × 家具倍率，底部貼地；材質換成雙狀態。玻璃先隱藏（shader 不透明）。</summary>
+        /// <summary>
+        /// 縫紉機桌換成美術風格 QA 做的那一張（使用者 2026-11-16：想看兩種風格放在一起的效果）。
+        /// 擺法沿用 QA 場景：縫紉機在桌子的一側，另一側（坐著看是右手邊）空著放提燈。周圍的環境不變。
+        /// false＝換回原本的灰盒縫紉機（程式裡保留，沒有切換入口）。
+        /// </summary>
+        public static bool UseStylizedSewingTable = true;
+        public bool StylizedSewingInUse { get; private set; }
+
+        private Transform StylizedSewingTable()
+        {
+            StylizedSewingInUse = false;
+            var t = CustomModel("V2SewingMachine", "v2_sewing_workspace_sqa", HP(1.35f, 0f, 0.47f), 0f, false);
+            if (t == null) return null;
+            StylizedSewingInUse = true;
+            // 碰撞分兩塊：桌子（到桌面）＋縫紉機本體，桌面空的那一側看得到、瞄得到放上去的提燈。
+            foreach (var part in new[] { "SQA_SewingTable", "SQA_SewingMachine" })
+            {
+                Transform p = null;
+                foreach (var c in t.GetComponentsInChildren<Transform>(true)) if (c.name == part) { p = c; break; }
+                if (p == null) continue;
+                var rs = p.GetComponentsInChildren<Renderer>(true);
+                if (rs.Length == 0) continue;
+                var b = rs[0].bounds; foreach (var r in rs) b.Encapsulate(r.bounds);
+                var box = t.gameObject.AddComponent<BoxCollider>();
+                box.center = t.InverseTransformPoint(b.center);
+                var ls = t.lossyScale;
+                var size = Quaternion.Inverse(t.rotation) * b.size;
+                box.size = new Vector3(Mathf.Abs(size.x) / ls.x, Mathf.Abs(size.y) / ls.y, Mathf.Abs(size.z) / ls.z);
+            }
+            return t;
+        }
+
         private Transform CustomModel(string name, string model, Vector3 worldPos, float yaw, bool collider = true)
         {
             var prefab = Resources.Load<GameObject>("Models/Custom/" + model);

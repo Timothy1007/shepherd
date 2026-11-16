@@ -90,15 +90,20 @@ namespace Shepherd.Exploration.Lantern
                 // ---- 縫紉機：桌上放提燈的位置、凳子的座位、小燈 ----
                 if (V2SewingMachine != null)
                 {
-                    var top = V2SewingMachine.GetComponentsInChildren<Renderer>(true).FirstOrDefault(r => r.name == "TableTop");
+                    // 桌面：舊的灰盒是 TableTop；美術風格 QA 的桌子是一整塊（桌面在最上面），縫紉機在另一側。
+                    var top = V2SewingMachine.GetComponentsInChildren<Renderer>(true).FirstOrDefault(r => r.name == "TableTop" || r.name == "SQA_SewingTable");
                     var tb = top != null ? top.bounds : new Bounds(V2SewingMachine.position + Vector3.up * 0.8f, new Vector3(1f, 0.04f, 0.45f));
-                    V2SewLanternSpot = new Vector3(tb.min.x + 0.13f, tb.max.y, tb.center.z + 0.04f);
+                    V2SewLanternSpot = StylizedSewingInUse
+                        ? new Vector3(tb.min.x + 0.24f, tb.max.y, tb.center.z + 0.05f)    // 桌面空的那一側（坐著看是右手邊）
+                        : new Vector3(tb.min.x + 0.13f, tb.max.y, tb.center.z + 0.04f);
                     var seat = V2StoolMovable != null ? V2StoolMovable.HomePosition : V2SewingMachine.position + Vector3.forward * 0.6f;
                     V2SeatSpot = new Vector3(seat.x, V2Origin.y, seat.z);
                     var toMachine = new Vector3(tb.center.x - seat.x, 0f, tb.center.z - seat.z);
                     V2SeatYaw = Mathf.Atan2(toMachine.x, toMachine.z) * Mathf.Rad2Deg;
-                    var head = V2SewingMachine.GetComponentsInChildren<Renderer>(true).FirstOrDefault(r => r.name == "Head");
-                    var lampAt = head != null ? head.bounds.center + new Vector3(0f, -0.02f, 0.08f) : tb.center + Vector3.up * 0.3f;
+                    var head = V2SewingMachine.GetComponentsInChildren<Renderer>(true).FirstOrDefault(r => r.name == "Head" || r.name == "SQA_SewingMachine");
+                    var lampAt = head == null ? tb.center + Vector3.up * 0.3f
+                        : head.name == "Head" ? head.bounds.center + new Vector3(0f, -0.02f, 0.08f)
+                        : new Vector3(head.bounds.center.x, head.bounds.max.y - 0.04f, head.bounds.max.z + 0.06f);
                     var go = new GameObject("V2SewingLamp");
                     go.transform.SetParent(V2Root, false);
                     go.transform.position = lampAt;

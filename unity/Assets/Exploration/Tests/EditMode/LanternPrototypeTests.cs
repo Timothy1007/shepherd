@@ -1410,7 +1410,7 @@ namespace Shepherd.Exploration.Tests
             var st = w.V2DiningStruggle;
             qa.GoTo("V2Hall");
             var c = st.GetComponent<Collider>().bounds.center;
-            qa.Player.Teleport(c + new Vector3(1.3f, -c.y + 0.05f, 0f), 0f, 0f);
+            qa.Player.Teleport(c + new Vector3(0.75f, -c.y + 0.05f, 0f), 0f, 0f);   // 走廊中間（再往東是樓梯的牆）
             qa.Step(Dt, ExploreInput.None);
             Aim(qa, c);
             Act(qa, 1, LanternActionInput.None);

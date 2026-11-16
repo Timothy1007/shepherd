@@ -189,6 +189,7 @@ namespace Shepherd.Exploration.Editor
                 // 1. 沒電的店（入口、提燈關著）
                 qa.Rig.SetOn(false);
                 qa.GoToShopView(0); Run(30); Snap("shop_unpowered");
+                qa.Player.Teleport(P(2.6f, 2.0f), 0f, 0f); Run(10); Look(w.V2SewingMachine.position + Vector3.up * 0.7f); Run(30); Snap("sew_table_faded");   // 縫紉機桌：提燈關著（褪色）
                 // 2. 幼年站在電箱前：搆不到
                 qa.Rig.SetOn(true);
                 qa.Player.Teleport(P(1.85f, 3.7f), 0f, 0f); Run(40); Look(lever); Run(2); Snap("child_breaker_floor");
