@@ -144,6 +144,19 @@ namespace Shepherd.Exploration.Editor
                         qa.Post.Apply();
                         Shot(qa, rt, Path.Combine(dir, "passage_" + (open ? "open" : "sealed") + "_" + side + ".png"));
                     }
+                // 顯現中（提燈關著，只看通路自己慢慢出現）：0.6、1.2、1.8 秒各一張。
+                qa.Rig.SetOn(false);
+                qa.Player.Teleport(o + new Vector3(2.2f * S, 0.05f, 13.8f * S), 90f, 6f);
+                for (int k = 0; k < 4; k++) qa.Step(1f / 30f, ExploreInput.None);
+                qa.World.SetKitchenYardPassage(false);
+                qa.World.RevealKitchenYardPassage();
+                for (int shot = 1; shot <= 3; shot++)
+                {
+                    for (int k = 0; k < 18; k++) qa.Step(1f / 30f, ExploreInput.None);
+                    qa.Rig.Snap();
+                    qa.Post.Apply();
+                    Shot(qa, rt, Path.Combine(dir, "passage_revealing_" + shot + ".png"));
+                }
             }
             finally
             {

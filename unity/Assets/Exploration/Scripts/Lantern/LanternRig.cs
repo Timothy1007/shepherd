@@ -64,7 +64,9 @@ namespace Shepherd.Exploration.Lantern
         private float lastYaw, lastPitch;
         private Material flame, glassMat;
 
-        public float TargetRadius => On ? Radii[RadiusIndex] : 0f;
+        /// <summary>光圈大小的倍率（記憶視角：幼年、青春期的光比較小；成人＝1）。光、顯示真實的範圍、光源照射距離一起縮放。</summary>
+        public float RadiusScale = 1f;
+        public float TargetRadius => On ? Radii[RadiusIndex] * RadiusScale : 0f;
 
         public static LanternRig Build(Camera cam, FirstPersonController player)
         {
@@ -363,7 +365,7 @@ namespace Shepherd.Exploration.Lantern
             // 光：開關時光圈平滑展開／收合；燈光輕微呼吸（不是火焰的劇烈跳動）。
             CurrentRadius = Mathf.MoveTowards(CurrentRadius, TargetRadius, dt * 9f);
             float breathe = 1f + Mathf.Sin(time * 2.3f) * 0.03f + (Mathf.PerlinNoise(time * 1.7f, 0.3f) - 0.5f) * 0.04f;
-            float k = CurrentRadius / Radii[RadiusIndex];
+            float k = CurrentRadius / Mathf.Max(0.01f, Radii[RadiusIndex] * RadiusScale);
             Light.enabled = CurrentRadius > 0.01f;
             Light.intensity = 0.9f * breathe * Mathf.Clamp01(k) * Mathf.Lerp(1f, 0.35f, fb);
             Light.range = Mathf.Max(0.5f, CurrentRadius * 2f);

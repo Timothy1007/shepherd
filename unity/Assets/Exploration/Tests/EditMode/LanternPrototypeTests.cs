@@ -1692,6 +1692,8 @@ namespace Shepherd.Exploration.Tests
             Settle(qa);
             Assert.AreEqual(LanternPrototypeQA.MemoryAge.Child, qa.Age, "從走廊的門進側院：還是幼年");
             Assert.AreEqual(qa.ChildEyeHeight, qa.Player.EyeHeightValue, 1e-4f, "側院：幼年眼高");
+            float baseR = LanternRig.Radii[qa.Rig.RadiusIndex];
+            Assert.AreEqual(baseR * qa.ChildLanternScale, qa.Rig.TargetRadius, 1e-3f, "幼年：提燈光圈比較小");
             Assert.IsFalse(w.KitchenYardOpen, "通路還沒出現");
             TakeThread(qa);
             Walk(qa, "幼年：側院→店面", YardToShop);
@@ -1705,6 +1707,7 @@ namespace Shepherd.Exploration.Tests
             Settle(qa);
             Assert.AreEqual(LanternPrototypeQA.MemoryAge.Teen, qa.Age, "進餐廳：青春期");
             Assert.AreEqual(qa.TeenEyeHeight, qa.Player.EyeHeightValue, 1e-4f, "餐廳：青春期眼高");
+            Assert.AreEqual(baseR * qa.TeenLanternScale, qa.Rig.TargetRadius, 1e-3f, "青春期：提燈光圈中等");
             Walk(qa, "餐廳→走廊", HallToKitchen[1], HallToKitchen[0], (5.07f, 7.5f));
             Walk(qa, "走廊→側院", HallToYard);
             Settle(qa);
@@ -1713,8 +1716,28 @@ namespace Shepherd.Exploration.Tests
             Walk(qa, "側院→走廊", (5.1f, 10.6f), (5.1f, 9.4f), (5.07f, 6.45f));
             // 進廚房：通路恢復，廚房維持青春期。
             Walk(qa, "走廊→餐廳→廚房", HallToKitchen);
-            Settle(qa);
             Assert.IsTrue(w.KitchenYardOpen, "進廚房後通路恢復");
+            // 不是瞬間出現：補牆先變成只存在於異域的牆，從門洞中央慢慢顯現（和提燈照出來的效果一樣），顯現完才拿掉碰撞。
+            Assert.IsTrue(w.KitchenYardRevealing, "正在慢慢顯現");
+            var sealWall = w.KitchenYardSeal.GetComponentsInChildren<Renderer>().First(r => r.name == "Wall");
+            Assert.AreEqual(LanternReveal.Mode.AnomalyOnly, LanternReveal.GetMode(sealWall.sharedMaterial), "顯現中：補牆只存在於異域（提燈照到也會提早看見）");
+            float zc = (LanternGraybox.KitchenYardZ0 + LanternGraybox.KitchenYardZ1) / 2f;
+            var top = PV(LanternGraybox.V2ExtWidth, zc) + Vector3.up * 2.4f;
+            bool sawPartial = false;
+            float revealT = 0f;
+            while (w.KitchenYardRevealing && revealT < 6f)
+            {
+                qa.Step(Dt, ExploreInput.None);
+                revealT += Dt;
+                if (w.KitchenYardRevealing)
+                {
+                    Assert.IsTrue(Physics.Raycast(PV(3.4f, zc) + Vector3.up * 1f, Vector3.right, out var hb, 2f) && hb.collider.transform.IsChildOf(w.KitchenYardSeal), "顯現完之前還走不過去");
+                    if (LanternReveal.IsReal(PV(LanternGraybox.V2ExtWidth, zc) + Vector3.up * 1.1f) && !LanternReveal.IsReal(top)) sawPartial = true;
+                }
+            }
+            Assert.IsFalse(w.KitchenYardRevealing, "顯現完了（" + revealT.ToString("0.0") + " 秒，" + w.KitchenYardRevealDebug + "）");
+            Assert.IsTrue(revealT > 1.2f && revealT < 4.5f, "顯現大約 2～3 秒（實際 " + revealT.ToString("0.0") + " 秒）");
+            Assert.IsTrue(sawPartial, "從中間往外顯現（中間先出現、上緣後出現）");
             Assert.IsFalse(w.KitchenYardSeal.gameObject.activeInHierarchy, "補牆收起來");
             Assert.AreEqual(3, ActivePassageTrims(w), "門框出現");
             Assert.AreEqual(qa.TeenEyeHeight, qa.Player.EyeHeightValue, 1e-4f, "廚房：維持青春期（不再直接成人）");
@@ -1725,6 +1748,7 @@ namespace Shepherd.Exploration.Tests
             Assert.LessOrEqual(maxStep, 1.3f * Dt + 1e-4f, "眼高是平順過渡（每格最多 " + maxStep.ToString("0.000") + " m）");
             Settle(qa);
             Assert.AreEqual(LanternPrototypeQA.AdultEyeHeight, qa.Player.EyeHeightValue, 1e-4f, "成人眼高");
+            Assert.AreEqual(baseR, qa.Rig.TargetRadius, 1e-3f, "成人：提燈光圈恢復原本大小");
             // 雙向：再走回廚房；成人之後到哪裡都不倒退。
             Walk(qa, "側院→廚房（雙向）", (4.6f, 13.8f), (3.404f, 13.788f));
             Settle(qa);

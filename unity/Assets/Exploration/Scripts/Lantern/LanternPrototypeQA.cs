@@ -309,7 +309,8 @@ namespace Shepherd.Exploration.Lantern
             var p = feet + Vector3.up;
             bool inDining = World.V2DiningRoom.size.sqrMagnitude > 0f && World.V2DiningRoom.Contains(p);
             if (Age == MemoryAge.Child && (inDining || area == 1)) Age = MemoryAge.Teen;   // 走廊→餐廳：第一次成長
-            if (Age >= MemoryAge.Teen && area == 1 && !World.KitchenYardOpen) World.SetKitchenYardPassage(true);   // 進廚房：通路恢復
+            if (Age >= MemoryAge.Teen && area == 1 && !World.KitchenYardOpen) World.RevealKitchenYardPassage();   // 進廚房：通路慢慢顯現
+            World.TickKitchenYardPassage();
             if (Age == MemoryAge.Teen && World.KitchenYardOpen && area == 2 && lastArea == 1 && !jumped) Age = MemoryAge.Adult;   // 廚房→側院：成人
             if (jumped || area != 0) lastArea = area;
         }
@@ -318,6 +319,21 @@ namespace Shepherd.Exploration.Lantern
         public float ChildEyeHeight = 0.85f;
         /// <summary>初中時期的眼高（餐廳）。</summary>
         public float TeenEyeHeight = 1.12f;
+        /// <summary>
+        /// 提燈光圈跟著記憶年齡縮放（使用者 2026-11-16：小時候拿燈的光照範圍不該和大人一樣大）。
+        /// 完全照身高比例（0.85／1.62≈0.52、1.12／1.62≈0.69）會小到前方只照得到 1 m 多、很難探索，
+        /// 所以取折衷：幼年 0.70、青春期 0.85、成人 1.00；中間跟著眼高平順變化。
+        /// </summary>
+        public float ChildLanternScale = 0.70f, TeenLanternScale = 0.85f;
+
+        /// <summary>依目前的眼高換算提燈光圈倍率（幼年眼高→幼年倍率、青春期→青春期、成人→1，中間線性）。</summary>
+        public float LanternScaleForEye(float eye)
+        {
+            if (eye <= TeenEyeHeight)
+                return Mathf.Lerp(ChildLanternScale, TeenLanternScale, Mathf.InverseLerp(ChildEyeHeight, TeenEyeHeight, eye));
+            return Mathf.Lerp(TeenLanternScale, 1f, Mathf.InverseLerp(TeenEyeHeight, AdultEyeHeight, eye));
+        }
+
         /// <summary>false＝永遠成人眼高（有些測試與工具用）。</summary>
         public bool MemoryHeights = true;
         /// <summary>測試模式 K 的強制視角：null＝自動（依房間）。</summary>
@@ -348,6 +364,7 @@ namespace Shepherd.Exploration.Lantern
             TargetEyeHeight = ViewOverride ?? MemoryEyeHeightAt(feet);
             eyeNow = jumped ? TargetEyeHeight : Mathf.MoveTowards(eyeNow, TargetEyeHeight, dt * 1.3f);   // 穿過記憶門：約半秒的過渡
             Player.EyeHeightValue = eyeNow;
+            Rig.RadiusScale = LanternScaleForEye(eyeNow);
         }
 
         /// <summary>測試模式 K：自動 → 強制成人 → 強制小小孩 → 自動。</summary>
@@ -403,7 +420,7 @@ namespace Shepherd.Exploration.Lantern
             GUI.color = Color.white;
             string mode = ViewOverride == null ? "自動（依記憶房間）" : Mathf.Approximately(ViewOverride.Value, AdultEyeHeight) ? "強制成人" : "強制小小孩";
             GUI.Label(new Rect(w - 462, 10, 450, 24), "服飾店測試（A 正式）：視角 " + mode, shopLabel);
-            GUI.Label(new Rect(w - 462, 36, 450, 20), "記憶：" + (Age == MemoryAge.Child ? "幼年" : Age == MemoryAge.Teen ? "青春期" : "成人") + (World.KitchenYardOpen ? "・廚房側院通路已開" : "") + "　眼高 " + Player.EyeHeightValue.ToString("0.00") + " m（小小孩 " + ChildEyeHeight.ToString("0.00") + "／初中 " + TeenEyeHeight.ToString("0.00") + "／成人 1.62）", shopHint);
+            GUI.Label(new Rect(w - 462, 36, 450, 20), "記憶：" + (Age == MemoryAge.Child ? "幼年" : Age == MemoryAge.Teen ? "青春期" : "成人") + (World.KitchenYardOpen ? "・廚房側院通路已開" : "") + "　眼高 " + Player.EyeHeightValue.ToString("0.00") + " m・光圈 ×" + Rig.RadiusScale.ToString("0.00"), shopHint);
             GUI.Label(new Rect(w - 462, 56, 450, 20), "K 自動／成人／小小孩・U／I 小小孩眼高 −／＋ 0.05", shopHint);
             GUI.Label(new Rect(w - 462, 76, 450, 20), "1 入口・2 櫃台前・3 工作區・4 衣架後方・5 住宅入口", shopHint);
             GUI.Label(new Rect(w - 462, 96, 450, 20), "Shift+F2 離開（回到現況、成人視角）", shopHint);

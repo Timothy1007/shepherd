@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using Mode = Shepherd.Exploration.Lantern.LanternReveal.Mode;
 
 namespace Shepherd.Exploration.Lantern
 {
@@ -17,10 +18,23 @@ namespace Shepherd.Exploration.Lantern
         /// <summary>封住時補上的那段牆（含兩側踢腳板）。</summary>
         public Transform KitchenYardSeal { get; private set; }
         private readonly List<GameObject> kitchenYardFrame = new List<GameObject>();
+        /// <summary>通路正在慢慢顯現（補牆還在、碰撞還在，顯現完才拿掉）。</summary>
+        public bool KitchenYardRevealing { get; private set; }
+        /// <summary>從門洞中央往外顯現的速度（m/s）；約 2 秒顯現完。</summary>
+        public const float KitchenYardRevealSpeed = 0.9f;
+        private int kitchenYardRoom = -1;
+        private float kitchenYardRevealNeed;
+        /// <summary>QA 用：顯現進度（目前擴散半徑／需要的半徑、格子）。</summary>
+        public string KitchenYardRevealDebug => "slot " + kitchenYardRoom + " spread " + (kitchenYardRoom >= 0 ? LanternReveal.RoomSpread(kitchenYardRoom) : -1f).ToString("0.00") + " need " + kitchenYardRevealNeed.ToString("0.00");
+        private readonly List<(Renderer r, Material m)> kitchenYardSwapped = new List<(Renderer, Material)>();
 
         /// <summary>在 BuildHouseV2 裡（V2 座標生效時）呼叫：建好補牆、找出門洞的門框，預設封住。</summary>
         private void V2KitchenYardPassage()
         {
+            if (kitchenYardRoom >= 0) LanternReveal.RemoveRoom(kitchenYardRoom);   // 房子重建：收回上一輪的顯現範圍
+            kitchenYardRoom = -1;
+            KitchenYardRevealing = false;
+            kitchenYardSwapped.Clear();
             kitchenYardFrame.Clear();
             const float doorH = 2.25f;   // 和 V2Shell 的門洞高度一樣
             var a = HP(V2ExtWidth, 0f, KitchenYardZ0);
@@ -43,9 +57,67 @@ namespace Shepherd.Exploration.Lantern
             SetKitchenYardPassage(false);
         }
 
-        /// <summary>開／關廚房↔側院的通路（開＝門洞與門框出現；關＝完整的牆）。</summary>
+        /// <summary>
+        /// 劇情觸發：通路慢慢顯現，效果和「提燈照到才出現的東西」一樣——
+        /// 補牆改成只存在於異域的牆、門框改成只存在於真實的門框，再從門洞中央讓一塊小範圍慢慢恢復真實（邊緣發光）。
+        /// 提燈照到的地方也會提早看見。顯現完才拿掉補牆（含碰撞），門框換回一般材質。
+        /// </summary>
+        public void RevealKitchenYardPassage()
+        {
+            if (KitchenYardOpen || KitchenYardSeal == null) return;
+            KitchenYardOpen = true;
+            KitchenYardRevealing = true;
+            kitchenYardSwapped.Clear();
+            void Swap(Renderer r, Mode mode)
+            {
+                var m = new Material(r.sharedMaterial) { name = r.sharedMaterial.name + (mode == Mode.AnomalyOnly ? "_AnomalyOnly" : "_RealOnly") };
+                m.SetFloat("_Mode", (float)mode);
+                kitchenYardSwapped.Add((r, r.sharedMaterial));
+                r.sharedMaterial = m;
+            }
+            foreach (var r in KitchenYardSeal.GetComponentsInChildren<Renderer>()) Swap(r, Mode.AnomalyOnly);
+            foreach (var g in kitchenYardFrame)
+            {
+                if (g == null) continue;
+                g.SetActive(true);
+                foreach (var r in g.GetComponentsInChildren<Renderer>()) Swap(r, Mode.RealOnly);
+            }
+            // 顯現的範圍只包住門洞（牆厚＋門框），不會把旁邊的牆也變成真實的樣子。
+            // （注意：這裡是遊戲中呼叫，HP() 已經不是 V2 的座標，所以直接用物件的外框。）
+            var sealRs = KitchenYardSeal.GetComponentsInChildren<Renderer>();
+            var b = sealRs[0].bounds;
+            foreach (var r in sealRs) b.Encapsulate(r.bounds);
+            foreach (var g in kitchenYardFrame) if (g != null) foreach (var r in g.GetComponentsInChildren<Renderer>()) b.Encapsulate(r.bounds);
+            b.Expand(new Vector3(0.12f, 0.1f, 0.06f));
+            var seed = new Vector3(b.center.x, b.min.y + 1.2f, b.center.z);
+            kitchenYardRevealNeed = 0f;
+            foreach (var cx in new[] { b.min.x, b.max.x }) foreach (var cy in new[] { b.min.y, b.max.y }) foreach (var cz in new[] { b.min.z, b.max.z })
+                kitchenYardRevealNeed = Mathf.Max(kitchenYardRevealNeed, Vector3.Distance(seed, new Vector3(cx, cy, cz)));
+            kitchenYardRevealNeed += 0.7f;   // 遮罩邊緣（與 IsReal 判斷的 0.6 m 一致，再留一點）
+            kitchenYardRoom = LanternReveal.AddRoom(b, seed, false, KitchenYardRevealSpeed);
+            if (kitchenYardRoom < 0) FinishKitchenYardReveal();   // 沒有空格：直接打開
+        }
+
+        /// <summary>每個影格：顯現完了就拿掉補牆與碰撞。</summary>
+        public void TickKitchenYardPassage()
+        {
+            if (KitchenYardRevealing && LanternReveal.RoomSpread(kitchenYardRoom) >= kitchenYardRevealNeed) FinishKitchenYardReveal();
+        }
+
+        private void FinishKitchenYardReveal()
+        {
+            KitchenYardRevealing = false;
+            foreach (var (r, m) in kitchenYardSwapped) if (r != null) r.sharedMaterial = m;
+            kitchenYardSwapped.Clear();
+            if (KitchenYardSeal != null) KitchenYardSeal.gameObject.SetActive(false);
+            Physics.SyncTransforms();
+        }
+
+        /// <summary>直接開／關廚房↔側院的通路（開＝門洞與門框出現；關＝完整的牆）。測試、截圖、重建用；遊戲裡用 RevealKitchenYardPassage。</summary>
         public void SetKitchenYardPassage(bool open)
         {
+            if (KitchenYardRevealing) FinishKitchenYardReveal();
+            if (!open && kitchenYardRoom >= 0) { LanternReveal.RemoveRoom(kitchenYardRoom); kitchenYardRoom = -1; }
             KitchenYardOpen = open;
             if (KitchenYardSeal != null) KitchenYardSeal.gameObject.SetActive(!open);
             foreach (var g in kitchenYardFrame) if (g != null) g.SetActive(open);

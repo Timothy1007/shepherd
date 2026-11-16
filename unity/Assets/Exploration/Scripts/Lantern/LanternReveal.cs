@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Shepherd.Exploration.Lantern
@@ -115,6 +115,7 @@ namespace Shepherd.Exploration.Lantern
         private static readonly Vector4[] boxMin = new Vector4[RoomCount];
         private static readonly Vector4[] boxMax = new Vector4[RoomCount];
         private static readonly Vector4[] boxSeed = new Vector4[RoomCount];
+        private static readonly float[] roomSpeed = new float[RoomCount];
 
         private static void PushRooms()
         {
@@ -125,12 +126,12 @@ namespace Shepherd.Exploration.Lantern
 
         public static void ClearRooms()
         {
-            for (int i = 0; i < RoomCount; i++) { boxMin[i] = Vector4.zero; boxMax[i] = Vector4.zero; boxSeed[i] = Vector4.zero; }
+            for (int i = 0; i < RoomCount; i++) { boxMin[i] = Vector4.zero; boxMax[i] = Vector4.zero; boxSeed[i] = Vector4.zero; roomSpeed[i] = RoomSpreadSpeed; }
             PushRooms();
         }
 
-        /// <summary>讓一整個範圍（房間）永久恢復真實；從 seed 往外擴散。instant＝立刻整間變真實。回傳格子編號（滿了回傳 -1）。</summary>
-        public static int AddRoom(Bounds room, Vector3 seed, bool instant = false)
+        /// <summary>讓一整個範圍（房間）永久恢復真實；從 seed 往外擴散。instant＝立刻整間變真實。speed＝擴散速度（m/s，預設 6）。回傳格子編號（滿了回傳 -1）。</summary>
+        public static int AddRoom(Bounds room, Vector3 seed, bool instant = false, float speed = RoomSpreadSpeed)
         {
             for (int i = 0; i < RoomCount; i++)
                 if (boxMin[i].w <= 0f)
@@ -138,6 +139,7 @@ namespace Shepherd.Exploration.Lantern
                     boxMin[i] = new Vector4(room.min.x, room.min.y, room.min.z, 1f);
                     boxMax[i] = new Vector4(room.max.x, room.max.y, room.max.z, 0f);
                     boxSeed[i] = new Vector4(seed.x, seed.y, seed.z, instant ? RoomSpreadMax : 0.01f);
+                    roomSpeed[i] = speed;
                     PushRooms();
                     return i;
                 }
@@ -150,6 +152,14 @@ namespace Shepherd.Exploration.Lantern
         }
 
         public static float RoomSpread(int i) => boxSeed[Mathf.Clamp(i, 0, RoomCount - 1)].w;
+
+        /// <summary>收回一格房間（房子重建時用）。</summary>
+        public static void RemoveRoom(int i)
+        {
+            if (i < 0 || i >= RoomCount) return;
+            boxMin[i] = Vector4.zero; boxMax[i] = Vector4.zero; boxSeed[i] = Vector4.zero; roomSpeed[i] = RoomSpreadSpeed;
+            PushRooms();
+        }
 
         private static void PushExtra() => Shader.SetGlobalVectorArray(ExtraId, extra);
 
@@ -209,7 +219,7 @@ namespace Shepherd.Exploration.Lantern
             PushExtra();
             bool spread = false;
             for (int i = 0; i < RoomCount; i++)
-                if (boxMin[i].w > 0f && boxSeed[i].w < RoomSpreadMax) { boxSeed[i].w = Mathf.Min(RoomSpreadMax, boxSeed[i].w + RoomSpreadSpeed * dt); spread = true; }
+                if (boxMin[i].w > 0f && boxSeed[i].w < RoomSpreadMax) { boxSeed[i].w = Mathf.Min(RoomSpreadMax, boxSeed[i].w + (roomSpeed[i] > 0f ? roomSpeed[i] : RoomSpreadSpeed) * dt); spread = true; }
             if (spread) PushRooms();
         }
 
