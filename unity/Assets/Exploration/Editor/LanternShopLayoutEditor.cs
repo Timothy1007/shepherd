@@ -186,6 +186,24 @@ namespace Shepherd.Exploration.Editor
                 }
                 void Snap(string name) { qa.Rig.Snap(); qa.Post.Apply(); Shot(qa, rt, Path.Combine(dir, name + ".png")); }
                 var lever = w.V2PowerLever.GetComponent<Collider>().bounds.center;
+                // 0. 整間店卡通測試：開／關 × 提燈開／關（成人、有電）
+                qa.ViewOverride = LanternPrototypeQA.AdultEyeHeight;
+                qa.V2.DebugForce(true, false, false, false);
+                foreach (bool toonOn in new[] { false, true })
+                {
+                    w.SetShopToon(toonOn);
+                    foreach (bool lamp in new[] { false, true })
+                    {
+                        qa.Rig.SetOn(lamp);
+                        qa.GoToShopView(0); Run(30); Snap("toon_" + (toonOn ? "on" : "off") + "_entrance_" + (lamp ? "lantern" : "faded"));
+                        qa.Player.Teleport(P(2.9f, 1.9f), 0f, 0f); Run(10); Look(w.V2SewingMachine.position + Vector3.up * 0.6f); Run(30); Snap("toon_" + (toonOn ? "on" : "off") + "_work_" + (lamp ? "lantern" : "faded"));
+                    }
+                }
+                w.SetShopToon(false);
+                qa.ViewOverride = null;
+                qa.StartV2(); Run(10);
+                w = qa.World;
+                lever = w.V2PowerLever.GetComponent<Collider>().bounds.center;
                 // 1. 沒電的店（入口、提燈關著）
                 qa.Rig.SetOn(false);
                 qa.GoToShopView(0); Run(30); Snap("shop_unpowered");

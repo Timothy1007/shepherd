@@ -1237,20 +1237,60 @@ namespace Shepherd.Exploration.Tests
         }
 
         [Test]
-        public void Stool_CannotBeStoodOn_OnlySatOnToSew()
+        public void Stool_AtTheSewingMachine_CannotBeStoodOn_ElsewhereItCan()
         {
             var qa = NewQa();
             var w = qa.World;
             var stool = w.V2StoolMovable;
-            Assert.IsFalse(stool.Climbable, "凳子不能爬上去站");
-            var seat = stool.transform.position;
-            qa.Player.Teleport(new Vector3(seat.x, LanternGraybox.V2Origin.y + 0.05f, seat.z + 0.75f), 180f, 0f);
-            Settle(qa);
-            for (int k = 0; k < 60; k++) qa.Step(Dt, new ExploreInput { Move = new Vector2(0f, 1f) });
-            Assert.AreEqual(0, qa.Carry.Climbs, "頂著凳子走也不會爬上去");
-            Assert.Less(qa.Player.transform.position.y, LanternGraybox.V2Origin.y + 0.1f, "還在地上");
+            Assert.IsTrue(w.StoolAtSewingMachine, "一開始凳子在縫紉機前");
+            void PushInto(Vector3 at)
+            {
+                qa.Player.Teleport(new Vector3(at.x, LanternGraybox.V2Origin.y + 0.05f, at.z + 0.75f), 180f, 0f);
+                Settle(qa);
+                for (int k = 0; k < 60 && qa.Carry.Climbs == 0; k++) qa.Step(Dt, new ExploreInput { Move = new Vector2(0f, 1f) });
+            }
+            PushInto(stool.transform.position);
+            Assert.AreEqual(0, qa.Carry.Climbs, "在縫紉機前：頂著凳子走不會爬上去（只用來坐著縫紉）");
+            var spot = PV(3.2f, 1.4f);
+            stool.Tether.Body.position = new Vector3(spot.x, LanternGraybox.V2Origin.y + stool.BottomOffset + 0.01f, spot.z);
+            stool.transform.position = stool.Tether.Body.position;
+            Physics.SyncTransforms();
+            for (int k = 0; k < 30; k++) qa.Step(Dt, ExploreInput.None);
+            Assert.IsFalse(w.StoolAtSewingMachine);
+            PushInto(stool.transform.position);
+            Assert.AreEqual(1, qa.Carry.Climbs, "搬到別處：可以踩上去");
         }
 
+        [Test]
+        public void BoxStack_NoBag_TopBoxSitsOnTheLowerBox_SpaceInFrontOfTheBreaker()
+        {
+            var qa = NewQa();
+            var w = qa.World;
+            var stack = w.V2Root.GetComponentsInChildren<Transform>(true).First(t => t.name == "V2Boxes");
+            Assert.IsFalse(stack.GetComponentsInChildren<Transform>(true).Any(t => t.name == "Bag" || t.name == "BagCloth"), "布袋拿掉了");
+            for (int k = 0; k < 30; k++) qa.Step(Dt, ExploreInput.None);
+            var lower = stack.GetComponent<BoxCollider>().bounds;
+            var box = w.V2MovableBox;
+            Assert.AreEqual(lower.max.y, box.Box.bounds.min.y, 0.015f, "上面的紙箱剛好疊在下面的箱子上（不穿模、不懸空）");
+            Assert.Less(Mathf.Abs(box.Box.bounds.center.x - lower.center.x) + Mathf.Abs(box.Box.bounds.center.z - lower.center.z), 0.2f, "疊在正上方");
+            var front = PV(1.85f, 4.45f) + Vector3.up * 0.2f;
+            Assert.IsFalse(Physics.CheckBox(front, new Vector3(0.12f, 0.15f, 0.12f), Quaternion.identity, ~0, QueryTriggerInteraction.Ignore), "電箱前面空著");
+        }
+
+        [Test]
+        public void ShopToonTest_SwapsTheShopToToon_AndBack()
+        {
+            var qa = NewQa();
+            var w = qa.World;
+            var counter = w.V2Root.GetComponentsInChildren<Transform>().First(t => t.name == "V2Counter").GetComponentInChildren<Renderer>();
+            var before = counter.sharedMaterial;
+            int n = w.SetShopToon(true);
+            Assert.Greater(n, 20, "整間店的東西都換了（" + n + " 個）");
+            Assert.AreEqual("Shepherd/PainterlyReveal", counter.sharedMaterial.shader.name, "櫃台換成卡通 shader");
+            Assert.AreEqual(LanternReveal.Mode.RealOnly, LanternReveal.GetMode(w.V2SecretPhoto.GetComponent<Renderer>().sharedMaterial), "只存在於真實的照片不換");
+            w.SetShopToon(false);
+            Assert.AreSame(before, counter.sharedMaterial, "換回原本的材質");
+        }
         [Test]
         public void Lantern_PullsBackAndDims_WhenYourFaceIsNearAWall()
         {

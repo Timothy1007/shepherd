@@ -33,6 +33,7 @@ Shader "Shepherd/PainterlyReveal"
         [HDR] _EdgeColor ("Edge Glow", Color) = (1.5, 0.95, 0.42, 1)
         _EdgeWidth ("Edge Width (m)", Range(0.02, 1)) = 0.35
         _Mode ("Mode (Dual)", Float) = 0
+        [Toggle] _WorldUV ("World-space UV (m)", Float) = 0
         [Enum(UnityEngine.Rendering.CullMode)] _Cull ("Cull", Float) = 2
     }
     SubShader
@@ -64,7 +65,7 @@ Shader "Shepherd/PainterlyReveal"
                 half _ShadowStrength, _MidLevel, _MidThreshold, _LitThreshold, _BandSoftness, _AmbientFlatten;
                 half _SpecStrength, _SpecSize, _Cull;
                 half4 _FadedTint, _EdgeColor;
-                half _FadedSat, _FadedLevel, _EdgeWidth, _Mode;
+                half _FadedSat, _FadedLevel, _EdgeWidth, _Mode, _WorldUV;
             CBUFFER_END
             float4 _ShepRevealBoxMin[8];
             float4 _ShepRevealBoxMax[8];
@@ -181,7 +182,15 @@ Shader "Shepherd/PainterlyReveal"
 
             half4 frag(Varyings i, bool front : SV_IsFrontFace) : SV_Target
             {
-                half3 albedo = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, i.uv).rgb * _BaseColor.rgb;
+                // 牆、地板這類用世界座標貼圖的材質（和 LanternReveal 一樣：依面的方向選 xz／zy／xy）。
+                float2 uvT = i.uv;
+                if (_WorldUV > 0.5)
+                {
+                    float3 an = abs(normalize(i.normalWS));
+                    float2 w = an.y > max(an.x, an.z) ? i.positionWS.xz : (an.x > an.z ? i.positionWS.zy : i.positionWS.xy);
+                    uvT = w * _BaseMap_ST.xy + _BaseMap_ST.zw;
+                }
+                half3 albedo = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, uvT).rgb * _BaseColor.rgb;
                 float3 n = normalize(i.normalWS) * (front ? 1 : -1);
                 float3 v = GetWorldSpaceNormalizeViewDir(i.positionWS);
 

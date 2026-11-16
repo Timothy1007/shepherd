@@ -17,8 +17,12 @@ namespace Shepherd.Exploration.Lantern
         public Vector3 HomePosition;
         public Quaternion HomeRotation;
         public LanternTetherable Tether;
-        /// <summary>能不能爬上去站著。凳子不行：只有縫紉時（拿到線、放好提燈之後）才坐上去（使用者 2026-11-17）。</summary>
+        /// <summary>能不能爬上去站著。</summary>
         public bool Climbable = true;
+        /// <summary>
+        /// 這個時候不能爬（凳子擺在縫紉機前面時：那裡只用來坐著縫紉，拿到線、放好提燈之後才坐上去；搬到別處就可以踩，使用者 2026-11-17）。
+        /// </summary>
+        public System.Func<bool> ClimbBlocked;
         /// <summary>正被牽引著。</summary>
         public bool Grabbed => Tether != null && Tether.Held;
         /// <summary>頂面比根物件高多少（建立時量好；碰撞關掉時也能用）。</summary>
@@ -39,6 +43,9 @@ namespace Shepherd.Exploration.Lantern
     public sealed partial class LanternGraybox
     {
         public readonly List<LanternMovable> Movables = new List<LanternMovable>();
+        /// <summary>凳子擺在縫紉機前面（座位附近 0.9 m 內）。</summary>
+        public bool StoolAtSewingMachine => V2StoolMovable != null &&
+            Vector2.Distance(new Vector2(V2StoolMovable.transform.position.x, V2StoolMovable.transform.position.z), new Vector2(V2SeatSpot.x, V2SeatSpot.z)) < 0.9f;
         public LanternMovable V2MovableBox { get; private set; }
         public LanternMovable V2StoolMovable { get; private set; }
         /// <summary>縫紉機桌上放提燈的位置（桌面左邊空的那一段）。</summary>
@@ -57,6 +64,7 @@ namespace Shepherd.Exploration.Lantern
         {
             if (V2Root == null || shopInteractRoot == V2Root.GetInstanceID()) return;
             shopInteractRoot = V2Root.GetInstanceID();
+            ShopToon = false; shopToonSaved.Clear();   // 房子重建：卡通測試回到關
             Movables.RemoveAll(m => m == null);
             var saved = into;
             into = V2Root;
@@ -77,7 +85,22 @@ namespace Shepherd.Exploration.Lantern
                         root.localScale = Vector3.one;
                         foreach (var r in parts) r.transform.SetParent(root, true);
                         V2MovableBox = MakeMovable(root, "紙箱", b);
-                        FitCollider(stack);   // 紙箱堆剩下的部分（下面的箱子＋布袋）重新算碰撞
+                        // 布袋（Bag、BagCloth）拿掉：電箱前空出一塊，紙箱、凳子都放得進去（使用者 2026-11-17）。
+                        foreach (var r in stack.GetComponentsInChildren<Renderer>(true))
+                            if (r.name == "Bag" || r.name == "BagCloth") Object.DestroyImmediate(r.gameObject);
+                        FitCollider(stack);   // 剩下下面那個不能動的箱子：碰撞剛好包住它
+                        // 上面的箱子剛好疊在下面的箱子頂上（不穿模、不懸空），一開始先靜止。
+                        var lower = stack.GetComponent<BoxCollider>();
+                        if (lower != null)
+                        {
+                            Physics.SyncTransforms();
+                            float gap = lower.bounds.max.y + 0.002f - V2MovableBox.BottomY;
+                            V2MovableBox.transform.position += Vector3.up * gap;
+                            V2MovableBox.HomePosition = V2MovableBox.transform.position;
+                            V2MovableBox.Tether.HomePosition = V2MovableBox.transform.position;
+                            V2MovableBox.Tether.Body.position = V2MovableBox.transform.position;
+                            V2MovableBox.Tether.Body.Sleep();
+                        }
                     }
                 }
                 // ---- 凳子 ----
@@ -88,7 +111,6 @@ namespace Shepherd.Exploration.Lantern
                     var b = rs[0].bounds; foreach (var r in rs) b.Encapsulate(r.bounds);
                     foreach (var c in stool.GetComponents<BoxCollider>()) Object.DestroyImmediate(c);
                     V2StoolMovable = MakeMovable(stool, "凳子", b);
-                    V2StoolMovable.Climbable = false;
                 }
                 // ---- 縫紉機：桌上放提燈的位置、凳子的座位、小燈 ----
                 if (V2SewingMachine != null)
@@ -118,6 +140,7 @@ namespace Shepherd.Exploration.Lantern
                     V2SewingLamp.shadows = LightShadows.None;
                     V2SewingLamp.enabled = false;
                     V2PlacedLantern = BuildPlacedLantern(V2SewLanternSpot);
+                    if (V2StoolMovable != null) V2StoolMovable.ClimbBlocked = () => StoolAtSewingMachine;
                 }
             }
             finally { into = saved; }

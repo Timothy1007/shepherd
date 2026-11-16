@@ -412,7 +412,7 @@ namespace Shepherd.Exploration.Lantern
         {
             if (ViewOverride == null) ViewOverride = AdultEyeHeight;
             else if (Mathf.Approximately(ViewOverride.Value, AdultEyeHeight)) ViewOverride = ChildEyeHeight;
-            else ViewOverride = null;
+            else { ViewOverride = null; World.SetShopToon(false); }
         }
 
         // ---------------- 服飾店 QA（Shift+F2）：觀察點、強制視角 ----------------
@@ -432,7 +432,7 @@ namespace Shepherd.Exploration.Lantern
         {
             ShopQA = on;
             if (on) { GoToShopView(0); }
-            else ViewOverride = null;
+            else { ViewOverride = null; World.SetShopToon(false); }
         }
 
         public void GoToShopView(int i)
@@ -461,7 +461,7 @@ namespace Shepherd.Exploration.Lantern
             string mode = ViewOverride == null ? "自動（依記憶房間）" : Mathf.Approximately(ViewOverride.Value, AdultEyeHeight) ? "強制成人" : "強制小小孩";
             GUI.Label(new Rect(w - 462, 10, 450, 24), "服飾店測試（A 正式）：視角 " + mode, shopLabel);
             GUI.Label(new Rect(w - 462, 36, 450, 20), "記憶：" + (Age == MemoryAge.Child ? "幼年" : Age == MemoryAge.Teen ? "青春期" : "成人") + (World.KitchenYardOpen ? "・廚房側院通路已開" : "") + "　眼高 " + Player.EyeHeightValue.ToString("0.00") + " m・光圈 ×" + Rig.RadiusScale.ToString("0.00"), shopHint);
-            GUI.Label(new Rect(w - 462, 56, 450, 20), "K 自動／成人／小小孩・U／I 小小孩眼高 −／＋ 0.05", shopHint);
+            GUI.Label(new Rect(w - 462, 56, 450, 20), "K 自動／成人／小小孩・U／I 小小孩眼高・T 整間卡通（" + (World.ShopToon ? "開" : "關") + "）", shopHint);
             GUI.Label(new Rect(w - 462, 76, 450, 20), "1 入口・2 櫃台前・3 工作區・4 衣架後方・5 住宅入口", shopHint);
             GUI.Label(new Rect(w - 462, 96, 450, 20), "Shift+F2 離開（回到現況、成人視角）", shopHint);
         }
@@ -729,6 +729,7 @@ namespace Shepherd.Exploration.Lantern
             if (ShopQA)
             {
                 if (Input.GetKeyDown(KeyCode.K)) CycleViewOverride();
+                if (Input.GetKeyDown(KeyCode.T)) { int n = World.SetShopToon(!World.ShopToon); Flow.ShowToast(World.ShopToon ? "（測試：整間店換成卡通 shader，" + n + " 個物件）" : "（測試：換回原本的材質）", 2.5f); }
                 if (Input.GetKeyDown(KeyCode.U)) ChildEyeHeight = Mathf.Clamp(ChildEyeHeight - 0.05f, 0.6f, 1.4f);
                 if (Input.GetKeyDown(KeyCode.I)) ChildEyeHeight = Mathf.Clamp(ChildEyeHeight + 0.05f, 0.6f, 1.4f);
                 for (int k = 0; k < ShopViews.Length; k++) if (Input.GetKeyDown(KeyCode.Alpha1 + k) || Input.GetKeyDown(KeyCode.Keypad1 + k)) GoToShopView(k);
