@@ -126,6 +126,10 @@ namespace Shepherd.Exploration.Editor
                 ViewPart(n, fr);
                 if (isLeft) qa.ForearmLeft = fr; else qa.ForearmRight = fr;
             }
+            var upper = new GameObject("UpperArmLeft").transform;
+            upper.SetParent(vm, false);
+            ViewPart("SQA_UpperArmLeft", upper);
+            qa.UpperArmLeft = upper;
             var pivot = new GameObject("LanternPivot").transform;
             pivot.SetParent(vm, false);
             var lantern = ViewPart("SQA_Lantern", pivot);
@@ -466,6 +470,46 @@ namespace Shepherd.Exploration.Editor
                     var sp = qa.Cam.WorldToViewportPoint(qa.LanternPivot.position);
                     log.AppendLine("- 視角 " + pitch.ToString("0") + "°：握把在畫面的位置 (" + sp.x.ToString("0.000") + ", " + sp.y.ToString("0.000") + ")");
                 }
+                // 按 F 開燈：手從下面抬起來展示、停一下、再放回去（平視、暖光與夜晚各一次）
+                foreach (var l in new[] { StylizedArtQA.Lighting.Warm, StylizedArtQA.Lighting.Night })
+                {
+                    qa.ApplyLighting(l);
+                    qa.Player.Teleport(feet, yawV, 8f);
+                    qa.SyncCamera();
+                    qa.SetLantern(false, false);
+                    qa.SettleViewmodel();
+                    qa.ToggleLantern();
+                    float tt = 0f;
+                    string tagL = l.ToString().ToLower();
+                    for (int k = 0; k <= 240; k++)
+                    {
+                        qa.TickViewmodel(1f / 60f, tt);
+                        tt += 1f / 60f;
+                        if (k == 12) Shot(qa, rt, Path.Combine(dir, "f_" + tagL + "_1_raising.png"));
+                        if (k == 60) { Shot(qa, rt, Path.Combine(dir, "f_" + tagL + "_2_show.png")); LogElbow(log, qa, "按 F 舉起來（" + tagL + "）"); }
+                        if (k == 240) { Shot(qa, rt, Path.Combine(dir, "f_" + tagL + "_3_back_down.png")); LogElbow(log, qa, "放回去／平常走路（" + tagL + "）"); }
+                    }
+                }
+                // 側面看整隻手臂（另一台相機）：平常提著（手肘約 90°）與舉起來
+                qa.ApplyLighting(StylizedArtQA.Lighting.Warm);
+                foreach (var (n, raised) in new[] { ("carry", false), ("show", true) })
+                {
+                    qa.Player.Teleport(feet, yawV, 0f);
+                    qa.SyncCamera();
+                    qa.SetLantern(true, raised);
+                    qa.SettleViewmodel();
+                    var c = qa.Cam.transform;
+                    var mid = (qa.ElbowPosition + qa.LanternPivot.position) * 0.5f;
+                    var go = new GameObject("ArmSideCam");
+                    var sc = go.AddComponent<Camera>();
+                    sc.fieldOfView = 50f; sc.nearClipPlane = 0.02f; sc.clearFlags = CameraClearFlags.SolidColor; sc.backgroundColor = new Color(0.12f, 0.1f, 0.1f);
+                    go.transform.position = mid - c.right * 1.1f + c.forward * 0.1f + Vector3.up * 0.05f;
+                    go.transform.rotation = Quaternion.LookRotation(mid - go.transform.position, Vector3.up);
+                    var prev = sc.targetTexture; sc.targetTexture = rt; sc.Render(); sc.Render(); sc.targetTexture = prev;
+                    SaveRT(rt, Path.Combine(dir, "arm_side_" + n + ".png"));
+                    Object.DestroyImmediate(go);
+                }
+                qa.SetLantern(true, false);
                 // 晃動：0.25 秒內往右轉 30°，記錄提燈的擺動幅度與回穩時間，並拍擺到一半的畫面
                 qa.Player.Teleport(feet, yawV, 0f);
                 qa.SyncCamera();
@@ -534,6 +578,18 @@ namespace Shepherd.Exploration.Editor
             cam.Render();
             cam.targetTexture = prev;
             SaveRT(rt, path);
+        }
+
+        private static void LogElbow(StringBuilder log, StylizedArtQA qa, string what)
+        {
+            var cam = qa.Cam.transform;
+            var S = cam.TransformPoint(StylizedArtQA.Shoulder);
+            var W = qa.Arm.TransformPoint(StylizedArtQA.WristLeft);
+            var E = qa.ElbowPosition;
+            float angle = Vector3.Angle(S - E, W - E);
+            var vp = qa.Cam.WorldToViewportPoint(qa.LanternPivot.position);
+            log.AppendLine("- " + what + "：手肘夾角 " + angle.ToString("0") + "°，握把在畫面 (" + vp.x.ToString("0.00") + ", " + vp.y.ToString("0.00") + ")"
+                + (vp.y < 0f ? "（在畫面下方外面）" : ""));
         }
 
         private static void SaveRT(RenderTexture rt, string path)

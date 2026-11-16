@@ -37,7 +37,8 @@ namespace Shepherd.Exploration.StyleQA
         public Transform Viewmodel;       // 掛在相機下
         public Transform Arm;             // 左手＋前臂
         public Transform RightArm;        // 右手（放鬆的預備姿勢；之後要拿穩定器或其他東西）
-        public Transform ForearmLeft, ForearmRight;   // 前臂（和手分開：手保持握姿，前臂朝畫面下角伸出去）
+        public Transform ForearmLeft, ForearmRight;   // 前臂（和手分開：手保持握姿）
+        public Transform UpperArmLeft;                 // 上臂（手肘到肩膀）
         // 手腕在手模型裡的位置（Unity 座標，原點＝握把中心／右手的手心前方）
         public const float ViewScale = 0.8f;
         public static readonly Vector3 WristLeft = new Vector3(0f, 0.026f, 0.100f);
@@ -67,14 +68,27 @@ namespace Shepherd.Exploration.StyleQA
 
         // 第一人稱提燈的狀態
         public bool ViewmodelVisible { get; private set; } = true;
-        public bool LanternRaised { get; private set; }
+        /// <summary>手現在要不要舉起來：按 F 開／關燈時的展示動作（ShowSeconds 秒），或按住滑鼠右鍵。</summary>
+        public bool LanternRaised => holdRaise || showTimer > 0f;
+        private bool holdRaise;
+        private float showTimer;
+        /// <summary>按 F 之後手舉起來展示提燈的時間（含抬起與停留），之後自動放回去。</summary>
+        public const float ShowSeconds = 2.4f;
         public bool LanternOn { get; private set; } = true;
         public bool RightHandVisible = false;   // 右手先收起來，等決定要拿什麼再做握法（R 可以叫出來看）
         private float raise, lightK = 1f, lastYaw, lastPitch, swayPhase;
         private Vector2 swing, swingVel, handLag, handLagVel;
-        // 手（握把）在鏡頭座標的位置：平常提在左邊、燈身大約在畫面左下三分之一；舉高時往中間、往上。
-        public static readonly Vector3 HandLowered = new Vector3(-0.27f, -0.19f, 0.68f);   // 拳頭在畫面左下約四分之一高，燈身大半在畫面裡（照參考圖的構圖）
-        public static readonly Vector3 HandRaised = new Vector3(-0.2f, -0.1f, 0.66f);   // F：往上、往中間舉一點照亮前方
+        // 手（握把）在鏡頭座標的位置（公尺；x 右、y 上、z 前）：
+        // 平常走路＝手垂在身側提著燈、手肘約彎 90°，手在畫面外；按 F＝手自然抬起來，整盞燈和光都在畫面左半邊。
+        public static readonly Vector3 HandLowered = new Vector3(-0.24f, -0.34f, 0.46f);
+        public static readonly Vector3 HandRaised = new Vector3(-0.16f, -0.02f, 0.56f);
+        // 兩節骨頭的 IK：肩膀（鏡頭座標）、手肘往外下方彎、上臂與前臂長度
+        public static readonly Vector3 Shoulder = new Vector3(-0.2f, -0.26f, 0.04f);
+        public static readonly Vector3 ElbowPole = new Vector3(-0.6f, -0.6f, 0.0f);
+        public const float UpperArmLength = 0.30f, ForearmLength = 0.29f;
+        public const float ArmWidth = 0.85f;   // 袖子粗細的縮放（前臂、上臂）
+        public const float ForearmMeshLength = 0.27f, UpperArmMeshLength = 0.30f;   // Blender 模型的長度
+        public Vector3 ElbowPosition { get; private set; }
 
         private void Start()
         {
@@ -317,7 +331,18 @@ namespace Shepherd.Exploration.StyleQA
             if (Viewmodel != null) Viewmodel.gameObject.SetActive(on && !(ViewIndex >= 0 && ViewIndex < 4));
         }
 
-        public void SetLantern(bool on, bool raised) { LanternOn = on; LanternRaised = raised; }
+        /// <summary>截圖／測試用：直接指定燈的開關與「一直舉著」。</summary>
+        public void SetLantern(bool on, bool raised) { LanternOn = on; holdRaise = raised; showTimer = 0f; }
+
+        /// <summary>F：開／關提燈，同時把手舉起來展示一下，ShowSeconds 秒後自動放回去。</summary>
+        public void ToggleLantern()
+        {
+            LanternOn = !LanternOn;
+            showTimer = ShowSeconds;
+        }
+
+        /// <summary>手舉起來的程度（0＝垂在下面、1＝舉起來）。</summary>
+        public float RaiseAmount => raise;
 
         /// <summary>提燈目前的擺動角度（度；x＝前後、y＝左右）。測試與量測用。</summary>
         public Vector2 SwingDegrees => swing;
@@ -341,7 +366,9 @@ namespace Shepherd.Exploration.StyleQA
         {
             if (Viewmodel == null || Arm == null || LanternPivot == null || Player == null) return;
             if (dt <= 0f) dt = 1f / 60f;
-            raise = Mathf.MoveTowards(raise, LanternRaised ? 1f : 0f, dt * 3.5f);
+            showTimer = Mathf.Max(0f, showTimer - dt);
+            // 抬手約 0.4 秒、放下約 0.6 秒（放下慢一點比較自然）
+            raise = Mathf.MoveTowards(raise, LanternRaised ? 1f : 0f, dt * (LanternRaised ? 2.6f : 1.7f));
             float r = Mathf.SmoothStep(0f, 1f, raise);
             float speed = Player.LastHorizontalSpeed;
             swayPhase += speed * dt / 0.7f * Mathf.PI;
@@ -355,7 +382,9 @@ namespace Shepherd.Exploration.StyleQA
             var lagTarget = new Vector2(-dYaw * 0.0016f, dPitch * 0.0016f);
             handLagVel += (Vector2.ClampMagnitude(lagTarget, 0.04f) - handLag) * 90f * dt - handLagVel * 13f * dt;
             handLag += handLagVel * dt;
-            Arm.localPosition = Vector3.Lerp(HandLowered, HandRaised, r) + bob + breath + new Vector3(handLag.x, handLag.y, 0f);
+            // 抬手的路徑不是直線：中途稍微往前、往外帶一點弧度（像真的把燈提到面前）
+            var arc = new Vector3(-0.02f, 0.0f, 0.05f) * Mathf.Sin(r * Mathf.PI);
+            Arm.localPosition = Vector3.Lerp(HandLowered, HandRaised, r) + arc + bob + breath + new Vector3(handLag.x, handLag.y, 0f);
             // 提燈像鐘擺：轉頭往反方向甩、走路前後晃、站著也有一點點餘擺；阻尼不大，會來回擺幾下才停。
             // 依轉動「速度」甩（度／秒 × 0.1）：每秒轉 120° 約甩 12°。
             float yawRate = dYaw / dt, pitchRate = dPitch / dt;
@@ -365,17 +394,17 @@ namespace Shepherd.Exploration.StyleQA
             swing = Vector2.ClampMagnitude(swing + swingVel * dt, 30f);
             // 整組跟著視角（一般第一人稱的做法）：抬頭低頭時手在畫面裡的位置差不多；手保持掌心朝下握著提把，
             // 拳頭隨提燈的左右擺動稍微側傾，提把永遠在拳心裡。
-            var level = Player.ViewRotation * Quaternion.Euler(0f, 0f, swing.y * 0.3f);
+            // 手：舉起來時手背稍微朝外轉一點（自然的腕部角度），放下時掌心朝下。
+            var level = Player.ViewRotation * Quaternion.Euler(Mathf.Lerp(0f, -8f, r), Mathf.Lerp(0f, 10f, r), swing.y * 0.3f + Mathf.Lerp(0f, 6f, r));
             Arm.rotation = level * Quaternion.Euler(0f, 180f, 0f);
             // 第一人稱常見的做法：手和提燈畫得比真實尺寸小一點（一起縮放，握拳和提把的貼合不變），
             // 拳頭放在畫面左下、整盞燈都看得到（照參考圖的構圖）。前臂只縮粗細、拉長，從畫面角落外面伸進來。
             Arm.localScale = Vector3.one * ViewScale;
             LanternPivot.localScale = Vector3.one * ViewScale;
-            if (ForearmLeft != null) ForearmLeft.localScale = new Vector3(ViewScale, ViewScale, ViewScale * 2.2f);
             if (ForearmRight != null) ForearmRight.localScale = new Vector3(ViewScale, ViewScale, ViewScale * 2.2f);
             if (RightArm != null) RightArm.localScale = Vector3.one * ViewScale;
             LanternPivot.position = Arm.position;
-            AimForearm(ForearmLeft, Arm, WristLeft, new Vector3(-0.75f, -0.6f, 0.1f));   // 從畫面左下角斜斜進來
+            SolveLeftArm();
             if (RightArm != null)
             {
                 // 右手：在畫面右下角，手指微彎（左右對稱的姿勢），走路時和左手反相晃動。
@@ -392,7 +421,7 @@ namespace Shepherd.Exploration.StyleQA
             if (LanternLight != null)
             {
                 LanternLight.enabled = lightK > 0.01f;
-                LanternLight.intensity = 1.25f * lightK * breathe * Mathf.Lerp(1f, 1.15f, r);
+                LanternLight.intensity = 1.25f * lightK * breathe;
             }
             if (LanternRenderer != null)
             {
@@ -403,7 +432,45 @@ namespace Shepherd.Exploration.StyleQA
             }
         }
 
-        /// <summary>前臂接在手腕上，朝鏡頭座標裡的一個點（畫面下角外面）伸過去，所以永遠從畫面邊緣進來。</summary>
+        /// <summary>
+        /// 左手臂的兩節骨頭 IK：已知肩膀（鏡頭座標固定）和手腕（手的位置），用餘弦定理算出手肘，
+        /// 手肘往「外下方」彎（ElbowPole）。前臂從手腕對準手肘、上臂從手肘對準肩膀，長度照算出來的距離伸縮。
+        /// 手垂下時手肘約彎 75～90°，舉起來時約 120°，都是自然的手臂角度。
+        /// </summary>
+        private void SolveLeftArm()
+        {
+            if (Cam == null || Arm == null) return;
+            var cam = Cam.transform;
+            var S = cam.TransformPoint(Shoulder);
+            var W = Arm.TransformPoint(WristLeft);
+            var P = cam.TransformPoint(ElbowPole);
+            float a = UpperArmLength, b = ForearmLength;
+            var sw = W - S;
+            float d = Mathf.Clamp(sw.magnitude, Mathf.Abs(a - b) + 0.001f, a + b - 0.001f);
+            var dir = sw.normalized;
+            float along = (a * a - b * b + d * d) / (2f * d);
+            float h = Mathf.Sqrt(Mathf.Max(0f, a * a - along * along));
+            var toPole = P - S;
+            var perp = (toPole - dir * Vector3.Dot(toPole, dir)).normalized;
+            var E = S + dir * along + perp * h;
+            ElbowPosition = E;
+            if (ForearmLeft != null)
+            {
+                var fe = E - W;
+                ForearmLeft.position = W;
+                ForearmLeft.rotation = Quaternion.LookRotation(fe.normalized, cam.up);
+                ForearmLeft.localScale = new Vector3(ArmWidth, ArmWidth, fe.magnitude / ForearmMeshLength);
+            }
+            if (UpperArmLeft != null)
+            {
+                var es = S - E;
+                UpperArmLeft.position = E;
+                UpperArmLeft.rotation = Quaternion.LookRotation(es.normalized, cam.up);
+                UpperArmLeft.localScale = new Vector3(ArmWidth, ArmWidth, es.magnitude / UpperArmMeshLength);
+            }
+        }
+
+        /// <summary>前臂接在手腕上，朝鏡頭座標裡的一個點（畫面下角外面）伸過去（右手的預備姿勢用）。</summary>
         private void AimForearm(Transform forearm, Transform hand, Vector3 wristLocal, Vector3 camTarget)
         {
             if (forearm == null || hand == null || Cam == null) return;
@@ -443,8 +510,8 @@ namespace Shepherd.Exploration.StyleQA
             var inp = input.Read();
             bool moving = inp.Move.sqrMagnitude > 0.01f;
             if (moving && ViewIndex >= 0 && ViewIndex < 4) { SetWallsVisible(true); ViewIndex = -1; if (Viewmodel != null) Viewmodel.gameObject.SetActive(ViewmodelVisible); }
-            if (Input.GetKeyDown(KeyCode.F)) LanternRaised = !LanternRaised;
-            if (Input.GetKeyDown(KeyCode.L)) LanternOn = !LanternOn;
+            if (Input.GetKeyDown(KeyCode.F)) ToggleLantern();
+            holdRaise = Input.GetMouseButton(1);
             if (Input.GetKeyDown(KeyCode.H)) SetViewmodelVisible(!ViewmodelVisible);
             if (Input.GetKeyDown(KeyCode.R)) RightHandVisible = !RightHandVisible;
             bool orbit = ViewIndex >= 0 && ViewIndex < 4;
@@ -480,7 +547,7 @@ namespace Shepherd.Exploration.StyleQA
             for (int k = 0; k < 6; k++)
                 if (GUI.Button(new Rect(14 + k * 76, 108, 72, 26), (k + 1) + " " + ViewNames[k].Replace("第一人稱・", ""), button)) GoToView(k);
             GUI.Label(new Rect(14, 140, 460, 20), "WASD 走・Shift 快走・Esc 放開滑鼠・按住 Alt 點按鈕・U 隱藏", hint);
-            GUI.Label(new Rect(14, 158, 460, 20), "提燈：F 舉高／放下・L 開關・H 隱藏雙手・R 右手（" + (LanternOn ? "亮" : "熄") + (LanternRaised ? "、舉高" : "") + "）", hint);
+            GUI.Label(new Rect(14, 158, 460, 20), "提燈：F 開／關（手會抬起來展示）・按住右鍵一直舉著・H 隱藏手（" + (LanternOn ? "亮" : "熄") + "）", hint);
             GUI.Label(new Rect(14, 176, 460, 20), "這是 Unity 實機畫面（真正的 3D 模型＋即時光影）", hint);
         }
     }

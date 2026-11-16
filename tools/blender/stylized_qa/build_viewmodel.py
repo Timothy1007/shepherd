@@ -300,22 +300,48 @@ def build_arm(col, side="left", pose="grip"):
 WRIST_PIVOT = Vector((0.0, -0.100, -0.004))   # 手腕的轉軸（手的座標，平移到握把中心之前）
 
 
+FOREARM_LEN = 0.27    # 手腕到手肘（公尺）
+UPPERARM_LEN = 0.30   # 手肘到肩膀
+
+
 def build_forearm(col, side="left"):
     """
-    前臂（米白色袖子）：和手分開，原點在手腕。Unity 裡讓手保持掌心朝下握著提把，
-    前臂另外朝畫面左下角（右手是右下角）伸出去——不管低頭抬頭，前臂都從畫面邊緣進來，不會擋在提燈旁邊。
+    前臂：原點在手腕，往 -Y 延伸到手肘（長 FOREARM_LEN）。真人前臂靠手肘那端粗、往手腕收細，
+    上側（拇指側）在前三分之一有一塊肌肉的隆起；外面套米白色袖子，手腕那端是鋸齒袖口。
+    Unity 裡用兩節骨頭的 IK 算出手肘位置，再把前臂從手腕對準手肘（長度照算出來的距離伸縮）。
     """
     s = 1 if side == "left" else -1
     F = Asset("SQA_Forearm" + side.capitalize())
     F.smooth = True
     up = (0, 0, 1)
-    vs = F.loft([((0, -0.108, -0.005), (0, -1, -0.03), up, 0.084, 0.07), ((0, -0.17, -0.007), (0, -1, -0.03), up, 0.088, 0.076),
-                 ((0, -0.25, -0.01), (0, -1, -0.03), up, 0.094, 0.082), ((0, -0.36, -0.013), (0, -1, -0.03), up, 0.1, 0.088),
-                 ((0, -0.48, -0.016), (0, -1, -0.03), up, 0.104, 0.092)], "Sleeve", n=12, expo=2.2)
-    for i in range(12):
-        vs[i].co.y += 0.012 if i % 2 == 0 else -0.002   # 鋸齒袖口
-    bmesh.ops.translate(F.bm, verts=F.bm.verts, vec=-WRIST_PIVOT)
+    L = FOREARM_LEN
+    # (沿長度的比例, 寬, 高, 往上偏移, 往外偏移)：手腕 → 肌肉隆起 → 手肘
+    prof = [(0.00, 0.074, 0.062, 0.000, 0.000), (0.18, 0.080, 0.068, 0.001, 0.000), (0.45, 0.095, 0.082, 0.004, 0.002 * s),
+            (0.70, 0.106, 0.092, 0.005, 0.003 * s), (0.90, 0.108, 0.094, 0.003, 0.002 * s), (1.00, 0.100, 0.090, 0.000, 0.0)]
+    rings = [((ox, -L * k, oz), (0, -1, 0), up, w, h) for (k, w, h, oz, ox) in prof]
+    vs = F.loft(rings, "Sleeve", n=14, expo=2.15)
+    for i in range(14):
+        vs[i].co.y += 0.012 if i % 2 == 0 else -0.002   # 鋸齒袖口（蓋住手套袖口）
+    # 手肘：一個稍微鼓起的關節，和上臂接得上
+    F.loft([((0, -L + 0.01, 0.0), (0, -1, 0), up, 0.1, 0.09), ((0, -L - 0.02, 0.004), (0, -1, 0.2), up, 0.112, 0.1),
+            ((0, -L - 0.05, 0.004), (0, -1, 0.3), up, 0.1, 0.092)], "Sleeve", n=14, expo=2.2)
     return F.build(col)
+
+
+def build_upperarm(col, side="left"):
+    """上臂：原點在手肘，往 -Y 延伸到肩膀（長 UPPERARM_LEN）；袖子比前臂寬一點，二頭肌附近微鼓。"""
+    s = 1 if side == "left" else -1
+    U = Asset("SQA_UpperArm" + side.capitalize())
+    U.smooth = True
+    up = (0, 0, 1)
+    L = UPPERARM_LEN
+    prof = [(0.00, 0.104, 0.094), (0.25, 0.112, 0.104), (0.55, 0.12, 0.112), (0.85, 0.13, 0.12), (1.00, 0.14, 0.13)]
+    U.loft([((0, -L * k, 0.0), (0, -1, 0), up, w, h) for (k, w, h) in prof], "Sleeve", n=14, expo=2.15)
+    return U.build(col)
+
+
+def build_upperarm_left(col):
+    return build_upperarm(col, "left")
 
 
 def build_forearm_left(col):
@@ -340,7 +366,7 @@ def run_viewmodel():
     for o in list(sc.collection.all_objects):
         bpy.data.objects.remove(o, do_unlink=True)
     report = []
-    for fn, res in [(build_lantern, 1024), (build_arm_left, 1024), (build_arm_right, 1024), (build_forearm_left, 512), (build_forearm_right, 512)]:
+    for fn, res in [(build_lantern, 1024), (build_arm_left, 1024), (build_arm_right, 1024), (build_forearm_left, 512), (build_forearm_right, 512), (build_upperarm_left, 512)]:
         ob = fn(sc.collection)
         uv_unwrap(ob)
         bake(ob, res)
