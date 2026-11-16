@@ -451,6 +451,40 @@ namespace Shepherd.Exploration.Editor
                     qa.GoToView(s.view);
                     Shot(qa, rt, Path.Combine(dir, s.tag + ".png"));
                 }
+                // 抬頭／平視／低頭：手和提燈在畫面裡應該幾乎一樣（固定在視角上）
+                qa.ApplyLighting(StylizedArtQA.Lighting.Warm);
+                qa.SetLantern(true, false);
+                qa.GoToView(4);
+                var feet = qa.Player.transform.position;
+                float yawV = qa.Player.Yaw;
+                foreach (var (n, pitch) in new[] { ("up", -25f), ("level", 0f), ("down", 30f) })
+                {
+                    qa.Player.Teleport(feet, yawV, pitch);
+                    qa.SyncCamera();
+                    qa.SettleViewmodel();
+                    Shot(qa, rt, Path.Combine(dir, "vm_pitch_" + n + ".png"));
+                    var sp = qa.Cam.WorldToViewportPoint(qa.LanternPivot.position);
+                    log.AppendLine("- 視角 " + pitch.ToString("0") + "°：握把在畫面的位置 (" + sp.x.ToString("0.000") + ", " + sp.y.ToString("0.000") + ")");
+                }
+                // 晃動：0.25 秒內往右轉 30°，記錄提燈的擺動幅度與回穩時間，並拍擺到一半的畫面
+                qa.Player.Teleport(feet, yawV, 0f);
+                qa.SyncCamera();
+                qa.SettleViewmodel();
+                float maxSwing = 0f, settle = -1f, t = 0f;
+                const float dt = 1f / 60f;
+                for (int k = 0; k < 180; k++)
+                {
+                    var look = k < 15 ? new ExploreInput { Look = new Vector2(2f / (FirstPersonController.LookSensitivity * qa.Player.LookScale), 0f) } : ExploreInput.None;
+                    qa.Player.Step(dt, look, true);
+                    qa.SyncCamera();
+                    qa.TickViewmodel(dt, t);
+                    t += dt;
+                    float m = qa.SwingDegrees.magnitude;
+                    maxSwing = Mathf.Max(maxSwing, m);
+                    if (k == 20) Shot(qa, rt, Path.Combine(dir, "vm_swing_mid.png"));
+                    if (k > 15 && m > 1.5f) settle = -1f; else if (k > 15 && settle < 0f) settle = t;
+                }
+                log.AppendLine("- 快速右轉 30°：提燈最大擺動 " + maxSwing.ToString("0.0") + "°，擺動降到 1.5° 以下約 " + (settle < 0f ? "超過 3" : settle.ToString("0.00")) + " 秒");
                 // 外觀：另一台相機從前方、側面看手和提燈（證明是立體模型，不是貼在鏡頭上的圖）
                 foreach (var l in new[] { StylizedArtQA.Lighting.Warm, StylizedArtQA.Lighting.Night })
                 {

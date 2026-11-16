@@ -39,6 +39,7 @@ namespace Shepherd.Exploration.StyleQA
         public Transform RightArm;        // 右手（放鬆的預備姿勢；之後要拿穩定器或其他東西）
         public Transform ForearmLeft, ForearmRight;   // 前臂（和手分開：手保持握姿，前臂朝畫面下角伸出去）
         // 手腕在手模型裡的位置（Unity 座標，原點＝握把中心／右手的手心前方）
+        public const float ViewScale = 0.8f;
         public static readonly Vector3 WristLeft = new Vector3(0f, 0.026f, 0.100f);
         public static readonly Vector3 WristRight = new Vector3(0f, 0.026f, 0.120f);
         public Transform LanternPivot;    // 手握的位置（提燈從這裡垂下、擺動）
@@ -70,10 +71,10 @@ namespace Shepherd.Exploration.StyleQA
         public bool LanternOn { get; private set; } = true;
         public bool RightHandVisible = false;   // 右手先收起來，等決定要拿什麼再做握法（R 可以叫出來看）
         private float raise, lightK = 1f, lastYaw, lastPitch, swayPhase;
-        private Vector2 swing, swingVel;
+        private Vector2 swing, swingVel, handLag, handLagVel;
         // 手（握把）在鏡頭座標的位置：平常提在左邊、燈身大約在畫面左下三分之一；舉高時往中間、往上。
-        public static readonly Vector3 HandLowered = new Vector3(-0.26f, 0.0f, 0.7f);
-        public static readonly Vector3 HandRaised = new Vector3(-0.18f, 0.1f, 0.66f);
+        public static readonly Vector3 HandLowered = new Vector3(-0.27f, -0.19f, 0.68f);   // 拳頭在畫面左下約四分之一高，燈身大半在畫面裡（照參考圖的構圖）
+        public static readonly Vector3 HandRaised = new Vector3(-0.2f, -0.1f, 0.66f);   // F：往上、往中間舉一點照亮前方
 
         private void Start()
         {
@@ -318,12 +319,15 @@ namespace Shepherd.Exploration.StyleQA
 
         public void SetLantern(bool on, bool raised) { LanternOn = on; LanternRaised = raised; }
 
+        /// <summary>提燈目前的擺動角度（度；x＝前後、y＝左右）。測試與量測用。</summary>
+        public Vector2 SwingDegrees => swing;
+
         /// <summary>立即套用提燈狀態、不擺動（傳送與截圖用）。</summary>
         public void SettleViewmodel()
         {
             if (Player == null) return;
             lastYaw = Player.Yaw; lastPitch = Player.Pitch;
-            swing = swingVel = Vector2.zero;
+            swing = swingVel = handLag = handLagVel = Vector2.zero;
             raise = LanternRaised ? 1f : 0f;
             lightK = LanternOn ? 1f : 0f;
             TickViewmodel(0f, 0f);
@@ -342,20 +346,36 @@ namespace Shepherd.Exploration.StyleQA
             float speed = Player.LastHorizontalSpeed;
             swayPhase += speed * dt / 0.7f * Mathf.PI;
             float walk = Mathf.Clamp01(speed / 1.2f);
-            var bob = new Vector3(Mathf.Sin(swayPhase) * 0.004f, -Mathf.Abs(Mathf.Sin(swayPhase)) * 0.008f, 0f) * walk;
-            Arm.localPosition = Vector3.Lerp(HandLowered, HandRaised, r) + bob;
+            // 走路：手一步一上下、兩步一左右（約 ±1.2 cm／±0.6 cm）；站著：很慢的呼吸起伏（約 ±3 mm）。
+            var bob = new Vector3(Mathf.Sin(swayPhase) * 0.006f, -Mathf.Abs(Mathf.Sin(swayPhase)) * 0.012f, 0f) * walk;
+            var breath = new Vector3(Mathf.Sin(time * 0.7f) * 0.0015f, Mathf.Sin(time * 1.15f) * 0.003f, 0f) * (1f - walk);
             float dYaw = Mathf.DeltaAngle(lastYaw, Player.Yaw), dPitch = Player.Pitch - lastPitch;
             lastYaw = Player.Yaw; lastPitch = Player.Pitch;
-            var push = new Vector2(dPitch * 0.9f + Mathf.Sin(swayPhase) * 4f * walk, -dYaw * 1.2f);
-            swingVel += (Vector2.ClampMagnitude(push, 22f) - swing) * 60f * dt - swingVel * 8f * dt;
-            swing = Vector2.ClampMagnitude(swing + swingVel * dt, 28f);
-            // 手：掌心朝下、指節連線保持水平（和提把同方向），只跟鏡頭的水平方向轉；
-            // 前臂在 Blender 裡已經在手腕往下、往外彎，從畫面左下角伸進來。
-            // 轉頭時整個拳頭（連同提燈）只輕微側傾，提把永遠在拳心裡。
-            var level = Quaternion.Euler(0f, Player.Yaw, swing.y * 0.25f);
+            // 手的慣性：轉視角時手稍微落後一點再跟上（阻尼彈簧），不會像釘在鏡頭上。
+            var lagTarget = new Vector2(-dYaw * 0.0016f, dPitch * 0.0016f);
+            handLagVel += (Vector2.ClampMagnitude(lagTarget, 0.04f) - handLag) * 90f * dt - handLagVel * 13f * dt;
+            handLag += handLagVel * dt;
+            Arm.localPosition = Vector3.Lerp(HandLowered, HandRaised, r) + bob + breath + new Vector3(handLag.x, handLag.y, 0f);
+            // 提燈像鐘擺：轉頭往反方向甩、走路前後晃、站著也有一點點餘擺；阻尼不大，會來回擺幾下才停。
+            // 依轉動「速度」甩（度／秒 × 0.1）：每秒轉 120° 約甩 12°。
+            float yawRate = dYaw / dt, pitchRate = dPitch / dt;
+            var push = new Vector2(pitchRate * 0.08f + Mathf.Sin(swayPhase) * 7f * walk + Mathf.Sin(time * 0.9f) * 1.2f * (1f - walk),
+                                   -yawRate * 0.1f + Mathf.Cos(swayPhase * 0.5f) * 3f * walk);
+            swingVel += (Vector2.ClampMagnitude(push, 24f) - swing) * 55f * dt - swingVel * 4.5f * dt;
+            swing = Vector2.ClampMagnitude(swing + swingVel * dt, 30f);
+            // 整組跟著視角（一般第一人稱的做法）：抬頭低頭時手在畫面裡的位置差不多；手保持掌心朝下握著提把，
+            // 拳頭隨提燈的左右擺動稍微側傾，提把永遠在拳心裡。
+            var level = Player.ViewRotation * Quaternion.Euler(0f, 0f, swing.y * 0.3f);
             Arm.rotation = level * Quaternion.Euler(0f, 180f, 0f);
+            // 第一人稱常見的做法：手和提燈畫得比真實尺寸小一點（一起縮放，握拳和提把的貼合不變），
+            // 拳頭放在畫面左下、整盞燈都看得到（照參考圖的構圖）。前臂只縮粗細、拉長，從畫面角落外面伸進來。
+            Arm.localScale = Vector3.one * ViewScale;
+            LanternPivot.localScale = Vector3.one * ViewScale;
+            if (ForearmLeft != null) ForearmLeft.localScale = new Vector3(ViewScale, ViewScale, ViewScale * 2.2f);
+            if (ForearmRight != null) ForearmRight.localScale = new Vector3(ViewScale, ViewScale, ViewScale * 2.2f);
+            if (RightArm != null) RightArm.localScale = Vector3.one * ViewScale;
             LanternPivot.position = Arm.position;
-            AimForearm(ForearmLeft, Arm, WristLeft, new Vector3(-0.42f, -0.8f, 0.2f));
+            AimForearm(ForearmLeft, Arm, WristLeft, new Vector3(-0.75f, -0.6f, 0.1f));   // 從畫面左下角斜斜進來
             if (RightArm != null)
             {
                 // 右手：在畫面右下角，手指微彎（左右對稱的姿勢），走路時和左手反相晃動。
