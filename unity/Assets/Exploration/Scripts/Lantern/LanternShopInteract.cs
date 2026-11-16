@@ -43,6 +43,8 @@ namespace Shepherd.Exploration.Lantern
     public sealed partial class LanternGraybox
     {
         public readonly List<LanternMovable> Movables = new List<LanternMovable>();
+        /// <summary>可以搬的紙箱縮小的比例（原本約 53×43×30 cm）。</summary>
+        public const float MovableBoxScale = 0.85f;
         /// <summary>凳子擺在縫紉機前面（座位附近 0.9 m 內）。</summary>
         public bool StoolAtSewingMachine => V2StoolMovable != null &&
             Vector2.Distance(new Vector2(V2StoolMovable.transform.position.x, V2StoolMovable.transform.position.z), new Vector2(V2SeatSpot.x, V2SeatSpot.z)) < 0.9f;
@@ -84,6 +86,9 @@ namespace Shepherd.Exploration.Lantern
                         root.SetPositionAndRotation(new Vector3(b.center.x, b.min.y, b.center.z), stack.rotation);
                         root.localScale = Vector3.one;
                         foreach (var r in parts) r.transform.SetParent(root, true);
+                        // 紙箱小一點（使用者 2026-11-17）：根物件在底面中央，縮放後底面不動；外框重新量。
+                        root.localScale = Vector3.one * MovableBoxScale;
+                        b = parts[0].bounds; foreach (var r in parts) b.Encapsulate(r.bounds);
                         V2MovableBox = MakeMovable(root, "紙箱", b);
                         // 布袋（Bag、BagCloth）拿掉：電箱前空出一塊，紙箱、凳子都放得進去（使用者 2026-11-17）。
                         foreach (var r in stack.GetComponentsInChildren<Renderer>(true))

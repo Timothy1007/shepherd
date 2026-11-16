@@ -130,9 +130,10 @@ namespace Shepherd.Exploration.Lantern
             Place("V2Counter", new Vector2(3.95f, 1.9f), 90f,
                 "V2Register", "V2CounterClutter", "V2CounterLampBase", "V2CounterLampStem", "V2CounterBulb", "V2CounterLight");
             // 布料架：移到後牆（電箱右邊），右後角讓給試衣間。
-            Place("V2FabricShelf", new Vector2(2.78f, 4.72f), 180f);
+            // 2026-11-17：再往右挪一點，電箱前空出約 0.77 m，紙箱、凳子塞得進去。
+            Place("V2FabricShelf", new Vector2(2.95f, 4.72f), 180f);
             // 紙箱：移到鈕扣抽屜櫃旁邊（電箱下方留出站的位置）。
-            Place("V2Boxes", new Vector2(1.35f, 4.72f), 172f);
+            Place("V2Boxes", new Vector2(1.28f, 4.72f), 180f);   // 擺正（斜著放的外框會比箱子大），也往左一點
             // 鏡子：留在試衣間前（不動）。
         }
 

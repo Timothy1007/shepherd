@@ -1278,6 +1278,33 @@ namespace Shepherd.Exploration.Tests
         }
 
         [Test]
+        public void BoxAndStool_DroppedIntoTheGapByTheBreaker_FallToTheFloor_NoInvisibleWall()
+        {
+            var qa = NewQa();
+            var w = qa.World;
+            Assert.AreEqual(0.85f * 0.30f, w.V2MovableBox.Box.bounds.size.y, 0.04f, "紙箱縮小（約 25 cm 高）");
+            foreach (var m in new[] { w.V2MovableBox, w.V2StoolMovable })
+            {
+                // 在電箱前的空位上方放開（像牽引到那裡再按 E 放下）。
+                var above = PV(1.85f, 4.5f);
+                var rb = m.Tether.Body;
+                rb.isKinematic = false;
+                rb.velocity = Vector3.zero;
+                rb.position = new Vector3(above.x, LanternGraybox.V2Origin.y + m.BottomOffset + 0.5f, above.z);
+                rb.rotation = Quaternion.Euler(0f, 0f, 0f);
+                m.transform.SetPositionAndRotation(rb.position, rb.rotation);
+                Physics.SyncTransforms();
+                for (int k = 0; k < 90; k++) qa.Step(Dt, ExploreInput.None);
+                Assert.AreEqual(LanternGraybox.V2Origin.y, m.Box.bounds.min.y, 0.04f, m.Label + "掉到地上（沒有卡在半空，底部 " + (m.Box.bounds.min.y - LanternGraybox.V2Origin.y).ToString("0.00") + " m）");
+                // 移走，換下一個。
+                rb.position = PV(3.2f, 1.6f) + Vector3.up * (m.BottomOffset + 0.05f);
+                m.transform.position = rb.position;
+                Physics.SyncTransforms();
+                for (int k = 0; k < 10; k++) qa.Step(Dt, ExploreInput.None);
+            }
+        }
+
+        [Test]
         public void ShopToonTest_SwapsTheShopToToon_AndBack()
         {
             var qa = NewQa();
