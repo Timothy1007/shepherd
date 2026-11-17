@@ -820,6 +820,117 @@ def build_shop_window(col):
     A.sheet(grid, "ClothCream", thickness=0.004)
     return A.build(col)
 
+# ================================================================== 2026-11-17 第二版：衣服、外套、布捲（使用者：外套形狀怪、厚度不規整；衣架上的衣服糊在一起；布捲應該是圓的）
+
+# 衣身的斷面（由上往下）：(往下多少, 寬, 厚)。寬沿 X、正面朝 -Y；厚度是固定的一層衣服，不會忽厚忽薄。
+GARMENT_KINDS = {
+    "coat":  {"body": [(0.02, 0.18, 0.12), (0.06, 0.42, 0.17), (0.12, 0.46, 0.19), (0.30, 0.46, 0.19), (0.55, 0.43, 0.18), (0.80, 0.46, 0.18), (1.00, 0.50, 0.18)],
+              "sleeve": 0.62, "sleeve_w": 0.11, "buttons": 4, "lapel": True, "pockets": True},
+    "shirt": {"body": [(0.02, 0.16, 0.04), (0.06, 0.40, 0.05), (0.12, 0.42, 0.055), (0.35, 0.41, 0.055), (0.62, 0.42, 0.05), (0.70, 0.42, 0.05)],
+              "sleeve": 0.58, "sleeve_w": 0.085, "buttons": 5, "lapel": False, "pockets": False},
+    "dress": {"body": [(0.02, 0.15, 0.05), (0.06, 0.34, 0.07), (0.14, 0.36, 0.08), (0.36, 0.30, 0.07), (0.62, 0.44, 0.09), (0.92, 0.56, 0.1)],
+              "sleeve": 0.16, "sleeve_w": 0.09, "buttons": 0, "lapel": False, "pockets": False},
+}
+
+
+def garment2(A, M, mat, kind, seed, hanger=True):
+    """一件掛著的衣服（衣架＋衣身＋袖子＋領子＋鈕扣）。區域座標：衣架鉤在原點上方，衣身頂在 z＝0；寬沿 X、正面 -Y。M＝放到哪裡、朝哪個方向。"""
+    r = random.Random(seed)
+    k = GARMENT_KINDS[kind]
+    before = set(A.bm.verts)
+    rings = []
+    for (dz, w, d) in k["body"]:
+        rings.append(((0, 0, -dz), (0, 0, -1), (0, -1, 0), w, d))
+    A.loft(rings, mat, n=14, expo=2.8)
+    L = k["body"][-1][0]
+    front = -max(d for (_, _, d) in k["body"]) / 2
+    # 領子：一圈立起來的領口
+    A.loft([((0, 0.0, -0.005), (0, 0, -1), (0, -1, 0), 0.2, 0.14), ((0, -0.005, -0.06), (0, 0, -1), (0, -1, 0), 0.22, 0.16)], mat, n=12, expo=2.4)
+    # 袖子：從肩膀垂下，手肘微彎，袖口
+    sw = k["sleeve_w"]
+    for sx in (-1, 1):
+        sh = k["body"][1][1] / 2 - 0.02
+        x0 = sx * sh
+        if k["sleeve"] < 0.3:      # 短袖
+            A.loft([((x0, 0, -0.07), (sx * 0.6, 0, -1), (0, -1, 0), sw * 1.2, sw * 1.1), ((x0 + sx * 0.05, -0.005, -0.07 - k["sleeve"]), (sx * 0.3, 0, -1), (0, -1, 0), sw, sw)], mat, n=10, expo=2.4)
+            continue
+        el = -0.07 - k["sleeve"] * 0.5
+        cf = -0.07 - k["sleeve"]
+        A.loft([((x0, 0, -0.07), (sx * 0.25, 0, -1), (0, -1, 0), sw * 1.15, sw * 1.15),
+                ((x0 + sx * 0.035, -0.015, el), (sx * 0.05, -0.05, -1), (0, -1, 0), sw, sw * 1.02),
+                ((x0 + sx * 0.03, -0.035, cf), (0, -0.12, -1), (0, -1, 0), sw * 0.9, sw * 0.92)], mat, n=10, expo=2.4)
+        A.loft([((x0 + sx * 0.03, -0.035, cf + 0.03), (0, -0.12, -1), (0, -1, 0), sw * 0.98, sw), ((x0 + sx * 0.03, -0.037, cf), (0, -0.12, -1), (0, -1, 0), sw * 0.98, sw)],
+               "ClothCharcoal" if kind == "coat" else mat, n=10, expo=2.4)
+    # 西裝領（外套）：兩片翻領，形成 V 字
+    if k["lapel"]:
+        for sx in (-1, 1):
+            A.cube((0.075, 0.014, 0.24), (sx * 0.055, front - 0.004, -0.17), mat, rot=(8, 0, -sx * 14), bevel=0.006, taper=0.55)
+    # 鈕扣
+    for i in range(k["buttons"]):
+        z = -0.22 - i * (0.5 if kind == "coat" else 0.55) / max(k["buttons"], 1)
+        A.cyl(0.011 if kind == "coat" else 0.006, 0.008, (0.0 if kind != "coat" else 0.02, front - 0.006, z), "Brass" if kind == "coat" else "Paper", rot=(90, 0, 0), segs=8)
+    # 口袋蓋（外套）
+    if k["pockets"]:
+        for sx in (-1, 1):
+            A.cube((0.13, 0.012, 0.035), (sx * 0.12, front - 0.004, -0.62), mat, rot=(0, 0, J(3)), bevel=0.004)
+    # 衣架
+    if hanger:
+        A.loft([((-0.2, 0, -0.05), (1, 0, 0.25), (0, 0, 1), 0.02, 0.012), ((0, 0, -0.01), (1, 0, 0), (0, 0, 1), 0.022, 0.012),
+                ((0.2, 0, -0.05), (1, 0, -0.25), (0, 0, 1), 0.02, 0.012)], "WoodPale", n=8, expo=3.0)
+        A.cyl(0.0035, 0.06, (0, 0, 0.02), "Steel", segs=6)
+        A.loft([((0, 0, 0.05), (0, 0, 1), (1, 0, 0), 0.007, 0.007), ((0, -0.02, 0.075), (0, -1, 0.2), (1, 0, 0), 0.007, 0.007),
+                ((0, -0.035, 0.06), (0, -0.2, -1), (1, 0, 0), 0.007, 0.007)], "Steel", n=6, expo=2.0)
+    new = [v for v in A.bm.verts if v not in before]
+    bmesh.ops.transform(A.bm, matrix=M, verts=new)
+    return L
+
+
+def build_rack_clothes(col):
+    """吊衣架上的衣服（第二版）：五件、間距拉開（不糊在一起），掛在橫桿上、衣身和橫桿垂直，稍微轉一點讓正面看得到。"""
+    A = Asset("v3_rack_clothes")
+    specs = [("ClothNavy", "coat"), ("ClothCream", "shirt"), ("ClothBrick", "dress"), ("ClothSage", "shirt"), ("ClothCharcoal", "coat")]
+    for i, (mat, kind) in enumerate(specs):
+        x = -0.54 + i * 0.27
+        ang = math.radians(90 + (14 if i % 2 == 0 else -14))
+        M = Matrix.Translation(Vector((x, 0, 1.55))) @ Matrix.Rotation(ang, 4, "Z")
+        garment2(A, M, mat, kind, 200 + i)
+    return A.build(col)
+
+
+def build_hanging_coat(col):
+    """那件外套（第二版）：掛在牆上的長木釘；正面朝 -Y（房間）。衣身厚度一致、肩線、翻領、四顆鈕扣、口袋蓋、袖口；
+    吊牌是另一個物件 HC_CoatTag，掛在 Unity +X 那隻袖口（Blender -X）。"""
+    A = Asset("v3_hanging_coat")
+    garment2(A, Matrix.Translation(Vector((0, 0, 1.47))), "ClothSlate", "coat", 7)
+    ob = A.build(col)
+    T = Asset("HC_CoatTag")
+    T.cube((0.05, 0.004, 0.08), (0, 0, 0), "Paper", bevel=0.0)
+    T.cyl(0.0015, 0.04, (0, 0, 0.055), "ThreadRed", segs=4)
+    old_tag = bpy.data.objects.get("HC_CoatTag")
+    if old_tag:
+        bpy.data.objects.remove(old_tag, do_unlink=True)
+    tag = T.build(col)
+    tag.name = "HC_CoatTag"
+    tag.location = (-0.24, -0.075, 0.79)     # 右手（Unity +X）那隻袖口下面
+    tag.parent = ob
+    return ob
+
+
+def build_fabric_bolts(col):
+    """木箱裡站著的布捲（第二版：圓的）：8 捲，每捲是圓筒＋上面露出的紙芯＋一片沒捲好的布邊，各種顏色、高度不一、微微往後靠。"""
+    A = Asset("v3_fabric_bolts")
+    mats = ["ClothNavy", "ClothCream", "ClothBrick", "ClothSage", "ClothMustard", "ClothSlate", "ClothRose", "ClothOlive"]
+    for i in range(8):
+        x = -0.255 + (i % 4) * 0.17 + J(0.015)
+        y = -0.075 + (i // 4) * 0.15 + J(0.01)
+        h = rng.uniform(1.0, 1.32)
+        rad = rng.uniform(0.05, 0.066)
+        tilt = (rng.uniform(3, 7), J(4), 0)
+        A.cyl(rad, h, (x, y, 0.04 + h / 2), mats[i], rot=tilt, segs=14, bevel=0.0)
+        A.cyl(0.016, 0.03, (x + math.sin(math.radians(tilt[1])) * h / 2, y - math.sin(math.radians(tilt[0])) * h / 2, 0.04 + h + 0.005), "WoodPale", rot=tilt, segs=8)
+        A.cube((0.004, rad * 1.1, h * 0.5), (x + rad * 0.9, y, 0.04 + h * 0.62), mats[i], rot=tilt, bevel=0.0)   # 布邊
+    return A.build(col)
+
 BUILDERS = [
     ("v3_shop_counter", build_counter, 2048),
     ("v3_button_cabinet", build_button_cabinet, 1024),

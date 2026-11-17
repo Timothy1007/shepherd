@@ -677,14 +677,13 @@ namespace Shepherd.Exploration.Lantern
                 if (l.type == LightType.Spot || house) { l.intensity = b; continue; }
                 // 新房子（褪色態，使用者 2026-11-16）：
                 //   沒電＝店裡的燈（與櫃台小燈）昏暗、一直閃；其他房間的燈照常閃。
-                //   有電＝燈穩定、比較亮，但仍是冷白光（不變暖、店裡還是灰的），偶爾像日光燈一樣抖一下。
+                //   有電＝燈穩定、比較亮，但仍是冷白光（不變暖、店裡還是灰的），不閃。
                 float sd = i * 13.7f;
                 if (V2SafeLamps.Contains(l)) { l.intensity = b * 1.5f; l.color = WarmLamp; continue; }
                 if (V2Powered && V2Root != null && l.transform.IsChildOf(V2Root))
                 {
-                    float stutter = Mathf.PerlinNoise(time * 0.9f, sd + 11f) > 0.88f ? Mathf.Lerp(0.55f, 1f, Mathf.PerlinNoise(time * 14f, sd)) : 1f;
-                    // 櫃台的小燈：有電之後只是微微亮著（使用者 2026-11-17）。
-                    l.intensity = l.name == "V2CounterLight" ? b * 0.45f : b * 1.8f * stutter;
+                    // 有電＝穩定不變（使用者 2026-11-17：會一直變化像壞掉，固定比較好）。櫃台的小燈只是微微亮著。
+                    l.intensity = l.name == "V2CounterLight" ? b * 0.45f : b * 1.8f;
                     l.color = baseColor[l];
                     continue;
                 }
