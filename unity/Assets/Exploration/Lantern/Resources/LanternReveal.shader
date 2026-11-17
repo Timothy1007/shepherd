@@ -147,11 +147,11 @@ Shader "Shepherd/Prototype/LanternReveal"
             return RevealMaskEdge(wp, e);
         }
 
+        // 原本褪色的東西會隨時間扭動 1～1.5 cm。肉眼幾乎看不出扭動，卻讓陰影圖跟不上，
+        // 牆上出現一片片跑來跑去的黑影（使用者 2026-11-17：店裡橫向、餐廳由上往下像瀑布）。所以不再扭動。
         float3 Wobble(float3 wp, float mask)
         {
-            float t = _Time.y;
-            float3 o = float3(sin(wp.y * 3.7 + t * 1.3), sin(wp.z * 4.1 + t * 1.1) * 0.5, sin(wp.x * 3.3 + t * 1.7));
-            return wp + o * _Wobble * (1.0 - mask);
+            return wp;
         }
 
         // 3＝永遠是真實（現實世界的街道）：不裁切、不扭動、沒有光圈邊緣。
