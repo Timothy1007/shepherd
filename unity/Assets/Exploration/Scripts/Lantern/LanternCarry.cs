@@ -15,6 +15,8 @@ namespace Shepherd.Exploration.Lantern
         /// <summary>頂著往前走多久會爬上去（秒）。</summary>
         public const float ClimbDelay = 0.35f;
         public string Prompt { get; private set; } = "";
+        /// <summary>不能爬（例如抱著外套）。</summary>
+        public System.Func<bool> Blocked;
 
         private readonly FirstPersonController player;
         private readonly LanternGraybox world;
@@ -36,6 +38,7 @@ namespace Shepherd.Exploration.Lantern
         public void Step(float dt, Vector2 move)
         {
             Prompt = "";
+            if (Blocked != null && Blocked()) { ClimbHold = 0f; return; }
             // 爬上去：頂著可搬的東西往前走。
             var target = InFront();
             if (target == null || move.y < 0.5f) { ClimbHold = 0f; return; }

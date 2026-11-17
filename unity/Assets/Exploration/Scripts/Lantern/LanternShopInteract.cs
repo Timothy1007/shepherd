@@ -158,6 +158,9 @@ namespace Shepherd.Exploration.Lantern
                     V2PlacedLantern = BuildPlacedLantern(V2SewLanternSpot);
                     if (V2StoolMovable != null) V2StoolMovable.ClimbBlocked = () => StoolAtSewingMachine;
                 }
+                BuildCoatPieces();   // S2 外套：桌上的外套、抱著的外套、內側標籤
+                {
+                }
             }
             finally { into = saved; }
         }

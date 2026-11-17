@@ -213,6 +213,8 @@ namespace Shepherd.Exploration.Lantern
         private float ReachNow(Component c) => c is LanternTetherable && !HandsOnly ? TetherReach : InteractReach;
         /// <summary>提燈放在別處（例如縫紉機桌上）：改用手抱著搬，沒有光束（使用者 2026-11-17）。</summary>
         public bool HandsOnly => rig != null && rig.PlacedAt.HasValue;
+        /// <summary>手上抱著東西（例如那件外套）時不能再抓別的東西。</summary>
+        public System.Func<bool> GrabBlocked;
         /// <summary>牽引或復原的光束現在有沒有畫出來。</summary>
         public bool BeamVisible => beam != null && beam.enabled;
 
@@ -434,8 +436,12 @@ namespace Shepherd.Exploration.Lantern
             var us = aimed as LanternUsable;
             if (tether != null)
             {
-                Prompt = (HandsOnly ? "E 用手拿起" : "E 抓起") + tether.Label;
-                if (eDown) Grab(tether);
+                if (GrabBlocked != null && GrabBlocked()) Prompt = "（手上抱著東西）";
+                else
+                {
+                    Prompt = (HandsOnly ? "E 用手拿起" : "E 抓起") + tether.Label;
+                    if (eDown) Grab(tether);
+                }
             }
             else if (rest != null) Prompt = !CanReach(rest) ? TooHighPrompt : rest.TapToUse ? (rest.AutoRun ? "" : "E " + rest.Label) : "按住 E " + (rest == world.FuseBox ? "推回" : "復原") + rest.Label;
             else if (toggle != null)

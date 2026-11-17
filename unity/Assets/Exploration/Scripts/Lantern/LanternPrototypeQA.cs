@@ -201,6 +201,9 @@ namespace Shepherd.Exploration.Lantern
             V2 = new LanternV2Puzzles(World, Rig, Cam, Flow, Audio);
             Carry = new LanternCarry(Player, World, Flow, Audio);
             Actions.ReachTop = () => Player.transform.position.y + Player.EyeHeightValue + ReachAboveEye;
+            V2.ReachTop = Actions.ReachTop;
+            Actions.GrabBlocked = () => V2.CoatHeld;
+            Carry.Blocked = () => V2.CoatHeld;
             Hold = new LanternHold();
             Sandbox = new LanternSandboxRun(World, Player, Hold, Actions, Flow, Audio);
             Market = new LanternMarketRun(World, Player, Sandbox, Flow, Audio, GoTo);
@@ -232,6 +235,7 @@ namespace Shepherd.Exploration.Lantern
         public void StartV2()
         {
             Actions.DropHeld(false);
+            if (World.V2CoatHeld != null) ArenaArt.Kill(World.V2CoatHeld.gameObject);   // 抱著的外套掛在攝影機上，不會跟著房子一起清掉
             World.BuildHouseV2();
             ApplyConfirmedLayouts();
             World.BuildShopInteractables();
@@ -564,6 +568,7 @@ namespace Shepherd.Exploration.Lantern
             Rig.SetOn(true);
             Rig.SetRadius(1);
             SetHouseScale(World.HouseScale);
+            if (World.V2CoatHeld != null) ArenaArt.Kill(World.V2CoatHeld.gameObject);   // 抱著的外套掛在攝影機上，不會跟著房子一起清掉
             World.BuildHouseV2();
             ApplyConfirmedLayouts();
             World.BuildShopInteractables();
@@ -603,14 +608,21 @@ namespace Shepherd.Exploration.Lantern
                 inp.Move = Vector2.zero;
                 inp.Look = Vector2.zero;
             }
+            // 保持平衡（取外套）：左右鍵拿來平衡，不能走。
+            else if (V2.Balance.Active)
+            {
+                V2.BalanceInput = inp.Move.x;
+                inp.Move = Vector2.zero;
+            }
             // 坐在縫紉機前：不能走；往任何方向走＝站起來（放棄這次穿針）。
             else if (V2.Seated)
             {
                 if (inp.Move.sqrMagnitude > 0.25f) V2.StandUp();
                 inp.Move = Vector2.zero;
             }
-            Player.WalkSpeedValue = WalkSpeedNow * Mathf.Lerp(1f, 0.6f, Rig.FocusBlend);
-            Player.RunSpeedValue = BriskSpeedNow * Mathf.Lerp(1f, 0.6f, Rig.FocusBlend);
+            float carrySlow = V2.CoatHeld && V2.SewAge == 0 ? 0.75f : 1f;   // 小孩抱著外套走得慢一點
+            Player.WalkSpeedValue = WalkSpeedNow * Mathf.Lerp(1f, 0.6f, Rig.FocusBlend) * carrySlow;
+            Player.RunSpeedValue = BriskSpeedNow * Mathf.Lerp(1f, 0.6f, Rig.FocusBlend) * carrySlow;
             if (seatAnim >= 1f) Player.Step(dt, inp, true);
             Carry.Step(dt, inp.Move);
             var feet = Player.transform.position;
@@ -1075,9 +1087,22 @@ namespace Shepherd.Exploration.Lantern
             subtitleText.text = sub;
             subtitleBand.enabled = subtitleText.enabled = sub.Length > 0;
             var tap = V2.Tap;
-            tapBack.gameObject.SetActive(tap.Active);
-            if (tap.Active)
+            var bal = V2.Balance;
+            tapBack.gameObject.SetActive(tap.Active || bal.Active);
+            if (bal.Active)
             {
+                // 保持平衡：中間是穩定區，標記被晃來晃去。
+                tapZone.rectTransform.anchorMin = new Vector2(0.5f - bal.Zone / 2f, 0f);
+                tapZone.rectTransform.anchorMax = new Vector2(0.5f + bal.Zone / 2f, 1f);
+                tapZone.color = new Color(0.45f, 0.8f, 0.5f, 0.8f);
+                tapMarker.rectTransform.anchoredPosition = new Vector2(320f * (bal.Marker + 1f) / 2f, 0f);
+                tapMarker.color = bal.InZone ? new Color(1f, 0.95f, 0.6f) : new Color(1f, 0.5f, 0.45f);
+                int filled = Mathf.Clamp(Mathf.RoundToInt(bal.Hold / bal.Need * 6f), 0, 6);
+                tapText.text = "站穩　" + new string('●', filled) + new string('○', 6 - filled) + "　（A／D 保持平衡）";
+            }
+            else if (tap.Active)
+            {
+                tapZone.color = new Color(0.95f, 0.3f, 0.25f, 0.8f);
                 tapZone.rectTransform.anchorMin = new Vector2(tap.ZoneCenter - tap.ZoneWidth / 2f, 0f);
                 tapZone.rectTransform.anchorMax = new Vector2(tap.ZoneCenter + tap.ZoneWidth / 2f, 1f);
                 tapMarker.rectTransform.anchoredPosition = new Vector2(320f * tap.Pointer, 0f);

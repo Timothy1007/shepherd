@@ -931,6 +931,61 @@ def build_fabric_bolts(col):
         A.cube((0.004, rad * 1.1, h * 0.5), (x + rad * 0.9, y, 0.04 + h * 0.62), mats[i], rot=tilt, bevel=0.0)   # 布邊
     return A.build(col)
 
+# ================================================================== 2026-11-17：外套取下來、攤在裁剪桌上（合起來／打開）
+
+def _coat_body_flat(A, mat, x0=0.52, x1=-0.5, w0=0.44, w1=0.52, t=0.045, z=0.0):
+    """攤平的衣身：沿 X 從領口（+X）到下襬（-X），寬沿 Y，厚度一致。"""
+    rings = []
+    n = 6
+    for i in range(n):
+        f = i / (n - 1)
+        x = x0 + (x1 - x0) * f
+        w = w0 + (w1 - w0) * f if f > 0.1 else w0 * 0.85
+        rings.append(((x, 0, z + t / 2), (-1, 0, 0), (0, 0, 1), w, t))
+    A.loft(rings, mat, n=12, expo=4.0)
+
+
+def build_coat_flat(col):
+    """外套攤在桌上（合起來）：衣身、兩隻袖子斜摺在前面、翻領、四顆鈕扣、口袋蓋。原點在底面中央，領口朝 +X。"""
+    A = Asset("v3_coat_flat")
+    _coat_body_flat(A, "ClothSlate")
+    for sy in (-1, 1):   # 袖子往內斜摺
+        A.loft([((0.4, sy * 0.24, 0.05), (-0.6, -sy * 0.8, 0), (0, 0, 1), 0.1, 0.035), ((0.05, sy * 0.02, 0.055), (-0.6, -sy * 0.8, 0), (0, 0, 1), 0.09, 0.035)], "ClothSlate", n=10, expo=3.0)
+        A.loft([((0.07, sy * 0.04, 0.055), (-0.6, -sy * 0.8, 0), (0, 0, 1), 0.095, 0.036), ((0.04, sy * 0.0, 0.056), (-0.6, -sy * 0.8, 0), (0, 0, 1), 0.095, 0.036)], "ClothCharcoal", n=10, expo=3.0)
+        A.cube((0.24, 0.075, 0.012), (0.36, sy * 0.06, 0.052), "ClothSlate", rot=(0, 0, sy * 14), bevel=0.005, taper=0.55)   # 翻領
+        A.cube((0.035, 0.13, 0.01), (-0.2, sy * 0.13, 0.05), "ClothSlate", bevel=0.004)                                           # 口袋蓋
+    A.loft([((0.53, 0, 0.03), (0, 1, 0), (0, 0, 1), 0.06, 0.05), ((0.53, 0, 0.03), (0, 1, 0), (0, 0, 1), 0.06, 0.05)], "ClothSlate", n=8, expo=3.0, cap=True)
+    A.cube((0.05, 0.2, 0.05), (0.52, 0, 0.035), "ClothSlate", bevel=0.012)                                                              # 領子
+    for i in range(4):
+        A.cyl(0.011, 0.008, (0.2 - i * 0.14, 0.0, 0.05), "Brass", segs=8)
+    return A.build(col)
+
+
+def build_coat_open(col):
+    """外套攤在桌上（打開）：後片在下、兩片前片往兩邊翻開（看得到粉色的內裡），領口內側縫著一張標籤（另一個物件 CoatInnerLabel）。"""
+    A = Asset("v3_coat_open")
+    _coat_body_flat(A, "ClothSlate", t=0.03)
+    A.cube((0.86, 0.4, 0.004), (0.0, 0, 0.032), "ClothRose", bevel=0.0)                 # 後片的內裡
+    for sy in (-1, 1):                                                                   # 翻開的前片（內裡朝上）
+        A.cube((0.9, 0.26, 0.012), (-0.02, sy * 0.36, 0.008), "ClothSlate", rot=(0, 0, sy * -3), bevel=0.006, taper=1.0)
+        A.cube((0.86, 0.22, 0.004), (-0.02, sy * 0.36, 0.016), "ClothRose", rot=(0, 0, sy * -3), bevel=0.0)
+        A.loft([((0.42, sy * 0.24, 0.01), (0, sy, 0), (0, 0, 1), 0.1, 0.03), ((0.4, sy * 0.43, 0.01), (0, sy, -0.05), (0, 0, 1), 0.085, 0.03)], "ClothSlate", n=10, expo=3.0)   # 袖子往兩邊
+        A.cube((0.012, 0.012, 0.01), (0.1, sy * 0.47, 0.022), "Brass", bevel=0.0)
+    A.cube((0.05, 0.2, 0.045), (0.52, 0, 0.03), "ClothSlate", bevel=0.012)
+    ob = A.build(col)
+    L = Asset("CoatInnerLabel")
+    L.cube((0.12, 0.08, 0.003), (0, 0, 0), "Paper", bevel=0.0)
+    for k in range(4):   # 一行一行的字（深色細線，近看時由 Unity 顯示文字）
+        L.cube((0.08 - k * 0.008, 0.004, 0.0008), (-0.03 + k * 0.018, 0.0, 0.002), "ClothCharcoal", rot=(0, 0, 90), bevel=0.0)
+    old = bpy.data.objects.get("CoatInnerLabel")
+    if old:
+        bpy.data.objects.remove(old, do_unlink=True)
+    lab = L.build(col)
+    lab.name = "CoatInnerLabel"
+    lab.location = (0.36, 0.0, 0.037)
+    lab.parent = ob
+    return ob
+
 BUILDERS = [
     ("v3_shop_counter", build_counter, 2048),
     ("v3_button_cabinet", build_button_cabinet, 1024),
@@ -979,6 +1034,8 @@ BUILDERS = [
     ("v3_picture_frame", build_picture_frame, 512),
     # 第三批
     ("v3_shop_window", build_shop_window, 1024),
+    ("v3_coat_flat", build_coat_flat, 1024),
+    ("v3_coat_open", build_coat_open, 1024),
 ]
 
 

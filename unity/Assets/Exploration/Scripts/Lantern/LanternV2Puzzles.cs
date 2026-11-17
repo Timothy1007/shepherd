@@ -55,6 +55,53 @@ namespace Shepherd.Exploration.Lantern
     }
 
     /// <summary>
+    /// 保持平衡（像釣魚遊戲）：標記會被晃來晃去，用左右（A／D）把它留在中間的穩定區，累積站穩 Need 秒就成功；晃出橫條就失敗（差點摔下來）。
+    /// 幼年取外套用（穩定區窄、要站久、晃得兇）；青春期踮腳用（比較簡單）。之後手機可以換成一個滑桿。
+    /// </summary>
+    public sealed class LanternBalance
+    {
+        public bool Active { get; private set; }
+        public bool Succeeded { get; private set; }
+        public bool Failed { get; private set; }
+        /// <summary>-1～1；超出就失敗。</summary>
+        public float Marker { get; private set; }
+        public float Velocity { get; private set; }
+        public float Zone { get; private set; } = 0.3f;
+        public float Need { get; private set; } = 3f;
+        public float Hold { get; private set; }
+        public float Drift { get; private set; } = 1f;
+        public int Attempts { get; private set; }
+        private float t, phase;
+        public bool InZone => Mathf.Abs(Marker) <= Zone;
+
+        public void Begin(float zone, float need, float drift)
+        {
+            Zone = zone; Need = need; Drift = drift;
+            Marker = 0f; Velocity = 0f; Hold = 0f; t = 0f;
+            phase = (Attempts * 7.31f) % 50f + 3f;
+            Attempts++;
+            Active = true; Succeeded = Failed = false;
+        }
+
+        public void Cancel() { Active = false; }
+
+        /// <summary>回傳 1＝成功、-1＝失敗、0＝還在進行。input＝-1～1（A／D）。</summary>
+        public int Step(float dt, float input)
+        {
+            if (!Active) return 0;
+            t += dt;
+            float push = (Mathf.PerlinNoise(t * 0.9f, phase) - 0.5f) * 2f * Drift + Mathf.Sin(t * 1.7f + phase) * 0.35f * Drift;
+            Velocity += (push + Mathf.Clamp(input, -1f, 1f) * 2.2f - Marker * 0.3f) * dt;
+            Velocity *= Mathf.Exp(-1.6f * dt);
+            Marker += Velocity * dt;
+            if (InZone) Hold += dt; else Hold = Mathf.Max(0f, Hold - dt * 0.6f);
+            if (Mathf.Abs(Marker) >= 1f) { Active = false; Failed = true; return -1; }
+            if (Hold >= Need) { Active = false; Succeeded = true; return 1; }
+            return 0;
+        }
+    }
+
+    /// <summary>
     /// 新房子一樓第一批謎題（設計見 docs/level/CASE01_GROUND_FLOOR_ESCAPE_ROOM_V0_1.md）：
     /// S1 電箱、S2 外套吊牌（聚光）、Y1 側院的紅線、S4 縫紉機穿針（點按判定）、秘密（衣架後的照片）。
     /// 2026-11-16 使用者決定：
@@ -88,6 +135,18 @@ namespace Shepherd.Exploration.Lantern
         /// <summary>坐好了、穿針判定已經開始（坐上去的動作播完才開始）。</summary>
         public bool SewingStarted { get; private set; }
         private bool lanternAwayWarned;
+
+        // ---------------- S2 那件外套（使用者 2026-11-17：取下 → 攤在裁剪桌上 → 提燈照，外套打開 → 近看內側標籤） ----------------
+        public enum CoatState { OnPeg, Held, OnTable, Open }
+        public CoatState Coat { get; private set; }
+        public bool CoatHeld => Coat == CoatState.Held;
+        public readonly LanternBalance Balance = new LanternBalance();
+        /// <summary>手能伸到的高度（世界 y）；由玩家那一側設定。</summary>
+        public System.Func<float> ReachTop;
+        /// <summary>這一格的左右輸入（保持平衡用）。</summary>
+        public float BalanceInput;
+        public float CoatOpenProgress { get; private set; }
+        private bool CanReachCoat => ReachTop == null || ReachTop() >= world.V2CoatReachY;
         public int RepairMoments { get; private set; }
 
         private readonly LanternGraybox world;
@@ -108,6 +167,7 @@ namespace Shepherd.Exploration.Lantern
         {
             Powered = TagRead = HasThread = Sewn = ShopRepaired = false;
             LanternPlaced = Seated = SeatMoveRequested = lanternAwayWarned = SewingStarted = false;
+            Coat = CoatState.OnPeg; CoatOpenProgress = 0f; Balance.Cancel();
             rig.PlacedAt = null;
             TagFocus = 0f;
             Notebook.Clear();
@@ -145,8 +205,73 @@ namespace Shepherd.Exploration.Lantern
         /// <summary>改衣店的互動物件建好之後（套用正式布局後）接上：放在桌上的提燈可以拿回來。</summary>
         public void BindShopInteractables()
         {
+            if (world.V2CoatUse != null) { world.V2CoatUse.PromptFn = CoatPrompt; world.V2CoatUse.OnUse = UseCoat; }
+            if (world.V2CoatTableUse != null) { world.V2CoatTableUse.PromptFn = () => Coat == CoatState.Held ? "E 把外套攤在" + world.V2CoatTableUse.Label + "上" : ""; world.V2CoatTableUse.OnUse = () => { if (Coat == CoatState.Held) PlaceCoatOnTable(); }; }
+            ShowCoat();
             if (world.V2PlacedLanternUse != null) world.V2PlacedLanternUse.OnUse = PickUpLantern;
             if (world.V2PlacedLantern != null) world.V2PlacedLantern.gameObject.SetActive(LanternPlaced);
+        }
+
+        private string CoatPrompt()
+        {
+            if (Balance.Active) return "";
+            if (Coat == CoatState.Held) return "E 把外套掛回去";
+            if (Coat != CoatState.OnPeg) return "";
+            if (SewAge == 2) return "E 取下那件外套";
+            if (SewAge == 1) return "E 踮起腳，取下那件外套";
+            return CanReachCoat ? "E 試著取下外套（要站穩）" : "（外套掛得太高了，也太重了）";
+        }
+
+        private void UseCoat()
+        {
+            if (Balance.Active) return;
+            if (Coat == CoatState.Held) { Coat = CoatState.OnPeg; ShowCoat(); audio?.Play(LanternAudio.Drop, 0.4f); return; }
+            if (Coat != CoatState.OnPeg) return;
+            if (SewAge == 2) { TakeCoat(); return; }
+            if (SewAge == 0 && !CanReachCoat) { flow.ShowToast("（外套掛得太高了，也太重了。要是站得高一點……）", 3f); return; }
+            if (SewAge == 1) Balance.Begin(0.42f, 2f, 0.8f);
+            else Balance.Begin(0.26f, 3f, 1.35f);
+            flow.ShowToast(SewAge == 0 ? "（外套好重……用 A／D 站穩）" : "（踮著腳……用 A／D 保持平衡）", 3f);
+        }
+
+        private void TakeCoat()
+        {
+            Coat = CoatState.Held;
+            ShowCoat();
+            audio?.Play(LanternAudio.Grab, 0.6f);
+            flow.ShowToast("（取下了那件外套。找個地方攤開來看看）", 3f);
+        }
+
+        private void PlaceCoatOnTable()
+        {
+            Coat = CoatState.OnTable;
+            CoatOpenProgress = 0f;
+            ShowCoat();
+            audio?.Play(LanternAudio.Placed, 0.5f);
+            flow.ShowToast("（外套攤在桌上。用提燈照照看）", 3f);
+        }
+
+        /// <summary>依目前的狀態顯示／隱藏：牆上的外套、手上的外套、桌上的外套（合起來／打開）。</summary>
+        private void ShowCoat()
+        {
+            var peg = world.V2CoatUse != null ? world.V2CoatUse.transform : null;
+            if (peg != null) foreach (var r in peg.GetComponentsInChildren<Renderer>(true)) r.enabled = Coat == CoatState.OnPeg;
+            if (world.V2CoatHeld != null)
+            {
+                bool held = Coat == CoatState.Held && cam != null;
+                world.V2CoatHeld.gameObject.SetActive(held);
+                if (held && world.V2CoatHeld.parent != cam.transform)
+                {
+                    world.V2CoatHeld.SetParent(cam.transform, false);
+                    world.V2CoatHeld.localPosition = new Vector3(0.04f, -0.27f, 0.56f);  // 抱在胸前：畫面下方看得到
+                    world.V2CoatHeld.localRotation = Quaternion.Euler(-50f, 0f, 0f);     // 朝向自己，看得到外套的正面
+                    world.V2CoatHeld.localScale = Vector3.one * 0.5f;                     // 摺起來抱著
+                    foreach (var t in world.V2CoatHeld.GetComponentsInChildren<Transform>(true)) t.gameObject.layer = LanternRig.ViewLayer;
+                    foreach (var r in world.V2CoatHeld.GetComponentsInChildren<Renderer>(true)) r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                }
+            }
+            if (world.V2CoatOnTable != null) world.V2CoatOnTable.gameObject.SetActive(Coat == CoatState.OnTable);
+            if (world.V2CoatOpened != null) world.V2CoatOpened.gameObject.SetActive(Coat == CoatState.Open);
         }
 
         /// <summary>任務清單（不排順序）。</summary>
@@ -155,7 +280,7 @@ namespace Shepherd.Exploration.Lantern
             get
             {
                 yield return ("讓店裡有電", Powered);
-                yield return ("看清那件外套的吊牌", TagRead);
+                yield return ("看看那件外套裡面", TagRead);
                 yield return ("找到縫紉機用的線", HasThread);
                 yield return ("用縫紉機把外套改好", Sewn);
             }
@@ -266,22 +391,34 @@ namespace Shepherd.Exploration.Lantern
                 Note("電來了。燈不再閃了，可是光是冷的，店裡還是灰的。");
                 flow.ShowToast("（電來了，燈穩了下來。光是冷的，店裡還是灰的）", 3.5f);
             }
-            // S2 外套吊牌：聚光照著它。
-            if (!TagRead && world.V2CoatTag != null && cam != null)
+            // S2 那件外套：保持平衡 → 取下 → 攤在桌上 → 提燈照，外套打開 → 近看內側的標籤。
+            if (Balance.Active)
             {
-                var d = world.V2CoatTag.position - cam.transform.position;
-                if (rig.FocusBlend > 0.7f && d.magnitude < 4.5f && Vector3.Angle(cam.transform.forward, d) < 12f)
+                int res = Balance.Step(dt, BalanceInput);
+                if (res > 0) { TakeCoat(); flow.ShowToast(SewAge == 0 ? "（站穩了……把外套抱了下來。好重）" : "（踮著腳，把外套取了下來）", 3f); }
+                else if (res < 0) { audio?.Play(LanternAudio.Drop, 0.5f); flow.ShowToast(SewAge == 0 ? "（腳下一晃，差點摔下來。外套還掛在那裡）" : "（腳一軟，沒拿到）", 3f); }
+            }
+            if (Coat == CoatState.OnTable && world.V2CoatOnTable != null)
+            {
+                var c = world.V2CoatOnTable.position + Vector3.up * 0.05f;
+                bool lit = (rig.On || rig.PlacedAt.HasValue) && LanternReveal.IsReal(c);
+                CoatOpenProgress = lit ? CoatOpenProgress + dt : Mathf.Max(0f, CoatOpenProgress - dt * 0.5f);
+                if (CoatOpenProgress >= 1f)
                 {
-                    TagFocus = Mathf.Clamp01(TagFocus + dt / 1.2f);
-                    if (TagFocus >= 1f)
-                    {
-                        TagRead = true;
-                        Note("吊牌上沒有名字。只有一行一行被塗改的尺寸，每一年都比前一年大一點。");
-                        Note("每件衣服都有名字。只有這件沒有。");
-                        flow.ShowToast("（吊牌上沒有名字……只有一行一行被塗改的尺寸）", 4f);
-                        audio?.Play(LanternAudio.Placed, 0.6f);
-                    }
+                    Coat = CoatState.Open;
+                    ShowCoat();
+                    LanternReveal.AddBubble(c, 0.9f, 1.8f);   // 和提燈照出東西一樣的發光邊緣
+                    audio?.Play(LanternAudio.RestoreDone, 0.7f);
+                    flow.ShowToast("（提燈的光一照，外套自己攤開了。內側縫著一張標籤）", 4f);
                 }
+            }
+            if (Coat == CoatState.Open && !TagRead && world.V2CoatLabel != null && world.V2CoatLabel.Opened > 0)
+            {
+                TagRead = true;
+                TagFocus = 1f;
+                Note("標籤上沒有名字。只有一行一行被塗改的尺寸，每一年都比前一年大一點。");
+                Note("每件衣服都有名字。只有這件沒有。");
+                audio?.Play(LanternAudio.Placed, 0.6f);
             }
             // S4 穿針（點按判定）。
             bool tap = tapInput && !tapWas;
@@ -337,7 +474,7 @@ namespace Shepherd.Exploration.Lantern
         /// <summary>店面還差幾件事（筆記用，不寫答案）。</summary>
         public int ShopRemaining => (Powered ? 0 : 1) + (TagRead ? 0 : 1) + (Sewn ? 0 : 1);
 
-        public bool InputCaptured => Tap.Active || Seated;
+        public bool InputCaptured => Tap.Active || Seated || Balance.Active;
 
         /// <summary>截圖與除錯用：直接設定進度（下一格 Step 會照常觸發修復時刻）。</summary>
         public void DebugForce(bool power, bool tag, bool thread, bool sewn)
