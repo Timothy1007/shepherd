@@ -181,12 +181,30 @@ namespace Shepherd.Exploration.Lantern
 
         private Ray AimRay => new Ray(cam.transform.position, cam.transform.forward);
 
+        /// <summary>玩家自己的身體（瞄準、視線都要略過；幼年低頭看地上時，視線會穿過自己的身體）。</summary>
+        public Collider Self;
+
+        private bool CastSkipSelf(Vector3 from, Vector3 dir, float radius, float dist, out RaycastHit best)
+        {
+            var hits = radius > 0f ? Physics.SphereCastAll(from, radius, dir, dist, mask, QueryTriggerInteraction.Ignore)
+                                   : Physics.RaycastAll(from, dir, dist, mask, QueryTriggerInteraction.Ignore);
+            best = default(RaycastHit);
+            float bd = float.MaxValue;
+            foreach (var h in hits)
+            {
+                if (h.collider == null || (Self != null && h.collider == Self)) continue;
+                if (radius > 0f && h.distance <= 0f && h.point == Vector3.zero) continue;   // 一開始就重疊的（和單次 SphereCast 一樣不算）
+                if (h.distance < bd) { bd = h.distance; best = h; }
+            }
+            return bd < float.MaxValue;
+        }
+
         private bool LineOfSight(Vector3 to, Component target)
         {
             var from = cam.transform.position;
             var d = to - from;
             RaycastHit hit;
-            if (!Physics.Raycast(from, d.normalized, out hit, d.magnitude, mask, QueryTriggerInteraction.Ignore)) return true;
+            if (!CastSkipSelf(from, d.normalized, 0f, d.magnitude, out hit)) return true;
             return hit.collider != null && target != null && hit.collider.GetComponentInParent(target.GetType()) == target;
         }
 
@@ -231,7 +249,8 @@ namespace Shepherd.Exploration.Lantern
         {
             RaycastHit hit;
             float wallDist = range;
-            if (Physics.SphereCast(AimRay, 0.1f, out hit, range, mask, QueryTriggerInteraction.Ignore))
+            var ar = AimRay;
+            if (CastSkipSelf(ar.origin, ar.direction, 0.1f, range, out hit))
             {
                 var direct = Pick(hit.collider, types);
                 if (direct != null && (!(direct is LanternRestorable) || !((LanternRestorable)direct).Done) && (reachOf == null || hit.distance <= reachOf(direct))) return direct;

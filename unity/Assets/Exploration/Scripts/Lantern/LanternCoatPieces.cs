@@ -15,6 +15,8 @@ namespace Shepherd.Exploration.Lantern
         public LanternInspectable V2CoatLabel { get; private set; }
         public LanternUsable V2CoatUse { get; private set; }
         public LanternUsable V2CoatTableUse { get; private set; }
+        /// <summary>桌上外套的中間（提燈要照到這裡；世界座標，在桌面上）。</summary>
+        public Vector3 V2CoatTableCenter { get; private set; }
         /// <summary>取外套時手要伸到的高度（世界 y，大約衣領）。</summary>
         public float V2CoatReachY { get; private set; }
 
@@ -41,11 +43,18 @@ namespace Shepherd.Exploration.Lantern
             if (tableModel == null) return;
             var rs = tableModel.GetComponentsInChildren<Renderer>();
             var b = rs[0].bounds; foreach (var r in rs) b.Encapsulate(r.bounds);
-            var top = new Vector3(b.center.x, b.max.y + 0.002f, b.center.z);
-            float yaw = tableModel == table ? 0f : tableModel.eulerAngles.y + 90f;
-            V2CoatOnTable = CustomModel("V2CoatOnTable", "v3_coat_flat", top, yaw, false);
-            V2CoatOpened = CustomModel("V2CoatOpened", "v3_coat_open", top, yaw, false);
-            V2CoatHeld = CustomModel("V2CoatHeld", "v3_coat_flat", top, 0f, false);
+            // 外套大約 3/4 攤在桌上、下襬垂出桌邊（使用者 2026-11-17：不要像一片木板）。
+            // 模型原點＝桌邊（桌面高度），模型的 +Z 朝桌子外面；放在面向店中間的那條長邊。
+            var fwd = tableModel.forward; fwd.y = 0f; fwd.Normalize();
+            var toRoom = V2ShopRoom.center - b.center; toRoom.y = 0f;
+            var outward = Vector3.Dot(fwd, toRoom) >= 0f ? fwd : -fwd;
+            float halfDepth = Mathf.Abs(outward.x) > Mathf.Abs(outward.z) ? b.extents.x : b.extents.z;
+            var edge = new Vector3(b.center.x, b.max.y + 0.002f, b.center.z) + outward * (halfDepth - 0.005f);
+            float yaw = Mathf.Atan2(outward.x, outward.z) * Mathf.Rad2Deg;
+            V2CoatTableCenter = edge - outward * 0.32f * FurnitureScale;
+            V2CoatOnTable = CustomModel("V2CoatOnTable", "v3_coat_flat", edge, yaw, false);
+            V2CoatOpened = CustomModel("V2CoatOpened", "v3_coat_open", edge, yaw, false);
+            V2CoatHeld = CustomModel("V2CoatHeld", Resources.Load<GameObject>("Models/Custom/v3_coat_folded") != null ? "v3_coat_folded" : "v3_coat_flat", edge, 0f, false);
             if (V2CoatOnTable != null) V2CoatOnTable.gameObject.SetActive(false);
             if (V2CoatHeld != null) V2CoatHeld.gameObject.SetActive(false);
             if (V2CoatOpened != null)

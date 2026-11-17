@@ -202,7 +202,9 @@ namespace Shepherd.Exploration.Lantern
             Carry = new LanternCarry(Player, World, Flow, Audio);
             Actions.ReachTop = () => Player.transform.position.y + Player.EyeHeightValue + ReachAboveEye;
             V2.ReachTop = Actions.ReachTop;
+            V2.PlayerFeet = () => Player.transform.position;
             Actions.GrabBlocked = () => V2.CoatHeld;
+            Actions.Self = Player.Body;
             Carry.Blocked = () => V2.CoatHeld;
             Hold = new LanternHold();
             Sandbox = new LanternSandboxRun(World, Player, Hold, Actions, Flow, Audio);

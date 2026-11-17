@@ -147,6 +147,47 @@ namespace Shepherd.Exploration.Lantern
         public float BalanceInput;
         public float CoatOpenProgress { get; private set; }
         private bool CanReachCoat => ReachTop == null || ReachTop() >= world.V2CoatReachY;
+        /// <summary>玩家腳的位置（世界座標）；由玩家那一側設定。</summary>
+        public System.Func<Vector3> PlayerFeet;
+        /// <summary>提燈放在哪裡（縫紉機桌上或地上）。</summary>
+        public Vector3 LanternSpot { get; private set; }
+        public bool LanternAtSewTable => LanternPlaced && (LanternSpot - world.V2SewLanternSpot).sqrMagnitude < 0.01f;
+        /// <summary>幼年站在凳子上（使用者 2026-11-17：紙箱不夠高，要用凳子）。</summary>
+        public bool StandingOnStool
+        {
+            get
+            {
+                var s = world.V2StoolMovable;
+                if (s == null || PlayerFeet == null) return false;
+                var p = PlayerFeet();
+                float top = s.transform.position.y + s.TopOffset;
+                var d = new Vector2(p.x - s.transform.position.x, p.z - s.transform.position.z);
+                return p.y > top - 0.08f && d.magnitude < 0.5f;
+            }
+        }
+        private bool StandingOnBox
+        {
+            get
+            {
+                var b = world.V2MovableBox;
+                if (b == null || PlayerFeet == null) return false;
+                var p = PlayerFeet();
+                var d = new Vector2(p.x - b.transform.position.x, p.z - b.transform.position.z);
+                return p.y > b.transform.position.y + b.TopOffset - 0.08f && d.magnitude < 0.5f;
+            }
+        }
+        /// <summary>看得到裁剪桌的桌面：青春期、成人直接看得到；幼年要站在桌邊的凳子上。</summary>
+        public bool CanSeeTable
+        {
+            get
+            {
+                if (SewAge != 0) return true;
+                if (!StandingOnStool || PlayerFeet == null) return false;
+                var p = PlayerFeet(); var c = world.V2CoatTableCenter;
+                return new Vector2(p.x - c.x, p.z - c.z).magnitude < 1.5f;
+            }
+        }
+        private bool seeTableWarned;
         public int RepairMoments { get; private set; }
 
         private readonly LanternGraybox world;
@@ -167,7 +208,7 @@ namespace Shepherd.Exploration.Lantern
         {
             Powered = TagRead = HasThread = Sewn = ShopRepaired = false;
             LanternPlaced = Seated = SeatMoveRequested = lanternAwayWarned = SewingStarted = false;
-            Coat = CoatState.OnPeg; CoatOpenProgress = 0f; Balance.Cancel();
+            Coat = CoatState.OnPeg; CoatOpenProgress = 0f; Balance.Cancel(); seeTableWarned = false;
             rig.PlacedAt = null;
             TagFocus = 0f;
             Notebook.Clear();
@@ -206,9 +247,13 @@ namespace Shepherd.Exploration.Lantern
         public void BindShopInteractables()
         {
             if (world.V2CoatUse != null) { world.V2CoatUse.PromptFn = CoatPrompt; world.V2CoatUse.OnUse = UseCoat; }
-            if (world.V2CoatTableUse != null) { world.V2CoatTableUse.PromptFn = () => Coat == CoatState.Held ? "E 把外套攤在" + world.V2CoatTableUse.Label + "上" : ""; world.V2CoatTableUse.OnUse = () => { if (Coat == CoatState.Held) PlaceCoatOnTable(); }; }
+            if (world.V2CoatTableUse != null) { world.V2CoatTableUse.PromptFn = TablePrompt; world.V2CoatTableUse.OnUse = () => { if (Coat == CoatState.Held) PlaceCoatOnTable(); }; }
             ShowCoat();
-            if (world.V2PlacedLanternUse != null) world.V2PlacedLanternUse.OnUse = PickUpLantern;
+            if (world.V2PlacedLanternUse != null)
+            {
+                world.V2PlacedLanternUse.OnUse = PickUpLantern;
+                world.V2PlacedLanternUse.PromptFn = () => Seated ? "" : CoatHeld ? "（手上抱著外套，拿不了提燈）" : "E 把提燈拿回來";
+            }
             if (world.V2PlacedLantern != null) world.V2PlacedLantern.gameObject.SetActive(LanternPlaced);
         }
 
@@ -217,9 +262,40 @@ namespace Shepherd.Exploration.Lantern
             if (Balance.Active) return "";
             if (Coat == CoatState.Held) return "E 把外套掛回去";
             if (Coat != CoatState.OnPeg) return "";
+            if (SewAge == 0 && !StandingOnStool) return StandingOnBox ? "（還是搆不到……紙箱不夠高）" : "（外套掛得太高了，也太重了）";
+            if (!LanternPlaced) return "E 先把提燈放下（兩隻手才抱得動外套）";
             if (SewAge == 2) return "E 取下那件外套";
             if (SewAge == 1) return "E 踮起腳，取下那件外套";
-            return CanReachCoat ? "E 試著取下外套（要站穩）" : "（外套掛得太高了，也太重了）";
+            return "E 試著取下外套（要站穩）";
+        }
+
+        private string TablePrompt()
+        {
+            if (Coat == CoatState.Held) return SewAge == 0 ? "E 把外套丟到" + world.V2CoatTableUse.Label + "上" : "E 把外套攤在" + world.V2CoatTableUse.Label + "上";
+            if (Coat == CoatState.OnTable && !CanSeeTable) return "（看不到桌上……要站高一點）";
+            return "";
+        }
+
+        /// <summary>把提燈放在地上（取外套前；使用者 2026-11-17：和縫紉一樣，手要空出來，不然會穿模）。</summary>
+        private void PutLanternDown()
+        {
+            if (cam == null) return;
+            var f = cam.transform.forward; f.y = 0f; f = f.sqrMagnitude > 1e-4f ? f.normalized : Vector3.forward;
+            var r = Vector3.Cross(Vector3.up, f);
+            var feet = PlayerFeet != null ? PlayerFeet() : cam.transform.position - Vector3.up * 1.5f;
+            // 腳邊、右手邊的地上；離紙箱、凳子遠一點（不然之後很難對準提燈），右邊不行就放左邊、後面。
+            Vector3 best = feet + r * 0.5f; float bestClear = -1f;
+            foreach (var off in new[] { r * 0.5f + f * 0.1f, -r * 0.5f + f * 0.1f, r * 0.45f - f * 0.35f, -r * 0.45f - f * 0.35f, -f * 0.55f })
+            {
+                var p = feet + off;
+                float clear = 9f;
+                foreach (var m in world.Movables) if (m != null) clear = Mathf.Min(clear, new Vector2(p.x - m.transform.position.x, p.z - m.transform.position.z).magnitude);
+                if (clear > bestClear) { bestClear = clear; best = p; }
+                if (clear > 0.6f) break;
+            }
+            var from = new Vector3(best.x, feet.y + 0.3f, best.z);
+            float y = Physics.Raycast(from, Vector3.down, out var hit, 4f, ~(1 << LanternRig.ViewLayer), QueryTriggerInteraction.Ignore) ? hit.point.y : feet.y;
+            PlaceLanternAt(new Vector3(best.x, y, best.z), "（把提燈放在腳邊，兩隻手空了出來）");
         }
 
         private void UseCoat()
@@ -227,8 +303,13 @@ namespace Shepherd.Exploration.Lantern
             if (Balance.Active) return;
             if (Coat == CoatState.Held) { Coat = CoatState.OnPeg; ShowCoat(); audio?.Play(LanternAudio.Drop, 0.4f); return; }
             if (Coat != CoatState.OnPeg) return;
+            if (SewAge == 0 && !StandingOnStool)
+            {
+                flow.ShowToast(StandingOnBox ? "（踮起腳也搆不到。紙箱太矮了……要更高的東西，像那張凳子）" : "（外套掛得太高了，也太重了。要是站得高一點……）", 3f);
+                return;
+            }
+            if (!LanternPlaced) { PutLanternDown(); return; }
             if (SewAge == 2) { TakeCoat(); return; }
-            if (SewAge == 0 && !CanReachCoat) { flow.ShowToast("（外套掛得太高了，也太重了。要是站得高一點……）", 3f); return; }
             if (SewAge == 1) Balance.Begin(0.42f, 2f, 0.8f);
             else Balance.Begin(0.26f, 3f, 1.35f);
             flow.ShowToast(SewAge == 0 ? "（外套好重……用 A／D 站穩）" : "（踮著腳……用 A／D 保持平衡）", 3f);
@@ -246,9 +327,10 @@ namespace Shepherd.Exploration.Lantern
         {
             Coat = CoatState.OnTable;
             CoatOpenProgress = 0f;
+            seeTableWarned = false;
             ShowCoat();
             audio?.Play(LanternAudio.Placed, 0.5f);
-            flow.ShowToast("（外套攤在桌上。用提燈照照看）", 3f);
+            flow.ShowToast(SewAge == 0 ? "（用力把外套丟上桌子。從下面看不到桌上……）" : "（外套攤在桌上。去拿提燈來照照看）", 3f);
         }
 
         /// <summary>依目前的狀態顯示／隱藏：牆上的外套、手上的外套、桌上的外套（合起來／打開）。</summary>
@@ -263,9 +345,10 @@ namespace Shepherd.Exploration.Lantern
                 if (held && world.V2CoatHeld.parent != cam.transform)
                 {
                     world.V2CoatHeld.SetParent(cam.transform, false);
-                    world.V2CoatHeld.localPosition = new Vector3(0.04f, -0.27f, 0.56f);  // 抱在胸前：畫面下方看得到
+                    world.V2CoatHeld.localPosition = new Vector3(0.04f, -0.31f, 0.56f);  // 抱在胸前：畫面下方看得到
                     world.V2CoatHeld.localRotation = Quaternion.Euler(-50f, 0f, 0f);     // 朝向自己，看得到外套的正面
-                    world.V2CoatHeld.localScale = Vector3.one * 0.5f;                     // 摺起來抱著
+                    bool folded = world.V2CoatHeld.Find("v3_coat_folded") != null;
+                    world.V2CoatHeld.localScale = Vector3.one * (folded ? 0.6f : 0.5f);   // 摺起來抱著
                     foreach (var t in world.V2CoatHeld.GetComponentsInChildren<Transform>(true)) t.gameObject.layer = LanternRig.ViewLayer;
                     foreach (var r in world.V2CoatHeld.GetComponentsInChildren<Renderer>(true)) r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                 }
@@ -294,24 +377,30 @@ namespace Shepherd.Exploration.Lantern
             if (Sewn) return "（縫紉機停了下來）";
             if (Seated) return "";
             if (!HasThread) return "E 檢查縫紉機（少了線）";
+            if (LanternPlaced && !LanternAtSewTable) return "（提燈放在別的地方，先去拿回來）";
             if (!LanternPlaced) return "E 把提燈放在縫紉機桌上";
             if (!StoolAtMachine) return "（凳子不在縫紉機前面）";
             return SewAge == 0 ? "E 爬上凳子" : "E 拉開凳子坐下";
         }
 
-        private void PlaceLantern()
+        private void PlaceLantern() => PlaceLanternAt(world.V2SewLanternSpot, "（把提燈放在桌上，兩隻手空了出來）");
+
+        private void PlaceLanternAt(Vector3 spot, string toast)
         {
             LanternPlaced = true;
+            LanternSpot = spot;
             lanternAwayWarned = false;
-            rig.PlacedAt = world.V2SewLanternSpot + Vector3.up * 0.12f;
-            if (world.V2PlacedLantern != null) world.V2PlacedLantern.gameObject.SetActive(true);
+            rig.PlacedAt = spot + Vector3.up * 0.12f;
+            if (world.V2PlacedLantern != null) { world.V2PlacedLantern.position = spot; world.V2PlacedLantern.gameObject.SetActive(true); }
+            Physics.SyncTransforms();
             audio?.Play(LanternAudio.Placed, 0.5f);
-            flow.ShowToast("（把提燈放在桌上，兩隻手空了出來）", 2.5f);
+            flow.ShowToast(toast, 2.5f);
         }
 
         public void PickUpLantern()
         {
             if (!LanternPlaced || Seated) return;
+            if (CoatHeld) { flow.ShowToast("（手上抱著外套，拿不了提燈）", 2f); return; }
             LanternPlaced = false;
             rig.PlacedAt = null;
             if (world.V2PlacedLantern != null) world.V2PlacedLantern.gameObject.SetActive(false);
@@ -374,6 +463,7 @@ namespace Shepherd.Exploration.Lantern
         {
             if (Sewn || Seated) return;
             if (!HasThread) { Note("縫紉機沒有線。"); flow.ShowToast("（縫紉機上沒有線……）", 3f); return; }
+            if (LanternPlaced && !LanternAtSewTable) { flow.ShowToast("（提燈放在別的地方。先去拿回來）", 2.5f); return; }
             if (!LanternPlaced) { PlaceLantern(); return; }
             if (!StoolAtMachine) { flow.ShowToast("（凳子被搬走了。得先把它搬回縫紉機前面）", 3f); return; }
             SitDown();
@@ -400,8 +490,14 @@ namespace Shepherd.Exploration.Lantern
             }
             if (Coat == CoatState.OnTable && world.V2CoatOnTable != null)
             {
-                var c = world.V2CoatOnTable.position + Vector3.up * 0.05f;
+                var c = world.V2CoatTableCenter + Vector3.up * 0.05f;
                 bool lit = (rig.On || rig.PlacedAt.HasValue) && LanternReveal.IsReal(c);
+                if (lit && !CanSeeTable)
+                {
+                    // 幼年站在地上：提燈照得到，可是看不到桌上（使用者 2026-11-17：要踩凳子才能照）。
+                    lit = false;
+                    if (!seeTableWarned) { seeTableWarned = true; flow.ShowToast("（桌子太高，看不到上面的外套。要站在凳子上才看得到）", 3f); }
+                }
                 CoatOpenProgress = lit ? CoatOpenProgress + dt : Mathf.Max(0f, CoatOpenProgress - dt * 0.5f);
                 if (CoatOpenProgress >= 1f)
                 {
@@ -425,10 +521,10 @@ namespace Shepherd.Exploration.Lantern
             tapWas = tapInput;
             if (world.V2SewingLamp != null) world.V2SewingLamp.enabled = Powered;
             if (Seated && SewingStarted && !Tap.Active) StandUp();   // 縫好了、或穿針被取消
-            if (LanternPlaced && !Seated && !lanternAwayWarned && cam != null && Vector3.Distance(cam.transform.position, world.V2SewLanternSpot) > 4.5f)
+            if (LanternPlaced && !Seated && !lanternAwayWarned && cam != null && Vector3.Distance(cam.transform.position, LanternSpot) > 4.5f)
             {
                 lanternAwayWarned = true;
-                flow.ShowToast("（提燈還放在縫紉機的桌上）", 3f);
+                flow.ShowToast(LanternAtSewTable ? "（提燈還放在縫紉機的桌上）" : "（提燈還放在地上）", 3f);
             }
             if (Tap.Active)
             {

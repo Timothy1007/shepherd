@@ -931,61 +931,207 @@ def build_fabric_bolts(col):
         A.cube((0.004, rad * 1.1, h * 0.5), (x + rad * 0.9, y, 0.04 + h * 0.62), mats[i], rot=tilt, bevel=0.0)   # 布邊
     return A.build(col)
 
-# ================================================================== 2026-11-17：外套取下來、攤在裁剪桌上（合起來／打開）
+# ================================================================== 2026-11-17：外套取下來、攤在裁剪桌上（第二版：垂出桌邊）
+# 使用者：攤開的效果太死板、像一片木板 → 大約 3/4 在桌上、下襬垂出桌邊，有布的起伏；打開的也一樣。
+# 原點＝桌邊（桌面高度）；桌子在 Blender +Y（Unity -Z），桌外是 -Y（Unity +Z）。Unity 端把原點放在面向店中間的那條長邊。
 
-def _coat_body_flat(A, mat, x0=0.52, x1=-0.5, w0=0.44, w1=0.52, t=0.045, z=0.0):
-    """攤平的衣身：沿 X 從領口（+X）到下襬（-X），寬沿 Y，厚度一致。"""
+COAT_T = 0.026     # 合起來的外套（兩層布）厚度
+DRAPE_SE = 0.62    # 從領口量起，攤在桌上的長度；再往下越過桌邊垂下去
+DRAPE_R = 0.03     # 桌邊的圓角
+
+
+def drape_pt(s, x, lift=0.0):
+    """衣服上的一點（s＝從領口往下襬的長度、x＝左右、lift＝離開桌面／桌邊多少）→ 位置與往外的法線。"""
+    se, r = DRAPE_SE, DRAPE_R
+    if s <= se:
+        return Vector((x, se - s, lift)), Vector((0, 0, 1))
+    a = (s - se) / r
+    if a <= math.pi / 2:
+        n = Vector((0, -math.sin(a), math.cos(a)))
+        return Vector((x, 0, -r)) + n * (r + lift), n
+    d = s - se - r * math.pi / 2
+    return Vector((x, -(r + lift) - d * 0.06, -r - d)), Vector((0, -1, 0.06)).normalized()
+
+
+def drape_hang(s):
+    return max(0.0, s - DRAPE_SE - DRAPE_R * math.pi / 2)
+
+
+def coat_fold(s, x, seed=0.0):
+    """布的起伏：桌上是幾道斜斜的皺摺；垂下來的部分是直的褶子，越往下越深。回傳離開表面的距離（≥0）。"""
+    tab = 0.008 + 0.006 * math.sin(x * 9 + s * 7 + seed) + 0.004 * math.sin(x * 19 - s * 13 + seed * 2)
+    d = drape_hang(s)
+    hang = (0.019 * (1 + math.sin(x * 11 + seed)) + 0.008 * (1 + math.sin(x * 23 + seed * 3))) * min(1.0, d / 0.1)
+    k = min(1.0, d / 0.05)
+    return max(0.001, tab * (1 - k) + hang)
+
+
+def coat_w(s):
+    pts = [(0.0, 0.2), (0.07, 0.46), (0.15, 0.47), (0.5, 0.44), (0.75, 0.47), (1.0, 0.53)]
+    for (s0, w0), (s1, w1) in zip(pts, pts[1:]):
+        if s <= s1:
+            return w0 + (w1 - w0) * (s - s0) / (s1 - s0)
+    return pts[-1][1]
+
+
+def cloth_sheet(A, grid, mat, thick):
+    """和 A.sheet 一樣，但先算好法線再加厚（不然加不出厚度）；厚度往法線反方向（往上、往桌子外面）長。"""
+    rows, cols = len(grid), len(grid[0])
+    vv = [[A.bm.verts.new(grid[r][c]) for c in range(cols)] for r in range(rows)]
+    faces = []
+    for r in range(rows - 1):
+        for c in range(cols - 1):
+            a, b, d, e = vv[r][c], vv[r][c + 1], vv[r + 1][c + 1], vv[r + 1][c]
+            if (r + c) % 2 == 0:
+                faces += [A.bm.faces.new((a, b, d)), A.bm.faces.new((a, d, e))]
+            else:
+                faces += [A.bm.faces.new((a, b, e)), A.bm.faces.new((b, d, e))]
+    A.bm.normal_update()
+    idx = A.mi(mat)
+    res = bmesh.ops.solidify(A.bm, geom=faces, thickness=thick)
+    for f in faces:
+        f.material_index = idx
+    for g in res['geom']:
+        if isinstance(g, bmesh.types.BMFace):
+            g.material_index = idx
+
+
+def coat_s_samples(s0, s1, n=30):
+    ss = [s0 + (s1 - s0) * i / (n - 1) for i in range(n)]
+    ss += [DRAPE_SE + DRAPE_R * math.pi / 2 * k / 5 for k in range(6)]   # 桌邊的圓角多切幾刀
+    return sorted(set(round(s, 4) for s in ss if s0 <= s <= s1))
+
+
+def coat_panel(A, mat, xr, lift, thick, seed=0.0, s0=0.0, s1=1.0, cols=11):
+    """一片布：xr(s) → (左, 右)；跟著桌面、桌邊和垂下去的形狀走，帶皺摺。"""
+    grid = []
+    for s in coat_s_samples(s0, s1):
+        x0, x1 = xr(s)
+        flare = 1 + 0.2 * drape_hang(s)
+        row = []
+        for j in range(cols):
+            x = (x0 + (x1 - x0) * j / (cols - 1)) * flare
+            p, _ = drape_pt(s, x, lift + coat_fold(s, x, seed))
+            row.append(p)
+        grid.append(row)
+    cloth_sheet(A, grid, mat, thick)
+
+
+def coat_surf(s, x, lift, extra=0.0, seed=0.0):
+    """布的上表面（含皺摺）再往外 extra。"""
+    x *= 1 + 0.2 * drape_hang(s)
+    return drape_pt(s, x, lift + coat_fold(s, x, seed) + extra)
+
+
+def coat_tube(A, mat, pts, ups, w, h, n=10):
+    """一條袖子：pts＝中心點、ups＝每一點的「上」方向；前進方向用前後兩點算。"""
     rings = []
-    n = 6
-    for i in range(n):
-        f = i / (n - 1)
-        x = x0 + (x1 - x0) * f
-        w = w0 + (w1 - w0) * f if f > 0.1 else w0 * 0.85
-        rings.append(((x, 0, z + t / 2), (-1, 0, 0), (0, 0, 1), w, t))
-    A.loft(rings, mat, n=12, expo=4.0)
+    for i, p in enumerate(pts):
+        a = pts[max(0, i - 1)]
+        b = pts[min(len(pts) - 1, i + 1)]
+        ww = w[i] if isinstance(w, (list, tuple)) else w
+        rings.append((p, (Vector(b) - Vector(a)), ups[i], ww, h))
+    A.loft(rings, mat, n=n, expo=2.6)
 
 
 def build_coat_flat(col):
-    """外套攤在桌上（合起來）：衣身、兩隻袖子斜摺在前面、翻領、四顆鈕扣、口袋蓋。原點在底面中央，領口朝 +X。"""
+    """外套攤在桌上（合起來）：大約 3/4 在桌上、下襬垂出桌邊；一隻袖子斜摺在衣身上，另一隻沿著桌面垂出桌邊；翻領、四顆鈕扣、口袋蓋在垂下去的那一段。"""
     A = Asset("v3_coat_flat")
-    _coat_body_flat(A, "ClothSlate")
-    for sy in (-1, 1):   # 袖子往內斜摺
-        A.loft([((0.4, sy * 0.24, 0.05), (-0.6, -sy * 0.8, 0), (0, 0, 1), 0.1, 0.035), ((0.05, sy * 0.02, 0.055), (-0.6, -sy * 0.8, 0), (0, 0, 1), 0.09, 0.035)], "ClothSlate", n=10, expo=3.0)
-        A.loft([((0.07, sy * 0.04, 0.055), (-0.6, -sy * 0.8, 0), (0, 0, 1), 0.095, 0.036), ((0.04, sy * 0.0, 0.056), (-0.6, -sy * 0.8, 0), (0, 0, 1), 0.095, 0.036)], "ClothCharcoal", n=10, expo=3.0)
-        A.cube((0.24, 0.075, 0.012), (0.36, sy * 0.06, 0.052), "ClothSlate", rot=(0, 0, sy * 14), bevel=0.005, taper=0.55)   # 翻領
-        A.cube((0.035, 0.13, 0.01), (-0.2, sy * 0.13, 0.05), "ClothSlate", bevel=0.004)                                           # 口袋蓋
-    A.loft([((0.53, 0, 0.03), (0, 1, 0), (0, 0, 1), 0.06, 0.05), ((0.53, 0, 0.03), (0, 1, 0), (0, 0, 1), 0.06, 0.05)], "ClothSlate", n=8, expo=3.0, cap=True)
-    A.cube((0.05, 0.2, 0.05), (0.52, 0, 0.035), "ClothSlate", bevel=0.012)                                                              # 領子
+    lift, T, seed = 0.002, COAT_T, 0.7
+    coat_panel(A, "ClothSlate", lambda s: (-coat_w(s) / 2, coat_w(s) / 2), lift, T, seed)
+    top = lift + T
+    se = DRAPE_SE
+    # 領子：一圈翻過來的領口
+    A.loft([((x, se - 0.02 + 0.03 * (x / 0.12) ** 2, top + 0.018), (1, 0, 0), (0, 0, 1), 0.055, 0.04) for x in (-0.12, -0.04, 0.04, 0.12)], "ClothSlate", n=10, expo=2.6)
+    # 翻領（V 字）、鈕扣
+    for sx in (-1, 1):
+        p, _ = coat_surf(0.2, sx * 0.055, top, 0.006, seed)
+        A.cube((0.075, 0.24, 0.01), tuple(p), "ClothSlate", rot=(0, 0, -sx * 14), bevel=0.004, taper=0.55)
     for i in range(4):
-        A.cyl(0.011, 0.008, (0.2 - i * 0.14, 0.0, 0.05), "Brass", segs=8)
+        p, _ = coat_surf(0.24 + i * 0.11, 0.02, top, 0.005, seed)
+        A.cyl(0.011, 0.008, tuple(p), "Brass", segs=8)
+    # 口袋蓋（在垂下去的那一段，貼著布的外面）
+    for sx in (-1, 1):
+        p, n = coat_surf(0.8, sx * 0.12, top, 0.006, seed)
+        A.cube((0.13, 0.012, 0.035), tuple(p), "ClothSlate", rot=(0, 0, J(3)), bevel=0.004)
+    # 右手邊（Blender +X）的袖子斜摺在衣身上
+    sl = []
+    for (s, x) in [(0.09, 0.2), (0.2, 0.12), (0.33, 0.0), (0.42, -0.09)]:
+        p, _ = coat_surf(s, x, top, 0.024, seed)
+        sl.append(tuple(p))
+    coat_tube(A, "ClothSlate", sl, [(0, 0, 1)] * 4, [0.12, 0.11, 0.105, 0.1], 0.045)
+    c0, c1 = Vector(sl[-2]), Vector(sl[-1])
+    dirn = (c1 - c0).normalized()
+    A.loft([(tuple(c1 - dirn * 0.03), tuple(dirn), (0, 0, 1), 0.104, 0.047), (tuple(c1 + dirn * 0.005), tuple(dirn), (0, 0, 1), 0.104, 0.047)], "ClothCharcoal", n=10, expo=2.6)
+    # 另一隻袖子：從肩膀落到桌面，沿著桌面斜斜地越過桌邊垂下去
+    h = 0.045
+    p0, _ = coat_surf(0.09, -0.22, top, 0.02, seed)
+    pts = [tuple(p0), (-0.36, se - 0.24, h / 2 + 0.002), (-0.43, se - 0.42, h / 2 + 0.002), (-0.46, 0.035, h / 2 + 0.002),
+           (-0.47, -0.04, -0.025), (-0.475, -0.05, -0.1)]
+    ups = [(0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1), (0, -0.7, 0.7), (0, -1, 0)]
+    coat_tube(A, "ClothSlate", pts, ups, [0.12, 0.112, 0.106, 0.102, 0.1, 0.098], h)
+    A.loft([((-0.475, -0.05, -0.085), (0, 0, -1), (0, -1, 0), 0.1, 0.047), ((-0.475, -0.051, -0.112), (0, 0, -1), (0, -1, 0), 0.1, 0.047)], "ClothCharcoal", n=10, expo=2.6)
     return A.build(col)
 
 
 def build_coat_open(col):
-    """外套攤在桌上（打開）：後片在下、兩片前片往兩邊翻開（看得到粉色的內裡），領口內側縫著一張標籤（另一個物件 CoatInnerLabel）。"""
+    """外套攤在桌上（打開）：前片往兩邊翻開，看得到粉色的內裡（後片、兩片前片各一塊，中間露出深色的縫線），
+    外面一圈是深色的門襟；下襬一樣垂出桌邊；兩隻袖子往兩邊攤開，一隻垂出桌邊。領口內側縫著一張標籤（另一個物件 CoatInnerLabel）。"""
     A = Asset("v3_coat_open")
-    _coat_body_flat(A, "ClothSlate", t=0.03)
-    A.cube((0.86, 0.4, 0.004), (0.0, 0, 0.032), "ClothRose", bevel=0.0)                 # 後片的內裡
-    for sy in (-1, 1):                                                                   # 翻開的前片（內裡朝上）
-        A.cube((0.9, 0.26, 0.012), (-0.02, sy * 0.36, 0.008), "ClothSlate", rot=(0, 0, sy * -3), bevel=0.006, taper=1.0)
-        A.cube((0.86, 0.22, 0.004), (-0.02, sy * 0.36, 0.016), "ClothRose", rot=(0, 0, sy * -3), bevel=0.0)
-        A.loft([((0.42, sy * 0.24, 0.01), (0, sy, 0), (0, 0, 1), 0.1, 0.03), ((0.4, sy * 0.43, 0.01), (0, sy, -0.05), (0, 0, 1), 0.085, 0.03)], "ClothSlate", n=10, expo=3.0)   # 袖子往兩邊
-        A.cube((0.012, 0.012, 0.01), (0.1, sy * 0.47, 0.022), "Brass", bevel=0.0)
-    A.cube((0.05, 0.2, 0.045), (0.52, 0, 0.03), "ClothSlate", bevel=0.012)
+    lift, T, seed = 0.002, 0.012, 1.9
+    W = lambda s: coat_w(s) + (0.46 if s > 0.06 else 0.46 * s / 0.06)   # 前片翻開，整片變寬
+    coat_panel(A, "ClothSlate", lambda s: (-W(s) / 2, W(s) / 2), lift, T, seed, cols=17)
+    L = lift + T + 0.0015
+    hw = lambda s: coat_w(s) / 2 - 0.025
+    coat_panel(A, "ClothRose", lambda s: (-hw(s), hw(s)), L, 0.003, seed, s0=0.05, s1=0.97, cols=9)                       # 後片內裡
+    coat_panel(A, "ClothRose", lambda s: (hw(s) + 0.035, W(s) / 2 - 0.055), L, 0.003, seed, s0=0.09, s1=0.97, cols=7)     # 前片內裡
+    coat_panel(A, "ClothRose", lambda s: (-W(s) / 2 + 0.055, -hw(s) - 0.035), L, 0.003, seed, s0=0.09, s1=0.97, cols=7)
+    top = lift + T
+    se = DRAPE_SE
+    A.loft([((x, se - 0.015 + 0.02 * (x / 0.12) ** 2, top + 0.016), (1, 0, 0), (0, 0, 1), 0.05, 0.034) for x in (-0.12, -0.04, 0.04, 0.12)], "ClothSlate", n=10, expo=2.6)
+    for i in range(4):   # 一邊門襟上的鈕扣
+        p, _ = coat_surf(0.24 + i * 0.11, W(0.24 + i * 0.11) / 2 - 0.028, top, 0.005, seed)
+        A.cyl(0.011, 0.008, tuple(p), "Brass", segs=8)
+    h = 0.04
+    # 左手邊（Blender +X）的袖子往外攤在桌上
+    pts = [(0.34, se - 0.07, h / 2 + 0.004), (0.52, se - 0.13, h / 2 + 0.002), (0.66, se - 0.26, h / 2 + 0.002), (0.74, se - 0.4, h / 2 + 0.002)]
+    coat_tube(A, "ClothSlate", pts, [(0, 0, 1)] * 4, [0.12, 0.11, 0.104, 0.1], h)
+    A.loft([((0.73, se - 0.375, h / 2 + 0.002), (0.4, -0.9, 0), (0, 0, 1), 0.104, 0.043), ((0.745, se - 0.41, h / 2 + 0.002), (0.4, -0.9, 0), (0, 0, 1), 0.104, 0.043)], "ClothCharcoal", n=10, expo=2.6)
+    # 右手邊的袖子越過桌邊垂下去
+    pts = [(-0.34, se - 0.07, h / 2 + 0.004), (-0.5, se - 0.25, h / 2 + 0.002), (-0.6, se - 0.45, h / 2 + 0.002), (-0.64, 0.035, h / 2 + 0.002),
+           (-0.65, -0.04, -0.025), (-0.655, -0.05, -0.1)]
+    ups = [(0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1), (0, -0.7, 0.7), (0, -1, 0)]
+    coat_tube(A, "ClothSlate", pts, ups, [0.12, 0.112, 0.106, 0.102, 0.1, 0.098], h)
+    A.loft([((-0.655, -0.05, -0.085), (0, 0, -1), (0, -1, 0), 0.1, 0.043), ((-0.655, -0.051, -0.112), (0, 0, -1), (0, -1, 0), 0.1, 0.043)], "ClothCharcoal", n=10, expo=2.6)
     ob = A.build(col)
-    L = Asset("CoatInnerLabel")
-    L.cube((0.12, 0.08, 0.003), (0, 0, 0), "Paper", bevel=0.0)
+    Lb = Asset("CoatInnerLabel")
+    Lb.cube((0.12, 0.08, 0.003), (0, 0, 0), "Paper", bevel=0.0)
     for k in range(4):   # 一行一行的字（深色細線，近看時由 Unity 顯示文字）
-        L.cube((0.08 - k * 0.008, 0.004, 0.0008), (-0.03 + k * 0.018, 0.0, 0.002), "ClothCharcoal", rot=(0, 0, 90), bevel=0.0)
+        Lb.cube((0.08 - k * 0.008, 0.004, 0.0008), (-0.03 + k * 0.018, 0.0, 0.002), "ClothCharcoal", rot=(0, 0, 90), bevel=0.0)
     old = bpy.data.objects.get("CoatInnerLabel")
     if old:
         bpy.data.objects.remove(old, do_unlink=True)
-    lab = L.build(col)
+    lab = Lb.build(col)
     lab.name = "CoatInnerLabel"
-    lab.location = (0.36, 0.0, 0.037)
+    p, _ = coat_surf(0.13, 0.0, L, 0.0045, seed)
+    lab.location = tuple(p)
     lab.parent = ob
     return ob
 
+
+def build_coat_folded(col):
+    """抱在手上的外套：對摺再對摺的一團（衣身、繞過來的一隻袖子、露出來的領子和兩顆鈕扣）。原點在底面中央，長邊沿 X。"""
+    A = Asset("v3_coat_folded")
+    A.loft([((x, 0, 0.06 + 0.012 * math.sin(x * 9)), (1, 0, 0), (0, 0, 1), 0.34 - 0.03 * abs(x) / 0.22, 0.12) for x in (-0.22, -0.11, 0.0, 0.11, 0.22)], "ClothSlate", n=14, expo=3.2)
+    A.loft([((x, -0.02, 0.125), (1, 0, 0), (0, 0, 1), 0.26, 0.03) for x in (-0.2, 0.0, 0.18)], "ClothSlate", n=12, expo=3.0)       # 上面摺過來的一層
+    A.loft([((0.23, 0, 0.07), (0, 1, 0), (0, 0, 1), 0.06, 0.1), ((0.24, 0.0, 0.07), (0, 1, 0), (0, 0, 1), 0.06, 0.1)], "ClothSlate", n=10, expo=2.6)
+    A.cube((0.05, 0.2, 0.05), (0.25, 0, 0.11), "ClothSlate", bevel=0.012)                                                            # 領子
+    pts = [(-0.05, -0.18, 0.12), (-0.08, -0.12, 0.155), (-0.1, 0.06, 0.15), (-0.12, 0.17, 0.09)]
+    coat_tube(A, "ClothSlate", pts, [(0, -0.4, 1), (0, 0, 1), (0, 0, 1), (0, 0.6, 1)], 0.1, 0.045)                                  # 繞過來的袖子
+    A.loft([((-0.12, 0.16, 0.1), (0, 0.6, -0.8), (0, 0.8, 0.6), 0.1, 0.047), ((-0.123, 0.18, 0.075), (0, 0.6, -0.8), (0, 0.8, 0.6), 0.1, 0.047)], "ClothCharcoal", n=10, expo=2.6)
+    for i in range(2):
+        A.cyl(0.011, 0.008, (0.06 + i * 0.1, -0.03, 0.142), "Brass", segs=8)
+    return A.build(col)
 BUILDERS = [
     ("v3_shop_counter", build_counter, 2048),
     ("v3_button_cabinet", build_button_cabinet, 1024),
@@ -1036,6 +1182,7 @@ BUILDERS = [
     ("v3_shop_window", build_shop_window, 1024),
     ("v3_coat_flat", build_coat_flat, 1024),
     ("v3_coat_open", build_coat_open, 1024),
+    ("v3_coat_folded", build_coat_folded, 512),
 ]
 
 
