@@ -507,7 +507,9 @@ namespace Shepherd.Exploration.Lantern
             V2Door("店面通往走廊的門", true, 5f, 4.7f, 5.45f, 1f);
             var dining = V2Door("餐廳的門", false, 4.6f, 6.0f, 6.9f, -1f);
             // 推門（拉鋸）原型：餐廳的門像有人在另一邊抵著；門縫漏出一點會呼吸的暖光。
-            var gap = AddLight("V2DiningGapLight", LightType.Point, V2(4.2f, 1.0f, 6.45f), new Color(1f, 0.75f, 0.45f), 0.3f, 3.5f, false, LightShadows.None);
+            // 2026-11-17：原本沒有陰影、範圍 3.5 m，光穿過牆照到店面後牆，牆會跟著「呼吸」一亮一暗（使用者以為壞了）。
+            // 範圍縮到 1.8 m（碰不到店面）、加上陰影（不穿牆），效果只留在餐廳門口與走廊。
+            var gap = AddLight("V2DiningGapLight", LightType.Point, V2(4.2f, 1.0f, 6.45f), new Color(1f, 0.75f, 0.45f), 0.3f, 1.8f, false, LightShadows.Hard);
             var st = dining.gameObject.AddComponent<LanternStruggle>();
             st.Label = "餐廳的門";
             st.Door = dining;
