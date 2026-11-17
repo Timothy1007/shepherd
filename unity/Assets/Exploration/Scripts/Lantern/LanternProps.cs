@@ -168,7 +168,7 @@ namespace Shepherd.Exploration.Lantern
         {
             if (Glow == null || Solved) return;
             Glow.enabled = Highlight;
-            if (Highlight) Glow.intensity = 0.5f + 0.35f * Mathf.Sin(time * 4f);
+            if (Highlight) Glow.intensity = 0.6f;   // 固定亮度，不一閃一閃
         }
 
         public bool Check()
@@ -287,7 +287,8 @@ namespace Shepherd.Exploration.Lantern
             Holding = holding && !Done;
             if (GapLight != null)
             {
-                float breath = Loose ? 1f : 0.2f;
+                // 門縫的光只在玩家正在推的時候跟著鬆緊變化；平常固定亮度（使用者 2026-11-17：不要一直一亮一暗）。
+                float breath = Holding ? (Loose ? 1f : 0.35f) : 0.6f;
                 GapLight.intensity = Mathf.Lerp(GapLight.intensity, Done ? 1.2f : breath * (0.5f + Progress * 1.5f), 1f - Mathf.Exp(-8f * dt));
             }
             if (Done) return false;

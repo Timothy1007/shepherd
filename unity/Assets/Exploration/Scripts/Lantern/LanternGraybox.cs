@@ -687,10 +687,13 @@ namespace Shepherd.Exploration.Lantern
                     l.color = baseColor[l];
                     continue;
                 }
+                // 沒電：店裡的燈昏暗、其他房間照常，但都固定不閃（使用者 2026-11-17：店、餐廳都不要一亮一暗）。
+                bool shopCircuit = V2ShopLamps.Contains(l) || l.name == "V2CounterLight";
+                if (V2Root != null && l.transform.IsChildOf(V2Root)) { l.intensity = b * (shopCircuit ? 0.45f : 0.9f); continue; }
+                // 舊的灰盒場景（不是新房子）：異域燈照舊會閃。
                 float n = Mathf.PerlinNoise(time * 3.1f, sd);
                 float drop = Mathf.PerlinNoise(time * 0.7f, sd + 5f) > 0.78f ? 0.25f : 1f;
-                bool shopCircuit = V2ShopLamps.Contains(l) || l.name == "V2CounterLight";
-                l.intensity = b * (shopCircuit ? Mathf.Lerp(0.3f, 0.65f, n) : Mathf.Lerp(0.7f, 1.1f, n)) * drop;
+                l.intensity = b * Mathf.Lerp(0.7f, 1.1f, n) * drop;
             }
             if (hBulb != null)
             {

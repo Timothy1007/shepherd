@@ -380,9 +380,9 @@ namespace Shepherd.Exploration.Lantern
             if (lanternArm != null) lanternArm.localPosition = Vector3.Lerp(LoweredLantern, raised, ls);
             if (rightArm != null) rightArm.localPosition = Vector3.Lerp(LoweredDevice, RaisedDevice, ds);
 
-            // 光：開關時光圈平滑展開／收合；燈光輕微呼吸（不是火焰的劇烈跳動）。
+            // 光：開關時光圈平滑展開／收合；亮度固定（使用者 2026-11-17：不要呼吸燈，一亮一暗會讓整個房間跟著閃）。
             CurrentRadius = Mathf.MoveTowards(CurrentRadius, TargetRadius, dt * 9f);
-            float breathe = 1f + Mathf.Sin(time * 2.3f) * 0.03f + (Mathf.PerlinNoise(time * 1.7f, 0.3f) - 0.5f) * 0.04f;
+            const float breathe = 1f;
             float k = CurrentRadius / Mathf.Max(0.01f, Radii[RadiusIndex] * RadiusScale);
             Light.enabled = CurrentRadius > 0.01f;
             Light.intensity = 0.9f * breathe * Mathf.Clamp01(k) * Mathf.Lerp(1f, 0.35f, fb);
