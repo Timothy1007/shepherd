@@ -911,7 +911,7 @@ def build_hanging_coat(col):
         bpy.data.objects.remove(old_tag, do_unlink=True)
     tag = T.build(col)
     tag.name = "HC_CoatTag"
-    tag.location = (-0.24, -0.075, 0.79)     # 右手（Unity +X）那隻袖口下面
+    tag.location = (-0.245, -0.07, 0.71)     # 右手（Unity +X）那隻袖口下面，垂在袖口外（不卡進袖子）
     tag.parent = ob
     return ob
 
