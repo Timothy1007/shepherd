@@ -26,6 +26,10 @@ except NameError:
     ONLY = None
 
 # 借用美術風格 QA 的工具（不執行它的 run）
+# 2026-11-17 使用者：模型有點粗糙、邊緣不要白線 → 深色同色系的線、兩段倒角（轉角比較圓）、圓的東西邊數 ×1.6。
+EDGE_STYLE = globals().get("EDGE_STYLE", "dark")
+BEVEL_SEGS = globals().get("BEVEL_SEGS", 2)   # 兩段倒角有時烘焙很慢（燙衣板 38 分鐘），小東西可以設成 1
+SEG_MUL = globals().get("SEG_MUL", 1.6)
 SQA_LIBRARY_ONLY = True
 _keep_out = OUT_UNITY
 exec(open(SQA_BUILD, encoding="utf-8").read())

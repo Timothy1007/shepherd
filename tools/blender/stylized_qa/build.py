@@ -76,7 +76,7 @@ class Asset:
         faces = {f for v in verts for f in v.link_faces if all(x in vs for x in f.verts)}
         if bevel > 0:
             edges = list({e for f in faces for e in f.edges})
-            res = bmesh.ops.bevel(self.bm, geom=edges + list(vs), offset=bevel, offset_type='OFFSET', segments=1,
+            res = bmesh.ops.bevel(self.bm, geom=edges + list(vs), offset=bevel, offset_type='OFFSET', segments=int(globals().get("BEVEL_SEGS", 1)),
                                   profile=0.5, affect='EDGES', clamp_overlap=True)
             faces |= set(res.get('faces', []))
             faces = {f for f in faces if f.is_valid}
@@ -105,12 +105,14 @@ class Asset:
         return self._finish(verts, mat, self.mat(loc, rot), bevel)
 
     def cyl(self, r1, depth, loc, mat, rot=(0, 0, 0), segs=12, r2=None, bevel=0.0):
+        segs = max(segs, int(round(segs * globals().get("SEG_MUL", 1.0))))
         r = bmesh.ops.create_cone(self.bm, cap_ends=True, cap_tris=False, segments=segs, radius1=r1,
                                   radius2=r1 if r2 is None else r2, depth=depth)
         return self._finish(r['verts'], mat, self.mat(loc, rot), bevel)
 
     def lathe(self, prof, loc, mat, rot=(0, 0, 0), segs=16, mats=None, phase=0.0):
         """prof＝[(半徑, 高度), ...] 由下到上；繞 Z 軸旋轉。mats＝每一段的材質（可選）。phase＝第一個頂點的角度（度）。"""
+        segs = max(segs, int(round(segs * globals().get("SEG_MUL", 1.0))))
         rings = []
         for (rad, z) in prof:
             ring = []
@@ -264,10 +266,13 @@ def bake_material(name):
     mixao = N('ShaderNodeMix'); mixao.data_type = 'RGBA'
     L(aomr.outputs['Result'], mixao.inputs['Factor'])
     L(cavc.outputs[0], mixao.inputs['A']); L(mul2.outputs['Result'], mixao.inputs['B'])
-    # 邊緣提亮：Bevel 法線和幾何法線的差
+    # 邊緣線：Bevel 法線和幾何法線的差。
+    # 2026-11-17 使用者：不要白色的邊，改成「主色調的深色線」（木頭＝深咖啡、橘＝深橘、黃銅＝深金），不是黑線。
+    # EDGE_STYLE＝"dark"（預設，深色同色系線）／"light"（舊的提亮）。
+    edge_style = globals().get("EDGE_STYLE", "dark")
     bev = N('ShaderNodeBevel')
     bev.samples = 8
-    bev.inputs['Radius'].default_value = 0.004
+    bev.inputs['Radius'].default_value = 0.0055 if edge_style == "dark" else 0.004
     geo = N('ShaderNodeNewGeometry')
     dot = N('ShaderNodeVectorMath'); dot.operation = 'DOT_PRODUCT'
     L(bev.outputs['Normal'], dot.inputs[0]); L(geo.outputs['Normal'], dot.inputs[1])
@@ -277,6 +282,18 @@ def bake_material(name):
     emr.inputs['To Min'].default_value = edge
     emr.inputs['To Max'].default_value = 0.0
     L(dot.outputs['Value'], emr.inputs['Value'])
+    if edge_style == "dark":
+        import colorsys
+        r, g, b, _ = srgb(base)
+        hh, ss, vv = colorsys.rgb_to_hsv(r, g, b)
+        lr, lg, lb = colorsys.hsv_to_rgb(hh, min(1.0, ss * 1.15 + 0.08), vv * 0.38)   # 同色相、更飽和、更深
+        emr.inputs['To Min'].default_value = min(0.9, 0.55 + edge * 0.6)
+        line = N('ShaderNodeMix'); line.data_type = 'RGBA'; line.blend_type = 'MIX'
+        L(emr.outputs['Result'], line.inputs['Factor'])
+        L(mixao.outputs['Result'], line.inputs['A'])
+        line.inputs['B'].default_value = (lr, lg, lb, 1.0)
+        L(line.outputs['Result'], emis.inputs['Color'])
+        return m
     light = N('ShaderNodeMix'); light.data_type = 'RGBA'; light.blend_type = 'SCREEN'
     L(emr.outputs['Result'], light.inputs['Factor'])
     L(mixao.outputs['Result'], light.inputs['A'])
